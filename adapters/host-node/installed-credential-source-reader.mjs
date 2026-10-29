@@ -288,8 +288,14 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
             transportFailure:hadTransportFailure,cleanupConfirmed:retired});
         },
       });
-      if (retiring || factoryRetired) fail('InstalledSourceReaderFactoryClosed');
-      readers.add(handle);handed = true;options = undefined;
+      // An in-flight pure callback may have reentered factory retirement.
+      // Keep its SAME handle in this owner even when no caller can receive it.
+      readers.add(handle);
+      if (retiring || factoryRetired) {
+        handle.requestStop();
+        fail('InstalledSourceReaderFactoryClosed');
+      }
+      handed = true;options = undefined;
       return handle;
     } finally {if (!handed) unreturnedStop?.abort();preparing--;}
   }, retire() {

@@ -331,3 +331,39 @@ const invalidScopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver
   recoverMemberRequests: () => ({requests: [['request-cid']]}),
 };
 void [scopedRecoveryDriver, invalidScopedRecoveryDriver];
+
+// The actual Host alternatives select exactly one reader. A managed author
+// must not add a dummy legacy callback merely to satisfy the declaration.
+declare const originalSourceFields: Omit<SourceOptions,
+  'readPages' | 'providerReader' | 'listingReportCapacity'>;
+const retainedReader: InstalledRowProviderReader = {
+  read() {}, requestStop() {}, retry() {}, observe: () => ({cleanupConfirmed:false}),
+};
+const retiringFactory: NonNullable<SourceOptions['providerReader']> = {
+  capacity: providerReaderCapacity, prepare: () => retainedReader, retire: () => true,
+};
+const managedSourceOptions: SourceOptions = {...originalSourceFields,providerReader:retiringFactory};
+const advancedSourceOptions: SourceOptions = {...originalSourceFields,readPages:async () => {}};
+// @ts-expect-error Selecting both actual reader alternatives is forbidden.
+const doubledReader: SourceOptions = {...originalSourceFields,providerReader:retiringFactory,readPages:async () => {}};
+// @ts-expect-error A Source must select an actual reader, not neither one.
+const missingReader: SourceOptions = {...originalSourceFields};
+const asynchronousRetiringFactory: NonNullable<SourceOptions['providerReader']> = {
+  capacity:providerReaderCapacity,prepare:() => retainedReader,
+  // @ts-expect-error Factory retirement requires the synchronous actual Bool.
+  retire:async () => true,
+};
+function borrowOriginalPage(request: RowProviderReaderRequest) {
+  const originalGrant: ConnectorRuntimeHandle | undefined = request.originalAuthorization?.grant;
+  const accepted: number = request.consumePageWire('[{"id":9007199254740993}]');
+  void [originalGrant,accepted];
+}
+void retainInstalledHostInitializationFailure(new Error('fixture'), {
+  sourceReader:{retire:() => true},sourceProfile:source,
+});
+void retainInstalledHostInitializationFailure(new Error('fixture'), {
+  // @ts-expect-error A Promise cannot acknowledge synchronous reader retirement.
+  sourceReader:{retire:async () => true},
+});
+void [managedSourceOptions,advancedSourceOptions,doubledReader,missingReader,
+  asynchronousRetiringFactory,borrowOriginalPage];

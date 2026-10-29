@@ -88,13 +88,34 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let readerStopRequested = false;
   let reader, readerRead, readerStop, readerObserve, readerRetry;
   let readerStopPending = false, readerStopFailure;
+  let failedFactory, failedFactoryRetire, failedFactoryRetired = false;
   const readerRetired = () => {
+    if (closed) return true;
+    if (failedFactoryRetire !== undefined) return failedFactoryRetired && !readerStopPending;
     if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
     // This is the same trusted reader's observation, not a packet Bool, the
     // read Promise's settlement, or the credential Site's close result.
     return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
   };
+  function retireFailedFactory() {
+    if (failedFactoryRetired || readerStopPending) return;
+    readerStopRequested = true;
+    try {
+      const returned = Reflect.apply(failedFactoryRetire, failedFactory, []);
+      if (returned === true) { failedFactoryRetired = true; return; }
+      const then = returned?.then;
+      if (typeof then === 'function') {
+        // Join the SAME unexpected computation, but its settlement cannot
+        // replace the factory's synchronous retirement acknowledgement.
+        readerStopPending = true;
+        const pending = new Promise((resolve, reject) => Reflect.apply(then, returned, [resolve, reject]));
+        void pending.then(() => { readerStopPending = false; },
+          error => { readerStopFailure = error; readerStopPending = false; });
+      }
+    } catch (error) { readerStopFailure = error; }
+  }
   const stopReader = () => {
+    if (failedFactoryRetire !== undefined) { retireFailedFactory(); return; }
     if (readerStop === undefined || readerStopPending) return;
     const retrying = readerStopRequested;
     if (retrying && (readerRetry === undefined || readerRetired())) return;
@@ -122,23 +143,30 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
+    failedFactory = failedFactoryRetire = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
   // The trusted installation supplies a pure reader preparer, never a public
   // Run packet. Install the same-acquisition Core borrow before entering it;
   // even a throwing factory/getter leaves that original reservation pending.
-  async function readProvider({prepare, receiver, options}) {
+  async function readProvider({prepare, receiver, options, retire}) {
     const verifyRead = options?.verifyRead, signal = options?.signal;
     if (providerCapacity === undefined || typeof prepare !== 'function' ||
-        typeof verifyRead !== 'function') {
+        typeof verifyRead !== 'function' || retire !== undefined && typeof retire !== 'function') {
       fail('InstalledProviderSourceUnavailable');
     }
     if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
     readerPrepared = true;
     const borrow = checked(moon.clientProgramRowSourceBorrowResponses(run, acquisition));
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
-    reader = Reflect.apply(prepare, receiver, [options]);
+    try { reader = Reflect.apply(prepare, receiver, [options]); }
+    catch (cause) {
+      // No reader was handed out. Its SAME factory still owns any in-flight
+      // preparation callbacks; only that original retirement can clear them.
+      failedFactory = receiver; failedFactoryRetire = retire;
+      throw cause;
+    }
     if (typeof reader?.then === 'function') {
       // Preparation must be synchronous and I/O-free. An accidental async
       // factory is never adopted later, but its rejection must still be handled.

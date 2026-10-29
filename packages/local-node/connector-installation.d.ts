@@ -231,6 +231,8 @@ export interface RowPageRequest {
   chargePage(body: Uint8Array): ConnectorRuntimeHandle;
   consumePage(rows: readonly ConnectorJsonObject[],
     admission?: Readonly<{charge?: ConnectorRuntimeHandle}>): number;
+  consumePageWire(wire: string,
+    admission?: Readonly<{charge?: ConnectorRuntimeHandle}>): number;
 }
 export interface InstalledConnectorBinding {
   readonly connectorId: string;
@@ -239,6 +241,8 @@ export interface InstalledConnectorBinding {
 /** Host-private originals passed to one I/O-free installed reader preparer. */
 export interface RowProviderReaderRequest extends RowPageRequest {
   readonly requestWire: string;
+  /** Present for the selected Credential read; retain the original grant. */
+  readonly originalAuthorization?: CredentialGrant;
   readonly rowRun: Readonly<{
     acquisition: ConnectorRuntimeHandle;
     run: ConnectorRuntimeHandle;
@@ -254,6 +258,8 @@ export interface RowProviderReaderRequest extends RowPageRequest {
 export interface InstalledRowProviderReader {
   read(): Awaitable<unknown>;
   requestStop(): Awaitable<void>;
+  /** Retry the SAME cleanup only; never another read or send. */
+  retry?(): Awaitable<void>;
   observe(): Readonly<{cleanupConfirmed: boolean}>;
 }
 /** The installed Host owns preparation and execution through this object. */
@@ -279,21 +285,29 @@ export declare function createInstalledRowSource(options: Readonly<{
   authorization: InstallationAuthorization;
   readOperation: string;
   physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;
-  readPages: (request: RowPageRequest) => Awaitable<unknown>;
   bindingCid: string;
   limits: RowSourceLimits;
   /** Trusted target-bound ExecutionCapacity declaration from the selected
    * Core runtime. Not a grant; the original Source Ledger must reserve it
    * before additional report allocations or page I/O. No numeric default. */
   listingReportCapacity?: ConnectorRuntimeHandle;
-  /** Supplemental ordinary reader selection, mutually exclusive with listing
-   * reports. DATA only: same-runtime Core planning/reservation and original
-   * physical/caller retirement are independently required. No fallback. */
-  providerReader?: Readonly<{
-    capacity: ConnectorRuntimeHandle;
-    prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;
-  }>;
-}>): Promise<InstalledRowSource>;
+}> & (
+  | Readonly<{
+    readPages: (request: RowPageRequest) => Awaitable<unknown>;
+    providerReader?: never;
+  }>
+  | Readonly<{
+    readPages?: never;
+    listingReportCapacity?: never;
+    /** Same-runtime Core planning/reservation and original physical/caller
+     * retirement remain required. Select this original factory, no fallback. */
+    providerReader: Readonly<{
+      capacity: ConnectorRuntimeHandle;
+      prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;
+      retire?(): boolean;
+    }>;
+  }>
+)): Promise<InstalledRowSource>;
 
 export type RowEffectKind = 'create' | 'update' | 'upsert' | 'delete' | 'command';
 export type RowEffectMappingKind = Exclude<RowEffectKind, 'command'>;
@@ -526,6 +540,8 @@ export declare function retainInstalledHostInitializationFailure(cause: unknown,
     store?: InstallationCloseOwner;
     checkpoints?: InstallationCloseOwner & {stop(): Awaitable<unknown>};
     dispatchOwner?: {drain(): Awaitable<unknown>};
+    /** The SAME factory retires before its Site; only synchronous true is ACK. */
+    sourceReader?: Readonly<{retire(): boolean}>;
     sourceProfile?: InstallationCloseOwner;
     installedEffect?: InstallationCloseOwner;
   }>): Promise<InstallationFailure>;
