@@ -331,3 +331,56 @@ for (const connector of ['github', 'sheets']) {
     assert.equal(result.connection, legacy.connection);
   });
 }
+
+// The real existing recovery loop and entry/order comparators, with an explicit
+// authenticated-capture DATA port. This is not capture authentication, a real
+// Run/Ledger/Store, or physical provider qualification.
+test('standard cold recovery uses saved original requests without calling the provider mapping again', () => {
+  const selected = name => {
+    const matches = [];
+    const visit = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id.name === name) matches.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    };
+    visit(rowTree); assert.equal(matches.length, 1, name);
+    return rowSource.slice(matches[0].start, matches[0].end);
+  };
+  let mappings = 0;
+  const write = declaration({request() {mappings++; return {path: '/records', body: '{"name":"original"}'};}});
+  const driver = deriveInstalledRowWrite(write, 'fixture');
+  const originalMember = Object.freeze({kind: 'create', resource: 'records', effectId: 'create'});
+  const value = {name: 'original'}, prepared = driver.prepareRequest({member: originalMember, value});
+  assert.equal(mappings, 1);
+  const owner = {owned: driver};
+  const ownerOf = member => {assert.equal(member, originalMember); return owner;};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
+  const targeted = kind => ['update', 'upsert', 'delete'].includes(kind);
+  const ports = {singular: owner, ownerOf, resourceFields: () => ({}), fail,
+    sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
+  const recoveredEntries = Function(...Object.keys(ports), `
+    const approvedValue = ${selected('approvedValue')};
+    const sameEffectValue = ${selected('sameEffectValue')};
+    const entryOf = ${selected('entryOf')};
+    const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
+    return ${selected('recoveredEntries')};`)(...Object.values(ports));
+  // If the standard driver supplies the existing capture codec, retain its
+  // original output; a legacy driver has no such saved request material.
+  const recovery = driver.recoveryEntry?.({member: originalMember,
+    entries: [{...prepared, value}], current: undefined});
+  const durable = {connectorRecovery: recovery === undefined ? [] : [{memberIndex: 0, ...recovery}]};
+  const rowCid = `sha256:${'c'.repeat(64)}`;
+  const result = recoveredEntries({members: [originalMember],
+    body: {effects: [{effect_id: 'create', changes: [{row_preview_cid: rowCid,
+      after: {value}, target_row_identity: {content_cid: providerCid, occurrence: 0}}], row_order: [rowCid]}]},
+    durable, recorded: {members: [{claims: [{canonicalRequestCid: prepared.requestCid}]}]},
+    previewWire: 'explicit admitted Preview port', runInvocationCid: providerCid, dispatches: [boundaryCid]});
+  assert.equal(mappings, 1, 'cold restore must not re-execute request mapping or issue a new tag');
+  assert.equal(result.entries[0][0].requestCid, prepared.requestCid);
+  assert.equal(result.entries[0][0].request.body, prepared.request.body);
+  assert.deepEqual(result.entries[0][0].value, value);
+});
