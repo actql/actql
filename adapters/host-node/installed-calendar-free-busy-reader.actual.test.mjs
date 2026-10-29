@@ -46,10 +46,16 @@ function fixture({response=body(),status=200,bounds={},charged}={}){
     assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);}};
 }
 
-test('actual Calendar FreeBusy query and complete rows use one bounded shared POST',async()=>{
+test('actual Calendar FreeBusy query and complete rows use one bounded shared POST',async t=>{
   const f=fixture();
   try{
-    assert.deepEqual(await f.reader.read(),{pages:1,rowCount:2});
+    const result=await f.reader.read().catch(error=>{
+      for(let cause=error,depth=0;cause!==undefined&&depth<4;cause=cause.cause,depth++){
+        t.diagnostic(JSON.stringify({depth,name:cause.name,code:cause.code,message:cause.message}));
+      }
+      throw error;
+    });
+    assert.deepEqual(result,{pages:1,rowCount:2});
     assert.deepEqual(f.rows,expectedRows);assert.equal(f.charges.length,1);assert.equal(f.requests.length,1);
     const request=f.requests[0].operations.get(CALENDAR_FREE_BUSY_OPERATION);
     assert.equal(request.method,'POST');assert.equal(request.path,'/calendar/v3/freeBusy');
