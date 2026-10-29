@@ -88,6 +88,27 @@ pub fn client_program_reserve_request_snapshot(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestNativeProgramInput")
+pub fn client_program_prepare_request_native_program_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  captured : NativeJsonValue,
+  limits : @stage_syntax.Limits,
+) -> Result[
+  @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_native_program_input(
+    parent, input, captured, native_json_reader, limits,
+  )
+}
+
+///|
 #export_name("clientProgramParseRequestQuerySyntax")
 pub fn client_program_parse_request_query_syntax(
   parent : @client_local_host.ClientRequestPreparation[

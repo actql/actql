@@ -65,8 +65,13 @@ fn Parser::normalize_key(self : Parser) -> Bool {
   if !self.normalize_text {
     return false
   }
-  let path = self.path
-  if !self.effect_literal_keys || path.length() < 8 {
+  !self.effect_literal_keys || program_json_normalizes_key(self.path)
+}
+
+///|
+// Shared by textual and already captured native Program inputs.
+fn program_json_normalizes_key(path : Array[PathSegment]) -> Bool {
+  if path.length() < 8 {
     return true
   }
   guard path[0] is Key("stages") &&

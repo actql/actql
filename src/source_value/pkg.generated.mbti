@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn[T] admit_captured_json(T, JsonDataReader[T], ParseLimits, program_keys? : Bool, source_path? : String) -> Result[ParsedSource, ParseError]
+
 pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseControlIssue]
 
 pub fn advance_json_source_preflight(JsonSourcePreflight, Int) -> Result[JsonSourcePreflightPoll, JsonSourcePreflightIssue]
@@ -87,6 +89,16 @@ pub(all) struct IndexedSourceDependencyExtent {
   scalar_words : Int64
   owned_utf16_units : Int64
 } derive(Eq, @debug.Debug)
+
+pub(all) struct JsonDataReader[T] {
+  kind : (T) -> Int
+  boolean : (T) -> Bool
+  number_text : (T) -> String
+  text : (T) -> String
+  keys : (T) -> FixedArray[String]
+  length : (T) -> Int
+  field : (T, String) -> T
+}
 
 #alias(JsonConstructionExtent)
 pub(all) struct JsonLiteralConstructionExtent {

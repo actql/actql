@@ -25356,6 +25356,406 @@
         }
       ],
       "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/source_value/native_json.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "45225a6379e30e25ab54cda376a82a3e06cbc70adc3a5da6ca535c31b9d5bb9e",
+      "role": "common-semantics",
+      "owner": "Existing Source value admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_json",
+          "declaration": "[ T ] admit_captured_json ( input : T , reader : JsonDataReader [ T ] , limits : ParseLimits , program_keys ? : Bool"
+        },
+        {
+          "name": "native_json_string_bytes",
+          "declaration": "native_json_string_bytes ( text : String ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_json",
+            "native_json_string_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/source_value/native_json_js_wbtest.mbt",
+                "anchor": "test \"native captured input retains"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/stage_syntax/native_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e100a5d1b8986deeebf92dc893f4745d63ff844fcb4365957dee50c04749c9d1",
+      "role": "common-semantics",
+      "owner": "Existing Program structural admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_program_input",
+          "declaration": "[ T ] admit_captured_program_input ( input : T , reader : @ source . JsonDataReader [ T ] , limits : Limits , ) - > Result [ ParsedProgramInput , SyntaxError ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_program_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "75340908ab7c10664a28a363034e256c0b514fba3a31b6e02d7e1ed0e29219f4",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_native_program_input",
+          "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "request_native_input_units",
+          "declaration": "request_native_input_units ( units : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_native_program_input",
+            "request_native_input_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/connectors_builtin_node/client_native_snapshot_reader.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1186e45e0c6c8340a9c74508b6b2ae389688d098009c0ab12493c79d9dd6b044",
+      "role": "common-semantics",
+      "owner": "Existing Node representation adapter",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_json_bool",
+          "declaration": "native_json_bool ( value : NativeJsonValue ) - > Bool"
+        },
+        {
+          "name": "native_json_field",
+          "declaration": "native_json_field ( value : NativeJsonValue , key : String , ) - > NativeJsonValue"
+        },
+        {
+          "name": "native_json_keys",
+          "declaration": "native_json_keys ( value : NativeJsonValue ) - > FixedArray [ String ]"
+        },
+        {
+          "name": "native_json_kind",
+          "declaration": "native_json_kind ( value : NativeJsonValue ) - > Int"
+        },
+        {
+          "name": "native_json_length",
+          "declaration": "native_json_length ( value : NativeJsonValue ) - > Int"
+        },
+        {
+          "name": "native_json_number_text",
+          "declaration": "native_json_number_text ( value : NativeJsonValue ) - > String"
+        },
+        {
+          "name": "native_json_text",
+          "declaration": "native_json_text ( value : NativeJsonValue ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_json_bool",
+            "native_json_field",
+            "native_json_keys",
+            "native_json_kind",
+            "native_json_length",
+            "native_json_number_text",
+            "native_json_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_native_snapshot_reader_wbtest.mbt",
+                "anchor": "test \"actual Node captured reader"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
     }
   ]
 }

@@ -25,6 +25,38 @@ Installed contract originals contain validated immutable contract data. They
 do not issue resources or permit dispatch. Request originals, installed
 contracts and resource children are separate identities.
 
+## Captured native Program input
+
+The normal Node representation reader projects DATA from the SDK's detached
+snapshot. Its own property descriptors never invoke a source getter again. All
+JavaScript representation operations remain in the Node package; Source and
+Program admission stay portable. This is an internal representation adapter,
+not another connector authoring interface, Resource owner or admission proof.
+
+The existing Source Owner constructs one source tree while measuring its byte,
+node and depth bounds. It shares the original parser's Program-key decision,
+including the root-anchored Effect literal-key exceptions. Parameter/value DATA
+keys remain literal. Each Number uses the existing scalar-domain conversion;
+there is no second whole-input serializer or parser. In particular, the native
+snapshot's rounded numeric value is used rather than an obsolete rawJSON token.
+Native input has no authored textual coordinates; its spans are synthetic.
+
+The Request parent adds one input-proportional Source/index expansion on its
+original capacity before construction. Its bound comes from the same SDK
+traversal's observed envelope, using the existing Source/index representation
+recipes and shared tariff. The key inventory uses the observed envelope even
+when a tighter node policy will reject, because enumerating an original object
+retains all its keys. No policy-wide buffer, per-node current callback or second
+Ledger is introduced. Fixed reader/call frames remain trusted Host overhead.
+
+The existing Program controller retains that index and continues through its
+ordinary structural decoder and checker. The original reservation, spent work,
+input identity and cleanup remain with the same Request. A failed expansion or
+typed admission is terminal for that preparation; cleanup does not recreate the
+input or acknowledge unrelated physical children. This representation adapter
+does not by itself enable every ordinary Node body/Parameters/options consumer
+or establish complete work accounting or physical backing.
+
 ## Native SDK snapshot handoff
 
 The SDK remains the single owner of native JSON snapshot semantics. The Host
