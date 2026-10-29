@@ -6055,6 +6055,10 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "GitHub standard declaration forwards original logical request and late stamp DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "GitHub normal stamped declaration finalizes original key bytes and restores without encoding"
               }
             ]
           }
