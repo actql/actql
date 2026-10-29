@@ -260,15 +260,19 @@ export function beginInstalledSourceInitialization(services, installation, conne
     // callback can replace the caller's authored fields.
     const snapshot = [];
     const allowed = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',
-      'request_schema_wire', 'facts_wire', 'acquisition_wire'];
+      'request_schema_wire', 'facts_wire', 'acquisition_wire',
+      'data_classification', 'resource_identity_wire'];
     for (let i = 0; i < views.length; i++) {
       const view = Object.getOwnPropertyDescriptor(views, String(i))?.value;
       if (!view || nodeTypes.isProxy(view)) fail('InvalidInstalledSourceDeclarationViews');
       const fields = Object.getOwnPropertyDescriptors(view);
       const selected = {};
       for (const name of Reflect.ownKeys(fields)) {
-        if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value') ||
-            typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
+        if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value')) fail('InvalidInstalledSourceDeclarationViews');
+        // Preserve the existing JSON.stringify omission rule. Common alone
+        // decides required fields and optional classification/identity law.
+        if (fields[name].value === undefined) continue;
+        if (typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
         units += BigInt(name.length + fields[name].value.length);
         selected[name] = fields[name].value;
       }
