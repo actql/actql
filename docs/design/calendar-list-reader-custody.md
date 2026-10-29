@@ -127,8 +127,9 @@ occurrence is retained; no deduplication, sorting, clipping or key is invented.
 The vendor RFC3339 reader admits explicit offsets and exact fractional seconds,
 then uses existing Common timestamp conversion to represent the same UTC
 instant. It rejects invalid dates, unknown `-00:00` offsets and instants that
-cannot be represented by the current millisecond timestamp contract, including
-nonzero sub-millisecond precision. It does not round, use a local time zone, or
+cannot be represented by the current exact timestamp contract, including
+nonzero precision beyond nanoseconds. Canonical UTC output retains three to nine
+fractional digits, preserving finer instants without millisecond projection. It does not round, use a local time zone, or
 change the general language's temporal semantics. A page retains the same
 opaque query and original response digest; physical equality of that query is
 available separately from byte-equal query content. Neither equality nor the

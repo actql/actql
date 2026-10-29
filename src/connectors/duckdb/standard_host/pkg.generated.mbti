@@ -9,32 +9,36 @@ import {
   "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
-  "actql/actql/physical_host",
+  "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
+pub fn bind_strategy_dispatch(@physical_strategy_host.CapturedDAG, StrategyDispatchPreparation) -> Result[StrategyHostDispatch, DispatchIssue]
+
 pub fn commit_dispatch_offline_policy_choice(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
 
-pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
+pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy_host.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
 
-pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits, local_eligible? : Array[Bool]) -> Result[Unit, DispatchIssue]
+pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy_host.SearchLimits, local_eligible? : Array[Bool]) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_local_retained_output(StrategyHostDispatch, @local.LocalImportLimits, @local.LocalExportLimits, Int64?) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_retained_output(StrategyHostDispatch, Int64, Int64?) -> Result[Unit, DispatchIssue]
 
-pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.ResidentProfile, Array[Array[@physical_cost.WorkRate]]) -> Result[Unit, DispatchIssue]
+pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy_host.ResidentProfile, Array[Array[@physical_cost.WorkRate]]) -> Result[Unit, DispatchIssue]
 
-pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
+pub fn configure_strategy_dispatch(@physical_strategy_host.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
 
 pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
-pub fn dispatch_excluded_realizations(StrategyHostDispatch, Int) -> Result[Array[(Int, String, String)], @physical_host.ComputeDiagnosticsIssue]
+pub fn dispatch_excluded_realizations(StrategyHostDispatch, Int) -> Result[Array[(Int, String, String)], @physical_host_dispatch.ComputeDiagnosticsIssue]
 
 pub fn dispatch_has_estimates(StrategyHostDispatch) -> Bool
 
-pub fn dispatch_installation(StrategyHostDispatch) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn dispatch_installation(StrategyHostDispatch) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn dispatch_is_resident(TaskDispatch) -> Bool
 
@@ -44,9 +48,9 @@ pub fn dispatch_module_keys(StrategyHostDispatch) -> Array[String]
 
 pub fn dispatch_offline_policy_position(StrategyHostDispatch) -> Result[Int?, DispatchIssue]
 
-pub fn dispatch_policy_candidates(StrategyHostDispatch) -> @physical_strategy.PolicyCandidateSet?
+pub fn dispatch_policy_candidates(StrategyHostDispatch) -> @physical_strategy_host.PolicyCandidateSet?
 
-pub fn dispatch_policy_search_diagnostics(StrategyHostDispatch) -> @physical_strategy.StrategySearchDiagnostics?
+pub fn dispatch_policy_search_diagnostics(StrategyHostDispatch) -> @physical_strategy_host.StrategySearchDiagnostics?
 
 pub fn dispatch_registration(TaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
@@ -54,29 +58,33 @@ pub fn dispatch_resident_inputs(StrategyHostDispatch, Int) -> Array[(Int, Int64,
 
 pub fn dispatch_resource_binding(TaskDispatch) -> @connector_sdk.ResourceBinding?
 
-pub fn dispatch_run(StrategyHostDispatch) -> @physical_strategy.CapturedDAG
+pub fn dispatch_run(StrategyHostDispatch) -> @physical_strategy_host.CapturedDAG
 
 pub fn dispatch_task(TaskDispatch) -> Int
 
 pub fn execute_synchronous_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
 
-pub fn prepare_dispatch_local_offer(StrategyHostDispatch, Int, Int64?) -> Result[@physical_strategy.TaskOffer, DispatchIssue]
+pub fn prepare_dispatch_local_offer(StrategyHostDispatch, Int, Int64?) -> Result[@physical_strategy_host.TaskOffer, DispatchIssue]
 
 pub fn prepare_dispatch_policy_choice(StrategyHostDispatch) -> Result[Bool, DispatchIssue]
 
-pub fn prepare_dispatch_policy_request(StrategyHostDispatch, String, String, String, Int64, Int64) -> Result[@physical_strategy.PolicyRequest, DispatchIssue]
+pub fn prepare_dispatch_policy_request(StrategyHostDispatch, String, String, String, Int64, Int64) -> Result[@physical_strategy_host.PolicyRequest, DispatchIssue]
 
 pub fn prepare_next_dispatch(StrategyHostDispatch) -> Result[TaskDispatch?, DispatchIssue]
+
+pub fn prepare_strategy_dispatch(@physical_strategy.CheckedDAG, @physical_resources.Ledger, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits, local_retained_output? : (@local.LocalImportLimits, @local.LocalExportLimits, Int64?)?, native_retained_output? : (Int64, Int64?)?) -> Result[StrategyDispatchPreparation, DispatchIssue]
 
 pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
 
 pub fn stop_strategy_dispatch(StrategyHostDispatch) -> Unit
 
+pub fn strategy_dispatch_preparation_local_capacity(StrategyDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
+
 pub fn take_local_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/local/driver.LocalDispatchOperations, DispatchIssue]
 
 pub fn take_native_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration, DispatchIssue]
 
-pub fn validate_dispatch_policy_request(StrategyHostDispatch, @physical_strategy.PolicyRequest, Int64) -> Result[Unit, DispatchIssue]
+pub fn validate_dispatch_policy_request(StrategyHostDispatch, @physical_strategy_host.PolicyRequest, Int64) -> Result[Unit, DispatchIssue]
 
 // Errors
 
@@ -84,7 +92,7 @@ pub fn validate_dispatch_policy_request(StrategyHostDispatch, @physical_strategy
 pub(all) struct DispatchEstimateProfile {
   local_rates : Array[@physical_cost.WorkRate]
   native_rates : Array[@physical_cost.WorkRate]
-  native_capacity : @physical_strategy.PhysicalEnvelope
+  native_capacity : @physical_strategy_host.PhysicalEnvelope
   output_rows_per_mille : Int?
 }
 
@@ -94,13 +102,15 @@ pub(all) enum DispatchIssue {
   ForeignSelection
   PendingTask
   StaleTask
-  Run(@physical_strategy.RunIssue)
+  Run(@physical_strategy_host.RunIssue)
   Candidate(@connector_sdk.FixedComputeIssue)
   NativeCandidate(@compute.DuckDBComputeCandidateIssue)
-  Search(@physical_strategy.SearchIssue)
+  Search(@physical_strategy_host.SearchIssue)
   EstimateOverflow
   JoinPreparation(@adapter.FixedJoinInputIssue)
 }
+
+type StrategyDispatchPreparation
 
 type StrategyHostDispatch
 

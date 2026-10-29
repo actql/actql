@@ -4,14 +4,14 @@
 /// The exact narrow closure has four leaf-only arithmetic graphs of sizes
 /// 0,1,1,2 (evidence, Values, byte publication, row publication), no edges.
 priv struct ClosedValuesGraphControlLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
 fn closed_values_leaf_graph_layout(
   nodes : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if nodes < 0 || nodes > 2 {
     return None
   }
@@ -21,7 +21,7 @@ fn closed_values_leaf_graph_layout(
   // identities, checked values/units/leaves; boxed arithmetic.Value per node;
   // linked index Map (constructor growth bound deliberately retained here).
   let map = closed_values_map_constructor_layout(nodes).unwrap()
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     {
       record_headers: 13L + n,
       reference_slots: 13L + 2L * cap + n,
@@ -54,21 +54,23 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
   // Some carrier even if the initial evidence collection is empty.
   // Original ContextualClosure, author guards, parameters, policy and Values
   // StepBound are borrowed. These counts do not duplicate their payloads.
-  let wrappers : PreparationRepresentationUnits = {
+  let wrappers : @execution.PreparationRepresentationUnits = {
     record_headers: 95L,
     reference_slots: 173L,
     scalar_words: 132L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([zero, one, one, two, wrappers])
+  guard @execution.compose_preparation_representation([
+      zero, one, one, two, wrappers,
+    ])
     is Some(retained) else {
     return None
   }
   // Reference resolution scratch for all four graphs: referenced+resolved
   // node arrays/records, dependents+empty per-node arrays, indegrees/ready,
   // limits and Result carriers. All leaf graph scans are iterative.
-  let arithmetic : PreparationRepresentationUnits = {
+  let arithmetic : @execution.PreparationRepresentationUnits = {
     record_headers: 68L,
     reference_slots: 92L,
     scalar_words: 128L,
@@ -79,7 +81,7 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
   // two nonempty checks add one empty child each, and the one Values witness
   // adds empty operand/name map arrays: sixteen arrays, each <=one element.
   // Cap-eight slots are charged as references conservatively for scalar slots.
-  let cycle_arrays : PreparationRepresentationUnits = {
+  let cycle_arrays : @execution.PreparationRepresentationUnits = {
     record_headers: 32L,
     reference_slots: 144L,
     scalar_words: 32L,
@@ -91,7 +93,7 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
   // The non-arithmetic constructors' limits/usage/Result packets: mixed2,
   // program2, Host1, graph1, sequence/join/traversal3, coverage3, guards1.
   // At most five scalar fields per packet; no fixed VM frame is charged.
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 13L,
     reference_slots: 0L,
     scalar_words: 65L,
@@ -103,14 +105,14 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
   // carriers across collection/coverage/guard binding. This is intentionally
   // additive even where constructor scopes do not overlap; payloads excluded.
   // Quote own unit/Option/output/array objects remain a small explicit packet.
-  let proof : PreparationRepresentationUnits = {
+  let proof : @execution.PreparationRepresentationUnits = {
     record_headers: 24L,
     reference_slots: 27L,
     scalar_words: 68L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       wrappers, arithmetic, cycle_arrays, empty, empty, empty, policy, controls,
       proof,
     ])

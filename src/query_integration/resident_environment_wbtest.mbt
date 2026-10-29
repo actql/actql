@@ -115,6 +115,11 @@ test "resident provision freezes dispatch and search until binding or close" {
   let ledger = @strategy.captured_dag_ledger(run)
   let before = @resources.ledger_usage(ledger)
   let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before.reserved_attempts + 1,
+  )
   let store = @duckdb_driver.prepare_resident_store(env)
   assert_eq(@strategy.next_captured_task(run), None)
   assert_true(
@@ -178,7 +183,13 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   // More than the holding/name bound: names and table quota must not leak.
   let planned = @resources.ledger_usage(ledger).planning_work
+  let before_blocker = @resources.ledger_usage(ledger)
   let blocker = @resources.reserve_attempt(ledger, 300000L, 0L, 0L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, before_blocker.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before_blocker.reserved_attempts + 1,
+  )
   let attempts_before_corrections = @resources.ledger_usage(ledger).attempts
   let mut stale = None
   for _ in 0..<20 {
@@ -206,6 +217,11 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   assert_true(@resources.ledger_usage(ledger).planning_work > planned)
   @resources.settle_reservation(ledger, blocker).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, before_blocker.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before_blocker.reserved_attempts,
+  )
   let table = @duckdb_driver.prepare_resident_table(
     run, store, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
@@ -229,7 +245,13 @@ test "resident provision freezes dispatch and search until binding or close" {
     is Err(Physical(InvalidCharge)),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, attempts)
+  let before_transfer = @resources.ledger_usage(ledger)
   let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, before_transfer.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before_transfer.reserved_attempts + 1,
+  )
   assert_true(
     @strategy.cancel_resident_table_preparation(run, table)
     is Err(InvalidCharge),
@@ -243,6 +265,14 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.complete_resident_transfer(run, transfer) is Err(NotReady),
   )
   @strategy.charge_resident_transfer(run, transfer, 12L).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).attempts,
+    before_transfer.attempts + 1,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before_transfer.reserved_attempts,
+  )
   @strategy.settle_resident_transfer(run, transfer, false).unwrap()
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(Busy),
@@ -317,7 +347,11 @@ test "resident provision freezes dispatch and search until binding or close" {
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes,
   )
-  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 3)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    before.reserved_attempts,
+  )
   // Correction is possible after genuine environment loss, with the history
   // and planning work intact. There is no implicit retry of a started task.
   assert_true(

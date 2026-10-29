@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {dirname, relative} from 'node:path';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {sequenceIdentityOracle} from './sequence-identity-oracle.mjs';
 import {canonicalText, generateTests} from './check-canonical-json.mjs';
 import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
 import {expectedCompilationManifests,
@@ -262,6 +263,7 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   // The later division extension retains this entire accepted predecessor;
   // its own full-body/pin proof closes the new identity separately.
   const divisionPredecessor = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/decimal-division-exact/predecessor.json.gz')));
+  assert.equal(divisionPredecessor.source, '2d59f72f7ef3d288415e93db445146b1a2d48847');
   const currentManifest = divisionPredecessor.bodies['spec/manifests/actql-grammar-0.1.json'];
   const expression = JSON.parse(gunzipSync(readFileSync(
     'scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz'))).expressionContract;
@@ -299,8 +301,10 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   assert.equal(machineCid(expression.body), expression.cid);
   assert.equal(currentManifest.expression_contract_cid, machineCid(currentExpression));
   assert.equal(currentManifest.expression_text_grammar_sha256, currentExpression.grammar_sha256);
-  // This predecessor binds retained grammar bytes, not a later annotation.
-  assert.equal(sha(readFileSync('scripts/fixtures/signed-source-zero-grammar/division-predecessor-expression.ebnf')).slice(7), currentExpression.grammar_sha256);
+  // This retained transition binds its own grammar bytes, not later live extensions.
+  const historicalGrammar = readFileSync(
+    'scripts/fixtures/decimal-division-exact/expression-predecessor.ebnf');
+  assert.equal(sha(historicalGrammar).slice(7), currentExpression.grammar_sha256);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
     'query_text_rules_sha256', 'expression_text_rules_sha256',
@@ -367,6 +371,9 @@ test('current manifest metadata and canonical fixtures bind the complete documen
 });
 
 test('signed-source-zero note preserves productions and the complete original identity transition', () => {
+  // This exact transition belongs to its admitted public source. Current
+  // selected contracts remain checked by the independent current oracle below.
+  const read = path => JSON.parse(execFileSync('git', ['show', `7d6c74baa222df78621b3f41d82f92ff7b369b0a:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
   const transition = read('scripts/fixtures/signed-source-zero-grammar/identity-transition.json');
   assert.equal(transition.source_commit, 'dbe458ba94ffd4e4693592abf7540a9b2a1b88e6');
   assert.equal(transition.source_tree, '1debbdb7f02cdbcb0136b278328235d32bc4d246');
@@ -456,6 +463,9 @@ test('signed-source-zero note preserves productions and the complete original id
   assert.notDeepEqual(before.sequence_values.grammar, before.grammar_manifest);
   assert.notEqual(before.sequence_values.run_preimages.run.run_definition_cid,
     after.sequence_values.run_preimages.run.run_definition_cid);
+  const current = sequenceIdentityOracle();
+  assert.deepEqual(current, JSON.parse(readFileSync('scripts/fixtures/current-sequence-values-identities.json', 'utf8')));
+  assert.deepEqual(current.grammar, JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8')));
 });
 
 test('inference barrier binds the existing model Plan and adjacent fragment', () => {

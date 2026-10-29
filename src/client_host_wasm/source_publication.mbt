@@ -21,7 +21,6 @@ priv struct StoredRunInvocation {
 }
 
 ///|
-#export_name("actql_source_publication_reserve")
 pub fn reserve_source_publication(
   nonce : Int64,
   compute : Int,
@@ -108,7 +107,6 @@ fn reserve_run_invocation_output(
 }
 
 ///|
-#export_name("actql_source_publication_prepare")
 pub fn prepare_source_publication(
   nonce : Int64,
   handle : Int,
@@ -160,7 +158,9 @@ pub fn prepare_source_publication(
     required_int32(object, "max_workspace_slots") is Some(max_workspace_slots) else {
     return -31
   }
-  let limits = result_export_limits()
+  guard @local_run.local_compute_wasm_publication_limits(host) is Some(limits) else {
+    return -4
+  }
   record.pending = true
   let preparation = @local_run.prepare_local_source_publication(
     configuration,
@@ -188,7 +188,6 @@ pub fn prepare_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_advance")
 pub fn advance_source_publication(
   nonce : Int64,
   handle : Int,
@@ -219,7 +218,6 @@ pub fn advance_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_progress")
 pub fn source_publication_progress(
   nonce : Int64,
   handle : Int,
@@ -243,7 +241,6 @@ pub fn source_publication_progress(
 }
 
 ///|
-#export_name("actql_source_publication_finish")
 pub fn finish_source_publication(
   nonce : Int64,
   handle : Int,
@@ -332,7 +329,6 @@ pub fn finish_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_length")
 pub fn source_publication_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&
@@ -354,7 +350,6 @@ fn run_invocation_length(value : Instance, record : StoredRunInvocation) -> Int 
 }
 
 ///|
-#export_name("actql_source_publication_close")
 pub fn close_source_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&

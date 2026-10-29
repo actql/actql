@@ -3,8 +3,10 @@ package "actql/actql/stage_local_inputs"
 
 import {
   "actql/actql/check_environment",
+  "actql/actql/decode_shape",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
+  "actql/actql/local_source_ref",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
   "actql/actql/sourceview_input",
@@ -15,6 +17,8 @@ import {
 }
 
 // Values
+pub fn advance_local_environment_preparation(LocalEnvironmentPreparation) -> LocalEnvironmentPhase
+
 pub fn assemble_environment(@stage_parameters.Source, @check_environment.WireEnvironment, Array[EnvironmentInputs], Limits) -> Result[ProgramEnvironmentInputs, ProgramEnvironmentIssue]
 
 pub fn attach(Prepared, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[Attached, Issue]
@@ -27,11 +31,15 @@ pub fn attached_stage(Attached) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(Attached) -> Int
 
+pub fn begin_local_environment_preparation(@stage_parameters.Source, @check_environment.WireEnvironment, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[LocalEnvironmentPreparation, PrepareEnvironmentIssue]
+
 pub fn bound_input(SnapshotBinding) -> @stage_source_refs.ResolvedInput
 
 pub fn bound_schema(SnapshotBinding) -> @local_relation_input.SchemaAgreement
 
 pub fn bound_snapshot(SnapshotBinding) -> @local_relation_snapshot.Snapshot
+
+pub fn clear_local_environment_preparation(LocalEnvironmentPreparation) -> Unit
 
 pub fn count(Prepared) -> Int
 
@@ -52,6 +60,114 @@ pub fn environment_usage(EnvironmentInputs) -> Usage
 pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironment
+
+pub fn local_environment_groups_construction(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn local_environment_groups_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_groups_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_groups_work_bound(LocalEnvironmentPreparation) -> Int?
+
+pub fn local_environment_index_construction(LocalEnvironmentPreparation) -> @stage_source_refs.IndexConstructionInventory?
+
+pub fn local_environment_index_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_driver_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_inspection_bound(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_index_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_inspection_work(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_index_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_work_bound(LocalEnvironmentPreparation) -> Int?
+
+pub fn local_environment_preparation_failure_phase(LocalEnvironmentPreparation) -> LocalEnvironmentPhase?
+
+pub fn local_environment_preparation_groups_work(LocalEnvironmentPreparation) -> Int?
+
+pub fn local_environment_preparation_index_usage(LocalEnvironmentPreparation) -> @stage_source_refs.Usage?
+
+pub fn local_environment_preparation_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_preparation_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_preparation_phase(LocalEnvironmentPreparation) -> LocalEnvironmentPhase
+
+pub fn local_environment_preparation_retained_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_preparation_snapshot_emission(LocalEnvironmentPreparation) -> (Int, (Int, Int, Int)?)?
+
+pub fn local_environment_preparation_usage(LocalEnvironmentPreparation) -> Usage?
+
+pub fn local_environment_snapshot_batch_body_construction(LocalEnvironmentPreparation) -> @local_relation_snapshot.MemberReadConstructionInventory?
+
+pub fn local_environment_snapshot_batch_inspection_bound(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_snapshot_batch_inspection_extent(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn local_environment_snapshot_batch_retained_extent(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn local_environment_snapshot_construction_geometry(LocalEnvironmentPreparation) -> (Int, Int, Int)?
+
+pub fn local_environment_snapshot_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_construction_limits(LocalEnvironmentPreparation) -> @local_relation_snapshot.Limits?
+
+pub fn local_environment_snapshot_construction_metadata_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_construction_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_reference_construction(LocalEnvironmentPreparation) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
+
+pub fn local_environment_snapshot_reference_inspection_bound(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_snapshot_reference_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_reference_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_selector_construction(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn local_environment_snapshot_text_construction(LocalEnvironmentPreparation) -> @check_environment.RegistryConstructionExtent?
+
+pub fn local_environment_snapshot_work_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshots_work_bound(LocalEnvironmentPreparation) -> Int?
+
+pub fn local_environment_tail_construction(LocalEnvironmentPreparation) -> LocalCompletionConstructionInventory?
+
+pub fn local_environment_tail_inspection_bound(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_tail_inspection_extent(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn local_environment_tail_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_tail_work_bound(LocalEnvironmentPreparation) -> Int?
+
+pub fn local_environment_tail_work_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn observe_advance_local_environment_snapshot(LocalEnvironmentPreparation) -> (LocalEnvironmentPhase, Int?)
+
+pub fn observe_advance_local_environment_tail(LocalEnvironmentPreparation) -> (LocalEnvironmentPhase, Int?)
+
+pub fn observe_begin_local_environment_preparation(@stage_parameters.Source, @check_environment.WireEnvironment, Limits, sourceviews? : @sourceview_input.Inputs?) -> (Result[LocalEnvironmentPreparation, PrepareEnvironmentIssue], Int)
+
+pub fn observe_local_environment_index_construction(LocalEnvironmentPreparation) -> Int64?
+
+pub fn observe_local_environment_snapshot_batch_construction(LocalEnvironmentPreparation) -> @local_relation_snapshot.MemberReadConstructionInventory?
+
+pub fn observe_local_environment_snapshot_construction(LocalEnvironmentPreparation) -> (Int, Int, Int)?
+
+pub fn observe_local_environment_snapshot_reference_construction(LocalEnvironmentPreparation) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
+
+pub fn observe_local_environment_tail_construction(LocalEnvironmentPreparation) -> LocalCompletionConstructionInventory?
 
 pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 
@@ -99,6 +215,8 @@ pub fn sourceview_inputs(Prepared) -> @sourceview_input.Inputs?
 
 pub fn stage_index(Prepared) -> Int
 
+pub fn take_local_environment_preparation_result(LocalEnvironmentPreparation) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue]?
+
 pub fn usage(Prepared) -> Usage
 
 // Errors
@@ -135,6 +253,27 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 }
+
+pub(all) struct LocalCompletionConstructionInventory {
+  peak : @check_environment.RegistryConstructionExtent
+  retained : @check_environment.RegistryConstructionExtent
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalEnvironmentPhase {
+  LocalEnvironmentIndex
+  LocalEnvironmentGroups
+  LocalEnvironmentSnapshot
+  LocalEnvironmentDeclaration
+  LocalEnvironmentReconciliation
+  LocalEnvironmentAssembly
+  LocalEnvironmentComplete
+  LocalEnvironmentFailed
+  LocalEnvironmentTransferred
+  LocalEnvironmentRetired
+} derive(Eq, @debug.Debug)
+
+type LocalEnvironmentPreparation
 
 pub enum PrepareEnvironmentIssue {
   InvalidLimits

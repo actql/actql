@@ -170,7 +170,7 @@ test "physical DAG selects current MATCH before Relation filter and preserves th
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   assert_true(
     @strategy.prepare_checked_dag(program, owners, 6, 10000)
-    is Err(@strategy.TaskLimit),
+    is Err(@strategy.GraphIssue::TaskLimit),
   )
 }
 
@@ -808,7 +808,7 @@ test "physical DAG selects both branches of a same-stage equality join" {
       9,
       10000,
     )
-    is Err(@strategy.TaskLimit),
+    is Err(@strategy.GraphIssue::TaskLimit),
   )
 }
 
@@ -857,7 +857,7 @@ test "physical DAG admits Carrier segmentation before allocation" {
   let required = @strategy.graph_task_count(expanded)
   assert_true(
     @strategy.prepare_checked_dag(program, owners, required - 1, 10000)
-    is Err(@strategy.TaskLimit),
+    is Err(@strategy.GraphIssue::TaskLimit),
   )
   assert_true(
     @strategy.expand_internal_carrier_tasks(expanded, required - 1, 10000)
@@ -867,6 +867,7 @@ test "physical DAG admits Carrier segmentation before allocation" {
 
 ///|
 fn captured_graph_fixture(
+  duplicate_capture? : Ref[@strategy.CapturedDAG?]? = None,
   checked_program? : @program_check.CheckedProgram? = None,
   dag_two_consumers_of_compute_a? : Bool = false,
   count? : Bool = false,
@@ -1079,10 +1080,18 @@ fn captured_graph_fixture(
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
     ).unwrap()
   })
-  (
-    @strategy.open_captured_dag(graph, source, ledger, supplied~).unwrap(),
-    issuer,
-  )
+  let captured = @strategy.open_captured_dag(graph, source, ledger, supplied~).unwrap()
+  // Test-only second Run retains the SAME checked graph and captured source,
+  // but has an independent physical Owner. It grants no production constructor.
+  if duplicate_capture is Some(destination) {
+    let second_ledger = @resources.create_ledger(
+      @resources.ledger_limits(ledger),
+    ).unwrap()
+    destination.val = Some(
+      @strategy.open_captured_dag(graph, source, second_ledger, supplied~).unwrap(),
+    )
+  }
+  (captured, issuer)
 }
 
 ///|

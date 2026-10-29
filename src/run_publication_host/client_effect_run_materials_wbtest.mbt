@@ -221,7 +221,7 @@ test "acquired Effect run materials retain the original two-task graph" {
     #|{"version":"actql/0.1","id":"acquired-effect-materials","stages":[{"id":"source","inputs":{"table":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"source","result":"rows"}}},"steps":[{"derive":{"value":{"literal":1}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"answer":{"from":{"stage":"apply","result":"out"}}}}
   let environment = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
+    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

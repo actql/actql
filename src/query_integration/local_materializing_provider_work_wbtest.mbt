@@ -72,6 +72,7 @@ fn provider_work_attempt(
     Some(transform) => {
       let provider = @local_connector.local_module_managed_provider(
         implementation,
+        0,
         task_test_generated(owner),
       ).unwrap()
       @local_connector.prepare_local_compute_module(

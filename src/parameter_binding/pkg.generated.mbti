@@ -2,7 +2,9 @@
 package "actql/actql/parameter_binding"
 
 import {
+  "actql/actql/canonical_value",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -12,9 +14,37 @@ import {
 }
 
 // Values
+pub fn advance_binding_read(BindingReadInput) -> Unit
+
+pub fn advance_declaration_read(DeclarationReadInput) -> Unit
+
 pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]
 
+pub fn binding_header_construction_extent(BindingReadInput, Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn binding_preflight_construction_inventory(BindingReadInput) -> DeclarationPreflightConstructionInventory?
+
+pub fn binding_read_construction_inventory(BindingReadInput) -> BindingReadConstructionInventory?
+
+pub fn binding_read_construction_maximum_work(BindingReadInput) -> Int64?
+
+pub fn binding_read_construction_work(BindingReadInput) -> Int64?
+
+pub fn binding_read_current_construction(BindingReadInput) -> BindingReadConstructionFacts?
+
+pub fn binding_read_origin(BindingReadInput) -> Origin
+
+pub fn binding_read_pending_declaration(BindingReadInput) -> Declaration?
+
+pub fn binding_read_pending_source(BindingReadInput) -> @decode_core.Cursor?
+
+pub fn binding_read_phase(BindingReadInput) -> BindingReadPhase
+
+pub fn binding_selection_construction_extent(BindingReadInput) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn binding_usage(BindingResult) -> (Int, Int)
+
+pub fn binding_value_construction_inventory(BindingReadInput) -> BindingValueConstructionInventory?
 
 pub fn bound_declarations(BoundValues) -> Declarations
 
@@ -28,13 +58,39 @@ pub fn bound_value_declaration(BoundValues, Int) -> Declaration?
 
 pub fn bound_values(BoundValues) -> Array[BoundParameter]
 
+pub fn completed_binding_read(BindingReadInput, Declarations) -> Result[BindingResult, Issue]?
+
+pub fn completed_declaration_read(DeclarationReadInput, @decode_core.Cursor?) -> Result[Declarations, Issue]?
+
 pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
 
+pub fn declaration_header_construction_inventory(@decode_core.Cursor?, Int, DeclarationLimits) -> DeclarationHeaderConstructionInventory?
+
+pub fn declaration_preflight_construction_inventory(@decode_core.SubtreeConstructionGeometry, Int, DeclarationLimits) -> DeclarationPreflightConstructionInventory?
+
+pub fn declaration_read_construction_inventory(Int, Int) -> DeclarationReadConstructionInventory?
+
+pub fn declaration_read_construction_work(DeclarationReadInput) -> Int64?
+
+pub fn declaration_read_current_construction(DeclarationReadInput) -> DeclarationReadConstructionFacts?
+
+pub fn declaration_read_limits(DeclarationReadInput) -> DeclarationLimits
+
+pub fn declaration_read_pending_syntax(DeclarationReadInput) -> @value_contract.ParameterSyntax?
+
+pub fn declaration_read_phase(DeclarationReadInput) -> DeclarationReadPhase
+
+pub fn declaration_read_type_cursor(DeclarationReadInput) -> @decode_core.Cursor?
+
 pub fn declaration_source(Declaration) -> @decode_core.Cursor
 
+pub fn declaration_type_construction_inventory(DeclarationReadInput, Int) -> @value_contract.ParameterReadPhaseConstructionInventory?
+
 pub fn declaration_usage(Declarations) -> (Int, Int)
+
+pub fn declaration_value_construction_inventory(DeclarationReadInput, Int) -> DeclarationValueConstructionInventory?
 
 pub fn declarations(Declarations) -> Array[Declaration]
 
@@ -43,6 +99,10 @@ pub fn emit_declaration(Declaration, @encode_core.Writer) -> Unit raise @encode_
 pub fn emit_value_identity(BoundParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn finish_binding_read(BindingReadInput) -> Result[BindingResult, Issue]
+
+pub fn finish_declaration_read(DeclarationReadInput) -> Result[Declarations, Issue]
 
 pub fn has_default(Declaration) -> Bool
 
@@ -56,19 +116,62 @@ pub fn missing_declaration_owner(MissingNames) -> Declarations
 
 pub fn missing_names(MissingNames) -> Array[String]
 
+pub fn observe_binding_read_construction(BindingReadInput) -> Int64?
+
+pub fn observe_declaration_preflight_construction(@decode_core.Cursor?, DeclarationLimits) -> (@decode_core.SubtreeConstructionGeometry?, Int, Int64)
+
+pub fn observe_declaration_read_construction(DeclarationReadInput) -> Int64?
+
+pub fn observe_declarations(@decode_core.Cursor?, DeclarationLimits) -> (Result[Declarations, Issue], Int, Int)
+
 pub fn parameter_values_cid(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
+pub fn prepare_binding_read(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingReadInput, Issue]
+
+pub fn prepare_declaration_read(@decode_core.Cursor?, DeclarationLimits) -> (Result[DeclarationReadInput, Issue], Int, Int)
+
 pub fn read_declarations(@decode_core.Cursor?, DeclarationLimits) -> Result[Declarations, Issue]
+
+pub fn reuse_binding_read(BindingReadInput, Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]?
 
 pub fn stringify_values(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 // Errors
 
 // Types and methods
+pub(all) struct BindingReadConstructionFacts {
+  declaration : Declaration
+  selected : @decode_core.Cursor?
+  provided : Bool
+  geometry : @decode_core.SubtreeConstructionGeometry?
+  depth : Int
+}
+
+pub(all) struct BindingReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
+type BindingReadInput
+
+pub(all) enum BindingReadPhase {
+  BindingHeader
+  BindingSelection
+  BindingPreflight
+  BindingValue
+  BindingComplete
+} derive(Eq, @debug.Debug)
+
 pub enum BindingResult {
   Ready(BoundValues)
   NeedsBindings(MissingNames)
 }
+
+pub(all) struct BindingValueConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  constraints : @decode_shape.CollectionConstructionExtent
+  value : @value_admission.ParameterValuePhaseConstructionInventory?
+} derive(Eq, @debug.Debug)
 
 pub struct BoundParameter {
   name : String
@@ -86,11 +189,49 @@ pub struct Declaration {
   // private fields
 }
 
+pub(all) struct DeclarationHeaderConstructionInventory {
+  storage : @decode_shape.CollectionConstructionExtent
+  sort_fields : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct DeclarationLimits {
   max_parameters : Int
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationPreflightConstructionInventory {
+  traversal : @decode_shape.CollectionConstructionExtent
+  refusal : @decode_shape.CollectionConstructionExtent
+  key_normalization : @canonical_value.NormalizationConstructionExtent?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationReadConstructionFacts {
+  type_syntax : @value_contract.ParameterReadConstructionGeometry
+  default_value : @decode_core.SubtreeConstructionGeometry?
+  metadata_fields : Int?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
+type DeclarationReadInput
+
+pub(all) enum DeclarationReadPhase {
+  DeclarationHeader
+  DeclarationType
+  DeclarationValue
+  DeclarationComplete
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationValueConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  metadata : @decode_shape.CollectionConstructionExtent
+  constraints : @decode_shape.CollectionConstructionExtent
+  value : @value_admission.ParameterValuePhaseConstructionInventory?
 } derive(Eq, @debug.Debug)
 
 type Declarations

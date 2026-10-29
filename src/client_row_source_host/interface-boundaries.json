@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "666109c81e38bc3871dd7fdd4be8f7ae346b5ad903dfa9304ed9ec0c13660ae3",
+      "sha256": "d4618bf08ffe3366a14413ba0d3cb5b3e848a4415635a2346443203e4ee6e11b",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -263,7 +263,7 @@
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
         "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
         "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
-        "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+        "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
         "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
         "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
         "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
@@ -648,7 +648,7 @@
         },
         {
           "name": "retain_row_capture_task",
-          "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+          "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "row_acquisition_column_contract",
@@ -778,6 +778,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "abort_row_run",
             "accept_charged_row_run_page",
             "accept_charged_row_run_values",
@@ -941,7 +942,6 @@
             "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
             "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
             "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
-            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
             "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
             "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
             "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
@@ -977,7 +977,8 @@
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
             "pub struct RowMapping {",
-            "pub struct RowRunResponseBorrow {"
+            "pub struct RowRunResponseBorrow {",
+            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -1332,11 +1333,23 @@
         {
           "operations": [
             "accept_charged_mock_churn_risk_document",
-            "prepare_churn_risk_mock_update_mapping"
+            "prepare_churn_risk_mock_update_mapping",
+            "admit_mock_churn_risk_target_document",
+            "mock_churn_risk_target_before",
+            "mock_churn_risk_target_version",
+            "observe_mock_churn_risk_target",
+            "prepare_mock_churn_risk_target_update"
           ],
           "exports": [
             "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
-            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
+            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+            "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
+            "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
+            "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
+            "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
+            "pub struct MockTargetDocument {",
+            "pub struct MockTargetRow {"
           ],
           "attributes": {
             "responsibility": [
@@ -1351,6 +1364,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "/// Bounded, owned DATA from the actual Mock file. It supplies no read/write"
               }
             ],
             "inputsOutputs": [
@@ -1365,6 +1382,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "pub fn admit_mock_churn_risk_target_document("
               }
             ],
             "identity": [
@@ -1379,6 +1400,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "fn mock_target_row_original(row : MockTargetRow) -> Bool {"
               }
             ],
             "ownership": [
@@ -1393,6 +1418,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "/// bytes rather than retaining a mutable caller view across later awaits."
               }
             ],
             "synchronization": [
@@ -1449,6 +1478,10 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "bytes.length() > max_work"
               }
             ],
             "extension": [
@@ -1477,6 +1510,14 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
                 "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
+                "anchor": "test \"Mock target owns original bytes and rejects copied row or foreign document correspondence\""
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
+                "anchor": "test \"Mock target refuses malformed whole documents and non-Mapping updates before output\""
               }
             ]
           }
@@ -2319,17 +2360,9 @@
     },
     {
       "module": "src/client_row_source_host/delete_mapping.mbt",
-      "sha256": "323375efb55045382332456fa9842e29b975905314ae2a2c54a25c65846da7cd",
+      "sha256": "1077ba3f85e5b1ec7e485313d5531743caba742561b5a35375e65492fdbbd4bc",
       "exports": [],
       "operations": [
-        {
-          "name": "delete_mapping_original_identity",
-          "declaration": "delete_mapping_original_identity ( original : Json , identity_field : String , expected : String , limits : RowDeclarationLimits , ) - > Bool"
-        },
-        {
-          "name": "delete_mapping_read_original",
-          "declaration": "delete_mapping_read_original ( wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Json , @ decode . Cursor , Int , Int ) , RowMappingIssue ]"
-        },
         {
           "name": "prepare_row_delete_mapping",
           "declaration": "prepare_row_delete_mapping ( declaration : RowDeclaration , resource : String , primary_identity : String , permission : String , approval : String , limits : RowDeclarationLimits , ) - > Result [ RowMapping , RowMappingIssue ]"
@@ -2343,8 +2376,6 @@
         {
           "operations": [
             "<module>",
-            "delete_mapping_original_identity",
-            "delete_mapping_read_original",
             "prepare_row_delete_mapping"
           ],
           "exports": [],

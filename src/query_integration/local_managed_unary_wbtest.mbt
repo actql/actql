@@ -1119,7 +1119,7 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
     1,
   ).unwrap()
   let provider = @local_connector.local_module_managed_provider(
-    installed, sequence,
+    installed, 0, sequence,
   ).unwrap()
   let capacity = @local_connector.managed_provider_capacity(provider, sequence).unwrap()
   let base = @execution.generated_sequence_capacity(

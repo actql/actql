@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/check_environment" @model_environment,
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing" @typing,

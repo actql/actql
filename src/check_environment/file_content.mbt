@@ -93,6 +93,11 @@ fn content_role_contract(
 }
 
 ///|
+fn file_content_profile_fields() -> Int {
+  6
+}
+
+///|
 fn read_file_content_profile(
   view : Member,
   catalog : Catalog,
@@ -126,7 +131,7 @@ fn read_file_content_profile(
   // Listing and capture are distinct admitted SourceViews, not one ambiguous
   // profile selected by a runtime flag or an authored field name.
   if @decode.lookup(facts, "file_listing") is Some(_) ||
-    @decode.object_length(source) != Some(6) {
+    @decode.object_length(source) != Some(file_content_profile_fields()) {
     request_fail(InvalidFileContentProfile, source)
   }
   let profile = content_object(source, b)
@@ -148,7 +153,8 @@ fn read_file_content_profile(
   let capability_source = content_required(
     profile, "version_capability", source,
   )
-  if @decode.object_length(capability_source) != Some(2) {
+  if @decode.object_length(capability_source) !=
+    Some(file_version_capability_fields()) {
     request_fail(InvalidFileContentProfile, capability_source)
   }
   let capability = content_object(capability_source, b)
@@ -219,7 +225,10 @@ fn read_file_content_profile(
   )
   let lookup_budget = { limit: b.work, used: 0, }
   let capacity = lookup_capacity_body(capacity_source, lookup_budget) catch {
-    LookupCapacityStop(issue) =>
+    LookupCapacityStop(issue) => {
+      // Keep the original nested work already consumed before this refusal.
+      // The same request budget owns it; no retry/refund or new allowance.
+      b.work -= lookup_budget.used
       request_fail(
         if issue.kind == WorkLimit {
           WorkLimit
@@ -228,6 +237,7 @@ fn read_file_content_profile(
         },
         capacity_source,
       )
+    }
   }
   b.work -= lookup_budget.used
   if capacity.completeness != CompletePerRequestedKey || capacity.rows != 1L {

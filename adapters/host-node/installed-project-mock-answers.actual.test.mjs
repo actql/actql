@@ -8,7 +8,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField,runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
+import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-mock-answers.mjs';
 
 assert.ok(process.env.ACTQL_TEST_MOCK_ANSWER_RUNTIME,'Matching original mock-answer Common runtime required');
 const moon=await import(pathToFileURL(process.env.ACTQL_TEST_MOCK_ANSWER_RUNTIME));

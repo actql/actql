@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash, packageImports, packageSourceInputs} from './inputs.mjs';
-import {packageConfigurationReviewFor} from './package-configurations.mjs';
+import {packageConfigurationReviewFor, currentPackageConfigurationReviewFor} from './package-configurations.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const directory = 'src/platform_native/remote_transfer_journal';
@@ -14,6 +14,11 @@ const toolchainDigest = '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b
 const request = {path, digest, target: 'js', toolchainDigest};
 const treeAtHead = () => gitTree(repository,
   execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim());
+
+function assertCurrentSuccessor(path, bytes) {
+  assert(currentPackageConfigurationReviewFor({path, digest: hash(bytes), target: 'js', toolchainDigest}),
+    'Current bytes require their independent successor review, not a historical introduction pin');
+}
 
 const boundedDirectory = 'src/platform_native/bounded_files';
 const boundedPath = `${boundedDirectory}/moon.pkg`;
@@ -37,9 +42,9 @@ test('bounded Root review preserves prior bytes and binds the scoped cleanup pre
   const selector = '    "scoped_cleanup_native_wbtest.mbt": [ "native" ],\n';
   assert.equal(introduced.toString().split(selector).length, 2);
   assert.equal(introduced.toString().replace(selector, ''), before.toString());
-  assert.deepEqual(current, introduced);
-  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
-  assert.equal(hash(current), boundedDigest);
+  assert.equal(hash(introduced), boundedDigest);
+  assert.deepEqual(packageImports(introduced.toString()).imports, packageImports(before.toString()).imports);
+  assertCurrentSuccessor(boundedPath, current);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   for (const selector of [
     '"root_open_custody_native_wbtest.mbt": [ "native" ]',
@@ -221,7 +226,8 @@ test('package observation review preserves historical predicates and binds scope
   assert.equal(childIntroduced.toString().split(childSelector).length, 2);
   assert.equal(childIntroduced.toString().replace(childSelector, ''), refusalIntroduced.toString());
   assert(tree.entries.has(`${observationDirectory}/child_custody_native_wbtest.mbt`));
-  assert.deepEqual(current, childIntroduced);
+  assert.equal(hash(childIntroduced), observationDigest);
+  assertCurrentSuccessor(observationPath, current);
   restored = refusalIntroduced.toString();
   for (const [member, targets] of [
     ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
@@ -258,9 +264,9 @@ test('package observation review preserves historical predicates and binds scope
   }
   assert.equal(restored, introduced.toString());
   assert.equal(hash(before), oldObservationDigest);
-  assert.equal(hash(current), observationDigest);
+  assert.equal(hash(childIntroduced), observationDigest);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
-  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
+  assert.deepEqual(packageImports(childIntroduced.toString()).imports, packageImports(before.toString()).imports);
   const selected = packageSourceInputs({tree, packages: [observationDirectory], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert.equal(selected.packageConfigurations.find(entry => entry.path === observationPath)?.review.rule,
@@ -326,8 +332,8 @@ test('SQLite body-limit review binds the sole Native selector addition and every
   assert.equal(hash(before), sqlitePriorDigest);
   assert.equal(hash(introduced), sqliteDigest);
   const tree = treeAtHead(), current = tree.read(sqlitePath);
-  assert.deepEqual(current, introduced);
-  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
+  assertCurrentSuccessor(sqlitePath, current);
+  assert.deepEqual(packageImports(introduced.toString()).imports, packageImports(before.toString()).imports);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   const selected = packageSourceInputs({tree, packages: [sqliteDirectory], target: 'js'});
   // Preserve unresolved dependency outcomes; this finite review admits only
@@ -389,9 +395,9 @@ test('bounded catalog review binds the actual sole selector introduction and eve
   assert.equal(hash(before), priorCatalogDigest);
   assert.equal(hash(introduced), catalogDigest);
   const tree = treeAtHead(), current = tree.read(catalogPath);
-  assert.deepEqual(current, introduced);
+  assertCurrentSuccessor(catalogPath, current);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
-  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
+  assert.deepEqual(packageImports(introduced.toString()).imports, packageImports(before.toString()).imports);
   const selected = packageSourceInputs({tree, packages: [catalogDirectory], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert.equal(selected.packageConfigurations.find(entry => entry.path === catalogPath)?.review.rule,

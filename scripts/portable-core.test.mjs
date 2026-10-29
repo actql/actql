@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
 import {inspectCore, packageImports, copyProductionCore} from './portable-core.mjs';
 
 const manifest = 'supported_targets = "+js+wasm+native"\n';
@@ -143,6 +144,8 @@ test('reviewed ESM module literal preserves legacy metadata and isolated bytes',
 test('reviewed module option refuses unknown keys, hooks and surplus fields', t => {
   const f = fixture(t);
   for (const option of [
+    'options("link-flags": ["-js-format", "esm",,],)',
+    'options("link-flags": ["-js-format", "esm"],,)',
     'options("other": ["-js-format", "esm"])',
     'options("pre-build": ["-js-format", "esm"])',
     'options(link_flags: ["-js-format", "esm"])',
@@ -326,6 +329,79 @@ test('formatted ESM module keeps foreign and unknown source declarations rejecte
   assert.throws(f.check, /CoreForeignOrUnknownAttribute/);
   f.put('root', 'main.mbt', '@\n  #|() => 1\n');
   assert.throws(f.check, /CoreEmbeddedCode/);
+});
+
+test('raw multiline data is not an attribute or executable host access', t => {
+  const f = fixture(t);
+  f.put('root', 'main.mbt', `pub fn data() -> String {
+    #|{"text":"extern fetch Date.now #cfg require crypto"}
+    #|unescaped "quotes" and /* literal comments */
+  }`);
+  assert.deepEqual(f.check().packages, ['root']);
+  for (const suffix of ['fn host() { println("output") }',
+    '#cfg(target="native")\nfn host() {}',
+    'extern "js" fn host() -> Int = "Date.now"']) {
+    f.put('root', 'main.mbt', `pub fn data() -> String {\n  #|safe literal\n}\n${suffix}`);
+    assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute/);
+  }
+  // An inline marker is not the reviewed line-literal syntax.
+  f.put('root', 'main.mbt', 'fn host() { #| println("output") }');
+  assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute/);
+});
+
+test('live custody packages are refused directly and transitively even without FFI', t => {
+  for (const name of ['physical_resources', 'physical_strategy_host', 'physical_host_dispatch']) {
+    const f = fixture(t);
+    f.put(name, 'moon.pkg', manifest);
+    f.put(name, 'main.mbt', 'pub fn identity(x : Int) -> Int { x }');
+    f.put('root', 'moon.pkg', manifest + `import { "actql/actql/${name}" @ordinary, }`);
+    assert.throws(f.check, /HostCustodyCoreDependency/);
+    f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/helper" @ordinary, }');
+    f.put('helper', 'moon.pkg', manifest + `import { "actql/actql/${name}" @ordinary, }`);
+    assert.throws(f.check, /HostCustodyCoreDependency/);
+  }
+});
+
+import './core-host-boundary.test.mjs';
+
+
+test('isolated production copy keeps implicit builtin imports compiler-valid', t => {
+  const f = fixture(t);
+  f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/scalar_numeric_kernel" }\n');
+  f.put('root', 'main.mbt', 'pub fn identity() -> Int { @scalar_numeric_kernel.value() }');
+  f.put('scalar_numeric_kernel', 'moon.pkg', manifest + 'import { "moonbitlang/core/builtin" }\n');
+  f.put('scalar_numeric_kernel', 'main.mbt', 'pub fn value() -> Int { 7 }');
+  const check = root => {
+    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+      ['check', '--target', 'js', '--deny-warn', '--jobs', '1', 'src/root'],
+      {cwd: root, env: process.env, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024});
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  };
+  check(f.root);
+  const isolated = join(f.root, 'isolated');
+  copyProductionCore(f.root, isolated, ['root']);
+  check(isolated);
+});
+
+
+test('isolated production copy distinguishes explicit default aliases from implicit imports', t => {
+  const f = fixture(t);
+  const implicit = 'import { "actql/actql/helper" }\n';
+  const explicit = 'import { "actql/actql/helper" @helper }\n';
+  assert.deepEqual(packageImports(manifest + implicit), packageImports(manifest + explicit));
+  f.put('helper', 'moon.pkg', manifest);
+  f.put('helper', 'main.mbt', 'pub fn value() -> Int { 1 }');
+  for (const [label, source] of [['implicit', implicit], ['explicit', explicit]]) {
+    f.put('root', 'moon.pkg', manifest + source);
+    f.put('root', 'main.mbt', 'pub fn identity() -> Int { @helper.value() }');
+    const isolated = join(f.root, label);
+    copyProductionCore(f.root, isolated, ['root']);
+    const copied = readFileSync(join(isolated, 'src/root/moon.pkg'), 'utf8');
+    assert.equal(copied.includes('@helper'), label === 'explicit');
+    assert.deepEqual(packageImports(copied), [{path: 'actql/actql/helper', alias: 'helper', scope: 'production'}]);
+  }
 });
 
 test('target metadata keeps the actual manifest production and test imports distinct', () => {

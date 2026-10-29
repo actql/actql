@@ -14,8 +14,8 @@ pub(all) struct SlackMessageProjectionLimits {
 // though getters only read the checked rows; this is not a cleanup ACK.
 #warnings("-unused_field")
 pub struct SlackMessageProjection {
-  priv history : SlackMessageHistory
-  priv replies : Array[SlackMessageReplies]
+  priv _history : SlackMessageHistory
+  priv _replies : Array[SlackMessageReplies]
   priv rows : Array[Array[@admitted.CheckedValue]]
 }
 
@@ -330,7 +330,7 @@ pub fn coalesce_slack_message_originals(
       }
     }
   }
-  Ok({ history, replies: replies.copy(), rows, })
+  Ok({ _history: history, _replies: replies.copy(), rows, })
 }
 
 ///|

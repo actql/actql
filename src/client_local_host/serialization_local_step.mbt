@@ -227,19 +227,16 @@ fn client_content_local_provider_owned(
   }
   guard client_serialization_workspace_capacity(workspace)
     is Some(workspace_capacity) &&
-    add_client_serialization_workspace_capacity(
-      sort_capacity, workspace_capacity,
-    )
+    @execution.add_execution_capacity(sort_capacity, workspace_capacity)
     is Some(capacity) else {
     return None
   }
   // Explicit envelope for this adapter's roots, pending-piece slot and phase
   // handles, in addition to the existing sort/identity/encoder allowances.
   guard @execution.execution_capacity(32L * 256L, 32L * 256L) is Some(handles) &&
-    add_client_serialization_workspace_capacity(capacity, handles)
-    is Some(capacity) &&
+    @execution.add_execution_capacity(capacity, handles) is Some(capacity) &&
     client_content_completion_export_capacity() is Some(completion_export) &&
-    add_client_serialization_workspace_capacity(capacity, completion_export)
+    @execution.add_execution_capacity(capacity, completion_export)
     is Some(capacity) else {
     return None
   }

@@ -18,9 +18,13 @@ test "compilation composed quote includes original numeric 100k source and check
   assert_eq(layout.max_witnesses, 3)
   println(
     "COMPILATION_100K " +
-    preparation_representation_cost(layout.retained).unwrap().to_string() +
+    @execution.preparation_representation_cost(layout.retained)
+    .unwrap()
+    .to_string() +
     " " +
-    preparation_representation_cost(layout.temporary).unwrap().to_string() +
+    @execution.preparation_representation_cost(layout.temporary)
+    .unwrap()
+    .to_string() +
     " B=" +
     layout.max_wire_bytes.to_string() +
     " N=" +
@@ -57,18 +61,24 @@ test "compilation composed quote includes original numeric 100k source and check
       "PARSE " +
       i.to_string() +
       " " +
-      preparation_representation_cost(parsed[i].value).unwrap().to_string() +
+      @execution.preparation_representation_cost(parsed[i].value)
+      .unwrap()
+      .to_string() +
       " " +
-      preparation_representation_cost(parsed[i].temporary).unwrap().to_string(),
+      @execution.preparation_representation_cost(parsed[i].temporary)
+      .unwrap()
+      .to_string(),
     )
   }
   println(
     "META " +
-    preparation_representation_cost(meta.temporary).unwrap().to_string(),
+    @execution.preparation_representation_cost(meta.temporary)
+    .unwrap()
+    .to_string(),
   )
   println(
     "WRITER " +
-    preparation_representation_cost(
+    @execution.preparation_representation_cost(
       closed_values_writer_layout(
         layout.max_nodes,
         layout.max_depth,
@@ -82,7 +92,7 @@ test "compilation composed quote includes original numeric 100k source and check
   )
   println(
     "PROGRAM " +
-    preparation_representation_cost(
+    @execution.preparation_representation_cost(
       compilation_program_emitter_layout(facts, 4).unwrap(),
     )
     .unwrap()

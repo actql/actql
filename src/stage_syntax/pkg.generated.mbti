@@ -15,6 +15,10 @@ pub fn admit_generated_prefix(@program_source_builder.Source, Limits) -> Result[
 
 pub fn admit_generated_source(@program_source_builder.Source, Limits) -> Result[Program, SyntaxError]
 
+pub fn advance_program_json_input_preflight(ProgramJsonInput, Int) -> Result[@source_value.JsonSourcePreflightPoll, @source_value.JsonSourcePreflightIssue]
+
+pub fn cancel_program_json_input(ProgramJsonInput) -> Unit
+
 pub fn collect_effect_headers(Program, Int, Int) -> Result[EffectHeaders, EffectHeaderIssue]
 
 pub fn effect_header_at(EffectHeaders, Int) -> EffectHeader?
@@ -75,11 +79,15 @@ pub fn exports(Program) -> Array[(String, String, String)]
 
 pub fn finish_program_input(ParsedProgramInput) -> Result[Program, SyntaxError]
 
+pub fn finish_program_json_input(ProgramJsonInput) -> Result[ParsedProgramInput, ProgramJsonInputIssue]
+
 pub fn import_at(Stage, Int) -> (String, ImportPort)?
 
 pub fn import_count(Stage) -> Int
 
 pub fn imports(Stage) -> Array[(String, ImportPort)]
+
+pub fn observe_program_constructor_inventory(@decode_core.Cursor, Int64) -> (ProgramConstructorInventory?, Int64)
 
 pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
 
@@ -99,11 +107,35 @@ pub fn program_body(Program) -> @decode_core.Cursor
 
 pub fn program_construction_extent(@decode_core.Cursor, Int) -> ProgramConstructionExtent?
 
+pub fn program_construction_extent64(@decode_core.Cursor, Int64) -> ProgramConstructionExtent64?
+
+pub fn program_constructor_container_extent(ProgramConstructorInventory) -> ProgramConstructorContainerExtent?
+
+pub fn program_constructor_control_extent(ProgramConstructorContainerExtent) -> ProgramConstructorControlExtent?
+
+pub fn program_constructor_failure_extent(Int) -> ProgramConstructorControlExtent?
+
+pub fn program_constructor_inspection_extent() -> ProgramConstructorControlExtent
+
+pub fn program_constructor_inspection_work_bound(ParsedProgramInput) -> Int64
+
+pub fn program_constructor_inventory(@decode_core.Cursor, Int64) -> ProgramConstructorInventory?
+
 pub fn program_container_construction_extent(ProgramConstructionExtent) -> ProgramContainerConstructionExtent?
+
+pub fn program_container_construction_extent64(ProgramConstructionExtent64) -> ProgramContainerConstructionExtent?
+
+pub fn program_container_quote_control_extent() -> ProgramConstructorControlExtent
 
 pub fn program_input_cursor(ParsedProgramInput) -> @decode_core.Cursor
 
+pub fn program_input_retained_control_extent() -> ProgramConstructorControlExtent
+
+pub fn program_json_input_control_extent() -> ProgramConstructorControlExtent
+
 pub fn program_parameter_names(Program) -> Array[String]
+
+pub fn program_preparation_data(Program) -> ProgramPreparationData
 
 pub fn program_representation_extent(Program, Int) -> ProgramRepresentationExtent?
 
@@ -115,13 +147,25 @@ pub fn same_program_representation_owner(Program, Program) -> Bool
 
 pub fn stage_body(Stage) -> @decode_core.Cursor
 
+pub fn stage_closed_field_count() -> Int
+
 pub fn stage_count(Program) -> Int
+
+pub fn stage_input_declaration(Stage, String) -> @decode_core.Cursor?
+
+pub fn stage_input_declaration_count(Stage) -> Int
+
+pub fn stage_input_declaration_name_at(Stage, Int) -> String?
+
+pub fn stage_steps_source(Stage) -> @decode_core.Cursor
 
 pub fn stage_table_input_at(Stage, Int) -> String?
 
 pub fn stage_table_input_count(Stage) -> Int
 
 pub fn stages(Program) -> Array[Stage]
+
+pub fn start_program_json_input(String, Limits, source_path? : String) -> Result[ProgramJsonInput, SyntaxError]
 
 pub fn validate_prefix_reuse(Prefix, Limits) -> Result[Unit, SyntaxError]
 
@@ -211,6 +255,53 @@ pub(all) struct ProgramConstructionExtent {
   inspection_work : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ProgramConstructionExtent64 {
+  stage_records : Int
+  import_tuple_bound : Int64
+  export_tuples : Int
+  name_index_entries : Int64
+  retained_array_capacity_bound : Int64
+  retained_map_capacity_bound : Int64
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
+pub struct ProgramConstructorContainerExtent {
+  retained : ProgramContainerConstructionExtent
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  // private fields
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProgramConstructorControlExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProgramConstructorInventory {
+  retained : ProgramConstructionExtent64
+  array_owners : Int64
+  array_items : Int64
+  map_owners : Int64
+  map_entries : Int64
+  object_views : Int64
+  key_pairs : Int64
+  normalization_calls : Int64
+  retained_name_input_utf16 : Int64
+  max_name_input_utf16 : Int
+  input_bindings : Int64
+  element_cursor_slots : Int64
+  field_name_reads : Int64
+  closed_key_checks : Int64
+  indexed_key_arrays : Int64
+  name_reads : Int64
+  retained_name_calls : Int64
+  max_retained_name_input_utf16 : Int
+  max_temporary_name_input_utf16 : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ProgramContainerConstructionExtent {
   record_headers : Int64
   reference_slots : Int64
@@ -220,9 +311,28 @@ pub(all) struct ProgramContainerConstructionExtent {
   shallow_scalar_words : Int64
 } derive(Eq, @debug.Debug)
 
+type ProgramJsonInput
+
+pub(all) enum ProgramJsonInputIssue {
+  Preflight(@source_value.JsonSourcePreflightIssue)
+  Parser(@source_value.JsonParseControlIssue)
+  Syntax(SyntaxError)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProgramPreparationData {
+  operations : Int
+  results : Int
+  external_inputs : Int
+  initial_fields : Int
+  possible_growth : Int
+  projected_fields : Int
+  max_label_utf16 : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ProgramRepresentationExtent {
   program_records : Int64
   stage_records : Int64
+  object_views : Int64
   array_owners : Int64
   array_backing_slots : Int64
   array_uninspected_slots : Int64

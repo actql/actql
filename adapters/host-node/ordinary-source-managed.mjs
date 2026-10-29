@@ -1,4 +1,4 @@
-import {closedValuesPreparationAvailable,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from './closed-values-preparation-adapter.mjs';
+import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -121,15 +121,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     current();
     const run = runs.get(prepared);
     if (run === undefined) fail('NodeManagedRunAdmissionUnavailable');
-    resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.preparation === undefined ? prepared : run.producer.receipt);
+    resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.operationPlan ?? (run.producer.preparation === undefined ? prepared : run.producer.receipt));
     return run;
   }
-  function prepareRun(prepared, purpose, model, effectful = false, content) {
+  function prepareRun(prepared, purpose, model, effectful = false, content, operationPlan) {
     current();
     if (retiredRuns.has(prepared)) fail('ForeignInstalledModelPreparation');
     const old = runs.get(prepared);
     if (old !== undefined) {
-      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful || old.content !== content) {
+      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful || old.content !== content || old.operationPlan !== operationPlan) {
         fail('ForeignInstalledModelPreparation');
       }
       return runFor(prepared).original;
@@ -137,7 +137,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     const request = callbacks.request(originals, prepared);
     const producer = producerForRequest(request);
     if (producer === undefined || liveRuns.size === 4096) fail('ForeignInstalledSourceProducer');
-    const run = {prepared, request, producer, purpose, model, effectful, content, original: undefined,
+    const run = {prepared, request, producer, purpose, model, effectful, content, operationPlan, original: undefined,
       children: [], fileIdentity: undefined};
     if (producer.liveRuns === Number.MAX_SAFE_INTEGER) fail('InstalledSourceProducerLimit');
     producer.liveRuns++;
@@ -145,7 +145,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     liveRuns.add(run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
-    const required = purpose === 'local-content'
+    const required = operationPlan !== undefined
+      ? callbacks.effectRequirements(originals, prepared, operationPlan)
+      : purpose === 'local-content'
       ? callbacks.contentRequirements(originals, prepared, content)
       : purpose === 'local-mock-model'
       ? callbacks.mockRequirements(originals, prepared, model)
@@ -155,7 +157,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     const producerReceipt = producer.receipt;
     const requestOriginals = new WeakSet();
     requestOriginals.add(request);
-    run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
+    run.original = resourceRuntime.retainOrdinaryManagedRun(operationPlan ?? prepared, required,
       () => {
         current();
         if (run.producer.receipt !== producerReceipt ||
@@ -213,43 +215,69 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   }
   const view = Object.freeze({
     assertCurrent: current,
+    assertSourceSnapshotCurrent(receipt) {
+      current();
+      const producer = producerFor(receipt), preparation = producer.preparation;
+      if (producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+      if (preparation !== undefined) {
+        const original = preparation.original;
+        if (original === undefined || preparation.adopting ||
+            preparation.parent === undefined && preparation.phase === undefined) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        resourceRuntime.assertOrdinaryManagedRunCurrent(original, receipt);
+        if (producer.preparation !== preparation || preparation.original !== original) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      }
+      // A current callback may synchronously retire this same producer. Its
+      // original receipt/Resource tuple must still own this pre-freeze phase.
+      if (closing || closed || receipts.get(receipt) !== producer ||
+          producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+    },
     beforeSourceSnapshot(kind, input, options, originalConnection) {
       current();
+      // A selected funded context cannot fall back to an unfunded snapshot
+      // when its typed capability or installed output mode is unavailable.
+      // Resolve it before allocating a producer, including a throwing lookup.
+      const context = kind === 'program' && options === undefined && callbacks.preparationContext !== undefined
+        ? callbacks.preparationContext(originals) : undefined;
+      if (context !== undefined && !closedValuesPreparationAvailable(context)) {
+        fail('NodeLocalPreparationAdmissionUnavailable');
+      }
+      if (context !== undefined) assertRequestPreparationControl(context);
       if (producers.size === 32) fail('InstalledSourceProducerLimit');
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
       receipts.set(receipt, producer); producers.add(producer);
       // One preparation protocol; the narrow shape adapter is staged until
       // every supported frontend has a construction proof for this owner.
-      if (kind === 'program' && options === undefined && callbacks.preparationContext !== undefined) {
-        const context = callbacks.preparationContext(originals);
-        if (closedValuesPreparationAvailable(context)) {
-          const state = {context, original: undefined, admission: undefined,
-            phase: undefined, prepared: undefined, holder: undefined, adopting: false};
-          producer.preparation = state;
-          try {
-            const required = callbacks.preparationRequirements(originals);
-            const accepted = beginClosedValuesInput(state, input, receipt, originalConnection, required, () => {
-              // Cleanup may continue while the manager is closing. Exact
-              // membership/current installation, not raw Prepared, is retained.
-              if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-                fail('ForeignInstalledSourceProducer');
-              }
-              callbacks.validator(originals);
-            });
-            if (!accepted) producer.preparation = undefined;
-          } catch (cause) {
-            producer.finished = true;
-            try {
-              cleanupClosedValuesInput(state);
-              producer.preparation = undefined; producers.delete(producer);
-            } catch (cleanupCause) {
-              throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
-                {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
-                  cleanupCause});
+      if (context !== undefined) {
+        const state = {context, original: undefined, admission: undefined, parent: undefined,
+          phase: undefined, prepared: undefined, holder: undefined, adopting: false};
+        producer.preparation = state;
+        try {
+          const required = callbacks.preparationRequirements(originals);
+          const accepted = beginClosedValuesInput(state, input, receipt, originalConnection, required, () => {
+            // Cleanup may continue while the manager is closing. Exact
+            // membership/current installation, not raw Prepared, is retained.
+            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+              fail('ForeignInstalledSourceProducer');
             }
-            throw cause;
+            callbacks.validator(originals);
+          });
+          if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
+        } catch (cause) {
+          producer.finished = true;
+          try {
+            cleanupClosedValuesInput(state);
+            producer.preparation = undefined; producers.delete(producer);
+          } catch (cleanupCause) {
+            throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
+              {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
+                cleanupCause});
           }
+          throw cause;
         }
       }
       return receipt;
@@ -293,6 +321,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request);
       const state = producer?.preparation;
       if (state === undefined) return undefined;
+      if (!closedValuesPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
       if (state.context.environment !== environment || state.phase === undefined || state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
@@ -300,8 +329,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state.holder === undefined) {
         const contracts = originals.installation.sequenceContractOriginal;
         if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
-        checkedPreparation(moon,moon.clientProgramPrepareClosedValuesBody(state.phase, environment,
-          state.context.preparedEnvironment, contracts.admission));
+        checkedPreparation(moon,moon.clientProgramPrepareClosedValuesModuleBody(state.phase, environment,
+          state.context.preparedEnvironment, contracts.admission, state.context.retainedRelationOutput));
         // Separate fixed call: semantic/plan constructor stacks have unwound
         // before the same reservation may drop their temporary peak.
         state.holder = checkedPreparation(moon,moon.clientProgramCompleteClosedValuesBody(state.phase));
@@ -446,7 +475,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       retiredRuns.set(prepared, original);
       producer.liveRuns--;
       run.prepared = run.request = run.producer = undefined;
-      run.model = run.content = run.required = run.fileIdentity = undefined;
+      run.model = run.content = run.operationPlan = run.required = run.fileIdentity = undefined;
       run.children = [];
       releaseFinishedProducer(producer);
     },
@@ -457,8 +486,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
       return prepareRun(prepared, 'local-content', undefined, false, selected);
     },
-    prepareEffectRun(prepared) {
-      return prepareRun(prepared, 'source-compute', undefined, true);
+    prepareEffectRun() {fail('InstalledEffectPlanUnavailable');},
+    prepareEffectPlanRun(prepared, operationPlan) {
+      if (operationPlan === null || typeof operationPlan !== 'object') fail('InstalledEffectPlanUnavailable');
+      return prepareRun(prepared, 'source-compute', undefined, true, undefined, operationPlan);
+    },
+    prepareEffectModelPlanRun(prepared, operationPlan) {
+      if (operationPlan === null || typeof operationPlan !== 'object') fail('InstalledEffectPlanUnavailable');
+      return prepareRun(prepared, 'local-mock-model', undefined, true, undefined, operationPlan);
     },
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);

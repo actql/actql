@@ -10,6 +10,7 @@ struct NativeClientValuesWork {
   normalization : @host.ClientLocalNormalization
   run : @strategy.CapturedDAG
   execution : @local.LocalValuesExecution
+  mut requirements : @local.ClientLocalRequirements?
   current : () -> Bool
   original_access : NativeLocalValuesOriginalAccess?
 }
@@ -125,7 +126,7 @@ fn open_native_client_local_values_work(
   current : () -> Bool,
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
-  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
+  requirements? : @local.ClientLocalRequirements? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
@@ -175,6 +176,17 @@ fn open_native_client_local_values_work(
     Ok(value) => value
     Err(issue) => return Err(local_values_work_failure(Normalization(issue)))
   }
+  let requirements = match requirements {
+    Some(original) => original
+    None =>
+      match
+        @local.prepare_source_free_local_requirements(
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
+        ) {
+        Some(original) => original
+        None => return Err(local_values_work_failure(Configuration))
+      }
+  }
   // A supplied Ledger remains the existing Resource Owner. A refused setup
   // cannot fall back to the legacy constructor and silently obtain a new one.
   let selected = match ledger {
@@ -186,7 +198,7 @@ fn open_native_client_local_values_work(
         values_body,
         fragment_body,
         ordered_body,
-        requirements~,
+        requirements=Some(requirements),
       )
     None =>
       @local.open_source_free_local_retained_host(
@@ -199,6 +211,7 @@ fn open_native_client_local_values_work(
         0L,
         fragment_body~,
         ordered_body~,
+        requirements=Some(requirements),
       )
   }
   guard selected is Some(setup) else {
@@ -267,6 +280,7 @@ fn open_native_client_local_values_work(
     normalization,
     run,
     execution,
+    requirements: Some(requirements),
     current,
     original_access,
   })
@@ -322,6 +336,19 @@ pub fn NativeLocalHostConnection::open_values_work(
     () => authority.current_for(self.journal, request),
     ledger~,
   )
+}
+
+///|
+/// Publication borrows the original plan already consumed by this work's
+/// configuration. Reading it does not re-prepare sequences or grant a Start.
+/// It is immutable DATA; existing publication methods retain their separate
+/// current/Account gates. Closing this work fences further plan borrowing.
+pub fn NativeClientValuesWork::publication_limits(
+  self : NativeClientValuesWork,
+  max_payload_bytes : Int,
+) -> (@execution.RetainedRowDecodeLimits, @host.PublicationOutputExportLimits)? {
+  guard self.requirements is Some(original) else { return None }
+  original.publication_limits(self.prepared, max_payload_bytes)
 }
 
 ///|
@@ -411,5 +438,9 @@ pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
   if !values_original_cleanup_entered(self.original_access) {
     return false
   }
-  self.execution.close()
+  if !self.execution.close() {
+    return false
+  }
+  self.requirements = None
+  true
 }

@@ -43,12 +43,10 @@ export const localOutputLimits = Object.freeze({
 // Project the common checked policy; no adapter-specific row/field formula.
 export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal) {
   let values;
-  if (publicationOriginal === undefined) {
-    values = moon.clientProgramLocalPublicationLimits(preparedProgram, localOutputLimits.maxWireBytes);
-  } else if (publicationOriginal.kind === 'preparation') {
+  if (publicationOriginal?.kind === 'preparation') {
     values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
       preparedProgram, localOutputLimits.maxWireBytes);
-  } else if (publicationOriginal.kind === 'installed_run') {
+  } else if (publicationOriginal?.kind === 'installed_run') {
     values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
       preparedProgram, localOutputLimits.maxWireBytes);
   } else {
@@ -205,20 +203,14 @@ function effectPublicationAdmission({moon, control, prepared,
 
 // This is the existing admitted Effect Run, not a second preparation or a
 // replacement timestamp. Common checks its exact Run/request correspondence.
-export function openSourceFreeEffectComputation({moon, facts,
-  registry, values, fragment, ordered}) {
-  if (facts.queryTimePreparation !== undefined || facts.queryTime !== undefined) {
-    if (facts.queryTimePreparation === undefined || facts.queryTime === undefined ||
-        facts.identity === undefined ||
-        typeof moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime !== 'function') {
-      throw new Error('OriginalQueryTimeUnavailable');
-    }
-    return moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime(
-      facts.owner, facts.queryTimePreparation, facts.identity,
-      registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+export function openSourceFreeEffectComputation({moon, facts, managedRun}) {
+  if (managedRun === undefined ||
+      typeof moon.clientProgramInstalledEffectManagedRunCheck !== 'function' ||
+      typeof moon.clientProgramInstalledEffectManagedHostOpen !== 'function') {
+    throw new Error('InstalledEffectPlanUnavailable');
   }
-  return moon.clientProgramOpenSourceFreeLocalEffectHost(
-    facts.owner, registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+  checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, facts.prepared, facts.identity));
+  return checked(moon.clientProgramInstalledEffectManagedHostOpen(managedRun, facts.owner, []));
 }
 
 export function sourceFreeEffectPublicationPlan(options) {

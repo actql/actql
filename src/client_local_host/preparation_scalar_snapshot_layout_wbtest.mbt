@@ -5,12 +5,14 @@ test "scalar snapshot retains decoded keys and canonical rows across source reti
   assert_true(a.retained.owned_utf16_units == 200000L)
   assert_true(b.retained.owned_utf16_units == 400000L)
   assert_true(
-    preparation_representation_cost(b.retained).unwrap() >
-    preparation_representation_cost(a.retained).unwrap(),
+    @execution.preparation_representation_cost(b.retained).unwrap() >
+    @execution.preparation_representation_cost(a.retained).unwrap(),
   )
-  assert_true(preparation_representation_cost(a.temporary).unwrap() > 0L)
+  assert_true(
+    @execution.preparation_representation_cost(a.temporary).unwrap() > 0L,
+  )
   println(
-    "snapshot100k R=\{preparation_representation_cost(a.retained).unwrap()} E=\{preparation_representation_cost(a.temporary).unwrap()}",
+    "snapshot100k R=\{@execution.preparation_representation_cost(a.retained).unwrap()} E=\{@execution.preparation_representation_cost(a.temporary).unwrap()}",
   )
 }
 
@@ -21,8 +23,8 @@ test "scalar snapshot empty rows Unicode-name scratch and overflow are bounded" 
   let a = scalar_snapshot_name_normalization_layout(3).unwrap()
   let b = scalar_snapshot_name_normalization_layout(9).unwrap()
   assert_true(
-    preparation_representation_cost(b).unwrap() >
-    preparation_representation_cost(a).unwrap(),
+    @execution.preparation_representation_cost(b).unwrap() >
+    @execution.preparation_representation_cost(a).unwrap(),
   )
   assert_true(scalar_snapshot_layout(-1, 0, 0) is None)
   assert_true(scalar_snapshot_layout(1, 2147483647, 1) is None)
@@ -66,7 +68,7 @@ test "scalar snapshot actual indexed cursor admission fits canonical retained bo
   let actual = @identity.representation_extent(v, 7, 2, 1000).unwrap()
   assert_eq(actual.nodes, 7L)
   let containers = actual.arrays + actual.objects
-  let measured : PreparationRepresentationUnits = {
+  let measured : @execution.PreparationRepresentationUnits = {
     record_headers: actual.nodes + 3L * containers + 4L,
     reference_slots: actual.nodes +
     2L * containers +
@@ -79,8 +81,8 @@ test "scalar snapshot actual indexed cursor admission fits canonical retained bo
   }
   let quote = scalar_snapshot_layout(2, 6, 2).unwrap()
   assert_true(
-    preparation_representation_cost(quote.retained).unwrap() >=
-    preparation_representation_cost(measured).unwrap(),
+    @execution.preparation_representation_cost(quote.retained).unwrap() >=
+    @execution.preparation_representation_cost(measured).unwrap(),
   )
   let writer = @encode.writer(1000, 7, 2)
   @identity.emit_value(v, writer)

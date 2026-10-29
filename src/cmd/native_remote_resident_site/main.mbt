@@ -623,13 +623,6 @@ fn bundle_issue_code(issue : @bundle.NativeRuntimeBundleStoreIssue) -> String {
 }
 
 ///|
-fn close_site_environment(environment : SiteEnvironment) -> Unit {
-  ignore(environment.journal.close())
-  ignore(environment.bundles.release(environment.process_hold_id))
-  ignore(environment.bundles.close())
-}
-
-///|
 fn run_admission(
   matches : @argparse.Matches,
 ) -> @resident_host.ResidentRunAdmission raise CommandStop {
@@ -2592,43 +2585,6 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
 }
 
 ///|
-fn authenticated_client(
-  matches : @argparse.Matches,
-  prefix : String,
-) -> @http.Client raise CommandStop {
-  let library = match @http.load_library(required(matches, "http-library")) {
-    Ok(value) => value
-    Err(_) => stop("HTTP library load failed")
-  }
-  let authentication : @http.NativeHttpAuthentication = match
-    (
-      optional(matches, prefix + "-cert"),
-      optional(matches, prefix + "-key"),
-      optional(matches, prefix + "-bearer-file"),
-    ) {
-    (Some(cert), Some(key), Some(bearer)) =>
-      MutualTlsAndBearer(cert, key, bearer)
-    (Some(cert), Some(key), None) => MutualTls(cert, key)
-    (None, None, Some(bearer)) => Bearer(bearer)
-    _ =>
-      stop(
-        prefix + " authentication needs a bearer file or a certificate and key",
-      )
-  }
-  match
-    library.create_authenticated_client(
-      required(matches, "ca"),
-      authentication,
-      required_int64(matches, "max-response-bytes"),
-      required_int(matches, "connect-timeout-ms"),
-      required_int(matches, "total-timeout-ms"),
-    ) {
-    Ok(value) => value
-    Err(_) => stop("HTTP client creation failed")
-  }
-}
-
-///|
 fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
   match issue {
     OutputForeign => "foreign"
@@ -2671,7 +2627,6 @@ priv struct HolderOutputResources {
   effect_host_holding : Ref[@site.SiteHolding?]
   effect_host_cleanup : Ref[@site.SiteCleanup?]
   // Shared across the existing resources projection; same producer custody.
-  effect_catalog_files : Ref[HolderEffectCatalogFileCustody?]
   retained_delegation : @resident.ResidentRetainedInputDelegation?
   retained_root : @filesystem.Root?
   retained_max_bytes : Int64
@@ -2839,7 +2794,6 @@ fn open_holder_output_resources(
     effect_host_caller_current: None,
     effect_host_caller_ordinary: false,
     effect_host_holding: Ref(None),
-    effect_catalog_files: Ref(None),
     effect_host_cleanup: Ref(None),
     retained_root: original.retained_root,
     retained_max_bytes: max_bytes,
@@ -2901,8 +2855,8 @@ fn serve_holder_output(
   effect_producer? : @resident_host.ResidentEffectProducerExecuted? = None,
   // Independent operator installation remains a separate entry. A missing
   // installation refuses evidence access instead of adopting poll policy.
-  effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
-    None
+  effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> Bool = _ => {
+    false
   },
   effect_host_operator? : Ref[HolderEffectHostOperatorInstallation?] = Ref(None),
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
@@ -2923,11 +2877,8 @@ fn serve_holder_output(
   let reviewer_current_url = holder_effect_reviewer_current_url(observation_url)
   let mut resume_query_sequence = 0L
   let identity = @remote.dispatch_request_identity(request)
-  // Explicit Host funding is independent of Account/Reviewer permissions. No
-  // candidate dispatch, request body or grant supplies this private profile.
-  let effect_preparation = holder_effect_host_preparation(
-    effect_host_operator.val,
-  )
+  // No production issuer supplies mapped Review preparation. Consumer accept
+  // receives no Catalog-use envelope; ordinary execution remains unchanged.
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
@@ -3283,18 +3234,6 @@ fn serve_holder_output(
                 report("consumer-refused", [("reason", "retained-input")])
                 continue
               }
-              let initial_catalog_use = match (family, effect_preparation) {
-                (EffectComputation, Some(prepared)) => {
-                  guard producer.effect_producer is Some(original) else {
-                    report("consumer-accept-pending", [
-                      ("reason", "producer-custody"),
-                    ])
-                    continue
-                  }
-                  Some((original, prepared.catalog))
-                }
-                _ => None
-              }
               match
                 owner.accept(
                   environment.journal,
@@ -3305,7 +3244,7 @@ fn serve_holder_output(
                   admission,
                   dispatch,
                   current_time(),
-                  initial_catalog_use~,
+                  initial_catalog_use=None,
                 ) {
                 Ok(Accepted(_, _)) => {
                   let active = match
@@ -3963,18 +3902,7 @@ fn serve_holder_output(
         ("request_cid", order[index]),
         ("reason", "owned-cleanup"),
       ])
-      if holder_catalog_file_cleanup_pending(resources, task) {
-        // EOF has already ended this channel. Keep the same task/preparation
-        // through the existing signal wait; no timer or replacement read can
-        // resolve an unconfirmed original filesystem close.
-        if !@slot.install_native_termination_request() {
-          ignore(park_holder_cleanup_unconfirmed_ffi())
-        } else {
-          wait_holder_cleanup_lifetime_signal()
-        }
-      } else {
-        @slot.native_wait_milliseconds(250)
-      }
+      @slot.native_wait_milliseconds(250)
     }
   }
   if order.length() > 1 {
@@ -4435,12 +4363,8 @@ fn run_holder(
     load_holder_effect_host_operator(matches, resources, environment, slot),
   ) catch {
     CommandStop(issue) => {
-      if proven_unstarted ||
-        (
-          resources.effect_host_setup.val is Some(scope) &&
-          (scope.read_domain is Some(_) || scope.read_parent is Some(_))
-        ) {
-        // A failed installed read may still own an active context/aliases.
+      if proven_unstarted {
+        // Failed preparation may retain original physical input cleanup.
         // Return it through the existing cleanup lifetime before any restore
         // or execution. Saved Run/Journal facts are not reclassified or erased.
         let (operation, failure) = finish_holder_cleanup_lifetime(
@@ -4545,25 +4469,7 @@ fn run_holder(
         effect_producer=effect_producer.val,
         effect_host_operator~,
         effect_catalog_review=original => {
-          open_holder_effect_review_installation(
-            matches,
-            environment.sqlite_library,
-            resources,
-            execution.limits.output.output_export,
-            original,
-            preparation=holder_effect_host_preparation(effect_host_operator.val),
-          ) catch {
-            CommandStop(_) => {
-              report("effect-review-pending", [
-                (
-                  "request_cid",
-                  @remote.dispatch_request_identity(original.task.request),
-                ),
-                ("reason", "review-installation"),
-              ])
-              None
-            }
-          }
+          open_holder_effect_review_installation(matches, original)
         },
         effect_resume_installation=request => {
           if effect_resume.val is None {

@@ -5,7 +5,7 @@
 // independent white-box wire oracle also borrows this exact original context.
 #warnings("-unused_field")
 priv struct PreparedPublicationRowBody {
-  host : @host.Witness
+  _host : @host.Witness
   candidates : Array[(String, @wire.WireWitness?)]
   subject : String
   maximum : Int64
@@ -77,7 +77,7 @@ fn prepare_publication_row_body(
   // No process-local stage/step index is part of this protected subject.
   let subject = publication_result_subject(unit.definition_cid, name)
   {
-    host,
+    _host: host,
     candidates,
     subject,
     maximum: @context.publication_row_limit_maximum(selected),

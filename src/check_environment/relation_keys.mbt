@@ -1,9 +1,15 @@
 ///|
+let relation_keys_component_key : String = "relation_keys"
+
+///|
+let relation_keys_list_key : String = "candidate_keys"
+
+///|
 // Only this component is closed. Other carrier-facts extensions retain their
 // existing admission and support rules; their data is not key evidence.
 priv struct RelationKeyFacts {
   envelope : ContractEnvelope
-  tuples : Array[(@decode.Cursor, Array[String])]
+  tuples : Array[(@decode.Cursor, Array[String], Int)]
 }
 
 ///|
@@ -18,6 +24,7 @@ struct SourceRelationKeys {
 ///|
 priv struct RelationKeyBudget {
   mut key_work : Int
+  meter : CarrierSchemaMeter?
 }
 
 ///|
@@ -30,30 +37,34 @@ fn relation_key_charge(
     carrier_fail(WorkLimit, source)
   }
   budget.key_work -= amount
+  if budget.meter is Some(meter) {
+    meter.work += amount
+  }
 }
 
 ///|
 fn read_relation_key_facts(
   envelope : ContractEnvelope,
   max_work : Int,
+  meter? : CarrierSchemaMeter? = None,
 ) -> (RelationKeyFacts?, Int) raise CarrierStop {
   let root = envelope.body
-  let budget : RelationKeyBudget = { key_work: max_work, }
+  let budget : RelationKeyBudget = { key_work: max_work, meter, }
   let object = @decode.open_object(root).unwrap_or_else(() => {
     carrier_fail(InvalidBody, root)
   })
   relation_key_charge(budget, root, @decode.object_length(root).unwrap() + 1)
-  guard @decode.lookup(object, "relation_keys") is Some(component) else {
+  guard @decode.lookup(object, relation_keys_component_key) is Some(component) else {
     return (None, max_work - budget.key_work)
   }
   if @decode.object_length(component) != Some(1) ||
-    @decode.closed_object(component, ["candidate_keys"]) is Err(_) {
+    @decode.closed_object(component, [relation_keys_list_key]) is Err(_) {
     carrier_fail(InvalidBody, component)
   }
   relation_key_charge(budget, component, 2)
   let keys = @decode.required(
     @decode.open_object(component).unwrap(),
-    "candidate_keys",
+    relation_keys_list_key,
   ).unwrap_or_else(() => carrier_fail(InvalidBody, component))
   let count = @decode.array_length(keys).unwrap_or_else(() => {
     carrier_fail(InvalidBody, keys)
@@ -74,13 +85,16 @@ fn read_relation_key_facts(
     }
     relation_key_charge(budget, tuple, arity)
     let fields = []
+    let mut max_name_units = 0
     let names : Map[String, Bool] = Map([])
     for field in 0..<arity {
       let at = @decode.element_at(tuple, field).unwrap()
       let name = @decode.text(at).unwrap_or_else(() => {
         carrier_fail(InvalidBody, at)
       })
-      relation_key_charge(budget, at, name.length())
+      let name_units = name.length()
+      relation_key_charge(budget, at, name_units)
+      max_name_units = Int::max(max_name_units, name_units)
       if name == "" || names.contains(name) {
         carrier_fail(InvalidBody, at)
       }
@@ -91,7 +105,7 @@ fn read_relation_key_facts(
       carrier_fail(InvalidBody, tuple)
     }
     seen[fields] = true
-    tuples.push((tuple, fields))
+    tuples.push((tuple, fields, max_name_units))
   }
   (Some({ envelope, tuples, }), max_work - budget.key_work)
 }
@@ -102,6 +116,7 @@ fn bind_source_relation_keys(
   schema : CarrierSchema,
   facts : RelationKeyFacts,
   max_work : Int,
+  meter? : CarrierSchemaMeter? = None,
 ) -> (SourceRelationKeys, Int) raise CarrierStop {
   if !physical_equal(reference.contract, facts.envelope) {
     carrier_fail(InvalidBody, reference.source)
@@ -109,9 +124,9 @@ fn bind_source_relation_keys(
   let rows = @carrier.relation_rows(schema.carrier).unwrap_or_else(() => {
     carrier_fail(CarrierMismatch, reference.source)
   })
-  let budget : RelationKeyBudget = { key_work: max_work, }
+  let budget : RelationKeyBudget = { key_work: max_work, meter, }
   relation_key_charge(budget, reference.source, facts.tuples.length())
-  for (source, fields) in facts.tuples {
+  for (source, fields, _) in facts.tuples {
     relation_key_charge(budget, source, fields.length())
     for name in fields {
       relation_key_charge(budget, source, name.length())
@@ -158,4 +173,15 @@ pub fn source_relation_key_reference(
   keys : SourceRelationKeys,
 ) -> CatalogReference {
   keys.reference
+}
+
+///|
+/// SAME admitted tuple width and maximum UTF16 name length, captured while
+/// the original facts reader already charged those names. No name walk,
+/// normalization, type/key admission, alternate declaration or grant occurs.
+pub fn source_relation_key_construction_geometry(
+  keys : SourceRelationKeys,
+  index : Int,
+) -> (Int, Int)? {
+  keys.facts.tuples.get(index).map(tuple => (tuple.1.length(), tuple.2))
 }

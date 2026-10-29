@@ -12,6 +12,10 @@ The common semantics stay in the MoonBit Core and the common Host owners. A
 Connector contributes a checked installation manifest and a physical driver;
 the Core decides when its work is complete.
 
+The [authoring completion criteria](#authoring-completion-criteria) below set
+the required boundary for the refactoring. They are a target, not a claim that
+the proposed standard authoring API is already available.
+
 ## Layout
 
 A Connector owns its planning, execution, transport glue and foreign
@@ -156,3 +160,95 @@ A local responder stands in for the real service in tests; tests against the
 real service are separate, and fixture results do not stand in for them.
 Declare the query and write profile the Connector actually supports rather
 than every language shape.
+
+## Authoring completion criteria
+
+Completing the resource-management refactoring also requires a small external
+Connector to be practical to author. A common API alone does not establish
+completion. Standard REST reads must work from one author-owned definition and,
+where needed, a small JavaScript transformation. They must not require a new
+MoonBit module, an internal bridge, manual capacity arithmetic, or changes to
+the Core or Host for each new Connector.
+
+### Responsibility boundary
+
+| Owner | Responsibility |
+| --- | --- |
+| Core | Language meaning, types, checked declarations and Plan; original Program, Parameters and checked results used by execution and publication |
+| Host | Connection and Credential scope, Run and Ledger ownership, reservation, current checks, attempts and transfer, reader lifecycle, cancellation, physical release and cleanup retry, Preview, Approval, durable claim, Receipt and reconciliation |
+| Connector | SourceView, Mapping, Command and Capability declarations; provider-specific requests, paging facts, transformations, version guarantees, conditional writes and response evidence |
+
+Ordinary Connector implementations must not create Runs or Ledgers, manipulate
+`CapacityPlan` or `PreparationCapacity`, call internal Core Run checks, or own
+a second approval, retry or cleanup state machine. A specialized SQL, file or
+Native driver may supply the necessary physical operations and close evidence;
+the same Host still owns their lifetime, accounting and authority.
+
+The standard authoring surface is a thin build-time projection into the existing
+manifest, SourceViews, Mapping, Command and Host installation contracts. It must
+generate repeated registration, export and verification metadata from the same
+author definition while retaining closed shapes, types, identities and ownership
+checks. It must not introduce another runtime language, checker, policy engine
+or resource owner. Proposed names such as `defineConnector` do not establish an
+implemented API.
+
+### Complete one ordinary path at a time
+
+Start with one external REST Read Connector through the normal installation,
+SDK and Host. A common ManagedReader must own original-reader acquisition,
+Account and Credential binding, current and cancellation checks, attempt and
+byte charging, response custody, physical stop and cleanup retry. Charge bytes
+before decoding. Providers retain their actual request, cursor and response
+semantics. Moving back to an unaccounted `readPages` path is not a migration.
+
+Use that working path to replace duplicated Notion and Calendar reader
+lifecycle code. Derive standard Effect request facts, write operations,
+footprints, HTTP dispatch and request CIDs where the declaration determines
+them uniquely. Providers retain request transformation, response classification,
+target/version observation, conditional writes and authoritative reconciliation.
+GitHub CREATE and Sheets append are representative Effect consumers; provider
+confirmation rules remain mandatory. A lost reply stays Unknown without
+authoritative evidence, with no hidden resend or inferred success.
+
+Move Local Files Run creation, live-run retention, duplicate checks and
+retirement to the common Host. Keep safe Root/FD operations, file content and
+version comparison in the physical driver. Retired Runs must release their
+references rather than accumulate toward a connection-wide limit.
+
+For each completed path, remove its replaced lifecycle implementation,
+compatibility aliases, dummy readers and old internal API dependencies in the
+same coherent change. Existing supported behavior must work through the new
+path; changing it to Unsupported does not satisfy removal. A simultaneous
+rewrite of every Connector is not required.
+
+### Acceptance evidence
+
+Provide a scaffold and shared conformance harness, then use them as an external
+author to add a new standard REST Read Connector. Verify the following:
+
+- One definition and optional small glue code suffice. No custom MoonBit or
+  per-Connector Core/Host change is required; an advanced driver remains
+  available for genuinely specialized operations.
+- Multiple connections remain independent. Program input cannot replace the
+  installed origin, method, Credential, scope or provider identity.
+- Zero, one and multiple pages, bounds, provider refusal, current loss,
+  cancellation and cleanup failure use the common Host lifecycle. Physical
+  close acknowledgement and retry retain the same original resources.
+- Standard CREATE does not require authors to implement six internal hooks.
+  There are zero sends before Approval and at most one per approved claim;
+  lost replies remain Unknown, and restart retains the same request binding.
+- Ordinary Connector code has no Run, Ledger or capacity-management machinery.
+  Deleting the replaced interfaces still leaves supported normal paths working.
+- Record handwritten files and lines, required commands, setup time, additional
+  callbacks and Core changes. These are measured authoring costs, not arbitrary
+  line-count limits. Separate provider-specific code from Host plumbing.
+- At the same integrated SHA, the normal package, public SDK and actual Host
+  execute, publish and release representative reads and Effects. Source checks,
+  mocked ports and separate branch successes do not substitute for that result.
+
+Keep the original Program, CheckedProgram, Plan, Ledger and authority through
+these paths. Apply the [capacity policy](../design/capacity-policy.md) to real
+resources and input-proportional simultaneous storage; do not make fixed
+wrapper inventories another authoring or completion requirement. Compare
+parse, check, compile, quote and external-current counts and representative
+runtime cost so the facade adds no duplicate preparation or I/O.

@@ -8,7 +8,7 @@ const parameterBindings = ['state', 'used', 'cancelled', 'terminal', 'reclaimed'
   'max_value_bytes', 'count', 'reclaimed_prefix', 'start_next'];
 export const chainCaptureRoles = {
   startNext: ['state', 'used', 'sequence', 'execution', 'measurement', 'numeric', 'family', 'max_value_bytes', 'count'],
-  advance: ['state', 'used', 'cancelled', 'terminal', 'sequence', 'inputs', 'execution', 'max_value_bytes', 'count', 'reclaimed_prefix', 'start_next'],
+  advance: ['state', 'used', 'cancelled', 'terminal', 'sequence', 'inputs', 'execution', 'count', 'reclaimed_prefix', 'start_next'],
   cancel: ['state', 'cancelled', 'terminal'],
   stopped: ['terminal'],
   cleanup: ['state', 'terminal', 'reclaimed', 'cleanup_index'],

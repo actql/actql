@@ -7,6 +7,7 @@ const load=()=>JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.js
 test('all current reference paths produce the committed table',()=>{
   const generated=generateRoutes(load());
   assert.equal(generated.count,19);
+  assert.deepEqual(generated.construction,{routes:19,field_hops:44,all_hops:47,max_hops:6});
   assert.equal(generated.output,readFileSync('src/check_environment/catalog_roles.generated.mbt','utf8'));
 });
 test('added removed or conditional references fail instead of silently losing coverage',()=>{

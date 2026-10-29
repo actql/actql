@@ -219,21 +219,23 @@ fn provider_capacity(
   storage_bytes : Int64,
   intermediate_count : Int,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || intermediate_count < 1 {
+  if intermediate_count < 1 {
     return None
   }
-  let count = intermediate_count.to_int64()
-  if storage_bytes != 0L && count > 9223372036854775807L / storage_bytes {
-    return None
-  }
-  let extra = storage_bytes * count
-  let execution = @execution.execution_capacity_execution_bytes(base)
-  if execution > 9223372036854775807L - extra {
+  // The domain supplies simultaneous intermediate generations; Common
+  // owns byte multiplication and addition to the original base envelope.
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(base),
+      QuotedBytes,
+      storage_bytes,
+      intermediate_count,
+    )
+    is Some(execution) else {
     return None
   }
   @execution.execution_capacity(
     @execution.execution_capacity_retained_bytes(base),
-    execution + extra,
+    execution,
   )
 }
 

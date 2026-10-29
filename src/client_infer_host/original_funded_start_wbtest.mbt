@@ -50,7 +50,7 @@ fn original_funded_start_provider(calls : Ref[Int]) -> @model.ModelProvider {
 fn original_funded_start_from_read(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  registry : @input.ClientInstalledSequenceContracts,
   values : String,
   provider : @model.ModelProvider,
   limits : Limits,
@@ -97,8 +97,20 @@ test "original funded start refuses envelope before input and retains same read"
     // original token guard must refuse first without creating an input owner.
     assert_true(
       original_funded_start_from_read(
-        prepared, 2, infer_fixture_registry, "not JSON", provider, limits, compiled,
-        definition, plan, read, retention, execution, 100L, 5L,
+        prepared,
+        2,
+        infer_fixture_installed_contracts(),
+        "not JSON",
+        provider,
+        limits,
+        compiled,
+        definition,
+        plan,
+        read,
+        retention,
+        execution,
+        100L,
+        5L,
       )
       is Err(
         OriginalCapacity(
@@ -118,8 +130,20 @@ test "original funded start refuses envelope before input and retains same read"
     )
   }
   let active = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   ).unwrap()
   assert_eq(active.work, 0L)
   assert_true(active.original_preparation.unwrap().read is Claimed(_))
@@ -145,8 +169,20 @@ test "original funded start rejects different prepared occurrence and spent read
   let before = @resources.ledger_usage(ledger)
   assert_true(
     original_funded_start_from_read(
-      other, 2, infer_fixture_registry, infer_fixture_values, provider, limits, compiled,
-      definition, plan, read, 7L, 5L, 100L, 5L,
+      other,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      read,
+      7L,
+      5L,
+      100L,
+      5L,
     )
     is Err(OriginalCapacity(@publication_host.ForeignInput)),
   )
@@ -159,8 +195,20 @@ test "original funded start rejects different prepared occurrence and spent read
   )
   assert_true(
     original_funded_start_from_read(
-      prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-      compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      read,
+      7L,
+      5L,
+      100L,
+      5L,
     )
     is Err(OriginalCapacity(_)),
   )
@@ -180,8 +228,20 @@ test "original funded start used seal retains same Ledger through output release
     prepared, plan, limits,
   )
   let active = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   ).unwrap()
   assert_true(fixture_finish(active) is Complete(_, ..))
   assert_eq(calls.val, 1)
@@ -216,13 +276,37 @@ test "original funded start cannot allocate twice from the same early read grant
     prepared, plan, limits,
   )
   let first = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   ).unwrap()
   let before = @resources.ledger_usage(ledger)
   let second = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   )
   let duplicated = second is Ok(_)
   // Retire both possible original children before reporting this counterexample.
@@ -259,8 +343,20 @@ test "original funded start aliased consumer enters once and keeps original read
   let before = @resources.ledger_usage(ledger)
   let quantities = @resources.quantity_usage(ledger)
   let active = start_original_model_preparation(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, consumer, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
   ).unwrap()
   assert_true(
     active.original_preparation.unwrap().read is Claimed(actual) &&
@@ -269,8 +365,20 @@ test "original funded start aliased consumer enters once and keeps original read
   // The malformed input would prove a second input owner was constructed.
   assert_true(
     start_original_model_preparation(
-      prepared, 2, infer_fixture_registry, "not JSON", provider, limits, compiled,
-      definition, plan, consumer, 7L, 5L, 100L, 5L,
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      "not JSON",
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
     )
     is Err(
       OriginalCapacity(
@@ -324,15 +432,39 @@ test "original funded start input refusal spends same ticket without losing orig
   let before = @resources.ledger_usage(ledger)
   assert_true(
     start_original_model_preparation(
-      prepared, 2, infer_fixture_registry, "not JSON", provider, limits, compiled,
-      definition, plan, consumer, 7L, 5L, 100L, 5L,
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      "not JSON",
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
     )
     is Err(Input(_)),
   )
   assert_true(
     start_original_model_preparation(
-      prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-      compiled, definition, plan, consumer, 7L, 5L, 100L, 5L,
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
     )
     is Err(
       OriginalCapacity(
@@ -374,8 +506,20 @@ test "original funded start failed Model retains unused seal through input clean
     },
   )
   let active = original_funded_start_from_read(
-    prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
-    compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+    provider,
+    limits,
+    compiled,
+    definition,
+    plan,
+    read,
+    7L,
+    5L,
+    100L,
+    5L,
   ).unwrap()
   while active.rows is None {
     assert_true(advance(active, 1).unwrap() is Continue(..))

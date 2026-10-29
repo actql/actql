@@ -18,7 +18,8 @@ pub fn[I] parse_closed_values_document(
     return Err(WrongPhase)
   }
   guard closed_values_source_phase_layout(facts) is Some(source) &&
-    preparation_representation_cost(source.retained) is Some(retained_add) &&
+    @execution.preparation_representation_cost(source.retained)
+    is Some(retained_add) &&
     closed_values_walk_storage_layout(
       facts.node_upper,
       Int::max(bounds.fields, 9),
@@ -27,13 +28,18 @@ pub fn[I] parse_closed_values_document(
     closed_values_map_constructor_layout(Int::max(bounds.fields, 9))
     is Some(map) &&
     closed_values_compiler_failure_layout(facts.depth_upper) is Some(failure) &&
-    preparation_representation_cost(source.parser_temporary)
+    @execution.preparation_representation_cost(source.parser_temporary)
     is Some(parser_peak) &&
-    preparation_representation_cost(source.decoder_temporary)
+    @execution.preparation_representation_cost(source.decoder_temporary)
     is Some(decoder_peak) &&
-    closed_values_sum_layouts([walk, map, failure]) is Some(shape_temporary) &&
-    preparation_representation_cost(shape_temporary) is Some(shape_peak) &&
-    client_closed_values_initial_control_capacity(owner.policy)
+    @execution.compose_preparation_representation([walk, map, failure])
+    is Some(shape_temporary) &&
+    @execution.preparation_representation_cost(shape_temporary)
+    is Some(shape_peak) &&
+    client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((_, controls)) else {
     return Err(Policy)
   }
@@ -125,15 +131,15 @@ pub fn[I] parse_closed_values_document(
     Ok(_) => owner.work = None
   }
   let program = closed_values_program_inventories(shape)
-  guard preparation_representation_cost(program.retained)
+  guard @execution.preparation_representation_cost(program.retained)
     is Some(program_retained) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       program.containers_peak,
       program.carriers_peak,
       program.failure_peak,
     ])
     is Some(program_temporary) &&
-    preparation_representation_cost(program_temporary)
+    @execution.preparation_representation_cost(program_temporary)
     is Some(program_execution) else {
     return Err(Policy)
   }

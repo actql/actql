@@ -86,12 +86,22 @@ fn sync_rankings(
         )
         let transfer = vector_result(
           step.source,
-          @vector.transfer_ranking_unary(previous, op, {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: b.limits.max_depth,
-            max_text_bytes: b.text,
-          }),
+          match step.filter_refinement {
+            Some(proof) =>
+              @evidence.refined_filter_ranking(previous, proof, {
+                max_work: b.work,
+                max_nodes: b.nodes,
+                max_depth: b.limits.max_depth,
+                max_text_bytes: b.text,
+              })
+            None =>
+              @vector.transfer_ranking_unary(previous, op, {
+                max_work: b.work,
+                max_nodes: b.nodes,
+                max_depth: b.limits.max_depth,
+                max_text_bytes: b.text,
+              })
+          },
         )
         b.work -= transfer.usage.work
         b.nodes -= transfer.usage.nodes

@@ -28,3 +28,10 @@ test('new keywords and unsupported constraint changes require compiler support',
     {type:'boolean',enum:[true]},
   ])assert.throws(()=>compileSourceView(changed));
 });
+
+test('rule constructor inventory comes from the same grammar walk',()=>{
+  const text=compileSourceView({type:'object',additionalProperties:false,required:['x'],properties:{x:{type:'string'}}});
+  for(const [key,value] of Object.entries({records:3,record_references:4,record_words:3,reference_arrays:2,reference_items:1,scalar_arrays:0,scalar_items:0,maps:0,map_entries:0}))assert.match(text,new RegExp(`    ${key}: ${value}L,`));
+  const boolean=compileSourceView({const:false});
+  assert.match(boolean,/records: 2L/);assert.match(boolean,/record_references: 1L/);assert.match(boolean,/record_words: 1L/);
+});

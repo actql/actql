@@ -88,6 +88,7 @@
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -321,6 +322,45 @@ const optionalFunction = value => value === undefined ||
 // The actual Host supplies this private service. Capturing its methods does
 // not issue a Run or turn limits into capacity; the retained owner validates
 // the original preparation/Run before each physical use.
+// Closed operation-name DATA from the same installed provider. This keeps the
+// original descriptor; it neither counts physical calls nor supplies capacity.
+function captureManagedPlanDefinition(definition, driver) {
+  if (definition === undefined) return undefined;
+  const fields = (value, names) => {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+        !Object.isFrozen(value)) fail('InvalidInstalledEffectPlanDefinition');
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(descriptors).length !== names.length ||
+        names.some(name => !Object.hasOwn(descriptors[name] ?? {}, 'value'))) {
+      fail('InvalidInstalledEffectPlanDefinition');
+    }
+    return descriptors;
+  };
+  const selected = fields(definition, ['kind', 'memberOperations', 'rowOperations']);
+  const kind = selected.kind.value;
+  if (!['update', 'command'].includes(kind) || !driver.kinds.includes(kind)) {
+    fail('InvalidInstalledEffectPlanDefinition');
+  }
+  const roles = kind === 'update' ? ['target-read', 'write'] : ['write'];
+  for (const [name, expected] of [['memberOperations', []], ['rowOperations', roles]]) {
+    const original = selected[name].value;
+    if (!Array.isArray(original) || nodeTypes.isProxy(original) ||
+        !Object.isFrozen(original) || original.length !== expected.length) {
+      fail('InvalidInstalledEffectPlanDefinition');
+    }
+    const array = fields(original, ['length', ...expected.map((_, index) => String(index))]);
+    for (let index = 0; index < expected.length; index++) {
+      const operation = fields(array[String(index)].value, ['role', 'operation']);
+      if (operation.role.value !== expected[index] || !text(operation.operation.value) ||
+          !operation.operation.value.isWellFormed() ||
+          expected[index] === 'target-read' && operation.operation.value !== driver.targetRead?.operation) {
+        fail('InvalidInstalledEffectPlanDefinition');
+      }
+    }
+  }
+  return definition;
+}
+
 function captureEffectResources(receiver) {
   if (receiver === undefined) return undefined;
   const methods = {};
@@ -445,10 +485,11 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources, issueOriginalCollectionReference}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition}) {
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
+  const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
       mappings.length + commands.length === 0 ||
@@ -522,7 +563,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
-    issueOriginalCollectionReference})], environmentWire);
+    managedPlanDefinition: planDefinition, issueOriginalCollectionReference})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -789,10 +830,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     return entry;
   };
-  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
+  const requestsOf = (member, rows, current, contentOf, createRows) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
       selector: row.selector, current, ...resourceFields(member),
+      ...(member.kind === 'create' ? {createRowIdentity: createRows[index].identity} : {}),
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
@@ -1231,8 +1273,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         new Set(inventory.map(item => runtimeField(item, 0))).size !== rows.length) {
       fail('InvalidInstalledRowEffectInventory');
     }
-    return Object.freeze(inventory.map(item => Object.freeze({
-      entry: rows[runtimeField(item, 0)], identity: parseExactJson(runtimeField(item, 1))})));
+    // The identity is immutable before a provider callback. Complete this
+    // private frame with its original request once; do not issue it again.
+    return inventory.map(item => ({entry: rows[runtimeField(item, 0)],
+      identity: Object.freeze(parseExactJson(runtimeField(item, 1)))}));
   };
 
   // A member's write footprint: the provider's complete footprint, or the
@@ -1588,12 +1632,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
       });
+      const createRows = member.kind === 'create' ? canonicalRows(rows) : undefined;
+      if (createRows !== undefined) {
+        for (let row = 0; row < rows.length; row++) rows[row] = createRows[row].entry;
+      }
       let entries;
       if (owned.prepareRequestChild !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
+            ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity} : {}),
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
             ...(contentOwner === undefined ? {} : {contentOwner}),
             ...resourceFields(member),
@@ -1605,10 +1654,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           preparedEntries.push(requestEntry(member, row, preparedRequest));
         }
         entries = Object.freeze(preparedEntries);
-      } else entries = requestsOf(member, rows, description, contentOf);
+      } else entries = requestsOf(member, rows, description, contentOf, createRows);
       if (member.kind === 'create') {
-        // Rows are put in canonical order before anything is derived.
-        rowsOf.push(canonicalRows(entries));
+        // Reuse the SAME Common inventory for Preview and requests.
+        for (const [row, entry] of entries.entries()) {
+          createRows[row].entry = entry;
+          Object.freeze(createRows[row]);
+        }
+        rowsOf.push(Object.freeze(createRows));
         observations.push(undefined);
         continue;
       }
@@ -1929,6 +1982,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const rows = !usesRecovery[index]
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
+            ...(member.kind === 'create' ? {createRowIdentity: Object.freeze(change.target_row_identity)} : {}),
             value: change.after?.value, selector: undefined,
             current: currents[index], ...resourceFields(member)});
           return entryOf(member, prepared?.request, prepared?.requestCid);

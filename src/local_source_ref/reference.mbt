@@ -90,6 +90,16 @@ fn untoken(text : String) -> String? {
 }
 
 ///|
+let reference_component_count : Int = 3
+
+///|
+fn split_reference_parts(text : String) -> Array[StringView] {
+  // A fourth component already proves the original three-component format
+  // invalid. The complete UTF8/byte guard still precedes this constructor.
+  text.split("/").take(reference_component_count + 1).to_array()
+}
+
+///|
 pub fn read(text : String, max_bytes~ : Int) -> Result[Reference, Issue] {
   if max_bytes < 0 {
     return Err(InvalidLimit)
@@ -99,8 +109,8 @@ pub fn read(text : String, max_bytes~ : Int) -> Result[Reference, Issue] {
     Err(@scalar.MalformedUtf16(_)) => return Err(NonCanonicalName)
     Err(_) => return Err(LimitExceeded)
   }
-  let parts = text.split("/").to_array()
-  if parts.length() != 3 || parts[0] != "source:local" {
+  let parts = split_reference_parts(text)
+  if parts.length() != reference_component_count || parts[0] != "source:local" {
     return Err(InvalidReference)
   }
   let stage = match untoken(parts[1].to_owned()) {

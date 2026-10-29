@@ -4,6 +4,7 @@ package "actql/actql/local_relation_input"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/order_key",
   "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
@@ -24,9 +25,15 @@ pub fn has_first_by_order(Checked) -> Bool
 
 pub fn minimum_classification(Checked) -> String?
 
+pub fn observe_read_construction_geometry(@decode_core.Cursor) -> ReadConstructionGeometry
+
 pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?
 
 pub fn read(@decode_core.Cursor, Limits) -> Result[Checked, Issue]
+
+pub fn read_construction_inventory(ReadConstructionGeometry) -> ReadConstructionInventory?
+
+pub fn schema_agreement_construction_inventory(ReadConstructionGeometry, Int, Int) -> ReadConstructionInventory?
 
 pub fn schema_carrier(SchemaAgreement) -> @carrier_contract.Carrier
 
@@ -71,6 +78,21 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 }
+
+pub(all) struct ReadConstructionGeometry {
+  body : @decode_core.SubtreeGeometry
+  expected_names : Int
+  key_fields : Int
+  order_keys : Int
+  max_name_utf16_units : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type SchemaAgreement
 

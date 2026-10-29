@@ -1,7 +1,7 @@
 ///|
 priv struct ProgramRetainedValidationLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -14,12 +14,12 @@ priv struct ProgramRetainedValidationLayout {
 fn program_validation_inventory_layout(
   slots : Int64,
   arrays : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if slots < 0L || slots > 2147483647L || (arrays != 2 && arrays != 6) {
     return None
   }
   let copies = closed_values_program_arrays(arrays.to_int64(), slots, false)
-  let records : PreparationRepresentationUnits = {
+  let records : @execution.PreparationRepresentationUnits = {
     record_headers: 21L,
     reference_slots: 144L,
     scalar_words: 144L,
@@ -29,7 +29,7 @@ fn program_validation_inventory_layout(
   // Escaping Some links: Host active/plan/checker(3), Core Plan originals/
   // retained(2), computation inputs/retained(2), commit inputs/retained(2).
   // Both checker families are summed conservatively, not claimed concurrent.
-  let links : PreparationRepresentationUnits = {
+  let links : @execution.PreparationRepresentationUnits = {
     record_headers: 9L,
     reference_slots: 9L,
     scalar_words: 9L,
@@ -37,7 +37,9 @@ fn program_validation_inventory_layout(
     owned_wire_bytes: 0L,
   }
   let empty_fields = closed_values_program_arrays(1L, 0L, false)
-  closed_values_sum_layouts([copies, records, links, empty_fields])
+  @execution.compose_preparation_representation([
+    copies, records, links, empty_fields,
+  ])
 }
 
 ///|
@@ -58,7 +60,7 @@ fn program_retained_validation_layout(
   }
   // ResultEvidence owns three growing scalar Bool occurrence-use arrays.
   // Their combined length is <=copied slots, preserving duplicates.
-  let flags : PreparationRepresentationUnits = {
+  let flags : @execution.PreparationRepresentationUnits = {
     record_headers: 9L,
     reference_slots: 3L,
     scalar_words: 42L + 3L * slots.to_int64(),
@@ -75,22 +77,22 @@ fn program_retained_validation_layout(
   )
   // New diagnostic concatenations are fixed protocol labels, never user text:
   // longest binding prefix+field38, index prefix+field36. Sum both outputs.
-  let diagnostics : PreparationRepresentationUnits = {
+  let diagnostics : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 0L,
     scalar_words: 0L,
     owned_utf16_units: 74L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       flags,
       fields,
       diagnostics,
       program_validation_carrier_layout(),
     ])
     is Some(temporary) &&
-    preparation_representation_cost(retained) is Some(_) &&
-    preparation_representation_cost(temporary) is Some(_) else {
+    @execution.preparation_representation_cost(retained) is Some(_) &&
+    @execution.preparation_representation_cost(temporary) is Some(_) else {
     return None
   }
   Some({ retained, temporary, })
@@ -101,7 +103,7 @@ fn program_retained_validation_layout(
 /// The manifest records 901 sites; per site one result wrapper plus at most
 /// two four-slot tuple/phase payloads. Loop carriers do not accumulate; retained
 /// records and variable arrays are separate. This is not a VM frame inventory.
-fn program_validation_carrier_layout() -> PreparationRepresentationUnits {
+fn program_validation_carrier_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 2703L,
     reference_slots: 7208L,

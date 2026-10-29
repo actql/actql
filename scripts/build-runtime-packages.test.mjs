@@ -34,7 +34,7 @@ const expectedGates = {
   "check:remote-site-runtime": [
     "moon build --target js --release src/connectors_builtin_node src/connectors/github/host_node",
     "node scripts/build-runtime-packages.mjs coordinator-core",
-    "node --test adapters/host-node/installed-credential-source-reader.test.mjs adapters/host-node/installed-row-provider-reader.test.mjs packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
+    "node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/host-node/installed-credential-source-reader.test.mjs adapters/host-node/installed-managed-http-reader.test.mjs adapters/host-node/installed-row-provider-reader.test.mjs adapters/host-node/installed-source-service-entry.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
     "node scripts/test-packed-coordinator-core.mjs"
   ],
   "check:transfer-core": [
@@ -46,23 +46,73 @@ const expectedGates = {
     "node scripts/build-runtime-packages.mjs local-node run-host-core",
     "node scripts/generate-client-publication-wire.mjs",
     "node scripts/generate-client-host-wire.mjs",
-    "node --test scripts/owned-scratch.test.mjs scripts/packed-client-packages.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/sdk/index.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/local-values-plan.test.mjs",
+    "node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/owned-scratch.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-semantics.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/client-wire/cancel-identity.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs",
+    "node scripts/test-packed-read-opening.mjs",
+    "node scripts/check-read-row-mutations.mjs",
+    "node scripts/check-submission-input-mutations.mjs",
+    "node scripts/check-submission-check-observation-mutations.mjs",
+    "node scripts/check-effect-uncertainty-mutations.mjs",
+    "node scripts/test-packed-local-without-duckdb.mjs",
     "node scripts/test-node-client-package.mjs",
+    "node scripts/test-packed-workspace-connection.mjs",
+    "node scripts/test-packed-graph.mjs",
     "node scripts/test-packed-client-checkpoint.mjs",
     "moon build --target native --release src/cmd/native_client",
-    "node scripts/test-native-client.mjs"
+    "node scripts/test-native-client.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-null-context.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/public-text-time.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-relational-composition.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-right-join.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-audited-capabilities.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-publication-capacity.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/local-preparation-custody.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-preparation-custody-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-result-schema-budget.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-publication-plan-original.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/verify-local-source-runtime.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-context-carrier-layout.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-root-bridge.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/submission-snapshot-publication.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/closed-values-own-data-scan.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/local-preparation-registry.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-host-custody.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-large-input-public.test.mjs adapters/host-node/local-values-policy-original.test.mjs adapters/host-node/host-result-extent.test.mjs adapters/host-node/client-join-scale-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-journal-failure-public.test.mjs adapters/host-node/preparation-initial-failure-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/ordinary-preparation-cut-retry.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-closed-values-plan-controls.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/store-local/publication-contract-node-bound.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-closed-values-layout.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-closed-values-graph-layout.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-closed-values-contract-layout.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-numeric-scale-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-capacity-refusal.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/preparation-intent-lifetime.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/installed-sequence-infer-subset.test.mjs adapters/host-node/client-compilation-original.test.mjs adapters/host-node/preparation-compilation-cold-open-public.test.mjs scripts/preparation-compilation-call-controls.test.mjs scripts/preparation-compilation-projector-controls.test.mjs adapters/host-node/client-snapshot-output-envelope.test.mjs adapters/host-node/client-captured-context-original.test.mjs",
+    "node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs scripts/capture-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs adapters/host-node/publication-validation-close-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/publication-snapshot-original-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/finalization-scratch-cut-public.test.mjs adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/closed-values-module-body-callers.test.mjs adapters/host-node/request-preparation-parent.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-common/source-response-custody.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/installed-content-family-custody.test.mjs"
   ],
   "check:run-host-core": [
     "node scripts/build-runtime-packages.mjs run-host-core coordinator-core",
     "npm run check:run-host-types",
-    "node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs",
+    "node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs",
     "node scripts/test-packed-run-host-core.mjs"
   ],
   "check:local-node-assets": [
     "node scripts/build-runtime-packages.mjs local-node",
     "node scripts/build-local-node-adapters.mjs",
     "node scripts/build-local-node-adapters.mjs --check",
-    "node scripts/test-packed-local-node-assets.mjs"
+    "node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-external-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs",
+    "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/local-node/connector-installation.typecheck.mts",
+    "node scripts/test-packed-local-node-assets.mjs",
+    "node scripts/test-packed-installed-connectors.mjs",
+    "node scripts/test-packed-external-connector.mjs",
+    "node scripts/test-packed-external-installed.mjs"
   ]
 };
 const packages = {
@@ -97,7 +147,7 @@ function put(directory, path, contents) {
 }
 
 function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
-  refuseInterfaces = false, normalCli = false, temporaryParent = tmpdir()} = {}) {
+  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -109,10 +159,17 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   assert(builderModules.includes('scripts/check-interface-owners.mjs'));
   for (const path of builderModules) {
     assert.ok(!path.startsWith('../') && !path.startsWith('/'));
+    // The unowned fixture publishes plain JS only, with no generated compiler
+    // bindings. It has no generator inputs or compiler-interface approvals.
+    if (missingInterfaceOwner && path === 'scripts/generate-js-compiler-bindings.mjs') continue;
     if (path !== 'scripts/check-interface-owners.mjs') {
       put(directory, path, readFileSync(join(root, path)));
     }
   }
+  // Only this distinct negative uses the original real checker; the ordinary
+  // scheduling controls keep their explicit port and missing-checker oracle.
+  if (missingInterfaceOwner) symlinkSync(join(root, 'scripts/check-interface-owners.mjs'),
+    join(directory, 'scripts/check-interface-owners.mjs'));
   put(directory, 'adapters/host-common/installed-connector-declaration.mjs',
     readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
   put(directory, 'adapters/host-common/http-exchange.mjs',
@@ -146,6 +203,9 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
     assert.ok(!path.startsWith('../') && !path.startsWith('/'));
     put(directory, path, readFileSync(join(root, path)));
   }
+  // Package import maps are part of the actual adapter source closure.
+  put(directory, 'packages/sdk/package.json',
+    readFileSync(join(root, 'packages/sdk/package.json')));
   if (additionalProvider) {
     put(directory, 'src/connectors/third/host-bundle.json', JSON.stringify({installation: {
       registration: 'third', revision: 'third/0.1', responseHeaders: [],
@@ -171,6 +231,17 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   // Use the real package builders and installed esbuild; only the MoonBit
   // compiler is replaced with independent tiny compiled-source fixtures.
   symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir');
+  if (missingInterfaceOwner) {
+    // Independent, valid JS entrances deliberately have no Owner sidecar.
+    // The normal checker must refuse them before any compiler or builder.
+    for (const name of Object.keys(packages)) {
+      put(directory, `packages/${name}/package.json`, JSON.stringify({
+        name: `@fixture/${name}`, type: 'module', exports: './fixture-interface.mjs',
+      }));
+      put(directory, `packages/${name}/fixture-interface.mjs`,
+        'export function runtimePreparationInput(value) { return value; }\n');
+    }
+  }
   for (const [name, item] of Object.entries(packages)) {
     for (const source of item.sources) {
       if (source === 'connectors_workers_bridge') continue;
@@ -216,6 +287,7 @@ childProcess.execFileSync = (command, args, options) => {
   record({command: command === process.execPath ? 'node' : command, args,
     cwd: options.cwd, stdio: options.stdio});
   if (command === 'moon') return Buffer.alloc(0);
+  if (command === 'python3' && ${JSON.stringify(missingInterfaceOwner)}) return original(command, args, options);
   if (command !== process.execPath) throw new Error('Unexpected subprocess');
   if (args[0] === ${JSON.stringify(fail ? `scripts/${packages[fail].builder}.mjs` : null)} &&
       args.includes('--check')) {
@@ -226,7 +298,7 @@ childProcess.execFileSync = (command, args, options) => {
 syncBuiltinESMExports();
 const refusal = new Error('Original fixture interface admission refused');
 try {
-  if (${JSON.stringify(normalCli)}) {
+  if (${JSON.stringify(normalCli || missingInterfaceOwner)}) {
     record({normalCli: true});
     process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs', ...${JSON.stringify(requested)}];
     await import('./scripts/build-runtime-packages.mjs');
@@ -269,237 +341,7 @@ function expectedCalls(names, directory) {
   }), {done: true}];
 }
 
-// The current Graph registration adds these three acceptance checks. Keep the
-// predecessor command inventory independent, and require the exact additions
-// at their registered positions rather than ignoring arbitrary extra checks.
-const distribution = expectedGates['check:distribution-client'];
-// Preserve main's typed-JSON input regressions in the registered command.
-distribution[3] = distribution[3].replace(
-  'node --test scripts/owned-scratch.test.mjs ',
-  'node --test scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/owned-scratch.test.mjs ',
-).replace(
-  'adapters/host-node/remote-acquisition-checkpoint.test.mjs ',
-  'adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs ',
-);
-distribution[3] = distribution[3].replace(
-  'scripts/packed-client-packages.test.mjs ',
-  'scripts/packed-client-packages.test.mjs scripts/graph-composition-fixture.test.mjs ',
-);
-distribution[3] = distribution[3].replace(
-  'scripts/infer-owner-checker.test.mjs ',
-  'scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs ',
-);
-distribution.splice(5, 0, 'node scripts/test-packed-graph.mjs');
 
-// Source computation handoff regression uses the same already-prepared
-// runtime and existing distribution job; it adds no package build or job.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-program-bridge.test.mjs ',
-  'adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs ',
-);
-
-// Public read progress uses the existing prepared SDK/Host distribution gate.
-// Keep the intended file additions fixed independently of package.json.
-distribution[3] = distribution[3].replace(
-  'packages/sdk/index.test.mjs ',
-  'packages/sdk/index.test.mjs packages/sdk/read-progress.test.mjs ',
-).replace(
-  'adapters/host-node/in-process-client.test.mjs ',
-  'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
-);
-
-// Workspace assertion checks remain in main's existing distribution gate.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/in-process-client.test.mjs ',
-  'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs ',
-);
-
-// Original-attempt recovery shares that runtime and distribution job.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-read-progress.test.mjs ',
-  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs ',
-);
-
-// Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
-// Preserve the independently fixed command inventory and every existing test.
-distribution[3] = distribution[3].replace(
-  'packages/sdk/checkpoints.test.mjs ',
-  'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
-);
-
-// Installed Model restore reuses the existing build and distribution gate.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/installed-infer-capture.test.mjs ',
-  'adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs ',
-);
-
-// Model approval sequencing uses the same runtime build and distribution job.
-// Keep these adapter regressions separate from public packed acceptance.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-dispatch-owner.test.mjs ',
-  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
-);
-
-// Main's Effect outcome explanation retains its existing mutation gate.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-cancel-response-loss.test.mjs ',
-  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
-);
-
-// Scoped Owner observations reuse the existing distribution gate. Keep its
-// independently authored command inventory and avoid a second packed producer.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-effect-uncertainty.test.mjs ',
-  'adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs ',
-);
-
-// The issued-retention original regression is part of the existing prepared
-// distribution gate. Pin its one intended addition independently of the
-// package command, retaining the exact inventory and duplicate rejection.
-distribution[3] += ' adapters/host-node/local-values-plan-policy.test.mjs';
-
-// Main's submission custody and mutation registrations remain mandatory.
-// Keep their exact independent inventory when integrating Model approval.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/client-cancel-response-loss.test.mjs ',
-  'adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs ',
-);
-distribution.splice(4, 0, 'node scripts/test-packed-read-opening.mjs',
-  'node scripts/check-read-row-mutations.mjs',
-  'node scripts/check-submission-input-mutations.mjs',
-  'node scripts/check-effect-uncertainty-mutations.mjs');
-
-// Retain main's reviewed registration order, including refusal settlement,
-// alongside the independent actual 121-row read regressions.
-distribution[3] = distribution[3].replace(
-  'adapters/host-node/remote-checkpoint-host.test.mjs ',
-  'adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs ',
-);
-distribution[3] += ' packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs';
-
-// Preserve main's response-capture regression and add the optional-dependency
-// boundaries to the existing prepared distribution gate, without another job.
-distribution[3] += ' packages/sdk/response-capture.test.mjs';
-distribution[3] = distribution[3].replace(
-  'scripts/packed-client-packages.test.mjs ',
-  'scripts/packed-client-packages.test.mjs scripts/packed-package-boundaries.test.mjs ',
-).replace(
-  'adapters/host-node/embedded-installation.test.mjs ',
-  'adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs ',
-);
-distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs'),
-  0, 'node scripts/test-packed-local-without-duckdb.mjs');
-
-// Preserve already-adopted Graph and cancellation registrations. The old
-// inventory was independently reproduced as stale on the unchanged base.
-distribution[3] = distribution[3].replace(
-  'scripts/packed-client-packages.test.mjs ',
-  'scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs ',
-).replace('packages/client-wire/index.test.mjs ',
-  'packages/client-wire/index.test.mjs packages/client-wire/cancel-identity.test.mjs '
-).replace('packages/sdk/index.test.mjs ',
-  'packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs '
-).replace('adapters/host-node/client-cancel-response-loss.test.mjs ',
-  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs ');
-// Workspace packed acceptance follows the original Node package boundary.
-distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
-  0, 'node scripts/test-packed-workspace-connection.mjs');
-expectedGates['check:local-node-assets'].splice(3, 0,
-  'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-external-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs',
-  'tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/local-node/connector-installation.typecheck.mts');
-expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs',
-  'node scripts/test-packed-external-connector.mjs', 'node scripts/test-packed-external-installed.mjs');
-
-// The epoch-bound submission chain uses the same prepared distribution gate.
-distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs';
-// Invocation-bound Submit cases adopted with #1106 remain registered too.
-distribution[3]=distribution[3].replace('adapters/host-node/client-submission.test.mjs ',
-  'adapters/host-node/client-submission.test.mjs adapters/host-node/client-submission-attempt.test.mjs ');
-distribution[3]+=' packages/sdk/submission-attempt.test.mjs';
-
-
-// Retain adopted composed-INFER, evaluation and submission-check coverage at
-// its exact registered positions, alongside every predecessor command.
-distribution[3] = distribution[3].replace(
-  'node --test ',
-  'node --test adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs examples/infer-evaluation/capture-sink.test.mjs ',
-).replace(
-  'packages/client-wire/index.test.mjs ',
-  'packages/client-wire/index.test.mjs packages/client-wire/submission-check-semantics.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs ',
-);
-distribution.splice(distribution.indexOf('node scripts/check-submission-input-mutations.mjs') + 1,
-  0, 'node scripts/check-submission-check-observation-mutations.mjs');
-
-// Preserve the additional public registrations at their adopted positions.
-// These are fixed independent expectations, not a projection of package.json.
-expectedGates['check:remote-site-runtime'][2] = expectedGates['check:remote-site-runtime'][2]
-  .replace('adapters/connectors/github/test/github-issue-read.test.mjs ',
-    'adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs ');
-expectedGates['check:run-host-core'][2] +=
-  ' packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs';
-distribution[3] = distribution[3]
-  .replace('node --test ',
-    'node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs ')
-  .replace('adapters/host-node/installed-composed-infer-run.test.mjs ',
-    'adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs ')
-  .replace('adapters/host-node/installed-effect-site.test.mjs ',
-    'adapters/host-node/installed-effect-site.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs ')
-  .replace('adapters/host-node/acquired-effect-computation.test.mjs ',
-    'adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs ')
-  .replace('adapters/host-node/client-check.test.mjs ',
-    'adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs ')
-  .replace('adapters/host-node/client-values-row-limit.test.mjs ',
-    'adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs ')
-  .replace('adapters/host-node/client-request-journal.test.mjs ',
-    'adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs ')
-  .replace('adapters/host-node/public-source-preparation.test.mjs ',
-    'adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs ')
-  .replace('adapters/host-node/client-submission.test.mjs ',
-    'adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs ')
-  .replace('adapters/host-node/client-submission-attempt.test.mjs ',
-    'adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs ');
-for (const files of [
-  ['adapters/host-node/client-null-context.test.mjs'],
-  ['adapters/host-node/public-text-time.test.mjs'],
-  ['adapters/host-node/client-relational-composition.test.mjs'],
-  ['adapters/host-node/client-right-join.test.mjs'],
-  ['adapters/host-node/client-audited-capabilities.test.mjs'],
-  ['adapters/host-node/client-publication-capacity.test.mjs'],
-  ['adapters/host-node/local-preparation-custody.test.mjs'],
-  ['adapters/host-node/client-preparation-custody-public.test.mjs'],
-  ['adapters/host-node/client-result-schema-budget.test.mjs'],
-  ['adapters/host-node/client-publication-plan-original.test.mjs'],
-  ['adapters/host-node/ordinary-source-producer-lifetime.test.mjs'],
-  ['scripts/verify-local-source-runtime.test.mjs'],
-  ['scripts/preparation-context-carrier-layout.test.mjs'],
-  ['adapters/host-node/preparation-root-bridge.test.mjs'],
-  ['adapters/host-node/submission-snapshot-publication.test.mjs'],
-  ['adapters/host-node/closed-values-own-data-scan.test.mjs'],
-  ['adapters/host-node/local-preparation-registry.test.mjs'],
-  ['adapters/host-node/preparation-host-custody.test.mjs'],
-  ['adapters/host-node/client-large-input-public.test.mjs', 'adapters/host-node/local-values-policy-original.test.mjs',
-    'adapters/host-node/host-result-extent.test.mjs', 'adapters/host-node/client-join-scale-public.test.mjs'],
-  ['adapters/host-node/preparation-journal-failure-public.test.mjs', 'adapters/host-node/preparation-initial-failure-public.test.mjs'],
-  ['adapters/host-node/ordinary-preparation-cut-retry.test.mjs'],
-  ['scripts/preparation-closed-values-plan-controls.test.mjs'],
-  ['adapters/store-local/publication-contract-node-bound.test.mjs'],
-  ['scripts/preparation-closed-values-layout.test.mjs'],
-  ['scripts/preparation-closed-values-graph-layout.test.mjs'],
-  ['scripts/preparation-closed-values-contract-layout.test.mjs'],
-  ['adapters/host-node/client-numeric-scale-public.test.mjs'],
-  ['adapters/host-node/preparation-capacity-refusal.test.mjs'],
-  ['scripts/preparation-intent-lifetime.test.mjs'],
-  ['adapters/host-node/installed-sequence-infer-subset.test.mjs', 'adapters/host-node/client-compilation-original.test.mjs',
-    'adapters/host-node/preparation-compilation-cold-open-public.test.mjs', 'scripts/preparation-compilation-call-controls.test.mjs',
-    'scripts/preparation-compilation-projector-controls.test.mjs', 'adapters/host-node/client-snapshot-output-envelope.test.mjs',
-    'adapters/host-node/client-captured-context-original.test.mjs'],
-  ['scripts/scalar-snapshot-projector-layout.test.mjs', 'scripts/capture-projector-layout.test.mjs',
-    'adapters/host-node/publication-currentness-boundary.test.mjs', 'adapters/host-node/client-publication-preparation-phase.test.mjs',
-    'adapters/host-node/publication-validation-close-public.test.mjs'],
-  ['adapters/host-node/publication-snapshot-original-public.test.mjs'],
-  ['adapters/host-node/finalization-scratch-cut-public.test.mjs', 'adapters/connectors/calendar/test/installed-calendar-source.test.mjs'],
-  ['adapters/host-node/installed-content-family-custody.test.mjs'],
-]) distribution.push(`node scripts/local-checks.mjs test node -- ${files.join(' ')}`);
 
 test('explicit fixture interface admission is awaited for the physical root and selected manifests', t => {
   const {result, calls, directory} = run(t, ['coordinator-core', 'transfer-core', 'coordinator-core']);
@@ -549,6 +391,14 @@ test('runtime preparation preserves physical cwd and output through a symlinked 
      if (payload() !== 'fixture-remote_transfer_abi') throw new Error('Wrong original payload');`],
   {encoding: 'utf8', timeout: 30000});
   assert.equal(consumer.status, 0, consumer.stderr);
+});
+
+test('runtime preparation refuses missing fixture ownership before compiling', t => {
+  const {result, calls} = run(t, ['transfer-core'], {missingInterfaceOwner: true});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Unregistered distributed interfaces/);
+  assert.equal(calls.some(value => value.command === 'moon'), false);
+  assert.equal(calls.some(value => value.done), false);
 });
 
 for (const [gate, commands] of Object.entries(expectedGates)) {

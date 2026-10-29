@@ -5,7 +5,7 @@ test "empty sourceview component counts real empty containers and distinct attac
   assert_true(units.reference_slots > 73L)
   assert_eq(units.owned_utf16_units, 0L)
   assert_eq(units.owned_wire_bytes, 0L)
-  assert_true(preparation_representation_cost(units) is Some(_))
+  assert_true(@execution.preparation_representation_cost(units) is Some(_))
 }
 
 ///|
@@ -29,14 +29,14 @@ test "Unit publication composes generated parsers and writers without row payloa
   assert_true(a.source_admission == b.source_admission)
   assert_true(a.writers == b.writers)
   assert_eq(a.payload.owned_wire_bytes, 796L)
-  let combined = closed_values_sum_layouts([
+  let combined = @execution.compose_preparation_representation([
     a.payload,
     a.source_admission,
     a.writers,
   ]).unwrap()
   assert_true(
-    preparation_representation_cost(combined).unwrap() >
-    preparation_representation_cost(a.payload).unwrap(),
+    @execution.preparation_representation_cost(combined).unwrap() >
+    @execution.preparation_representation_cost(a.payload).unwrap(),
   )
   assert_true(closed_values_unit_publication_layout(-1) is None)
   assert_true(closed_values_unit_publication_layout(2147483647) is Some(_))

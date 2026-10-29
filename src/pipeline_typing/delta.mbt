@@ -10,32 +10,6 @@ fn empty_delta() -> DeltaEvidence {
 }
 
 ///|
-fn imported_delta(
-  b : Budget,
-  source : @decode.Cursor,
-  inputs : Array[ProducedInput?],
-) -> Array[DeltaEvidence] raise Stop {
-  spend(b, source, inputs.length())
-  inputs.map(input => {
-    let result = empty_delta()
-    if input is Some(producer) {
-      spend(b, source, producer.delta.fields.length())
-      for field, contract in producer.delta.fields {
-        charge(b, source, field)
-        carrier_preflight(
-          b,
-          source,
-          @carrier.graph_carrier(@graph_contract.graph(contract)),
-        )
-        // Explicit bindings can extend this map, never mutate the producer.
-        result.fields[field] = contract
-      }
-    }
-    result
-  })
-}
-
-///|
 fn delta_at(
   target : Target,
   inputs : Array[DeltaEvidence],
@@ -78,58 +52,22 @@ fn sync_delta(
 }
 
 ///|
+/// Synchronous callers drive the same original retained transfer body.
 fn transfer_delta(
   b : Budget,
   source : @decode.Cursor,
   previous : DeltaEvidence,
   op : @relation.CheckedOperation,
 ) -> DeltaEvidence raise Stop {
-  if previous.fields.is_empty() {
-    return previous
+  let original = begin_delta_transfer_read(b, source, previous, op)
+  while original.state is Pending(_) {
+    advance_delta_transfer_read(original)
   }
-  match @relation.operation(op) {
-    Filter
-    | Sort
-    | Take
-    | AssertRows
-    | DedupeRows
-    | TopK
-    | TopKBy
-    | Lag
-    | WatermarkRows => previous
-    Derive => {
-      spend(b, source, @relation.binding_count(op) + previous.fields.length())
-      let overwritten : Map[String, Bool] = Map([])
-      for i in 0..<@relation.binding_count(op) {
-        if @relation.binding_at(op, i).unwrap().name is Some(name) {
-          overwritten[name] = true
-        }
-      }
-      let fields : Map[String, @graph_contract.CheckedContract] = Map([])
-      for key, value in previous.fields {
-        if !overwritten.contains(key) {
-          fields[key] = value
-        }
-      }
-      { fields, }
-    }
-    Select | Rename | Drop | Distinct => {
-      if @relation.row_operation(op) is Some(DistinctRows) {
-        return previous
-      }
-      let projection = @relation.projection(op)
-      spend(b, source, projection.length())
-      let fields : Map[String, @graph_contract.CheckedContract] = Map([])
-      for p in projection {
-        if previous.fields.get(@schema.reference_name(p.input)) is Some(c) {
-          let name = @schema.reference_name(p.output)
-          charge(b, source, name)
-          fields[name] = c
-        }
-      }
-      { fields, }
-    }
-    _ => empty_delta()
+  let result = take_delta_transfer_read(original).unwrap()
+  clear_delta_transfer_read(original)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Stop(issue)
   }
 }
 

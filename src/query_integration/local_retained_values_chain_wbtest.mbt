@@ -60,7 +60,7 @@ test "retained source-free Values chain admits the exact bounded producer" {
     1,
   ).unwrap()
   assert_true(
-    @local_connector.local_module_managed_provider(implementation, generated)
+    @local_connector.local_module_managed_provider(implementation, 0, generated)
     is Some(_),
   )
   assert_true(
@@ -195,7 +195,7 @@ test "source-free scalar chain uses independent exact work and workspace limits"
         1,
       ).unwrap()
       let provider = @local_connector.local_module_managed_provider(
-        installed, generated,
+        installed, 0, generated,
       ).unwrap()
       let active = @local_connector.start_managed_provider_with_inputs_and_execution(
         provider,
@@ -313,27 +313,42 @@ test "product source-free retained factory installs exact bounded chain offers" 
 }
 
 ///|
-test "product retained factory refuses a nonlinear Values suffix before Compute" {
+test "product retained factory admits the exact earlier Values producer of a checked branch" {
   let prepared = retained_values_client_preparation(true)
-  assert_true(
-    @client_local_host.open_source_free_local_retained_host(
-      prepared,
-      registered_installed_sequence_contracts(),
-      @identity.stringify_value(registered_values(), 100000, 10000, 100),
-      1L,
-      0L,
-      0L,
-      0L,
-      fragment_body=Some(
-        @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
-      ),
-    )
-    is None,
+  let setup = @client_local_host.open_source_free_local_retained_host(
+    prepared,
+    registered_installed_sequence_contracts(),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=Some(
+      @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+    ),
+  ).unwrap()
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
   )
+  assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 1)
+  assert_eq(
+    @local_driver.local_dispatch_rejection(
+      @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
+      0,
+    ),
+    None,
+  )
+  assert_false(@strategy.captured_task_completed(run, 0))
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
 }
 
 ///|
-test "Values publication rejects wrong children nonlinear chains and shadowing providers" {
+test "Values publication rejects wrong children and shadowing providers" {
   let limits = dispatch_test_limits()
   let registry = search_registry()
   let generated = task_test_generated(
@@ -369,17 +384,6 @@ test "Values publication rejects wrong children nonlinear chains and shadowing p
   let cases = [
     (generated, [shadow]),
     (@execution.select_generated_sequence_step(generated, 1).unwrap(), []),
-    (
-      task_test_generated(
-        zero_input_request_owner(
-          retained_values_chain_source().replace(
-            old="{\"select\":[\"id\"],\"as\":\"selected\"}",
-            new="{\"from\":\"seed\",\"select\":[\"id\"],\"as\":\"selected\"}",
-          ),
-        ),
-      ),
-      [],
-    ),
   ]
   for (sequence, family) in cases {
     let installed = @local_connector.prepare_local_compute_module(
@@ -400,72 +404,85 @@ test "Values publication rejects wrong children nonlinear chains and shadowing p
 
 ///|
 test "source-free Values chains preserve ordered results and cancellation custody" {
-  let limits = dispatch_test_limits()
-  let registry = search_registry()
-  let generated = task_test_generated(
-    zero_input_request_owner(retained_values_chain_source()),
-  )
-  let installed = @local_connector.prepare_local_compute_module(
-    registry,
-    @connector.capability_registration_at(registry, 0).unwrap(),
-    [generated],
-    limits.local_execution,
-    limits.guards,
-    limits.candidate_work,
-    1,
-  ).unwrap()
-  let provider = @local_connector.local_module_managed_provider(
-    installed, generated,
-  ).unwrap()
-  for cancel in [false, true] {
-    let active = @local_connector.start_managed_provider_with_inputs_and_execution(
-      provider,
-      generated,
-      [],
-      100,
-      10000,
+  for branched in [false, true] {
+    let limits = dispatch_test_limits()
+    let registry = search_registry()
+    let generated = task_test_generated(
+      zero_input_request_owner(
+        if branched {
+          retained_values_chain_source().replace(
+            old="{\"select\":[\"id\"],\"as\":\"selected\"}",
+            new="{\"from\":\"seed\",\"select\":[\"id\"],\"as\":\"selected\"}",
+          )
+        } else {
+          retained_values_chain_source()
+        },
+      ),
+    )
+    let installed = @local_connector.prepare_local_compute_module(
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      [generated],
       limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+      1,
     ).unwrap()
-    let mut terminal = false
-    let mut work = 0L
-    let mut cancelled = false
-    for _ in 0..<1000 {
-      if terminal {
-        break
-      }
-      // One name, three row/cell/commit triples and Finish consume eleven
-      // steps; a handoff then precedes the first filter work unit.
-      if cancel && !cancelled && work >= 13L {
-        assert_true(@local_connector.cancel_managed_provider(active))
-        cancelled = true
-      }
-      match @local_connector.advance_managed_provider(active, 1).unwrap() {
-        @local_connector.Continue(work=charged, ..) => {
-          assert_true(charged <= 1L)
-          work += charged
+    let provider = @local_connector.local_module_managed_provider(
+      installed, 0, generated,
+    ).unwrap()
+    for cancel in [false, true] {
+      let active = @local_connector.start_managed_provider_with_inputs_and_execution(
+        provider,
+        generated,
+        [],
+        100,
+        10000,
+        limits.local_execution,
+      ).unwrap()
+      let mut terminal = false
+      let mut work = 0L
+      let mut cancelled = false
+      for _ in 0..<1000 {
+        if terminal {
+          break
         }
-        @local_connector.Complete(output, work=charged, ..) => {
-          assert_false(cancel)
-          assert_true(charged <= 1L)
-          assert_eq(@execution.completed_row_count(output), 2)
-          assert_true(
-            @execution.completed_cell(output, 0, 0) is Some(Number(3.0)),
-          )
-          assert_true(
-            @execution.completed_cell(output, 1, 0) is Some(Number(2.0)),
-          )
-          terminal = true
+        // Cancel during bounded execution without treating a poll as completed
+        // output. The original cancellation threshold remains a negative case.
+        if cancel && !cancelled && work >= 13L {
+          assert_true(@local_connector.cancel_managed_provider(active))
+          cancelled = true
         }
-        @local_connector.Stopped(work=charged, ..) => {
-          assert_true(cancelled)
-          assert_true(charged <= 1L)
-          terminal = true
+        match @local_connector.advance_managed_provider(active, 1).unwrap() {
+          @local_connector.Continue(work=charged, ..) => {
+            assert_true(charged <= 1L)
+            work += charged
+          }
+          @local_connector.Complete(output, work=charged, ..) => {
+            assert_false(cancel)
+            assert_true(charged <= 1L)
+            let expected = if branched { [3.0, 1.0, 2.0] } else { [3.0, 2.0] }
+            assert_eq(@execution.completed_row_count(output), expected.length())
+            for row, value in expected {
+              guard @execution.completed_cell(output, row, 0)
+                is Some(Number(actual)) else {
+                fail("the selected original producer must retain Number cells")
+              }
+              assert_eq(actual, value)
+            }
+            terminal = true
+          }
+          @local_connector.Stopped(work=charged, ..) => {
+            assert_true(cancelled)
+            assert_true(charged <= 1L)
+            terminal = true
+          }
+          _ => fail("source-free chain did not reach its bounded completion")
         }
-        _ => fail("source-free chain did not reach its bounded completion")
       }
+      assert_true(terminal)
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
     }
-    assert_true(terminal)
-    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
-    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
   }
 }

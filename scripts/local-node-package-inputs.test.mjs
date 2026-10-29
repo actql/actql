@@ -5,6 +5,8 @@ import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {checkHostBundle, generateInstallations, readHostBundles} from './connector-node-bundles.mjs';
+import {localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
+import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -171,4 +173,21 @@ test('a connector directory cannot redirect ownership through a symbolic link', 
   renameSync(join(root, 'src/connectors/example'), join(root, 'elsewhere'));
   symlinkSync(join(root, 'elsewhere'), join(root, 'src/connectors/example'), 'dir');
   assert.throws(() => checkHostBundle(root, 'example', path), /manifest \(assets\)/);
+});
+
+test('published adapter closure retains concrete Local helpers and their same private runtime Owner', async () => {
+  const inputs = localNodePackageInputs(repository);
+  const graph = adapterModuleGraph(repository, inputs.adapterEntries);
+  const copyInputs = await localNodeAdapterSourceInputs({root: repository, inputs});
+  for (const name of ['closed-values-preparation-adapter', 'installed-project-mock',
+    'installed-project-mock-answers', 'installed-mock-row-effect', 'mock-churn-risk-catalogue']) {
+    const path = `adapters/local-node/${name}.mjs`;
+    assert.ok(graph.includes(path), name);
+    const copied = copyInputs.filter(entry => entry.path === path);
+    assert.equal(copied.length, 1);
+    assert.equal(copied[0].source, join(repository, path));
+    assert.ok(!graph.includes(`adapters/host-node/${name}.mjs`), name);
+  }
+  assert.equal(graph.filter(path => path.endsWith('/ordinary-node-resource-runtime.cjs')).length, 1);
+  assert.ok(graph.includes('adapters/host-node/ordinary-node-resource-runtime.cjs'));
 });

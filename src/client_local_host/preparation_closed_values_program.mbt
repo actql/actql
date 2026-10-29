@@ -4,10 +4,10 @@
 /// one Stage, no imports/effects/table inputs, one step and one Result/export.
 /// Its Cursor backing, names and ParseUsage belong to the source phase.
 priv struct ClosedValuesProgramInventories {
-  retained : PreparationRepresentationUnits
-  containers_peak : PreparationRepresentationUnits
-  carriers_peak : PreparationRepresentationUnits
-  failure_peak : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  containers_peak : @execution.PreparationRepresentationUnits
+  carriers_peak : @execution.PreparationRepresentationUnits
+  failure_peak : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -18,7 +18,7 @@ fn closed_values_program_arrays(
   count : Int64,
   items : Int64,
   growing : Bool,
-) -> PreparationRepresentationUnits {
+) -> @execution.PreparationRepresentationUnits {
   {
     record_headers: (if growing { 3L } else { 2L }) * count,
     reference_slots: count +
@@ -39,7 +39,7 @@ fn closed_values_program_maps(
   count : Int64,
   entries : Int64,
   growing : Bool,
-) -> PreparationRepresentationUnits {
+) -> @execution.PreparationRepresentationUnits {
   let buckets = if growing {
     12L * count + 6L * entries
   } else {
@@ -60,11 +60,11 @@ fn closed_values_program_maps(
 
 ///|
 fn closed_values_program_units_add(
-  a : PreparationRepresentationUnits,
-  b : PreparationRepresentationUnits,
-) -> PreparationRepresentationUnits {
+  a : @execution.PreparationRepresentationUnits,
+  b : @execution.PreparationRepresentationUnits,
+) -> @execution.PreparationRepresentationUnits {
   // Only fixed narrow constructor cardinalities call this helper. Resource
-  // projection remains checked by preparation_representation_cost.
+  // projection remains checked by @execution.preparation_representation_cost.
   {
     record_headers: a.record_headers + b.record_headers,
     reference_slots: a.reference_slots + b.reference_slots,
@@ -75,6 +75,21 @@ fn closed_values_program_units_add(
 }
 
 ///|
+// Immutable implementation DATA for the already-proved fixed envelope only.
+// This has no input/parameter/current/permission/Run binding. The same syntax
+// owner computes it once, not again during each prepared Values request.
+let closed_values_program_container_extent : @syntax.ProgramContainerConstructionExtent = @syntax.program_container_construction_extent({
+    stage_records: 1,
+    import_tuple_bound: 0L,
+    export_tuples: 1,
+    name_index_entries: 1L,
+    retained_array_capacity_bound: 62L,
+    retained_map_capacity_bound: 36L,
+    inspection_work: 0,
+  },
+).unwrap()
+
+///|
 fn closed_values_program_inventories(
   _shape : ClosedValuesShape,
 ) -> ClosedValuesProgramInventories {
@@ -82,16 +97,8 @@ fn closed_values_program_inventories(
   // no input imports, one Result and one public export. The generic syntax
   // owner prices its actual shallow containers; source/name/scratch owners
   // below stay independent. No general Source is narrowed to Values facts.
-  let extent = @syntax.program_container_construction_extent({
-    stage_records: 1,
-    import_tuple_bound: 0L,
-    export_tuples: 1,
-    name_index_entries: 1L,
-    retained_array_capacity_bound: 54L,
-    retained_map_capacity_bound: 28L,
-    inspection_work: 0,
-  }).unwrap()
-  let retained : PreparationRepresentationUnits = {
+  let extent = closed_values_program_container_extent
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: extent.record_headers,
     reference_slots: extent.reference_slots,
     scalar_words: extent.scalar_words,
@@ -101,7 +108,7 @@ fn closed_values_program_inventories(
   // These same record owners also coexist through the decoder's temporary
   // container peak. Their original shallow fields remain separate from the
   // generic retained total, which already includes retained arrays/maps.
-  let records : PreparationRepresentationUnits = {
+  let records : @execution.PreparationRepresentationUnits = {
     record_headers: extent.shallow_record_headers,
     reference_slots: extent.shallow_reference_slots,
     scalar_words: extent.shallow_scalar_words,
@@ -129,12 +136,13 @@ fn closed_values_program_inventories(
     3L + 2L + 1L + 19L + 11L + 0L + 2L + 13L,
     true,
   )
-  // Six ObjectViews; 13 key tuples in the indexed Stage checker; one
+  // Five temporary ObjectViews; the original input view is retained above.
+  // Thirteen key tuples in the indexed Stage checker; one
   // Envelope (5 refs) coexists with the final Program. Cursor/tag/control
   // call frames and failure path owners are separate phase dependencies.
-  let additional : PreparationRepresentationUnits = {
-    record_headers: 6L + 13L + 1L,
-    reference_slots: 12L + 13L + 5L,
+  let additional : @execution.PreparationRepresentationUnits = {
+    record_headers: 5L + 13L + 1L,
+    reference_slots: 10L + 13L + 5L,
     scalar_words: 0L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -149,15 +157,15 @@ fn closed_values_program_inventories(
   // Twelve required() sites each create a lookup Cursor/Some and returned
   // Ok; eight optional lookup sites are absent in this shape. Both create
   // their source-level lookup-map closure. Two elements() calls create one
-  // Cursor each; the Stage Cursor is already in retained records above.
+  // Cursor each; Stage/input/steps Cursors are retained above.
   // Result carriers: required12, open6, closed-key checks4, field-names3,
   // elements2, five names × (text/NFC quick/NFC/LF)4, finish1 =48. Some12.
   // Count these sequential carriers together conservatively. No VM frame or
   // copied String is invented: ASCII names return their original Strings.
-  let cursors = 12L + 2L - 1L
+  let cursors = 12L + 2L - 3L
   let tagged = 48L + 12L
   let closures = 20L + 2L + 1L // lookup, elements, export map
-  let carriers_peak : PreparationRepresentationUnits = {
+  let carriers_peak : @execution.PreparationRepresentationUnits = {
     record_headers: cursors + tagged + closures,
     reference_slots: 2L * cursors + tagged + 20L + 2L + 2L,
     scalar_words: cursors + tagged,
@@ -172,7 +180,7 @@ fn closed_values_program_inventories(
       @syntax.program_input_cursor(_shape.original),
     ).depth.to_int64() +
     1L
-  let failure_peak : PreparationRepresentationUnits = {
+  let failure_peak : @execution.PreparationRepresentationUnits = {
     record_headers: 4L + 3L + depth,
     reference_slots: 7L + 1L + 12L + 3L * depth + depth,
     scalar_words: 4L + 2L + 2L * depth,

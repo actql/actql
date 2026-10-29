@@ -45,28 +45,6 @@ fn NativeLocalAdoptionSession::prepare_journal_marker(
 }
 
 ///|
-// The original commit may have succeeded. Inspect, never rerun bootstrap.
-fn NativeLocalAdoptionSession::inspect_retained_journal(
-  self : NativeLocalAdoptionSession,
-  library : @sqlite.Library,
-  max_snapshot_bytes : Int64,
-  max_records : Int,
-) -> Result[Bool, NativeLocalAdoptionIssue] {
-  match
-    inspect_native_client_state(
-      library,
-      self.state_path + "/client.sqlite3",
-      131072L,
-      max_snapshot_bytes,
-      max_records,
-    ) {
-    Ok(Retained) => Ok(false)
-    Ok(PhysicallyAbsent) => Err(CustodyLost)
-    Err(issue) => Err(Inspection(issue))
-  }
-}
-
-///|
 // Ordinary open validates installation and issuance anchors. Target operations
 // admit their own originals; whole-history audits are explicit operations.
 fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(

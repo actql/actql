@@ -167,7 +167,7 @@ fn effect_finite_cli_submission(
 }
 
 ///|
-test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or starting a Run" {
+test "CLI Effect preflight refuses its supplier while actual Policy values remain fresh and unaccepted" {
   let (host, settings, crypto, installed) = effect_finite_cli_host(
     "cli-effect-finite-fresh",
   )
@@ -193,8 +193,36 @@ test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or
     () => "2026-10-12T00:00:00.000Z",
     () => 1791763200002.0,
   )
-  guard prepared is Some(start) else { fail("expected new original") }
-  let original = start.original
+  guard prepared is AuthoritySupplierUnavailable else {
+    fail("expected completed preflight")
+  }
+  // Observe values through the actual Policy/compilation Owners, not through
+  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  )
+  let binding = local_run_policy_binding(host, settings, crypto).unwrap()
+  guard binding.prepare_submission_policy(
+      reference, preparation, request, "2026-10-12T00:00:00.000Z", 1791763200002.0,
+    )
+    is Ok(Pending(retention, issued_at)) else {
+    fail("actual policy preparation")
+  }
+  let retention_fields = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(retention)),
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    scope,
+    host.configuration().unwrap().configuration_cid(),
+    installed.namespace_id,
+    @local_host.native_client_submission_request_id(reference),
+    issued_at,
+    run_text(retention_fields, "available_until"),
+  )
+
   let body = local_input_cursor(
     @publication.publication_contract_json(original.definition),
   )
@@ -243,11 +271,36 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(start) else {
+    is AuthoritySupplierUnavailable else {
     fail("first preparation")
   }
-  let original = start.original
+  // Observe values through the actual Policy/compilation Owners, not through
+  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  )
   let binding = local_run_policy_binding(host, settings, crypto).unwrap()
+  guard binding.prepare_submission_policy(
+      reference, preparation, request, "2026-10-12T00:00:00.000Z", 1791763200002.0,
+    )
+    is Ok(Pending(retention, issued_at)) else {
+    fail("actual policy preparation")
+  }
+  let retention_fields = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(retention)),
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    scope,
+    host.configuration().unwrap().configuration_cid(),
+    installed.namespace_id,
+    @local_host.native_client_submission_request_id(reference),
+    issued_at,
+    run_text(retention_fields, "available_until"),
+  )
+
   effect_finite_cli_ok(
     binding.accept_submitted_effect_values_run_policy(
       reference,
@@ -277,7 +330,7 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
       () => "not-a-time",
       () => 1791763200005.0,
     )
-    is None,
+    is AlreadyAccepted,
   )
   let after = binding
     .lookup_submitted_run_policy(reference, original.request, 1791763200006.0)
@@ -309,10 +362,36 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(start) else {
+    is AuthoritySupplierUnavailable else {
     fail("first preparation")
   }
-  let original = start.original
+  // Observe values through the actual Policy/compilation Owners, not through
+  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  )
+  let binding = local_run_policy_binding(host, settings, crypto).unwrap()
+  guard binding.prepare_submission_policy(
+      reference, preparation, request, "2026-10-12T00:00:00.000Z", 1791763200002.0,
+    )
+    is Ok(Pending(retention, issued_at)) else {
+    fail("actual policy preparation")
+  }
+  let retention_fields = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(retention)),
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    scope,
+    host.configuration().unwrap().configuration_cid(),
+    installed.namespace_id,
+    @local_host.native_client_submission_request_id(reference),
+    issued_at,
+    run_text(retention_fields, "available_until"),
+  )
+
   effect_finite_cli_ok(
     host.accept_submitted_effect_material_original(
       crypto,
@@ -351,7 +430,7 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
 }
 
 ///|
-test "CLI Effect selected preparation accepts finite policy and ResultPolicy with the same original materials" {
+test "actual Policy binding accepts finite retention with the same original compilation materials" {
   let (host, settings, crypto, installed) = effect_finite_cli_host(
     "cli-effect-selected-accept",
   )
@@ -370,15 +449,46 @@ test "CLI Effect selected preparation accepts finite policy and ResultPolicy wit
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(start) else {
+    is AuthoritySupplierUnavailable else {
     fail("selected.prepare")
   }
-  assert_true(start.policy is Some(_))
-  assert_eq(start.issued_at, "2026-10-12T00:00:00.000Z")
+  // Observe values through the actual Policy/compilation Owners, not through
+  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  )
+  let binding = local_run_policy_binding(host, settings, crypto).unwrap()
+  guard binding.prepare_submission_policy(
+      reference, preparation, request, "2026-10-12T00:00:00.000Z", 1791763200002.0,
+    )
+    is Ok(Pending(retention, issued_at)) else {
+    fail("actual policy preparation")
+  }
+  let retention_fields = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(retention)),
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    scope,
+    host.configuration().unwrap().configuration_cid(),
+    installed.namespace_id,
+    @local_host.native_client_submission_request_id(reference),
+    issued_at,
+    run_text(retention_fields, "available_until"),
+  )
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
+
+  assert_eq(issued_at, "2026-10-12T00:00:00.000Z")
   assert_eq(
     @publication.result_retention_interval_state(
-      start.run.retention,
-      "2026-10-12T00:00:00.000Z",
+      retention, "2026-10-12T00:00:00.000Z",
     ),
     Ok("available"),
   )
@@ -390,16 +500,24 @@ test "CLI Effect selected preparation accepts finite policy and ResultPolicy wit
     Ok("delete_due"),
   )
   let accepted = effect_finite_cli_ok(
-    local_effect_accept_prepared_start(
-      start, reference, preparation, 1791763200003.0,
+    binding.accept_submitted_effect_values_run_policy(
+      reference,
+      preparation,
+      original.request,
+      original.allowed,
+      original.definition,
+      original.issued,
+      issued_at,
+      1791763200003.0,
     ),
     "selected.accept",
   )
-  let original = start.original
   let saved = effect_finite_cli_ok(
-    start.policy
-    .unwrap()
-    .lookup_submitted_run_policy(reference, original.request, 1791763200004.0),
+    binding.lookup_submitted_run_policy(
+      reference,
+      original.request,
+      1791763200004.0,
+    ),
     "selected.policy",
   )
   assert_eq(
@@ -414,7 +532,7 @@ test "CLI Effect selected preparation accepts finite policy and ResultPolicy wit
     @publication.publication_contract_json(
       @run_host.client_local_run_policy_original_retention(saved),
     ),
-    @publication.publication_contract_json(start.run.retention),
+    @publication.publication_contract_json(retention),
   )
   let packet = effect_finite_cli_ok(
     host.lookup_submitted_effect_material_original(
@@ -429,7 +547,7 @@ test "CLI Effect selected preparation accepts finite policy and ResultPolicy wit
   )
   assert_eq(
     @local_host.native_client_retained_effect_materials_cid(packet),
-    @run_host.client_effect_normalization_materials_cid(original.materials).unwrap(),
+    @run_host.client_effect_normalization_materials_cid(materials).unwrap(),
   )
   assert_eq(
     @publication.publication_contract_identity(
@@ -464,7 +582,7 @@ test "CLI Effect selected preparation accepts finite policy and ResultPolicy wit
 }
 
 ///|
-test "CLI Effect selected acceptance reconciles the same original across lost acknowledgement and reopen" {
+test "actual Policy binding reconciles the same original across lost acknowledgement and reopen" {
   let name = "cli-effect-selected-reopen"
   let (host, settings, crypto, installed) = effect_finite_cli_host(name)
   defer host.close() |> ignore
@@ -482,20 +600,52 @@ test "CLI Effect selected acceptance reconciles the same original across lost ac
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(start) else {
+    is AuthoritySupplierUnavailable else {
     fail("reopen.prepare")
   }
+  // Observe values through the actual Policy/compilation Owners, not through
+  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  )
+  let binding = local_run_policy_binding(host, settings, crypto).unwrap()
+  guard binding.prepare_submission_policy(
+      reference, preparation, request, "2026-10-12T00:00:00.000Z", 1791763200002.0,
+    )
+    is Ok(Pending(retention, issued_at)) else {
+    fail("actual policy preparation")
+  }
+  let retention_fields = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(retention)),
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    scope,
+    host.configuration().unwrap().configuration_cid(),
+    installed.namespace_id,
+    @local_host.native_client_submission_request_id(reference),
+    issued_at,
+    run_text(retention_fields, "available_until"),
+  )
+
   // The acceptance response is deliberately withheld from the caller model.
   // This is ACK-loss simulation, not a claim about a physical transport fault.
   effect_finite_cli_ok(
-    local_effect_accept_prepared_start(
-      start, reference, preparation, 1791763200003.0,
+    binding.accept_submitted_effect_values_run_policy(
+      reference,
+      preparation,
+      original.request,
+      original.allowed,
+      original.definition,
+      original.issued,
+      issued_at,
+      1791763200003.0,
     ),
     "reopen.accept",
   )
   |> ignore
-  let original = start.original
-  let binding = start.policy.unwrap()
   let saved = effect_finite_cli_ok(
     binding.lookup_submitted_run_policy(
       reference,
@@ -510,10 +660,17 @@ test "CLI Effect selected acceptance reconciles the same original across lost ac
     .unwrap()
   guard before is Retained(before_record) else { fail("reopen.before") }
   // Accepted lookup must win before any replacement candidate time is parsed.
-  let stale_candidate = { ..start, issued_at: "not-a-time", }
+  let stale_issued_at = "not-a-time"
   effect_finite_cli_ok(
-    local_effect_accept_prepared_start(
-      stale_candidate, reference, preparation, 1791763200005.0,
+    binding.accept_submitted_effect_values_run_policy(
+      reference,
+      preparation,
+      original.request,
+      original.allowed,
+      original.definition,
+      original.issued,
+      stale_issued_at,
+      1791763200005.0,
     ),
     "reopen.same-accept",
   )
@@ -528,8 +685,15 @@ test "CLI Effect selected acceptance reconciles the same original across lost ac
   )
   let foreign_preparation = local_effect_prefix_fixture_preparation()
   assert_true(
-    local_effect_accept_prepared_start(
-      start, reference, foreign_preparation, 1791763200007.0,
+    binding.accept_submitted_effect_values_run_policy(
+      reference,
+      foreign_preparation,
+      original.request,
+      original.allowed,
+      original.definition,
+      original.issued,
+      issued_at,
+      1791763200007.0,
     )
     is Err(@local_host.ForeignPreparation),
   )

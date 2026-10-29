@@ -16,7 +16,13 @@ pub fn begin_installed_effect_managed_source_read(
   ),
   ClientInstalledManagedRunIssue,
 ] {
-  let plan = match installed_effect_managed_operation_plan(owner) {
+  guard owner.preparation is Some(PlannedEffectManaged(_, original_plan)) else {
+    return Err(Unsupported)
+  }
+  let prepared = original_plan.prepared
+  let request = owner.request
+  let plan = match
+    installed_effect_managed_operation_plan(owner, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(plan) => plan
   }
@@ -46,7 +52,7 @@ pub fn begin_installed_effect_managed_source_read(
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()
   }
-  match installed_effect_managed_operation_plan(owner) {
+  match installed_effect_managed_operation_plan(owner, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(original) if physical_equal(original, plan) => ()
     Ok(_) => return Err(ForeignOriginal)

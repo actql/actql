@@ -3,8 +3,8 @@
 /// that call; `temporary` is private parser/admission storage. Neither is a
 /// final Run holding by itself. The caller owns original emitted wire text.
 priv struct CompilationParseLayout {
-  value : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  value : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -36,7 +36,7 @@ fn compilation_parse_layout(
   // Only decoded keys/String values are borrowed by CanonicalValue; its source
   // Span/Field/Node/container records do not escape from_source. ASCII owner
   // keys pass NFC quick-check unchanged. No indexed Cursor exists on this path.
-  let text : PreparationRepresentationUnits = {
+  let text : @execution.PreparationRepresentationUnits = {
     record_headers: facts.quoted_tokens.to_int64(),
     reference_slots: 0L,
     scalar_words: 0L,
@@ -47,21 +47,22 @@ fn compilation_parse_layout(
     is Some(private_ast) &&
     closed_values_js_bytes_document_layout(facts.input_bytes.to_int64(), 1)
     is Some(document) &&
-    closed_values_sum_layouts([canonical.tree, text]) is Some(value) else {
+    @execution.compose_preparation_representation([canonical.tree, text])
+    is Some(value) else {
     return None
   }
   // PinnedJS utf8.encode accepts a StringView and calls src.slice before
   // TextEncoder: retain view(1ref2words), possible sliceString and Bytes owner.
   // TextEncoder itself is a module singleton. Source parse-bytes also owns its
   // decoded document and views; that document is not the original emitter wire.
-  let encoded : PreparationRepresentationUnits = {
+  let encoded : @execution.PreparationRepresentationUnits = {
     record_headers: 3L,
     reference_slots: 1L,
     scalar_words: 2L,
     owned_utf16_units: facts.input_bytes.to_int64(),
     owned_wire_bytes: facts.input_bytes.to_int64(),
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       private_ast,
       source.source_growth_peak,
       source.key_admission_peak,
@@ -85,7 +86,7 @@ fn compilation_parse_layout(
 fn compilation_program_emitter_layout(
   facts : ClosedValuesLexicalFacts,
   largest_object : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   guard closed_values_identity_emitter_layout(
       facts.node_upper,
       largest_object,
@@ -102,14 +103,14 @@ fn compilation_program_emitter_layout(
   // ObjectView are counted beside their own map. Empty omissions never grow.
   // Three literal name arrays (root3, Stage3, fields of shared wrapper) are
   // bounded by three eight-slot arrays, including conservative growth backing.
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 12L * 4L + 3L * 3L + d,
     reference_slots: 12L * 5L + 3L * 9L + 6L * d,
     scalar_words: 12L * 3L + 3L * 2L + 3L * d,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let maps : PreparationRepresentationUnits = {
+  let maps : @execution.PreparationRepresentationUnits = {
     record_headers: 12L * view_map.record_headers,
     reference_slots: 12L * view_map.reference_slots,
     scalar_words: 12L *
@@ -117,12 +118,14 @@ fn compilation_program_emitter_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let empty_tags : PreparationRepresentationUnits = {
+  let empty_tags : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: omitted.reference_slots - 2L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([fields, maps, omitted, empty_tags, controls])
+  @execution.compose_preparation_representation([
+    fields, maps, omitted, empty_tags, controls,
+  ])
 }

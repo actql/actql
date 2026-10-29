@@ -5,36 +5,38 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/reference_compute/driver",
   "actql/actql/execution_relation",
-  "actql/actql/physical_host",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
-pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_reference_compute? : (@driver.NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
+pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_reference_compute? : (@driver.NumericComputeContribution, (@physical_strategy_host.RunIssue) -> E, (@physical_strategy_host.RunIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
 
-pub fn[E] configure_compute_modules(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_reference_compute? : (@connector_sdk.CapabilityRegistration, @driver.NumericComputeConfiguration, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+pub fn[E] assemble_configured_compute_modules(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_reference_compute? : (@driver.NumericComputeContribution, (@physical_strategy_host.RunIssue) -> E, (@physical_strategy_host.RunIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
 
-pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]]
+pub fn[E] configure_compute_modules(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_reference_compute? : (@connector_sdk.CapabilityRegistration, @driver.NumericComputeConfiguration, (@physical_strategy_host.RunIssue) -> E, (@physical_strategy_host.RunIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+
+pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]]
 
 pub fn[E] configured_compute_module_keys(ConfiguredComputeModules[E]) -> Array[String]
 
-pub fn[E] configured_host_driver(ConfiguredComputeHost[E]) -> @physical_host.DispatchDriver
+pub fn[E] configured_host_driver(ConfiguredComputeHost[E]) -> @physical_host_dispatch.DispatchDriver
 
 pub fn[E] configured_host_modules(ConfiguredComputeHost[E]) -> ConfiguredComputeModules[E]
 
-pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.ComputeHost[Unit, E]
+pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host_dispatch.ComputeHost[Unit, E]
 
 pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @driver.NumericComputeContribution?
 
 pub fn[E] dispatch_managed_reference_compute(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.NumericManagedDispatchConfiguration[Int]?, ConfiguredDispatchIssue[E]]
 
-pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
-pub fn[C, E] dispatch_reference_compute_with_completion_admission(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch, () -> Bool) -> Result[Unit, ConfiguredDispatchIssue[E]]
+pub fn[C, E] dispatch_reference_compute_with_completion_admission(ConfiguredComputeModules[E], @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch, () -> Bool) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
-pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
-pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host.ComputeHostIssue[E]]
+pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host_dispatch.ComputeHostIssue[E]]
 
 // Errors
 

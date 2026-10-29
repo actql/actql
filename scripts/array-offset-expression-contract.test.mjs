@@ -32,7 +32,33 @@ test('offset and safe offset retain distinct out-of-range laws and existing subs
 });
 
 test('registration preserves the complete fixed predecessor except the declared extension', () => {
-  const expressions=read(expressionPath),protocol=read(protocolPath);
+  // Exercise this exact historical transition on its complete retained owners.
+  // Later model-resource artifact changes are independently governed and must
+  // not be mistaken for changes made by the array-offset registration.
+  const expressions = structuredClone(prior.bodies[expressionPath]);
+  const protocol = structuredClone(prior.bodies[protocolPath]);
+  const countShapes = roots => {
+    const counts = {source: 0, node: 0};
+    const visit = value => {
+      if (!value || typeof value !== 'object') return;
+      for (const shape of value.oneOf ?? []) {
+        for (const name of ['array_offset', 'array_safe_offset']) {
+          if (shape.required?.includes(name)) counts.source++;
+          if (shape.properties?.op?.const === name) counts.node++;
+        }
+      }
+      for (const child of Object.values(value)) visit(child);
+    };
+    roots.forEach(visit);
+    return counts;
+  };
+  assert.deepEqual(countShapes([expressions.schemas, protocol.artifact_schemas]),
+    {source: 0, node: 0});
+  updateArrayOffsetContracts(expressions, protocol, grammar, true);
+  // Count actual inserted shapes independently of the updater's return value.
+  // A no-op registration cannot satisfy the round-trip preservation assertion.
+  assert.deepEqual(countShapes([expressions.schemas, protocol.artifact_schemas]),
+    {source: 14, node: 6});
   const remove = value => {
     if (!value || typeof value !== 'object') return;
     if (Array.isArray(value.oneOf)) value.oneOf=value.oneOf.filter(x =>

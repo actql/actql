@@ -950,8 +950,9 @@ test "Events-view session checks combined output workspace" {
   assert_true(@local_connector.cleanup_managed_provider(producing).unwrap())
   let material = material.unwrap()
   let owner = carrier_events_session_owner(events_owner)
-  // Events adds one identity: cursor 65, workspace 91, append 46.
-  for (workspace_budget, work_budget) in [(91, 90), (90, 90), (91, 89)] {
+  // Events adds one identity: cursor 65, workspace 93 (two label slots),
+  // append 46; LabelRecords adds two control polls for this one record.
+  for (workspace_budget, work_budget) in [(93, 92), (92, 92), (93, 91)] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, events_owner,
     ).unwrap()
@@ -978,17 +979,17 @@ test "Events-view session checks combined output workspace" {
       match @local_tea.advance_session(execution, 1).unwrap() {
         @local_tea.SessionContinue(..) => ()
         @local_tea.SessionComplete(output, ..) => {
-          assert_true(workspace_budget == 91 && work_budget == 90)
+          assert_true(workspace_budget == 93 && work_budget == 92)
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
-          assert_eq(workspace_budget, 90)
+          assert_eq(workspace_budget, 92)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
-          assert_eq(work_budget, 89)
+          assert_eq(work_budget, 91)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
@@ -2707,13 +2708,10 @@ test "standard Host runs registered bounded Events provider" {
       assert_true(event_rows[0].contains("\"window_start_ms\""))
       assert_true(event_rows[0].contains("\"window_end_ms\""))
     } else if variant.has_prefix("session") {
-      if variant == "session_ties" {
-        assert_true(event_rows[0].contains("\"event_id\":1"))
-        assert_true(event_rows[1].contains("\"event_id\":2"))
-      } else {
-        assert_true(event_rows[0].contains("\"event_id\":2"))
-        assert_true(event_rows[1].contains("\"event_id\":1"))
-      }
+      // Events labeling preserves authored occurrence order, including ties.
+      // The source fixture is [2, 1, 3]; chronology determines labels, not rows.
+      assert_true(event_rows[0].contains("\"event_id\":2"))
+      assert_true(event_rows[1].contains("\"event_id\":1"))
       assert_true(event_rows[2].contains("\"event_id\":3"))
       assert_true(event_rows[0].contains("\"session_start_ms\":1"))
       assert_true(event_rows[0].contains("\"session_id\":\"session:"))

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
+import {mockChurnRiskCatalogue} from '../local-node/mock-churn-risk-catalogue.mjs';
 
 const canonical = value => value === null || typeof value !== 'object'
   ? JSON.stringify(value)

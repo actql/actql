@@ -8,8 +8,8 @@ struct Expression {
   source : @decode.Cursor
   location : @syntax.Location
   uses_veca : Bool
-  text_bound : @context.TextBoundResolution?
-  text_bounds : Map[Int, @context.TextBoundResolution]
+  text_bound : ExpressionTextBound?
+  text_bounds : Map[Int, ExpressionTextBound]
 }
 
 ///|
@@ -896,7 +896,7 @@ fn lower_typed_expression_measured(
         }
       }
     }
-    let text_bounds : Map[Int, @context.TextBoundResolution] = Map([])
+    let text_bounds : Map[Int, ExpressionTextBound] = Map([])
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
         @typing.ProfileAdmission(profile) => profile_admitted(profile)
@@ -1387,9 +1387,7 @@ fn lower_membership_literal(
 ///|
 /// Read the original checked runtime bound retained at this exact occurrence.
 /// It is neither an operational Host admission nor a completed preflight.
-pub fn expression_text_bound(
-  value : Expression,
-) -> @context.TextBoundResolution? {
+pub fn expression_text_bound(value : Expression) -> ExpressionTextBound? {
   value.text_bound
 }
 
@@ -1400,7 +1398,7 @@ fn original_expression_text_bound(
   typed : @typing.TypedExpression,
   obligation : @typing.Obligation,
   budget : ExpressionBudget,
-) -> @context.TextBoundResolution? raise ExpressionStop {
+) -> ExpressionTextBound? raise ExpressionStop {
   guard bound.expression_context is Some((closure, stage)) else { return None }
   let identity = @context.expression_closure_identity(closure)
   for i in 0..<@context.expression_closure_count(closure) {
@@ -1426,7 +1424,7 @@ fn original_expression_text_bound(
       is Some(pipeline) &&
       physical_equal(bound.prepared.owner, pipeline) &&
       entry.resolution is @context.Envelope(original) {
-      return Some(original)
+      return Some(ExpressionTextBound(original))
     }
   }
   None
@@ -1438,7 +1436,7 @@ fn original_expression_text_bound(
 pub fn expression_text_bound_at(
   value : Expression,
   node_index : Int,
-) -> @context.TextBoundResolution? {
+) -> ExpressionTextBound? {
   guard @typing.node_at(value.typed_owner, node_index) is Some(node) &&
     @decode.tree_index(
       @syntax.tree(@typing.expression(value.typed_owner)),

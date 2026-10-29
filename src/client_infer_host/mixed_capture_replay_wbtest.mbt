@@ -120,7 +120,7 @@ test "mixed old and current evidence replays original rows without new dispatch"
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),
@@ -224,7 +224,7 @@ test "mixed saved evidence refuses changed input without new dispatch" {
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),
@@ -269,7 +269,7 @@ test "nullable current capture replays without fabricating metadata or usage" {
     let replay = start_restored_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),
@@ -339,7 +339,7 @@ test "nullable replay cancellation keeps custody and publishes no partial output
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),
@@ -388,7 +388,7 @@ test "nullable metadata replay has quantum independent result and logical work" 
     let replay = start_restored_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),
@@ -442,7 +442,7 @@ test "nullable saved capture still rejects either changed response hash" {
     let replay = start_restored_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),

@@ -85,7 +85,6 @@ fn sdk_payload_return_previous_clock(
 ///|
 /// Validate original current/availability and sink backpressure before the
 /// physical caller advances its descriptor. Chunk production checks again.
-#export_name("actql_publication_commit_export_prepare_sdk_payload_input")
 pub fn prepare_publication_sdk_payload_input(
   nonce : Int64,
   first_handle : Int,
@@ -172,7 +171,6 @@ fn sdk_payload_owned_bytes(
 ///|
 /// Feed one bounded physical input to existing framing/serialization/sink
 /// Owners. These bytes are offered, not sink-confirmed or durably delivered.
-#export_name("actql_publication_commit_export_produce_sdk_payload_chunk")
 pub fn produce_publication_sdk_payload_chunk(
   nonce : Int64,
   handle : Int,
@@ -286,7 +284,6 @@ pub fn produce_publication_sdk_payload_chunk(
 ///|
 /// Record physical acceptance of this exact offered chunk through the existing
 /// sink Owner. This is not a new read/publisher permit or durable Store receipt.
-#export_name("actql_publication_commit_export_confirm_sdk_payload_chunk")
 pub fn confirm_publication_sdk_payload_chunk(
   nonce : Int64,
   handle : Int,
@@ -323,7 +320,6 @@ pub fn confirm_publication_sdk_payload_chunk(
 ///|
 /// Explicit physical sink completion projects the original receipt only.
 /// Its later actual same-Store CAS/adoption and SDK marker are separate steps.
-#export_name("actql_publication_commit_export_produce_sdk_payload_receipt")
 pub fn produce_publication_sdk_payload_receipt(
   nonce : Int64,
   handle : Int,

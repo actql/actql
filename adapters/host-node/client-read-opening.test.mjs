@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
+import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -9,9 +10,18 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost, openingProgram, openingExpected, traceReadRecovery} from './client-read-opening.fixture.mjs';
 
 async function attempts(directory) {
-  const root = join(directory, 'publication', 'deliveries');
-  const names = (await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name)).sort();
-  return Promise.all(names.map(async name => ({name, wire: await readFile(join(root, name, 'attempt.json'), 'utf8')})));
+  // Observe the actual durable START metadata independently of the SDK lookup.
+  // A read-only open cannot invent an absent database; inspect every attempt,
+  // without filtering pending states or falling back to obsolete alias files.
+  const database = new DatabaseSync(join(directory, 'publication', 'delivery-attempts.sqlite3'),
+    {readOnly: true, allowExtension: false});
+  try {
+    return database.prepare('SELECT attempt_cid, attempt_wire FROM attempts ORDER BY attempt_cid').all()
+      .map(row => {
+        assert.match(row.attempt_cid, /^sha256:[0-9a-f]{64}$/u);
+        return {name: row.attempt_cid.slice('sha256:'.length), wire: row.attempt_wire};
+      });
+  } finally {database.close();}
 }
 
 for (const entrance of ['local', 'https']) {
@@ -81,7 +91,12 @@ for (const entrance of ['local', 'https']) {
           assert.equal(observed.attempt.attempt_id, attemptId);
           assert.equal(observed.attempt.run_definition_cid, ref.runDefinitionCid);
           assert.equal(observed.attempt.result_name, 'answer');
-          assert.equal(observed.record, null);
+          // START committed its original streaming record atomically even
+          // though its reply was lost. This is not terminal completion or ACK.
+          assert.equal(observed.record.state, 'streaming');
+          assert.equal(observed.record.sequence, 0);
+          assert.equal(observed.record.delivery_attempt_cid,
+            observed.attempt.delivery_attempt_cid);
           assert.equal(observed.hostReleaseReceipt, null);
           assert.deepEqual(observed.attempt, original[0]);
           const grant = await fixture.store.readPublicationContract(

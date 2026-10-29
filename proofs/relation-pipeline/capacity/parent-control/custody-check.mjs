@@ -12,7 +12,7 @@ const targets = requested === 'all' ? ['js', 'wasm', 'native'] : ['js'];
 const current = snapshot(root), records = [];
 // Reintroduce each actual premature retirement condition separately. JS
 // mutation detection is distinct from normal correspondence on every target.
-const site = 'src/physical_strategy/task_execution.mbt';
+const site = 'src/physical_strategy_host/task_execution.mbt';
 const original = readFileSync(join(root, site));
 const variants = [
   { name: 'drop-installed-scratch-release-condition', mode: 'normal',

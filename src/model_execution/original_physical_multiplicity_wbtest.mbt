@@ -78,7 +78,8 @@ test "original physical multiplicity keeps all rows but constructs only eligible
     )
     assert_eq(starts.val, eligible)
     assert_eq(active.state.physical_cursors.length(), eligible)
-    assert_eq(@resources.ledger_usage(grant.ledger).attempts, eligible)
+    assert_eq(@resources.ledger_usage(grant.ledger).reserved_attempts, eligible)
+    assert_eq(@resources.ledger_usage(grant.ledger).attempts, 0)
     assert_eq(sends.val, 0)
     assert_true(request_model_cancel(active))
     assert_true(advance_model_execution(active, 1).unwrap() is Stopped(_, _, _))
@@ -91,8 +92,10 @@ test "original physical multiplicity keeps all rows but constructs only eligible
     assert_true(cleanup_model_execution(active).unwrap())
     assert_false(@resources.capacity_reservation_open(grant.capacity))
     assert_true(@relation.cleanup_prepared_infer_rows(rows))
-    // Cleanup does not refund original attempted work or begin another cursor.
-    assert_eq(@resources.ledger_usage(grant.ledger).attempts, eligible)
+    // No provider was dispatched. Cleanup releases reserved slots without
+    // inventing attempted work or beginning another cursor.
+    assert_eq(@resources.ledger_usage(grant.ledger).attempts, 0)
+    assert_eq(@resources.ledger_usage(grant.ledger).reserved_attempts, 0)
     assert_eq(starts.val, eligible)
     assert_eq(sends.val, 0)
   }
@@ -143,7 +146,8 @@ test "original physical multiplicity rejects two eligible rows before any physic
   }
   assert_true(refused)
   assert_true(physical_equal(active.state.ledger, grant.ledger))
-  assert_eq(@resources.ledger_usage(grant.ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(grant.ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(grant.ledger).reserved_attempts, 1)
   assert_eq(active.state.requests.length(), 0)
   assert_eq(active.state.physical_cursors.length(), 0)
   assert_eq(starts.val, 0)
@@ -152,7 +156,8 @@ test "original physical multiplicity rejects two eligible rows before any physic
   assert_true(cleanup_model_execution(active).unwrap())
   assert_false(@resources.capacity_reservation_open(grant.capacity))
   assert_true(@relation.cleanup_prepared_infer_rows(rows))
-  assert_eq(@resources.ledger_usage(grant.ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(grant.ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(grant.ledger).reserved_attempts, 0)
   assert_eq(starts.val, 0)
   assert_eq(sends.val, 0)
 }

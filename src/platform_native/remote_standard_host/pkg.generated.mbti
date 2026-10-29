@@ -6,7 +6,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
@@ -111,9 +111,9 @@ pub fn prepare_native_remote_observed_output_plan(String, Int, @remote_runtime.N
 
 pub fn prepare_native_remote_retained_task_input(@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, String, NativeRemoteRetainedInputCurrent, Int) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue]
 
-pub fn prepare_native_remote_standard_acquired_run_owner(@physical_strategy.CapturedDAG, Int, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
+pub fn prepare_native_remote_standard_acquired_run_owner(@physical_strategy_host.CapturedDAG, Int, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
 
-pub fn prepare_native_remote_standard_acquired_task_owner(@physical_strategy.CapturedDAG, Int, @execution_query.CapturedInputSource, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
+pub fn prepare_native_remote_standard_acquired_task_owner(@physical_strategy_host.CapturedDAG, Int, @execution_query.CapturedInputSource, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
 
 pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, retire_run_after_file_handoff? : Bool, retired_input_cleanup? : (() -> Bool)?) -> NativeRemoteStandardRunOwner
 

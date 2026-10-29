@@ -11,6 +11,8 @@ priv struct LedgerOriginalInventory {
   reservations : OriginalTokenSlots[Reservation]
   holdings : OriginalTokenSlots[Holding]
   delegations : OriginalTokenSlots[ExecutionDelegation]
+  // One checked Run binding may be installed after preparation, before reads.
+  mut run_binding_claimed : Bool
   mut descriptor_issued : Bool
   mut read_claimed : Bool
   mut closing : Bool
@@ -65,6 +67,7 @@ pub fn begin_original_ledger_inventory(
     reservations: original_token_slots(),
     holdings: original_token_slots(),
     delegations: original_token_slots(),
+    run_binding_claimed: false,
     descriptor_issued: false,
     read_claimed: false,
     closing: false,
@@ -144,6 +147,30 @@ pub fn original_ledger_inventory_available(
   !value.closing &&
   value.park is None &&
   original_read_bootstrap_available(identity.ledger, identity.bootstrap)
+}
+
+///|
+// Bind the original checked Run to a census installed before preparation.
+// Existing child identities and consumed work remain recorded. This claims
+// only the existing binding slot; it does not issue a descriptor or Model
+// permission, rebuild a census, or create another resource owner. The initial
+// bootstrap must fund this scalar word before the census is constructed.
+pub fn claim_original_ledger_run_binding(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+) -> Result[Unit, OriginalReadIssue] {
+  if !physical_equal(identity.ledger, ledger) {
+    return Err(ForeignOrigin)
+  }
+  guard original_ledger_inventory_available(identity) &&
+    ledger.original_inventory is Some(value) else {
+    return Err(InvalidBootstrap)
+  }
+  if value.run_binding_claimed || value.descriptor_issued || value.read_claimed {
+    return Err(SpentClaim)
+  }
+  value.run_binding_claimed = true
+  Ok(())
 }
 
 ///|

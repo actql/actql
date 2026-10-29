@@ -90,6 +90,7 @@ pub struct CheckedStep {
   operation : CheckedOperation
   output : @carrier.Carrier
   connections : Connections
+  filter_refinement : @evidence.RefinedFilter?
   window : WindowEvidence?
 }
 
@@ -468,57 +469,14 @@ fn read_name(b : Budget, source : @decode.Cursor) -> String raise Stop {
     Ok(value) => value
     Err(_) => fail(source, InvalidName(value))
   }
-  name(b, source, normalized)
-  normalized
-}
-
-///|
-fn preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  root : @contract.Contract,
-  depth? : Int = 0,
-) -> Unit raise Stop {
-  let work = [(root, depth)]
-  while work.pop() is Some((c, depth)) {
-    spend(b, source, 1)
-    if depth > b.limits.max_depth {
-      fail(source, BudgetExceeded)
-    }
-    match c.shape {
-      @contract.Array(item, ..) => work.push((item, depth + 1))
-      @contract.Object(fields) => {
-        let count = @contract.field_count(fields)
-        spend(b, source, count)
-        for i in 0..<count {
-          let f = @contract.field_at(fields, i).unwrap()
-          charge(b, source, f.name)
-          work.push((f.contract, depth + 1))
-        }
-      }
-      @contract.ResourceRef(resource_kind~) => charge(b, source, resource_kind)
-      @contract.ContentRef(media_type=Some(media)) => charge(b, source, media)
-      _ => ()
-    }
-  }
-}
-
-///|
-fn rows_preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  rows : @carrier.Knowledge,
-) -> Unit raise Stop {
+  // The SAME call already completed NFC/LF normalization. Retain the original
+  // spend/text/empty order without asking name to normalize that result again.
   spend(b, source, 1)
-  let n = @carrier.field_count(rows)
-  spend(b, source, n)
-  for i in 0..<n {
-    let f = @carrier.field_at(rows, i).unwrap()
-    charge(b, source, @schema.reference_name(f.name))
-    if f.contract is Some(c) {
-      preflight(b, source, c, depth=1)
-    }
+  charge(b, source, normalized)
+  if normalized == "" {
+    fail(source, InvalidName(normalized))
   }
+  normalized
 }
 
 ///|
@@ -530,96 +488,6 @@ fn carrier(
   match target {
     Input(i) => inputs[i].1
     Step(i) => steps[i].output
-  }
-}
-
-///|
-fn graph_element_definition_preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  value : @carrier.GraphNodeDefinition,
-) -> Unit raise Stop {
-  spend(b, source, 1)
-  charge(b, source, @carrier.graph_element_definition_name(value))
-  let keys = @carrier.graph_element_definition_key_count(value)
-  spend(b, source, keys)
-  for index in 0..<keys {
-    preflight(
-      b,
-      source,
-      @carrier.graph_element_definition_key_at(value, index).unwrap(),
-    )
-  }
-  rows_preflight(b, source, @carrier.graph_element_definition_properties(value))
-  let labels = @carrier.graph_element_definition_label_count(value)
-  spend(b, source, labels)
-  for index in 0..<labels {
-    let (label, properties) = @carrier.graph_element_definition_label_at(
-      value, index,
-    ).unwrap()
-    charge(b, source, label)
-    rows_preflight(b, source, properties)
-  }
-}
-
-///|
-fn carrier_preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  value : @carrier.Carrier,
-) -> Unit raise Stop {
-  match value {
-    @carrier.Relation(rows) => rows_preflight(b, source, rows)
-    @carrier.Opaque(_) => spend(b, source, 1)
-    @carrier.GraphValue(graph) => {
-      spend(b, source, 1)
-      preflight(b, source, @carrier.graph_identity(graph))
-      let definition = @carrier.graph_definition(graph)
-      charge(b, source, @carrier.graph_domain(definition))
-      let nodes = @carrier.graph_node_count(definition)
-      let edges = @carrier.graph_edge_count(definition)
-      spend(b, source, nodes)
-      spend(b, source, edges)
-      for index in 0..<nodes {
-        graph_element_definition_preflight(
-          b,
-          source,
-          @carrier.graph_node_at(definition, index).unwrap(),
-        )
-      }
-      for index in 0..<edges {
-        let edge = @carrier.graph_edge_at(definition, index).unwrap()
-        graph_element_definition_preflight(
-          b,
-          source,
-          @carrier.graph_edge_element(edge),
-        )
-        let (from, to) = @carrier.graph_edge_endpoints(edge)
-        spend(b, source, 2)
-        charge(b, source, from)
-        charge(b, source, to)
-      }
-    }
-    @carrier.EventValue(events) => {
-      rows_preflight(b, source, events.records)
-      spend(b, source, 2)
-      charge(b, source, @schema.reference_name(events.identity.name))
-      charge(b, source, @schema.reference_name(events.time.name))
-    }
-    @carrier.VectorValue(vectors) => {
-      rows_preflight(b, source, @carrier.vector_records(vectors))
-      let ids = @carrier.vector_identities(vectors)
-      spend(b, source, ids.length())
-      for field in ids {
-        charge(b, source, @schema.reference_name(field.name))
-      }
-      spend(b, source, 1)
-      charge(
-        b,
-        source,
-        @schema.reference_name(@carrier.vector_components(vectors).name),
-      )
-    }
   }
 }
 

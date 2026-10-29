@@ -120,7 +120,7 @@ function mutationFixture() {
   const entries = new Map();
   const read = path => entries.get(path) ?? readFileSync(join(root, path));
   const current = snapshot(root);
-  const site = 'src/physical_strategy/task_execution.mbt', code = read(site).toString();
+  const site = 'src/physical_strategy_host/task_execution.mbt', code = read(site).toString();
   const variants = [
     { name: 'drop-installed-scratch-release-condition', mode: 'normal',
       before: '(execution.hooks.unwrap().scratch_released)()', after: 'physical_equal(execution, execution)' },

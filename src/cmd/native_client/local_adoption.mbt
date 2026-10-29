@@ -444,158 +444,161 @@ fn execute_native_local_adoption(
   }
   // Produce the reply before closing, but never publish it before confirmed close.
   let cancellation_recovery : Ref[String?] = Ref(None)
-  let reply = try {
-    // Static check uses the original Host/configuration and the outer product
-    // physical fences; it does not bind a Run or demand an execution upgrade.
-    if packaged_runtime is Some(runtime) && operation != "check" {
-      let run_file = settings.run_file.unwrap_or_else(() => {
-        stop("LocalRunInstallationRequired")
-      })
-      host
-      .bind_packaged_runtime(
-        runtime,
-        settings.principal,
-        settings.connection,
-        environment_file,
-        run_file,
-        "runtime.json",
-      )
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-      |> ignore
-      if operation != "upgrade-policy" && operation != "lookup-policy-upgrade" {
-        host
-        .require_packaged_runtime_upgrade()
-        .unwrap_or_else(() => stop("ExplicitLocalRuntimeUpgradeRequired"))
-        |> ignore
-      }
-    }
-    if operation == "check" {
-      local_check_for_host(host, crypto, name, input_root, child)
-    } else if local_quick_query_requested(operation, child) {
-      local_quick_query(
-        host, settings, crypto, sqlite, check_environment, input_root, operation,
-        child,
-      )
-    } else if operation == "start" || operation == "aql" {
-      local_submission_start(
-        host,
-        settings,
-        crypto,
-        sqlite,
-        check_environment,
-        input_root,
-        operation,
-        child,
-        public_run=matches.subcommand is Some(("run", _)),
-      )
-    } else if operation == "upgrade-policy" ||
-      operation == "lookup-policy-upgrade" {
-      local_run_policy_upgrade_operation(
-        host, settings, crypto, operation, child,
-      )
-    } else if operation == "lookup-submission" {
-      local_submission_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-request" {
-      local_request_lookup(host, settings, crypto, child)
-    } else if operation == "approve" || operation == "reject" {
-      local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
-    } else if operation == "checkpoint-state" {
-      local_checkpoint_metadata_lookup(
-        host, settings, crypto, input_root, child,
-      )
-    } else if operation == "status" {
-      local_saved_run_status_command(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-preparation-grant" {
-      local_preparation_grant_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "lookup-preparation-raw" {
-      local_preparation_raw_lookup(
-        host, settings, crypto, sqlite, input_root, child,
-      )
-    } else if operation == "lookup-cancellation" {
-      local_cancellation_lookup(host, settings, crypto, input_root, child)
-    } else if operation == "cancel" {
-      local_cancellation_operation(
-        host, settings, crypto, sqlite, input_root, child, cancellation_recovery,
-      )
-    } else if operation == "delivery-attempt" {
-      local_delivery_attempt_lookup(
-        host, settings, crypto, sqlite, input_root, child,
-      )
-    } else if operation == "result" {
-      local_public_result(host, settings, crypto, sqlite, child)
-    } else if operation == "read" {
-      local_result_stream(host, settings, crypto, sqlite, input_root, child)
-    } else if operation == "adopt" &&
-      child.flags.get("migrate-journal").unwrap_or(false) {
-      match
-        host.migrate_journal_append_metadata(
-          settings.principal,
-          settings.connection,
-          settings.snapshot_bytes,
-        ) {
-        Ok(_) => ()
-        Err(issue) => stop(local_journal_migration_issue(issue))
-      }
-      local_adoption_metadata_reply(
-        true,
-        settings.account_id,
-        local_host_result(host.configuration()).configuration_cid(),
-        host.adoption_cid(),
-        child,
-      )
-    } else if operation == "new-submission" {
-      guard host.authorize({
-          principal: settings.principal,
-          connection: settings.connection,
-          resource: "run",
-          operation: "submit",
-        })
-        is Ok(Allow(_)) else {
-        stop("LocalSubmissionAuthorizationDenied")
-      }
-      let scope = local_host_result(
-        host.authority_scope_cid(
-          settings.principal,
-          settings.connection,
-          crypto,
-        ),
-      )
-      let epoch = local_host_result(host.epoch_authority())
-        .issue_epoch(scope, true, @env.now().to_double())
-        .unwrap_or_else(() => stop("LocalSubmissionEpochUnavailable"))
-      @local_host.native_client_submission_reference_wire(
-        @local_host.prepare_native_client_submission_reference(
-          epoch,
-          required(child, "request-id"),
-        ).unwrap_or_else(() => stop("InvalidSubmissionRef")),
-      )
-    } else {
-      local_adoption_metadata_reply(
-        operation == "adopt",
-        settings.account_id,
-        local_host_result(host.configuration()).configuration_cid(),
-        host.adoption_cid(),
-        child,
-      )
-    }
-  } catch {
-    issue => {
-      if host.close() is Err(_) {
-        if cancellation_recovery.val is Some(reference) {
-          stop(
-            local_cancellation_unknown(reference) +
-            " reason=LocalHostCleanupPending",
-          )
-        }
-        stop("LocalHostCleanupPending")
-      }
+  let reply = {
+    errdefer (if host.close() is Err(_) {
       if cancellation_recovery.val is Some(reference) {
-        match issue {
-          ClientStop(reason) =>
-            stop(local_cancellation_unknown(reference) + " reason=" + reason)
+        stop(
+          local_cancellation_unknown(reference) +
+          " reason=LocalHostCleanupPending",
+        )
+      }
+      stop("LocalHostCleanupPending")
+    })
+    try {
+      // Static check uses the original Host/configuration and the outer product
+      // physical fences; it does not bind a Run or demand an execution upgrade.
+      if packaged_runtime is Some(runtime) && operation != "check" {
+        let run_file = settings.run_file.unwrap_or_else(() => {
+          stop("LocalRunInstallationRequired")
+        })
+        host
+        .bind_packaged_runtime(
+          runtime,
+          settings.principal,
+          settings.connection,
+          environment_file,
+          run_file,
+          "runtime.json",
+        )
+        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+        |> ignore
+        if operation != "upgrade-policy" && operation != "lookup-policy-upgrade" {
+          host
+          .require_packaged_runtime_upgrade()
+          .unwrap_or_else(() => stop("ExplicitLocalRuntimeUpgradeRequired"))
+          |> ignore
         }
       }
-      raise issue
+      if operation == "check" {
+        local_check_for_host(host, crypto, name, input_root, child)
+      } else if local_quick_query_requested(operation, child) {
+        local_quick_query(
+          host, settings, crypto, sqlite, check_environment, input_root, operation,
+          child,
+        )
+      } else if operation == "start" || operation == "aql" {
+        local_submission_start(
+          host,
+          settings,
+          crypto,
+          sqlite,
+          check_environment,
+          input_root,
+          operation,
+          child,
+          public_run=matches.subcommand is Some(("run", _)),
+        )
+      } else if operation == "upgrade-policy" ||
+        operation == "lookup-policy-upgrade" {
+        local_run_policy_upgrade_operation(
+          host, settings, crypto, operation, child,
+        )
+      } else if operation == "lookup-submission" {
+        local_submission_lookup(host, settings, crypto, input_root, child)
+      } else if operation == "lookup-request" {
+        local_request_lookup(host, settings, crypto, child)
+      } else if operation == "approve" || operation == "reject" {
+        local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
+      } else if operation == "checkpoint-state" {
+        local_checkpoint_metadata_lookup(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "status" {
+        local_saved_run_status_command(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "lookup-preparation-grant" {
+        local_preparation_grant_lookup(
+          host, settings, crypto, input_root, child,
+        )
+      } else if operation == "lookup-preparation-raw" {
+        local_preparation_raw_lookup(
+          host, settings, crypto, sqlite, input_root, child,
+        )
+      } else if operation == "lookup-cancellation" {
+        local_cancellation_lookup(host, settings, crypto, input_root, child)
+      } else if operation == "cancel" {
+        local_cancellation_operation(
+          host, settings, crypto, sqlite, input_root, child, cancellation_recovery,
+        )
+      } else if operation == "delivery-attempt" {
+        local_delivery_attempt_lookup(
+          host, settings, crypto, sqlite, input_root, child,
+        )
+      } else if operation == "result" {
+        local_public_result(host, settings, crypto, sqlite, child)
+      } else if operation == "read" {
+        local_result_stream(host, settings, crypto, sqlite, input_root, child)
+      } else if operation == "adopt" &&
+        child.flags.get("migrate-journal").unwrap_or(false) {
+        match
+          host.migrate_journal_append_metadata(
+            settings.principal,
+            settings.connection,
+            settings.snapshot_bytes,
+          ) {
+          Ok(_) => ()
+          Err(issue) => stop(local_journal_migration_issue(issue))
+        }
+        local_adoption_metadata_reply(
+          true,
+          settings.account_id,
+          local_host_result(host.configuration()).configuration_cid(),
+          host.adoption_cid(),
+          child,
+        )
+      } else if operation == "new-submission" {
+        guard host.authorize({
+            principal: settings.principal,
+            connection: settings.connection,
+            resource: "run",
+            operation: "submit",
+          })
+          is Ok(Allow(_)) else {
+          stop("LocalSubmissionAuthorizationDenied")
+        }
+        let scope = local_host_result(
+          host.authority_scope_cid(
+            settings.principal,
+            settings.connection,
+            crypto,
+          ),
+        )
+        let epoch = local_host_result(host.epoch_authority())
+          .issue_epoch(scope, true, @env.now().to_double())
+          .unwrap_or_else(() => stop("LocalSubmissionEpochUnavailable"))
+        @local_host.native_client_submission_reference_wire(
+          @local_host.prepare_native_client_submission_reference(
+            epoch,
+            required(child, "request-id"),
+          ).unwrap_or_else(() => stop("InvalidSubmissionRef")),
+        )
+      } else {
+        local_adoption_metadata_reply(
+          operation == "adopt",
+          settings.account_id,
+          local_host_result(host.configuration()).configuration_cid(),
+          host.adoption_cid(),
+          child,
+        )
+      }
+    } catch {
+      ClientStop(reason) => {
+        if cancellation_recovery.val is Some(reference) {
+          stop(local_cancellation_unknown(reference) + " reason=" + reason)
+        }
+        raise ClientStop(reason)
+      }
     }
   }
   if host.close() is Err(_) {

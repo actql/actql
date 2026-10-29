@@ -42,7 +42,7 @@ test "CLI Values configuration retains exact unknown Policy without installing a
   assert_eq(installed.result_policy_wire, cli_values_policy_original)
   assert_eq(installed.result_policy_cid, cli_values_policy_cid)
   let assets = @run_host.client_local_product_assets()
-  assert_eq(installed.registry_body, assets.registry)
+  assert_eq(installed._observed_registry_body, assets.registry)
   assert_eq(installed.values_body, assets.values)
   assert_true(installed.fragment_body is None)
   assert_true(installed.ordered_body is None)
@@ -113,7 +113,7 @@ test "CLI Values caller uses existing Native work publication and immutable poli
 test "current runtime asset selection keeps original Result Policy identity and bytes" {
   let current = @run_host.client_local_product_assets()
   let original : LocalValuesInstallation = {
-    registry_body: current.registry,
+    _observed_registry_body: current.registry,
     installed_contracts: @local_values.prepare_installed_sequence_contracts(
       current.registry,
       current.values,
@@ -138,7 +138,7 @@ test "current runtime asset selection keeps original Result Policy identity and 
   ).unwrap()
   let installed = local_current_values_installation(original, assets, contracts)
   assert_true(physical_equal(installed.installed_contracts, contracts))
-  assert_eq(installed.registry_body, assets.registry)
+  assert_eq(installed._observed_registry_body, assets.registry)
   assert_eq(installed.values_body, assets.values)
   assert_eq(installed.result_policy_cid, "sha256:" + "a".repeat(64))
   assert_eq(installed.result_policy_wire, "original-policy\r\n")

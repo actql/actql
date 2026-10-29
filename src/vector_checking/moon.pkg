@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/carrier_contract" @carrier,

@@ -251,7 +251,8 @@ test "synchronous start rejects input revoked after preparation without invoking
   assert_false(@connector.synchronous_compute_available(compute))
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.attempts, 1)
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.reserved_attempts, 0)
   assert_eq(usage.held_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
@@ -307,4 +308,100 @@ test "synchronous preparations reject exchanged choice and closed implementation
   )
   assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)), before)
   assert_eq(calls.val, 0)
+}
+
+///|
+test "synchronous entry accounting cannot reenter or turn refusal into execution" {
+  for allowed in [false, true] {
+    let (run, _) = captured_graph_fixture()
+    let (_, choice, prepared) = synchronous_test_choice(run)
+    let calls = Ref(0)
+    let entries = Ref(0)
+    let refused_reentry = Ref(false)
+    let compute = @connector.bind_synchronous_compute(
+      choice,
+      prepared,
+      { retained_bytes: 0L, execution_bytes: 0L, },
+      [],
+      _ => {
+        calls.val += 1
+        Err(MissingOutput)
+      },
+    ).unwrap()
+    let result = @connector.execute_synchronous_compute(compute, enter=() => {
+      entries.val += 1
+      refused_reentry.val = @connector.execute_synchronous_compute(compute)
+        is Err(Compute(NotSelected))
+      allowed
+    })
+    assert_eq(entries.val, 1)
+    assert_true(refused_reentry.val)
+    assert_eq(calls.val, if allowed { 1 } else { 0 })
+    if allowed {
+      assert_true(result is Err(MissingOutput))
+    } else {
+      assert_true(result is Err(Compute(NotSelected)))
+    }
+    assert_true(
+      @connector.execute_synchronous_compute(compute)
+      is Err(Compute(NotSelected)),
+    )
+    assert_eq(entries.val, 1)
+    assert_eq(calls.val, if allowed { 1 } else { 0 })
+  }
+}
+
+///|
+test "synchronous entry accounting rechecks input custody after imported currentness" {
+  let (run, issuer) = captured_graph_fixture()
+  let (_, choice, prepared) = synchronous_test_choice(run)
+  let calls = Ref(0)
+  let entries = Ref(0)
+  let compute = @connector.bind_synchronous_compute(
+    choice,
+    prepared,
+    { retained_bytes: 0L, execution_bytes: 0L, },
+    [],
+    _ => {
+      calls.val += 1
+      Err(MissingOutput)
+    },
+  ).unwrap()
+  assert_true(
+    @connector.execute_synchronous_compute(compute, enter=() => {
+      entries.val += 1
+      @mock.close_mock_query_issuer(issuer)
+      true
+    })
+    is Err(Compute(InputUnavailable)),
+  )
+  assert_eq(entries.val, 1)
+  assert_eq(calls.val, 0)
+  assert_false(@connector.synchronous_compute_available(compute))
+}
+
+///|
+test "synchronous entry accounting rechecks the original registration owner" {
+  let (run, _) = captured_graph_fixture()
+  let (registry, choice, prepared) = synchronous_test_choice(run)
+  let calls = Ref(0)
+  let compute = @connector.bind_synchronous_compute(
+    choice,
+    prepared,
+    { retained_bytes: 0L, execution_bytes: 0L, },
+    [],
+    _ => {
+      calls.val += 1
+      Err(MissingOutput)
+    },
+  ).unwrap()
+  assert_true(
+    @connector.execute_synchronous_compute(compute, enter=() => {
+      @connector.close_capability_registry(registry)
+      true
+    })
+    is Err(Compute(NotSelected)),
+  )
+  assert_eq(calls.val, 0)
+  assert_false(@connector.synchronous_compute_available(compute))
 }

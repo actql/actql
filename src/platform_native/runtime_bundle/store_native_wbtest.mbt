@@ -148,12 +148,16 @@ fn native_bundle_fixture(
     is Some(crypto_path) else {
     return None
   }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root_path) else {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(parent_path) else {
     return None
   }
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let crypto = @signature.load_library(crypto_path).unwrap()
   let token = label + "-" + @env.now().to_string()
+  let parent = @filesystem.open_root(parent_path).unwrap()
+  parent.create_directory(token).unwrap() |> ignore
+  parent.close().unwrap()
+  let root_path = parent_path + "/" + token
   let artifact_name = "bundle-component-" + @sha.hex(@utf8.encode(token))
   let root = @filesystem.open_root(root_path).unwrap()
   let writer = root
@@ -283,7 +287,7 @@ test "unsupported catalog does not overwrite pending custody" {
     admit_store_catalog(store, invalid_revision, invalid_bytes)
     is Err(UnsupportedCatalog),
   )
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = store.root_path
   store.database.close()
   ignore(store.lock.close())
   assert_true(
@@ -341,7 +345,7 @@ test "native bundle operations survive restart and preserve shared code" {
   let shared_usage = store.capacity_usage().unwrap()
   assert_eq(shared_usage.reserved_bytes, 11L)
   assert_eq(shared_usage.reserved_objects, 1L)
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = store.root_path
   let root = @filesystem.open_root(root_path).unwrap()
   let copied_name = artifact_name + "-copy"
   let copied_writer = root
@@ -587,7 +591,7 @@ test "native bundle install rejects capacity before creating output" {
     return
   }
   assert_true(store.close().unwrap())
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = store.root_path
   let bounded = open_runtime_bundle_store(
     sqlite,
     crypto,
@@ -893,7 +897,7 @@ test "rotated bundle key verifies history without admitting new bundles" {
     is Some((store, generation, artifact_name, sqlite, crypto)) else {
     return
   }
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = store.root_path
   assert_true(store.close().unwrap())
   let current = open_runtime_bundle_store_with_trust(
     sqlite,

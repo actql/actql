@@ -381,3 +381,84 @@ A pending append remains joined, and temporary writers, stored readers and
 unpublished holdings retain their existing release requirements. The original
 constructor error is preserved. This lifetime rule supplies no capacity and
 does not replace the complete Content demand required before Plan admission.
+
+### Bound Effect Plan currentness
+
+The normal Record and Model Plan readers pass their same managed parent,
+prepared Effect computation and request identity to one bound Core getter.
+That getter owns its imported current check. The Node caller does not first
+invoke the separate managed-Run check at the same boundary. Later Source
+attachment, acquisition, Host opening and physical operation transitions retain
+their own checks; a returned Plan is never a cached current proof.
+
+The existing Node inventory pins the parent, Plan, original definition,
+manager, selection, Source profile, Model demand and Scope, admission and Root
+receipt across the getter and its independent outer installation check.
+Callback-free identity and membership fences refuse replacement or retirement.
+A recorded failure is tested by field presence, so even an original thrown
+`undefined` remains failed. That original failure is propagated before a
+secondary Plan mismatch or later current refusal. The existing Model Scope
+finish, physical child cleanup and partial-admission holders are unchanged.
+
+The acquired Effect owner captures the original getter method and prepared /
+request pair before its first Source await. It uses that same method and tuple
+after acquisition, preserving that later transition. A changed prepared or
+request identity cannot select Source material or open Compute. The Model
+continuation's direct selection passes its own same admitted tuple as well.
+
+The ordinary Node Root likewise calls its original current predicate once,
+then checks the same state's membership and stopped/retiring flags. Its
+original assertion rechecks prepared membership after the callback. First port
+selection also refuses when reentrant selection already acquired that
+original's sole ports. Neither a normal callback return nor a second bundle
+manufactures a current original or acknowledges physical cleanup.
+
+These are existing-owner forwarding and lifecycle fences. Fixed local
+references and pure comparisons create no new Root, Ledger, admission,
+permission or capacity. Numerical preparation and retained-material funding
+remain the responsibility of the same original parent. Focused original-tuple,
+Model Scope, callback failure, terminal reentry and sole-port tests exercise
+these boundaries separately from Core's actual imported-current counters and
+normal packed operation acceptance.
+
+
+## Canonical CREATE occurrence carriage
+
+The Row Effect calls its existing Common CREATE inventory on the complete mapped
+rows before either synchronous or child provider request preparation. The
+returned ordering and `{content_cid, occurrence}` DATA determine the same rows
+used for requests, Preview and claims. A JavaScript row index, value comparison,
+request CID or future Preview does not issue an occurrence.
+
+- CREATE carriage responsibility: forward the same original inventory result
+  before a provider request can bind its logical tag or physical request CID.
+- CREATE carriage inputs and outputs: complete mapped rows and the existing
+  inventory bounds produce private ordered frames. Each CREATE request context
+  receives its frame's immutable `createRowIdentity` DATA.
+- CREATE carriage identity: duplicate contents retain distinct original
+  occurrences. The same identity object reaches provider preparation and its
+  completed Preview frame; no second inventory or identity guess is used.
+- CREATE carriage ownership: the existing stage owns decoded rows and private
+  frames. It replaces each frame's entry with the matching original request
+  once, then freezes the completed frame and array. No new cache or Owner is
+  created, and this DATA is not permission, a grant or a physical ACK.
+- CREATE carriage synchronization: settle the inventory and ordering before
+  invoking a provider callback or constructing its retained request child. The
+  child keeps the existing prepare/release/current protocol.
+- CREATE carriage failure: propagate the same inventory refusal and cleanup
+  carrier before provider construction. Existing request/value/CID, current,
+  claim and approval checks remain in their original owners.
+- CREATE carriage cancellation: existing stage and child cancellation/current
+  fences remain authoritative. Carriage does not issue a target-read grant for
+  target-less CREATE or acknowledge native cleanup.
+- CREATE carriage resources: the same preparation parent must cover inventory
+  wire/parsed identities/frames while request construction is live. Moving the
+  existing inventory earlier changes overlap timing; logical row, node and byte
+  bounds alone do not prove normal backing or admit another allowance.
+- CREATE carriage extension: a cold request consumes the identity from its same
+  already-admitted Preview row. It does not issue the Common inventory again.
+  Update/delete/upsert/Command request contexts retain their original shape.
+- CREATE carriage verification: actual enclosing caller controls with explicit
+  Common inventory, Preview and provider ports establish forwarding and order.
+  They do not qualify an installed compiler artifact, ordinary CREATE, provider
+  I/O, complete preparation backing, confirmation or Saved recovery.

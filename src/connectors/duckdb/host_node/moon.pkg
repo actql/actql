@@ -14,7 +14,7 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/run_publication" @publication,
 }

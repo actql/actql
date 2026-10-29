@@ -91,15 +91,22 @@
 /// Sum=(9454,2148,20410),331728 logical bytes. All loops have fixed13-family,
 ///23-repetition or<=13-element bounds; no F/R-sized quote collection exists.
 /// The source guard pins helper bodies and this table's cardinalities.
-let closed_values_projection_scratch_original : PreparationRepresentationUnits = {
-  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L,
-  reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L,
-  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L,
+/// Module-body projection adds two items to the existing retained sum:
+///10 checked-add Some(10H0R20W) and two literal slots(0H2R0W).
+/// Four complete tariffs plus two checked peak additions add22H0R44W.
+/// The Module/family recipe bodies are immutable installed DATA, not created
+/// by this request. The synchronous scope adds two callback environments (2H10R1W), plus
+/// the portable deferred finalizer (1H1R0W). Added fixed quote/scope scratch
+///35H13R65W is funded BEFORE the constructor call and every later grow.
+let closed_values_projection_scratch_original : @execution.PreparationRepresentationUnits = {
+  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L + 35L,
+  reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L + 13L,
+  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L + 65L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
 
 ///|
-fn closed_values_projection_scratch_units() -> PreparationRepresentationUnits {
+fn closed_values_projection_scratch_units() -> @execution.PreparationRepresentationUnits {
   closed_values_projection_scratch_original
 }

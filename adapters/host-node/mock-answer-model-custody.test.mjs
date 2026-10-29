@@ -5,7 +5,7 @@ import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 
-const source = readFileSync(new URL('./installed-project-mock-answers.mjs', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../local-node/installed-project-mock-answers.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const load = ast.body.map(node => node.declaration ?? node).find(node =>
   node.type === 'FunctionDeclaration' && node.id.name === 'loadInstalledProjectMockAnswers');

@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {inspect} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
-import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
+import {mockChurnRiskCatalogue} from '../local-node/mock-churn-risk-catalogue.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
 assert.ok(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME,

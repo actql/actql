@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {gunzipSync} from 'node:zlib';
 // Independently hash fixed authored JSON and retained envelopes, never runtime output.
 const canonical=value=>Array.isArray(value)?'['+value.map(canonical).join(',')+']':value!==null&&typeof value==='object'?'{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}':JSON.stringify(value);
 const cid=value=>'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
@@ -31,8 +32,14 @@ test('translate-instr retains complete predecessor bodies and identity preimages
 });
 
 test('translate-instr adds only its exact closed source and machine alternatives and laws',()=>{
-  const expression=read('spec/contracts/actql-expressions.json');
-  const program=read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Bind the exact adopted successor, not later scalar/Content extensions.
+  const successor=JSON.parse(gunzipSync(readFileSync('scripts/fixtures/translate-instr-successor/contracts.json.gz')));
+  assert.equal(successor.source_commit,'109564ef9a4f8241096292843b875d4c81fbb6f3');
+  assert.equal(cid(successor),'sha256:04faa5a190134d528c3a8368d491a394fcd26ed427031f93bb0dea7c1f4d31d2');
+  const expression=JSON.parse(gunzipSync(readFileSync('scripts/fixtures/native-local-scalar-predecessor/expression.json.gz')));
+  assert.equal(cid(expression),'sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7');
+  const program=successor.bodies.program_schema;
+  assert.equal(cid(program),'sha256:1e63d8fb2cdfb0a8b54811762a96091ce2b7bc107089fd1682a76b1dbd57919b');
   const shapes={"translate":{"min":3,"max":3},"instr":{"min":2,"max":4}},names=new Set(Object.keys(shapes)),counts={};
   function withoutIncrement(value){
     if(Array.isArray(value))return value.map(withoutIncrement);
@@ -67,5 +74,5 @@ test('translate-instr adds only its exact closed source and machine alternatives
   assert.notEqual(cid(expression),cid(earlier.expression_contract));assert.notEqual(cid(program),cid(earlier.program_schema));
   for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(id==='scalar_law_manifest'
     ? read('portability/corpus/historical/pre-exact-utc-timestamp.json').contracts.find(c=>c.id===id).body
-    : read(path),earlier[id]);
+    : successor.bodies[path],earlier[id]);
 });

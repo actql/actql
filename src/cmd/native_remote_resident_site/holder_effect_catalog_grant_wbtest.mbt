@@ -1,4 +1,17 @@
 ///|
+/// Installation configuration is selected by the operator, independently of
+/// grant wire, Source permission and Reviewer authority. Original invocation
+/// and consumer routing are supplied by the retained preparation Owners.
+priv struct HolderEffectCatalogScope {
+  workspace : String
+  principal : String
+  environment : String
+  registration : String
+  revision : String
+  origin : String
+}
+
+///|
 fn holder_catalog_scope_configuration() -> HolderEffectCatalogScope {
   {
     workspace: "original-workspace",
@@ -87,4 +100,78 @@ test "Catalog grant does not accept Source read Effect write or Reviewer authori
     )
     is None,
   )
+}
+
+///|
+/// Projection is not signature verification. The installation calls the
+/// existing credential verifier before this exact original-scope comparison.
+fn holder_effect_catalog_grant_scope(
+  fields : Array[String],
+  configured : HolderEffectCatalogScope,
+  invocation_cid : String,
+  execution : Array[String],
+  route : Array[String],
+  dispatch_cid : String,
+) -> @effect_resource.NativeCredentialScope? {
+  guard fields.length() == 17 &&
+    execution.length() >= 3 &&
+    route.length() >= 7 &&
+    fields[2] == configured.principal &&
+    fields[3] == configured.workspace &&
+    fields[4] == configured.environment &&
+    fields[5] == execution[0] &&
+    fields[6] == execution[1] &&
+    fields[7] == execution[2] &&
+    fields[8] == configured.registration &&
+    fields[9] == configured.revision &&
+    fields[10] == configured.origin &&
+    fields[11] == "salesforce:catalog:describe" &&
+    fields[12] == invocation_cid &&
+    fields[13] == route[6] &&
+    fields[14] == dispatch_cid else {
+    return None
+  }
+  let generation : Int = @string.from_str(execution[1]) catch {
+    _ => return None
+  }
+  let attempt : Int = @string.from_str(route[6]) catch { _ => return None }
+  guard generation >= 0 && attempt >= 0 else { return None }
+  Some({
+    principal: configured.principal,
+    namespace_id: configured.workspace,
+    environment: configured.environment,
+    site_key: execution[0],
+    site_generation: generation,
+    runtime_bundle_cid: execution[2],
+    connector_registration: configured.registration,
+    connector_revision: configured.revision,
+    resource_origin: configured.origin,
+    operation: "salesforce:catalog:describe",
+    run_invocation_cid: invocation_cid,
+    task_attempt: attempt,
+    dispatch_request_cid: dispatch_cid,
+  })
+}
+
+///|
+/// Catalog describe is a bodyless GET. The existing Resource Owner rejects
+/// GET operations with a nonzero request-body allowance.
+fn holder_effect_catalog_operation(
+  scope : @effect_resource.NativeCredentialScope,
+  resource : String,
+  api_version : String,
+  secret_path : String,
+) -> @effect_resource.NativeCredentialOperation {
+  {
+    resource_origin: scope.resource_origin,
+    operation: scope.operation,
+    path: "/services/data/" +
+    api_version +
+    "/sobjects/" +
+    resource +
+    "/describe",
+    secret_path,
+    verb: @http.Get,
+    max_request_bytes: 0,
+  }
 }

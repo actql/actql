@@ -15,7 +15,10 @@ test('publication currentness callback throws become stopping status without esc
   assert.doesNotThrow(() => assert.equal(ports.status(1), 1));
   assert.equal(runtime.ordinaryManagedRunStatus(original).retiring, true);
   assert.equal(ports.status(1), 1);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  // Missing live-reservation fields cannot certify complete cleanup.
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), -42);
+  assert.equal(ports.status(2), -42);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), 0);
   assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
 });

@@ -11,7 +11,7 @@ let local_group_journal : String =
 fn local_group_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let issued = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
@@ -95,7 +95,7 @@ test "Group normalization retains original argument completion and unsupported r
     text="SELECT COUNT(CASE WHEN TRUE THEN 1 END) AS n",
   )
   assert_true(
-    issue_prepared_client_legacy_local_normalization(implicit_else)
+    _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
@@ -105,7 +105,7 @@ test "Group normalization retains original argument completion and unsupported r
     ),
   )
   assert_true(
-    issue_prepared_client_legacy_local_normalization(unsupported_relation)
+    _issue_prepared_client_legacy_local_normalization(unsupported_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(unsupported_relation.local_normalization is None)
@@ -253,7 +253,7 @@ fn local_group_original_document(
 ) -> PreparedClientProgram raise {
   let environment = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
+    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

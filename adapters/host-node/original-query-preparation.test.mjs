@@ -8,6 +8,7 @@ for (const effectful of [false, true]) {
   test(`Source preparation keeps the original ${effectful ? 'Effect' : 'pure'} query context`, () => {
     const owner = {}, original = {}, request = {}, acquisition = {}, requirement = {};
     const events = [];
+    const contracts = Object.freeze({}); // Forwarding identity, not an issuance fixture.
     const prefix = effectful ? 'clientProgramEffect' : 'clientProgram';
     const moon = {
       [prefix + 'PrepareQueryAcquisitionAtQueryTime'](...args) {
@@ -23,13 +24,14 @@ for (const effectful of [false, true]) {
         assert.strictEqual(args[0], owner);
         assert.strictEqual(args[3], original);
         assert.strictEqual(args[4], request);
-        assert.deepEqual(args.slice(5), ['r', 'v', 'f', 'o']);
+        assert.strictEqual(args[5], contracts);
+        assert.deepEqual(args.slice(6), ['v', 'f', 'o']);
         events.push('requirement'); return ok(requirement);
       },
     };
     const prepared = prepareOriginalSourceQuery({moon,
       ...(effectful ? {preparedEffect: owner} : {preparedProgram: owner}),
-      stage: 1, input: 0, registry: 'r', values: 'v', fragment: 'f', ordered: 'o',
+      stage: 1, input: 0, registry: contracts, values: 'v', fragment: 'f', ordered: 'o',
       queryTimePreparation: original, requestIdentity: request});
     assert.strictEqual(prepared.acquisition, acquisition);
     assert.strictEqual(prepared.requirement, requirement);
@@ -37,20 +39,22 @@ for (const effectful of [false, true]) {
   });
 }
 
-test('Source preparation preserves legacy order and arguments without time', () => {
+test('Source preparation forwards the installed original without a query-time owner', () => {
   const owner = {}, acquisition = {}, requirement = {}, events = [];
+  const contracts = Object.freeze({}); // Only the forwarding seam is mocked.
   const moon = {
     clientProgramPrepareQueryAcquisition(...args) {
       assert.strictEqual(args[0], owner);
       assert.deepEqual(args.slice(1), [0, 0]); events.push('acquisition'); return ok(acquisition);
     },
     clientProgramPrepareLocalQueryRequirement(...args) {
-      assert.deepEqual(args, [owner, 0, 0, 'r', 'v', undefined, undefined]);
+      assert.strictEqual(args[3], contracts);
+      assert.deepEqual(args, [owner, 0, 0, contracts, 'v', undefined, undefined]);
       events.push('requirement'); return ok(requirement);
     },
   };
   const value = prepareOriginalSourceQuery({moon, preparedProgram: owner,
-    stage: 0, input: 0, registry: 'r', values: 'v'});
+    stage: 0, input: 0, registry: contracts, values: 'v'});
   assert.strictEqual(value.requirement, requirement);
   assert.deepEqual(events, ['acquisition', 'requirement']);
 });

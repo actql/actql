@@ -80,12 +80,18 @@ test "intent layout gives finite original numeric matrix phase envelope" {
     let quote = closed_values_intent_inventories(
       intent_layout_test_input(text, fields, rows),
     ).unwrap()
-    let retained = preparation_representation_cost(quote.retained).unwrap()
-    let js = preparation_representation_cost(
-      closed_values_sum_layouts([quote.shared_temporary, quote.js_temporary]).unwrap(),
+    let retained = @execution.preparation_representation_cost(quote.retained).unwrap()
+    let js = @execution.preparation_representation_cost(
+      @execution.compose_preparation_representation([
+        quote.shared_temporary,
+        quote.js_temporary,
+      ]).unwrap(),
     ).unwrap()
-    let core = preparation_representation_cost(
-      closed_values_sum_layouts([quote.shared_temporary, quote.core_temporary]).unwrap(),
+    let core = @execution.preparation_representation_cost(
+      @execution.compose_preparation_representation([
+        quote.shared_temporary,
+        quote.core_temporary,
+      ]).unwrap(),
     ).unwrap()
     let temporary = Int64::max(js, core)
     assert_true(retained > 0L && temporary > retained)
@@ -116,11 +122,17 @@ test "intent phase quote keeps 100k original rows without retaining completed ro
     q._observed_wire_facts,
     closed_values_intent_source_facts(input).unwrap(),
   )
-  let js = preparation_representation_cost(
-    closed_values_sum_layouts([q.shared_temporary, q.js_temporary]).unwrap(),
+  let js = @execution.preparation_representation_cost(
+    @execution.compose_preparation_representation([
+      q.shared_temporary,
+      q.js_temporary,
+    ]).unwrap(),
   ).unwrap()
-  let core = preparation_representation_cost(
-    closed_values_sum_layouts([q.shared_temporary, q.core_temporary]).unwrap(),
+  let core = @execution.preparation_representation_cost(
+    @execution.compose_preparation_representation([
+      q.shared_temporary,
+      q.core_temporary,
+    ]).unwrap(),
   ).unwrap()
   println("intent100k js=\{js} core=\{core} peak=\{Int64::max(js,core)}")
   assert_eq(js, 379324440L)
@@ -129,7 +141,7 @@ test "intent phase quote keeps 100k original rows without retaining completed ro
   assert_true(Int64::max(js, core) < 536870912L)
   assert_true(Int64::max(js, core) < js + core)
   assert_true(closed_values_intent_source_facts({ ..input, rows: -1, }) is None)
-  let bad : PreparationRepresentationUnits = {
+  let bad : @execution.PreparationRepresentationUnits = {
     record_headers: 9223372036854775807L,
     reference_slots: 0L,
     scalar_words: 0L,

@@ -44,6 +44,7 @@ import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFail
   from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
+import {retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -362,7 +363,7 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 // or an invalid profile is refused before any provider or Site I/O. Only the
 // selected connector's module and provider bundle are loaded.
 export async function loadInstalledSource(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
   if (path === undefined) return undefined;
   const profile = await readProfile(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
@@ -379,9 +380,10 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
     // Usable positive installation metadata alone cannot prove completeness.
   }
+  const runtime = await providerRuntime(entry, runtimeUrl);
+  retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
   const adapter = await module.load(checked, {root, principalId, moon,
-    baseEnvironmentWire, resolveSecret, installation: entry,
-    ...await providerRuntime(entry, runtimeUrl)});
+    baseEnvironmentWire, resolveSecret, installation: entry, installationServices, ...runtime});
   try {
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});

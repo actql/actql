@@ -1,9 +1,11 @@
 ///|
 test "independent DB capacity counts each Compute task without multiplying bytes" {
   let owner = obligation_execution(100L, 80L, 20L, 3)
-  assert_eq(obligation_execution_usage(owner).attempts, 1)
+  assert_eq(obligation_execution_usage(owner).attempts, 0)
   assert_eq(obligation_execution_usage(owner).reserved_execution_bytes, 100L)
   obligation_execution_task_begin(owner)
+  assert_eq(obligation_execution_usage(owner).attempts, 1)
+  assert_eq(obligation_execution_usage(owner).reserved_attempts, 0)
   assert_true(
     try {
       obligation_execution_task_begin(owner)
@@ -101,4 +103,24 @@ test "independent Compute attempt and capacity limits reject one-short" {
     },
   )
   obligation_execution_released(owner)
+}
+
+///|
+test "unused database capacity never consumes a Compute attempt" {
+  let owner = obligation_execution(100L, 80L, 20L, 1)
+  assert_eq(obligation_execution_usage(owner).attempts, 0)
+  assert_eq(obligation_execution_usage(owner).reserved_attempts, 0)
+  assert_eq(obligation_execution_usage(owner).reserved_execution_bytes, 100L)
+  obligation_execution_released(owner)
+  assert_eq(obligation_execution_usage(owner).attempts, 0)
+  assert_eq(obligation_execution_usage(owner).reserved_execution_bytes, 0L)
+  assert_true(
+    try {
+      obligation_execution_task_begin(owner)
+      false
+    } catch {
+      ExecutionCapacityFailure::State => true
+      _ => false
+    },
+  )
 }

@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/calendar_profile",
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/check_environment" @environment,
   "actql/actql/parameter_binding" @binding,
   "actql/actql/parameter_references" @references,
@@ -14,6 +15,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @value,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/stage_local_inputs" @local,

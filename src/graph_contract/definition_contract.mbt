@@ -24,7 +24,7 @@ fn emit_definition(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
-  @encode.key(out, "key_columns")
+  @encode.key(out, graph_columns_field)
   @encode.begin_array(out)
   for index in 0..<@carrier.graph_element_definition_key_count(definition) {
     match @carrier.graph_element_definition_key_column_at(definition, index) {
@@ -33,13 +33,13 @@ fn emit_definition(
     }
   }
   @encode.end_array(out)
-  @encode.key(out, "key_contracts")
+  @encode.key(out, graph_keys_field)
   @encode.begin_array(out)
   for contract in @carrier.graph_element_definition_keys(definition) {
     @value.emit_checked(contract, out)
   }
   @encode.end_array(out)
-  @encode.key(out, "labels")
+  @encode.key(out, graph_labels_field)
   @encode.begin_object(out)
   for
     (label, selected) in @carrier.graph_element_definition_label_properties(
@@ -56,16 +56,16 @@ fn emit_definition(
     @encode.end_array(out)
   }
   @encode.end_object(out)
-  @encode.key(out, "name")
+  @encode.key(out, graph_name_field)
   @encode.string_value(out, @carrier.graph_element_definition_name(definition))
-  @encode.key(out, "properties")
+  @encode.key(out, graph_properties_field)
   properties(@carrier.graph_element_definition_properties(definition), out)
   if endpoints is Some((source, _)) {
-    @encode.key(out, "source_definition")
+    @encode.key(out, graph_source_field)
     @encode.string_value(out, source)
   }
   if endpoints is Some((_, target)) {
-    @encode.key(out, "target_definition")
+    @encode.key(out, graph_target_field)
     @encode.string_value(out, target)
   }
   @encode.end_object(out)
@@ -94,7 +94,7 @@ fn emit_graph(
   @encode.begin_object(out)
   @encode.key(out, "domain")
   @encode.string_value(out, @carrier.graph_domain(profile))
-  @encode.key(out, "edge_definitions")
+  @encode.key(out, graph_edges_field)
   @encode.begin_array(out)
   for edge in edges {
     emit_definition(
@@ -106,7 +106,7 @@ fn emit_graph(
   @encode.end_array(out)
   @encode.key(out, "identity_law_cid")
   @encode.string_value(out, law_cid())
-  @encode.key(out, "node_definitions")
+  @encode.key(out, graph_nodes_field)
   @encode.begin_array(out)
   for node in nodes {
     emit_definition(node, None, out)
@@ -191,10 +191,13 @@ fn read_definition(
   validation_work : Ref[Int],
 ) -> (@carrier.GraphNodeDefinition, (String, String)?) raise ReadStop {
   charge_nodes(budget, 1)
-  let names = ["name", "key_columns", "key_contracts", "properties", "labels"]
+  let names = [
+    graph_name_field, graph_columns_field, graph_keys_field, graph_properties_field,
+    graph_labels_field,
+  ]
   if edge {
-    names.push("source_definition")
-    names.push("target_definition")
+    names.push(graph_source_field)
+    names.push(graph_target_field)
   }
   if @decode.object_length(cursor) != Some(names.length()) {
     stop(InvalidBody)
@@ -203,8 +206,8 @@ fn read_definition(
     Ok(value) => value
     Err(_) => stop(InvalidBody)
   }
-  let name = read_property_text(required(object, "name"), budget)
-  let keys_at = required(object, "key_contracts")
+  let name = read_property_text(required(object, graph_name_field), budget)
+  let keys_at = required(object, graph_keys_field)
   charge_nodes(budget, 1)
   let count = match @decode.array_length(keys_at) {
     Some(value) => value
@@ -223,7 +226,7 @@ fn read_definition(
     }
     keys.push(key)
   }
-  let columns_at = required(object, "key_columns")
+  let columns_at = required(object, graph_columns_field)
   charge_nodes(budget, 1)
   if @decode.array_length(columns_at) != Some(keys.length()) {
     stop(InvalidStructure)
@@ -242,8 +245,12 @@ fn read_definition(
   if unnamed != 0 && unnamed != keys.length() {
     stop(InvalidStructure)
   }
-  let props = read_properties(required(object, "properties"), budget, limits)
-  let labels_at = required(object, "labels")
+  let props = read_properties(
+    required(object, graph_properties_field),
+    budget,
+    limits,
+  )
+  let labels_at = required(object, graph_labels_field)
   charge_nodes(budget, 1)
   let count = match @decode.object_length(labels_at) {
     Some(value) => value
@@ -322,8 +329,8 @@ fn read_definition(
   let endpoints = if edge {
     Some(
       (
-        read_property_text(required(object, "source_definition"), budget),
-        read_property_text(required(object, "target_definition"), budget),
+        read_property_text(required(object, graph_source_field), budget),
+        read_property_text(required(object, graph_target_field), budget),
       ),
     )
   } else {
@@ -350,6 +357,36 @@ pub fn read_cursor_usage(
   limits : Limits,
   max_contract_work~ : Int,
 ) -> Result[(CheckedContract, Int), ReadIssue] {
+  let (result, used) = observe_read_cursor_usage(
+    root,
+    limits,
+    max_contract_work~,
+  )
+  result.map(value => (value, used))
+}
+
+///|
+/// Observe the SAME reader's charged comparison-work cell on refusal as well.
+/// This does not add validation work, re-read the input or issue a partial Graph.
+pub fn observe_read_cursor_usage(
+  root : @decode.Cursor,
+  limits : Limits,
+  max_contract_work~ : Int,
+) -> (Result[CheckedContract, ReadIssue], Int) {
+  let validation_work = Ref(max_contract_work)
+  let result = read_cursor_metered(
+    root, limits, max_contract_work, validation_work,
+  )
+  (result, max_contract_work - validation_work.val)
+}
+
+///|
+fn read_cursor_metered(
+  root : @decode.Cursor,
+  limits : Limits,
+  max_contract_work : Int,
+  validation_work : Ref[Int],
+) -> Result[CheckedContract, ReadIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
@@ -362,14 +399,13 @@ pub fn read_cursor_usage(
       text: limits.max_bytes,
       depth: limits.max_depth,
     }
-    let validation_work = Ref(max_contract_work)
     charge_nodes(budget, 1)
     if @decode.object_length(root) != Some(6) {
       stop(InvalidBody)
     }
     let object = match
       @decode.closed_object(root, [
-        "domain", "edge_definitions", "identity_law_cid", "node_definitions", "value_law_cid",
+        "domain", graph_edges_field, "identity_law_cid", graph_nodes_field, "value_law_cid",
         "version",
       ]) {
       Ok(value) => value
@@ -387,8 +423,7 @@ pub fn read_cursor_usage(
     let domain = read_property_text(required(object, "domain"), budget)
     let nodes = []
     let edges = []
-    for
-      (name, edge) in [("node_definitions", false), ("edge_definitions", true)] {
+    for (name, edge) in [(graph_nodes_field, false), (graph_edges_field, true)] {
       let at = required(object, name)
       charge_nodes(budget, 1)
       let count = match @decode.array_length(at) {
@@ -432,7 +467,7 @@ pub fn read_cursor_usage(
       Err(_) => stop(InvalidStructure)
     }
     match admit(input, limits) {
-      Ok(value) => Ok((value, max_contract_work - validation_work.val))
+      Ok(value) => Ok(value)
       Err(_) => stop(BudgetExceeded)
     }
   } catch {

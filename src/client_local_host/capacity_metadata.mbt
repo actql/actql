@@ -36,32 +36,46 @@ fn client_local_scalar_metadata_envelope(
   if names < 0 {
     return None
   }
-  let f = fields.to_int64()
-  let p = ports.to_int64()
-  let b = bindings.to_int64()
-  // One task-output identity plus every named Result occurrence, not task count.
-  let i = result_count.to_int64() + 1L
-  // Per-port schema traversal, names/columns, copied binding identities and refs.
-  let bridge_slots = p * (3L * f + 2L * b + 8L)
-  // Input copies/bindings plus identity records, references, permits, issuers,
-  // closure roots and their overlapping arrays (at most 64 slots per identity).
-  let completion_slots = 4L * p + 2L * b + 64L * i + 16L
-  // Export summaries/order/schema/result views; row indices and merge scratch.
-  let export_slots = 24L * f +
-    2L * max_rows.to_int64() +
-    order_terms.to_int64() +
-    64L
-  // Prepared inputs, receiving bridges/import refs, identity/finalization arrays.
-  let dispatch_slots = 8L * p + 8L * i + 64L
-  // Scalar contract spellings fit 96 bytes per field; escaped names need at
-  // most six bytes per original UTF-8 byte. Fund the retained schema text too.
-  let schema_bytes = 6L * names.to_int64() + 96L * f + 2L
-  let retained = (
-      bridge_slots + completion_slots + export_slots + dispatch_slots
-    ) *
-    256L +
-    schema_bytes * 8L +
-    client_local_cleanup_retained_bytes()
+  // Each port owns three field traversals plus its binding and control
+  // roots. Keep the products in the common checked fold, not Int arithmetic
+  // in this domain inventory. Result occurrences are not task identities.
+  let slots : Array[@execution.ExecutionCapacityItem] = [
+    { unit: CursorRootSlots, count: fields.to_int64(), copies: ports, },
+    { unit: CursorRootSlots, count: fields.to_int64(), copies: ports, },
+    { unit: CursorRootSlots, count: fields.to_int64(), copies: ports, },
+    { unit: CursorRootSlots, count: bindings.to_int64(), copies: ports, },
+    { unit: CursorRootSlots, count: bindings.to_int64(), copies: ports, },
+    { unit: CursorRootSlots, count: 8L, copies: ports, },
+    // Completion: inputs, bindings and identity/permit/issuer arrays.
+    { unit: CursorRootSlots, count: ports.to_int64(), copies: 4, },
+    { unit: CursorRootSlots, count: bindings.to_int64(), copies: 2, },
+    { unit: CursorRootSlots, count: result_count.to_int64(), copies: 64, },
+    { unit: CursorRootSlots, count: 1L, copies: 64, },
+    { unit: CursorRootSlots, count: 16L, copies: 1, },
+    // Export: summaries, schema, row indices, merge scratch and order terms.
+    { unit: CursorRootSlots, count: fields.to_int64(), copies: 24, },
+    { unit: CursorRootSlots, count: max_rows.to_int64(), copies: 2, },
+    { unit: CursorRootSlots, count: order_terms.to_int64(), copies: 1, },
+    { unit: CursorRootSlots, count: 64L, copies: 1, },
+    // Dispatch: prepared inputs, bridges and finalization arrays.
+    { unit: CursorRootSlots, count: ports.to_int64(), copies: 8, },
+    { unit: CursorRootSlots, count: result_count.to_int64(), copies: 8, },
+    { unit: CursorRootSlots, count: 1L, copies: 8, },
+    { unit: CursorRootSlots, count: 64L, copies: 1, },
+    // Escaping can expand each original name byte sixfold; bounded scalar
+    // contract spellings use their independent per-field wire allowance.
+    { unit: CanonicalWireBytes, count: names.to_int64(), copies: 6, },
+    { unit: CanonicalWireBytes, count: fields.to_int64(), copies: 96, },
+    { unit: CanonicalWireBytes, count: 2L, copies: 1, },
+    {
+      unit: QuotedBytes,
+      count: client_local_cleanup_retained_bytes(),
+      copies: 1,
+    },
+  ]
+  guard @execution.execution_capacity_inventory_bytes(slots) is Some(retained) else {
+    return None
+  }
   if retained < 0L || retained > client_local_retained_byte_ceiling() {
     None
   } else {
@@ -82,13 +96,25 @@ fn client_local_result_metadata_retained(
   if max_rows < 1 || schema_bytes < 0 {
     return None
   }
-  let slots = 24L * envelope.fields.to_int64() +
-    2L * max_rows.to_int64() +
-    envelope.order_terms.to_int64() +
-    64L
-  let bytes = slots * 256L +
-    8L * schema_bytes.to_int64() +
-    client_local_cleanup_retained_bytes()
+  guard @execution.execution_capacity_inventory_bytes([
+      { unit: CursorRootSlots, count: envelope.fields.to_int64(), copies: 24, },
+      { unit: CursorRootSlots, count: max_rows.to_int64(), copies: 2, },
+      {
+        unit: CursorRootSlots,
+        count: envelope.order_terms.to_int64(),
+        copies: 1,
+      },
+      { unit: CursorRootSlots, count: 64L, copies: 1, },
+      { unit: CanonicalWireBytes, count: schema_bytes.to_int64(), copies: 1, },
+      {
+        unit: QuotedBytes,
+        count: client_local_cleanup_retained_bytes(),
+        copies: 1,
+      },
+    ])
+    is Some(bytes) else {
+    return None
+  }
   if bytes < 0L || bytes > client_local_retained_byte_ceiling() {
     None
   } else {

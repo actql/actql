@@ -245,7 +245,6 @@ fn sdk_start_material_wire(
 }
 
 ///|
-#export_name("actql_material_validate_sdk_start")
 pub fn validate_sdk_start_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -334,7 +333,6 @@ fn validate_sdk_start_claim(
 }
 
 ///|
-#export_name("actql_material_confirm_sdk_start")
 pub fn confirm_sdk_start_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -345,7 +343,6 @@ pub fn confirm_sdk_start_material(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_reserve_sdk_physical_start")
 pub fn reserve_sdk_physical_start(
   nonce : Int64,
   run : Int,

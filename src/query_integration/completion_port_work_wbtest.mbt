@@ -39,7 +39,7 @@ fn assert_source_free_child_work(
       1,
     ).unwrap()
     let provider = @local_connector.local_module_managed_provider(
-      installed, selected,
+      installed, 0, selected,
     ).unwrap()
     let inputs = match previous {
       None => []

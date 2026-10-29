@@ -142,7 +142,7 @@ fn[I] fund_validation_inventory(
   arrays : Int,
 ) -> Result[Unit, ClientProgramValidationIssue] {
   guard program_validation_inventory_layout(slots, arrays) is Some(units) &&
-    preparation_representation_cost(units) is Some(retained) else {
+    @execution.preparation_representation_cost(units) is Some(retained) else {
     return Err(Owner(Policy))
   }
   grow_program_validation(value, retained, publication_projection_execution)
@@ -161,8 +161,8 @@ fn[I] finish_program_validation_plan(
     @publication.publication_validation_plan_inventory(plan)
     is Some((slots, arrays, _, metadata, _, _, _)) &&
     program_retained_validation_layout(slots, arrays, metadata) is Some(layout) &&
-    preparation_representation_cost(layout.retained) is Some(r) &&
-    preparation_representation_cost(layout.temporary) is Some(e) else {
+    @execution.preparation_representation_cost(layout.retained) is Some(r) &&
+    @execution.preparation_representation_cost(layout.temporary) is Some(e) else {
     return validation_failure(value, Owner(Policy))
   }
   match grow_program_validation(value, r, e) {

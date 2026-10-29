@@ -143,7 +143,12 @@ test "TRY_NUMBER original String closure binds only the same pipeline and Parame
     Checked(value) => value
     _ => fail("original String check must close")
   }
-  let owners = prepare_client_stage_owners(checked, limits).unwrap()
+  let owners = prepare_client_stage_owners(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+  ).unwrap()
   let owner = owners[0]
   let closure = @checked.expression_closure(checked).unwrap()
   let rebound = @lower.bind_program_expression_closure(
@@ -164,6 +169,45 @@ test "TRY_NUMBER original String closure binds only the same pipeline and Parame
       @lower.parameter_bindings(owner).unwrap(),
     ),
   )
+  let lowered = @lower.lower_expression(
+    rebound,
+    1,
+    0,
+    run_materials_limits().sequence.expressions,
+  ).unwrap()
+  let original = @lower.expression_text_bound(lowered).unwrap()
+  assert_true(
+    physical_equal(original, @lower.expression_text_bound(lowered).unwrap()),
+  )
+  assert_true(
+    physical_equal(
+      original,
+      @lower.expression_text_bound_at(lowered, 0).unwrap(),
+    ),
+  )
+  // The field child is a valid typed occurrence, but owns no text envelope.
+  assert_true(@lower.expression_text_bound_at(lowered, 1) is None)
+  assert_true(@lower.expression_text_bound_at(lowered, -1) is None)
+  assert_true(@lower.expression_text_bound_at(lowered, 1000000) is None)
+  assert_true(@lower.text_bound_filter(original) is None)
+  let mut matched = false
+  for index in 0..<@context.expression_closure_count(closure) {
+    let entry = @context.expression_closure_at(closure, index).unwrap()
+    if entry.resolution is @context.Envelope(checked_original) &&
+      physical_equal(
+        @lower.text_bound_output(original),
+        @context.text_bound_output(checked_original),
+      ) {
+      assert_true(
+        physical_equal(
+          @lower.text_bound_policy(original),
+          @context.text_bound_policy(checked_original),
+        ),
+      )
+      matched = true
+    }
+  }
+  assert_true(matched)
   // Rechecking the very same parsed bytes and environment creates another
   // invocation's pipeline and Parameter originals, not a reusable permission.
   let foreign = match

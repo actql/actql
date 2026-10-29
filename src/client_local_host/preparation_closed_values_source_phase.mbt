@@ -2,16 +2,16 @@
 /// Complete source/index phase projection for the fixed ordinary Node JS
 /// constructor. Input document backing is a separate owner supplied by caller.
 priv struct ClosedValuesSourcePhaseLayout {
-  retained : PreparationRepresentationUnits
-  parser_temporary : PreparationRepresentationUnits
-  decoder_temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  parser_temporary : @execution.PreparationRepresentationUnits
+  decoder_temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
 fn closed_values_units_subtract(
-  left : PreparationRepresentationUnits,
-  right : PreparationRepresentationUnits,
-) -> PreparationRepresentationUnits? {
+  left : @execution.PreparationRepresentationUnits,
+  right : @execution.PreparationRepresentationUnits,
+) -> @execution.PreparationRepresentationUnits? {
   if right.record_headers < 0L ||
     right.reference_slots < 0L ||
     right.scalar_words < 0L ||
@@ -49,14 +49,14 @@ fn closed_values_source_phase_layout(
     is Some(ast_private) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       owner.source_shared_dependencies,
       owner.indexed_additional,
     ])
     is Some(retained) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       ast_private,
       owner.source_growth_peak,
       owner.key_admission_peak,
@@ -66,7 +66,7 @@ fn closed_values_source_phase_layout(
     is Some(parser_temporary) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       ast_private,
       owner.key_admission_peak,
       owner.decoder_ancestry_peak,

@@ -3,8 +3,8 @@
 /// No post-emission measurement grants capacity. Final canonical rows are
 /// borrowed by later capture; no second source parse is priced there.
 priv struct ScalarSnapshotLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -64,14 +64,14 @@ fn scalar_snapshot_layout(
   }
   // Data-key parser and decoder do not normalize. The final canonical tuples
   // borrow decoded key Strings, NOT AST Nodes/Spans or the indexed owner.
-  let strings : PreparationRepresentationUnits = {
+  let strings : @execution.PreparationRepresentationUnits = {
     record_headers: k,
     reference_slots: 0L,
     scalar_words: 0L,
     owned_utf16_units: text,
     owned_wire_bytes: 0L,
   }
-  let snapshot : PreparationRepresentationUnits = {
+  let snapshot : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 5L,
     scalar_words: 3L,
@@ -79,7 +79,7 @@ fn scalar_snapshot_layout(
     owned_wire_bytes: 0L,
   }
   let final_fields = closed_values_program_arrays(1L, f, false)
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       canonical.tree,
       strings,
       snapshot,
@@ -93,7 +93,7 @@ fn scalar_snapshot_layout(
   // Parsing -> indexed admission -> canonical admission may overlap at transfer.
   // Sum their private inventories conservatively. Strings above remain R even
   // after those owners are cleared; no GC or RSS release claim is made.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       private_source,
       source.source_growth_peak,
       source.indexed_additional,
@@ -114,14 +114,14 @@ fn scalar_snapshot_layout(
   let keys = closed_values_program_arrays(1L + f, 2L * f, true)
   let key_map = closed_values_program_maps(1L, f, true)
   let pending = closed_values_program_arrays(1L, 9L, true)
-  let indices : PreparationRepresentationUnits = {
+  let indices : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 2L,
     scalar_words: 4L + 24L + 6L * f,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let admission : PreparationRepresentationUnits = {
+  let admission : @execution.PreparationRepresentationUnits = {
     // CursorAdmission, InputBudget, root/value/text/size Options, Utf8Admission;
     // 9 pending variants + current pop, at most3 Cursor wrappers; Sort +Some.
     record_headers: 2L + 5L + 1L + 10L + 3L + 2L,
@@ -130,7 +130,7 @@ fn scalar_snapshot_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let output_growth : PreparationRepresentationUnits = {
+  let output_growth : @execution.PreparationRepresentationUnits = {
     record_headers: 1L + r,
     reference_slots: 4L * (1L + r) + (n - 1L),
     scalar_words: 0L,
@@ -142,21 +142,21 @@ fn scalar_snapshot_layout(
   // CanonicalEmit pending <=2*depth+2=8, cursor/rest records <=depth+1=4.
   // Two emitters (text and logical hash) are summed, not lifetime-maxed here.
   let emit_pending = closed_values_program_arrays(2L, 16L, true)
-  let emits : PreparationRepresentationUnits = {
+  let emits : @execution.PreparationRepresentationUnits = {
     record_headers: 2L + 16L + 8L + 4L,
     reference_slots: 4L + 16L + 8L + 12L,
     scalar_words: 16L + 8L + 20L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let preparation : PreparationRepresentationUnits = {
+  let preparation : @execution.PreparationRepresentationUnits = {
     record_headers: 1L + 12L,
     reference_slots: 11L + 18L,
     scalar_words: 11L + 24L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let field_sort : PreparationRepresentationUnits = {
+  let field_sort : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 4L,
     scalar_words: 13L,
@@ -165,7 +165,7 @@ fn scalar_snapshot_layout(
   }
   // Current decode.field_at tuple/Some, decode.view tagged scalar, child Cursor
   // and poll/Result carriers beside the retained pending-frame variants.
-  let access : PreparationRepresentationUnits = {
+  let access : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 8L,
     scalar_words: 8L,
@@ -176,7 +176,7 @@ fn scalar_snapshot_layout(
   let field_growth = closed_values_program_arrays(1L, f, true)
   // Original rows wire coexists with canonical text/compare; returned text is
   // already covered by the material writer's old/new text packet below.
-  let original_wire : PreparationRepresentationUnits = {
+  let original_wire : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -196,7 +196,7 @@ fn scalar_snapshot_layout(
   }
   guard scalar_snapshot_name_normalization_layout(name_bytes)
     is Some(normalization) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       source_peak, keys, key_map, pending, indices, admission, output_growth, emit_pending,
       emits, preparation, field_keys, field_growth, indices, writers, normalization,
       field_sort, access,
@@ -218,7 +218,7 @@ fn scalar_snapshot_layout(
     is Some(export_writer) else {
     return None
   }
-  let shared_text : PreparationRepresentationUnits = {
+  let shared_text : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -233,21 +233,23 @@ fn scalar_snapshot_layout(
   // +RowWorkspace; rows/order/receipt/wire Some; Key/Cell phase carriers;
   // OrderedKeyEmitCursor, SteppedRuntimeWire and ScalarWire. Only one scalar
   // cell is active, and its payload borrows the original completed output.
-  let export_controls : PreparationRepresentationUnits = {
+  let export_controls : @execution.PreparationRepresentationUnits = {
     record_headers: 13L,
     reference_slots: 23L,
     scalar_words: 21L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([private_export_writer, export_controls])
+  guard @execution.compose_preparation_representation([
+      private_export_writer, export_controls,
+    ])
     is Some(export_peak) else {
     return None
   }
   // Componentwise maximum is conservative for the shared tariff. This max is
   // ONLY across the proven Export->Admit phase replacement, not arbitrary
   // parser/index/canonical subcomponents or retained aliases.
-  let sequential : PreparationRepresentationUnits = {
+  let sequential : @execution.PreparationRepresentationUnits = {
     record_headers: Int64::max(
       export_peak.record_headers,
       admission_peak.record_headers,
@@ -277,14 +279,14 @@ fn scalar_snapshot_layout(
   // Keep the named transition packet
   // outside the phase max; no eager credit merely from finish() being called.
   let initial_arrays = closed_values_program_arrays(2L, 0L, true)
-  let outer : PreparationRepresentationUnits = {
+  let outer : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 2L,
     scalar_words: 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       sequential,
       original_wire,
       export_fields,
@@ -306,7 +308,7 @@ fn scalar_snapshot_layout(
 /// actual construction inventory; only the shared owner prices its units.
 fn scalar_snapshot_name_normalization_layout(
   units : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   guard @canonical.nfc_lf_construction_extent(units) is Some(extent) else {
     return None
   }
@@ -317,7 +319,7 @@ fn scalar_snapshot_name_normalization_layout(
 /// Project domain-owned counts; the shared representation tariff owns pricing.
 fn canonical_normalization_preparation_units(
   extent : @canonical.NormalizationConstructionExtent,
-) -> PreparationRepresentationUnits {
+) -> @execution.PreparationRepresentationUnits {
   {
     record_headers: extent.record_headers,
     reference_slots: extent.reference_slots,

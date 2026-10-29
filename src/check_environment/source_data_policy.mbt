@@ -44,6 +44,11 @@ struct SourceDataPolicies {
 }
 
 ///|
+priv struct DataPolicyReader {
+  mut work : Int
+}
+
+///|
 /// Validates every data_policy body, retaining output-role ownership. This is
 /// neither effective Host policy nor publisher/egress authorization.
 pub fn check_source_data_policies(
@@ -53,16 +58,39 @@ pub fn check_source_data_policies(
   if limits.max_work < 0 || limits.max_policies < 0 {
     return Err(InvalidLimits)
   }
+  read_source_data_policies(references, limits, { work: 0, })
+}
+
+///|
+/// Actual charges from the original policy reader, not another traversal or
+/// effective Host/egress authorization. Unused policy bodies remain checked.
+pub fn observe_source_data_policies(
+  references : CatalogReferences,
+  limits : DataPolicyLimits,
+) -> (Result[SourceDataPolicies, DataPolicyIssue], Int) {
+  if limits.max_work < 0 || limits.max_policies < 0 {
+    return (Err(InvalidLimits), 0)
+  }
+  let reader = DataPolicyReader::{ work: 0, }
+  let result = read_source_data_policies(references, limits, reader)
+  (result, reader.work)
+}
+
+///|
+fn read_source_data_policies(
+  references : CatalogReferences,
+  limits : DataPolicyLimits,
+  reader : DataPolicyReader,
+) -> Result[SourceDataPolicies, DataPolicyIssue] {
   let registry = references.contents.registry
   let entries = []
   let by_cid : Map[String, SourceDataPolicy] = Map([])
   let views : Map[Int, SourceViewPolicy] = Map([])
-  let mut work = 0
   for i in 0..<registry.entries.length() {
-    if work >= limits.max_work {
+    if reader.work >= limits.max_work {
       return Err(WorkLimit)
     }
-    work += 1
+    reader.work += 1
     let envelope = registry.entries[i]
     if envelope.kind != "data_policy" {
       continue
@@ -77,18 +105,18 @@ pub fn check_source_data_policies(
     // Charge before constructing the object's lookup map.
     for j in 0..<3 {
       let (key, value) = @decode.field_at(root, j).unwrap()
-      if key.length() > limits.max_work - work {
+      if key.length() > limits.max_work - reader.work {
         return Err(WorkLimit)
       }
-      work += key.length()
+      reader.work += key.length()
       let text = match @decode.text(value) {
         Ok(v) => v
         Err(_) => return Err(InvalidPolicy(i))
       }
-      if text.length() > limits.max_work - work {
+      if text.length() > limits.max_work - reader.work {
         return Err(WorkLimit)
       }
-      work += text.length()
+      reader.work += text.length()
     }
     let object = @decode.open_object(root).unwrap()
     let values = Some(
@@ -119,10 +147,10 @@ pub fn check_source_data_policies(
     entries.push(policy)
   }
   for reference in references.references {
-    if work >= limits.max_work {
+    if reader.work >= limits.max_work {
       return Err(WorkLimit)
     }
-    work += 1
+    reader.work += 1
     if reference.contract.kind != "data_policy" {
       continue
     }
@@ -130,7 +158,7 @@ pub fn check_source_data_policies(
     let policy = by_cid[reference.contract.cid]
     views[member_index(reference.item)] = { reference, policy, }
   }
-  Ok({ references, entries, by_cid, views, work, })
+  Ok({ references, entries, by_cid, views, work: reader.work, })
 }
 
 ///|

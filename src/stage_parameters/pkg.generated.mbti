@@ -3,15 +3,19 @@ package "actql/actql/stage_parameters"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn bind(Source, @decode_core.Cursor?, @value_admission.Limits) -> Result[@parameter_binding.BindingResult, @parameter_binding.Issue]
+
 pub fn bind_operations(CollectedOperations, @parameter_binding.BoundValues, max_work~ : Int) -> Result[BoundOperations, BindingsIssue]
 
 pub fn bindings_usage(BoundOperations) -> OperationsUsage
@@ -46,15 +50,27 @@ pub fn operations_usage(CollectedOperations) -> OperationsUsage
 
 pub fn prefix(Source) -> @stage_syntax.Prefix?
 
-pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
+pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits, original? : Source?) -> Result[Source, Issue]
+
+pub fn prepare_bindings(Source, @decode_core.Cursor?, @value_admission.Limits) -> (Source, Result[@parameter_binding.BindingResult, @parameter_binding.Issue])
+
+pub fn prepare_from_declaration_read(@stage_syntax.Program, @parameter_binding.DeclarationReadInput) -> (Result[Source, Issue], Int64)
 
 pub fn prepare_prefix(@stage_syntax.Prefix, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
 
 pub fn program(Source) -> @stage_syntax.Program
 
+pub fn retain_completed_binding(Source, @parameter_binding.BindingReadInput) -> Result[Source, Issue]
+
+pub fn reuse_prepared(Source, @stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Source?
+
 pub fn source(CollectedStage) -> Source
 
+pub fn source_binding_construction_inventory() -> SourceConstructionInventory
+
 pub fn source_body(Source) -> @decode_core.Cursor
+
+pub fn source_construction_inventory(@stage_syntax.Program) -> SourceConstructionInventory?
 
 pub fn stage_at(Source, Int) -> @stage_syntax.Stage?
 
@@ -107,6 +123,12 @@ pub(all) struct OperationsUsage {
 } derive(Eq, @debug.Debug)
 
 type Source
+
+pub(all) struct SourceConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+  maximum_work : Int64
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

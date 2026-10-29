@@ -40,6 +40,48 @@ for (const [label, from, to] of [
   }), /input cursor route|predecessor completion selection/);
 });
 
+for (const name of ['advance_relation_chain_inputs', 'relation_chain_inputs_are_small']) {
+  for (const [label, from, to] of [
+    ['foreign demand owner', 'bound_producer_read_demand(cursor.owner, bound)', 'bound_producer_read_demand(other, bound)'],
+    ['different bound demand', 'bound_producer_read_demand(cursor.owner, bound)', 'bound_producer_read_demand(cursor.owner, other)'],
+    ['caller entry allowance', '@execution.producer_read_demand_entries(demand)', 'cursor.max_entries'],
+    ['caller name allowance', '@execution.producer_read_demand_name_bytes(demand)', 'cursor.max_value_bytes'],
+    ['swapped demand quantity', '@execution.producer_read_demand_entries(demand)', '@execution.producer_read_demand_name_bytes(demand)'],
+    ['unproven demand fallback', 'is Some(demand) else {', 'is Some(demand) || true else {'],
+  ]) test(`current metadata binding refuses ${name}: ${label}`, () => {
+    const path = 'src/connectors/local/relation_chain_input_preparation.mbt';
+    const source = readFileSync(root + path, 'utf8');
+    const marker = `fn ${name}(`, start = source.indexOf(marker);
+    assert(start >= 0); const end = source.indexOf('///|', start);
+    const body = source.slice(start, end < 0 ? undefined : end);
+    assert.equal(body.split(from).length, 2, 'Mutation reaches exactly one owned path');
+    const changed = source.slice(0, start) + body.replace(from, to) + (end < 0 ? '' : source.slice(end));
+    assert.throws(() => checkBindings(root, bindings(), {
+      read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
+    }), /input cursor route/);
+  });
+}
+
+for (const name of ['advance_relation_chain_inputs', 'relation_chain_inputs_are_small']) {
+  for (const disguise of ['line-comment', 'block-comment', 'string', 'unrelated-function'])
+    test(`checked demand route cannot be supplied by ${disguise} beside ${name}`, () => {
+      const path = 'src/connectors/local/relation_chain_input_preparation.mbt';
+      const source = readFileSync(root + path, 'utf8');
+      const start = source.indexOf(`fn ${name}(`), end = source.indexOf('///|', start);
+      const body = source.slice(start, end < 0 ? undefined : end);
+      const wrong = body.replace('bound_producer_read_demand(cursor.owner, bound)', 'bound_producer_read_demand(other, bound)');
+      assert.notEqual(wrong, body);
+      const retained = disguise === 'line-comment' ? body.split('\n').map(line => '// '+line).join('\n')
+        : disguise === 'block-comment' ? `/* ${body} */`
+        : disguise === 'string' ? `let unrelated = ${JSON.stringify(body)}`
+        : body.replace(`fn ${name}(`, 'fn unrelated_witness(');
+      const changed = source.slice(0, start) + wrong + (end < 0 ? '' : source.slice(end)) + '\n' + retained;
+      assert.throws(() => checkBindings(root, bindings(), {
+        read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
+      }), /input cursor route/);
+    });
+}
+
 function stoppingEvidence(target = 'js') {
   const e = evidence(target);
   e.nodes = graph([...bindings(), ...stopBindings()], target);
@@ -316,5 +358,5 @@ for (const [label, from, to] of [
   const changed = source.slice(0, start) + selected.replace(from, to) + source.slice(end);
   assert.throws(() => checkBindings(root, bindings(), {
     read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
-  }), /original checked producer-read demand route/);
+  }), /current checked input cursor route: advance_relation_chain_inputs admitted demand/);
 });

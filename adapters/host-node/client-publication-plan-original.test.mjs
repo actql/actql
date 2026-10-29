@@ -25,25 +25,24 @@ test('publication reads the same original before admission and after its move to
  run.closed=true;assert.throws(()=>get(runtime,prepared),{code:'NodeManagedRunRuntimeUnavailable'});
  run.closed=false;assert.throws(()=>get({},prepared),{code:'NodeManagedRunRuntimeUnavailable'});
  run.value=undefined;assert.throws(()=>get(runtime,prepared),{code:'NodeManagedRunRuntimeUnavailable'});
- assert.equal(get(runtime,{}),undefined); // Explicit unrelated legacy route.
+ assert.equal(get(runtime,{}),undefined); // No original belongs to an unrelated Program.
 });
 
 test('publication phase dispatch preserves nominal owners and rejects invalid projection instead of legacy fallback',()=>{
  const prepared={},original={},live={},calls=[];
  const vector=resultOutputLimitFields.map(()=>1);
  const moon={
-  clientProgramLocalPublicationLimits:(...args)=>{calls.push(['legacy',...args]);return vector;},
   clientProgramPreparedLocalPublicationLimits:(...args)=>{calls.push(['preparation',...args]);return vector;},
   clientProgramInstalledManagedPublicationLimits:(...args)=>{calls.push(['installed',...args]);return vector;},
  };
  checkedLocalOutputLimits(moon,prepared,{kind:'preparation',value:original});
  checkedLocalOutputLimits(moon,prepared,{kind:'installed_run',value:live});
- checkedLocalOutputLimits(moon,prepared);
+ assert.throws(()=>checkedLocalOutputLimits(moon,prepared),/InvalidCheckedLocalPublicationOriginal/);
  assert.strictEqual(calls[0][1],original);assert.strictEqual(calls[0][2],prepared);
  assert.strictEqual(calls[1][1],live);assert.strictEqual(calls[1][2],prepared);
- assert.deepEqual(calls.map(c=>c[0]),['preparation','installed','legacy']);
+ assert.deepEqual(calls.map(c=>c[0]),['preparation','installed']);
  moon.clientProgramInstalledManagedPublicationLimits=()=>[];
  assert.throws(()=>checkedLocalOutputLimits(moon,prepared,{kind:'installed_run',value:live}),/InvalidCheckedLocalPublicationLimits/);
- assert.equal(calls.length,3);
+ assert.equal(calls.length,2);
  assert.throws(()=>checkedLocalOutputLimits(moon,prepared,{kind:'other',value:live}),/InvalidCheckedLocalPublicationOriginal/);
 });

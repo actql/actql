@@ -685,6 +685,35 @@ pub fn generated_prepared_sequence(
 }
 
 ///|
+/// Retain a genuine same-binding refinement of an installed physical sequence.
+/// Capacity constraints may change through their existing checked constructors;
+/// original registered contracts, prepared sequence, contexts, query time and
+/// numeric callbacks cannot be replaced by equal metadata or another issuer.
+/// Returns the same candidate DATA, not an execution or capacity permission.
+pub fn retain_generated_sequence_refinement(
+  original : GeneratedSequence,
+  candidate : GeneratedSequence,
+) -> GeneratedSequence? {
+  if !physical_equal(original.contracts, candidate.contracts) ||
+    !physical_equal(original.sequence, candidate.sequence) ||
+    !physical_equal(original.contexts, candidate.contexts) ||
+    !physical_equal(original.query_time, candidate.query_time) ||
+    !physical_equal(original.numeric, candidate.numeric) ||
+    original.retained_ids != candidate.retained_ids ||
+    generated_sequence_step_count(original) !=
+    generated_sequence_step_count(candidate) {
+    return None
+  }
+  for index in 0..<generated_sequence_step_count(original) {
+    if generated_sequence_step_index_at(original, index) !=
+      generated_sequence_step_index_at(candidate, index) {
+      return None
+    }
+  }
+  Some(candidate)
+}
+
+///|
 /// Select one original checked occurrence for an internal physical task.
 /// The view retains its complete owner and global step coordinate; it does not
 /// grant execution authority or permit the generic whole-sequence evaluator.

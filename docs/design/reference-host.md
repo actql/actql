@@ -1529,3 +1529,108 @@ the consumer's supplied error factory.
 This helper performs no I/O, permission, charge, outcome classification or
 cleanup. Selecting the callback supplies no capacity or retirement ACK, and
 joining an invalid return does not settle its owner's physical duties.
+
+## Installed Effect operation definition DATA
+
+The existing `createInstalledRowEffect` constructor can retain an optional
+`managedPlanDefinition` from the same installed provider. For the current Mock
+UPDATE and Local files COMMAND profiles, this is a frozen own-DATA object with
+exactly `kind`, `memberOperations` and `rowOperations`. Both arrays and their
+`{role, operation}` entries are frozen. Mock declares the ordered target-read
+and write roles; Local COMMAND declares only its write role. The constructor
+retains the original descriptor and rejects proxies, accessors, iterators,
+mutable objects and incompatible role order before its first I/O await.
+Omission preserves the existing constructor contract for other profiles.
+
+These names select declared operation roles, not a physical-call census,
+capacity, a grant or an admitted plan. The existing Mapping, Command, driver,
+Site, collection issuer and Source preparations remain their same originals.
+A cached before/version observation can be reused only under its existing
+exact-description/current rules; the descriptor never authorizes a new read,
+replaces the captured observation or supplies evidence of a physical stop.
+
+The standard service owns `prepareManagedPlan`, full retained capture and
+material inventory, framework phase occurrences, initial admission, the same
+Run parent and later current/cleanup boundaries. It must bind this DATA to the
+actual checked member and installation before selecting its typed extents.
+Missing complete supply is not an empty inventory or permission to use a
+Compute-only quote. Preserving previously supported Model and Content callers
+requires their original scopes and providers in the same admitted plan.
+
+
+## Installed JSON Source service originals
+
+The standard installed Host retains one service association between each
+original connector installation and its selected runtime. Before opening a
+Site, the Source loader supplies that same service object and installation to
+the connector. Codec policy DATA and the typed reader representation describe
+rejection and construction bounds; they do not admit a Run, authorize a read,
+or fund other connector-specific constructor graphs.
+
+The common Credential reader borrows the original Site's bound credential,
+transport, read authorization and current check. Each exact received response
+enters the reader's custody before accounting or projection. A pending read,
+response alias, provider child or credential binding prevents retirement. A
+later cleanup attempt calls only the same captured reader retry method; it
+cannot replace a physical close acknowledgement or issue another request.
+
+The generic Row Source exposes its capture representation through the existing
+original acquisition and typed provider-capacity association. Managed Run
+binding preserves that selection. A planned provider read starts through the
+same original Source read and parent Ledger, while Credential authorization
+remains independently required. Copied installation DATA, changed runtime
+identity, changed policy selection and stale current checks cannot substitute
+for any of these originals.
+
+
+## Model demand on the original installed Effect Plan
+
+The Node bridge obtains Model/read/bootstrap bounds through the same checked
+compiled Run, definition, Infer occurrence and graph. Its Model demand retains
+those originals in the existing Core Plan. JavaScript supplies no Model Ledger
+vector and cannot convert an ordinary admission into the local Mock purpose.
+The selected component handles enter the Plan's provider factory alongside the
+unchanged canonical family constructors; later execution must use those same
+handles rather than append a replacement after quoting.
+
+The Host Run record retains the Plan before Root preparation and its admission
+before beginning the existing Model Scope. A failed begin remains attached to
+that same admission. The returned managed Run and Scope remain paired with the
+original compiled definition and graph. The existing complete dispatch or
+initialization retirement observation reaches the same Scope's finish port
+before the parent can retire. Live reads, a pending finish, or changed originals
+refuse that transition; a terminal outcome or settled Promise supplies no
+physical-cleanup acknowledgement.
+
+## Capturing the installed Source service
+
+Connector loaders capture their four original standard Source methods once,
+before the first metadata await. The common snapshot retains each own DATA
+function and its original receiver; replacement methods, inherited methods,
+accessors and proxies cannot change that selection. Its invoker is bounded to
+those same four methods and adds no service call, admission or cleanup owner.
+
+The connector supplies its existing synchronous unavailable error factory or
+throw callback. Returned values and Promises, original throws and rejected
+cleanup carriers pass through unchanged. The connector still selects its own
+explicit legacy entrance when the service is omitted, and keeps its own profile
+grammar, limit conversion and error boundaries. The shared snapshot never
+chooses a fallback, a numeric policy or physical authority.
+
+
+## Original ModuleBody preparation mode
+
+The installed Host retains its normalized Boolean output mode in the same
+immutable preparation context as the original runtime and publication
+environment. The funded caller passes that exact mode to the distinct
+ModuleBody constructor together with its existing phase and sequence-contract
+admission. Completion remains a separate call after the constructor returns.
+Neither an older Body export nor a missing mode supplies a fallback.
+
+A selected funded context is checked before the Source owner allocates a
+producer receipt. A missing capability or throwing context lookup cannot
+consume producer slots or select raw snapshot preparation. A staged adapter
+which cannot construct the selected input retires its actual preparation and
+reports unavailability; this does not define a new language restriction or
+qualify the remaining frontend construction paths. Original cleanup failures
+remain attached to the same producer until their actual retirement.

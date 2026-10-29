@@ -404,7 +404,29 @@ pub fn check_imported_original_child_ledger(
     physical_equal(origin, value.origin) else {
     return Err(ForeignOriginal)
   }
-  check_imported_child_admission(ledger).map_err(issue => Resource(issue))
+  match check_imported_child_admission(ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  // Keep the post-callback original tuple fence local to this owner. The
+  // callback can synchronously retire/change a child while returning current.
+  match imported_child_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.taken &&
+    !value.origin.fixed_capacities &&
+    value.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    ledger.imported_child is Some(origin) &&
+    physical_equal(origin, value.origin) &&
+    origin.ledger is Some(bound) &&
+    physical_equal(bound, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  check_imported_child_admission_current(ledger).map_err(issue => {
+    Resource(issue)
+  })
 }
 
 ///|

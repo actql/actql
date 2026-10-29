@@ -548,3 +548,43 @@ test "public empty provenance Policy refuses despite its exact original CID" {
     is Err(CustodyLost),
   )
 }
+
+///|
+// No Record/Checkpoint/definition escapes this boundary. Hold only the original
+// wire and a deferred identity refusal before the work's full Policy admission.
+// Policy admission precedes identity refusal. Relevant application reentry or
+// target mutation invalidates operation facts before a new row is selected.
+fn extract_run_policy_wire(
+  row : @sqlite.NativeJournalValue,
+  requested : @host.ClientRequestIdentity,
+) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
+  let record = match read_run_record_in_mode(row, DeferPublicationWire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  extract_admitted_run_policy_wire(record, requested)
+}
+
+///|
+// The Record-only extraction returns before this admission begins. Matching
+// Native ARC must verify retirement of Record/Checkpoint/definition/scratch.
+// Admit every body/root/dependency before applying the deferred identity result.
+// Missing wire preserves identity refusal before MissingDependency.
+fn select_run_policy_wire(
+  wire : String?,
+  comparison : RunPolicyRequestComparison,
+  selected_policy_cid : String,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
+  let bodies = match wire {
+    Some(original) =>
+      match read_run_policy_originals(original) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(CustodyLost)
+      }
+    None => None
+  }
+  select_admitted_run_policy(bodies, comparison, selected_policy_cid)
+}

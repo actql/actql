@@ -177,7 +177,38 @@ pub fn resolve(
   catalog : @environment.SourceRequestContracts,
   limits : Limits,
 ) -> Result[Resolved, Issue] {
-  if limits.max_work < 0 || limits.max_inputs < 0 || limits.max_views < 0 {
+  resolve_owned(inputs, catalog, limits)
+}
+
+///|
+/// Observe the SAME resolver's newly charged selection work, including partial
+/// typed refusal. Its existing Budget inherits the completed collection work;
+/// that prefix remains in work(Resolved) but is NOT performed or debited again
+/// by this observation. An inherited prefix which does not fit issues zero new
+/// work. This is neither CPU, invocation counting nor a capacity grant.
+pub fn observe_resolve(
+  inputs : @inputs.Inputs,
+  catalog : @environment.SourceRequestContracts,
+  limits : Limits,
+) -> (Result[Resolved, Issue], Int) {
+  let spent = Ref(0)
+  let result = resolve_owned(inputs, catalog, limits, work_out=Some(spent))
+  (result, spent.val)
+}
+
+///|
+pub fn resolution_observation_control_extent() -> @shape.CollectionConstructionExtent {
+  @shape.int_work_observation_construction_extent()
+}
+
+///|
+fn resolve_owned(
+  inputs : @inputs.Inputs,
+  catalog : @environment.SourceRequestContracts,
+  limits : Limits,
+  work_out? : Ref[Int]? = None,
+) -> Result[Resolved, Issue] {
+  if resolution_limits_invalid(limits) {
     return Err({ kind: InvalidLimits, source: None, unresolved_selector: None, })
   }
   let count = @inputs.count(inputs)
@@ -202,8 +233,9 @@ pub fn resolve(
       ),
     ),
   )
-  try {
-    charge(b, @inputs.work(inputs), None)
+  let inherited = @inputs.work(inputs)
+  let result = try {
+    charge(b, inherited, None)
     for i in 0..<view_count {
       let contract = @environment.source_request_at(catalog, i).unwrap()
       let root = @environment.member_body(
@@ -276,6 +308,39 @@ pub fn resolve(
     Ok({ owner, entries, work: limits.max_work - b.work, })
   } catch {
     Stop(e) => Err(e)
+  }
+  if work_out is Some(output) {
+    output.val = if inherited <= limits.max_work {
+      limits.max_work - inherited - b.work
+    } else {
+      0
+    }
+  }
+  result
+}
+
+///|
+fn resolution_limits_invalid(limits : Limits) -> Bool {
+  limits.max_work < 0 || limits.max_inputs < 0 || limits.max_views < 0
+}
+
+///|
+// Same original inherited-prefix convention used by construction and metadata.
+// This is the maximum NEW work, never another debit of completed collection.
+fn resolution_work_after_prefix(inherited : Int, maximum : Int) -> Int {
+  if inherited > maximum {
+    0
+  } else {
+    maximum - inherited
+  }
+}
+
+///|
+pub fn resolution_work_bound(inputs : @inputs.Inputs, maximum : Int) -> Int {
+  if maximum < 0 {
+    0
+  } else {
+    resolution_work_after_prefix(@inputs.work(inputs), maximum)
   }
 }
 

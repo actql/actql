@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
@@ -50,6 +51,18 @@ test('Run Definition optional selection projection preserves the old shape', () 
   // schema changes. Reconstruct that exact body with checked leaf inverses;
   // neither its historical pin nor today's registry is silently repinned.
   const history = read('portability/corpus/publication-selection-registry-history.json');
+  // Retain the exact successor fixture while also checking the accepted
+  // current-to-successor inverse before the predecessor transition.
+  assert.equal(history.inverse_source_transitions[0].historical_source_commit,
+    '68984332ab66af4d918511d6cbc70fdd64d9a60b');
+  const successorBytes = gunzipSync(readFileSync(
+    'scripts/fixtures/publication-selection-registry/68984332-protocol.json.gz'));
+  assert.equal(createHash('sha1').update(Buffer.concat([
+    Buffer.from(`blob ${successorBytes.length}\0`), successorBytes,
+  ])).digest('hex'), '288bdc228f7749ad3f0f3f1ba3c4536a92c17969');
+  assert.deepEqual(restoreHistoricalSchemas(registry.artifact_schemas,
+    history.changes.slice(0, 3 + history.inverse_source_transitions[0].change_count)),
+  JSON.parse(successorBytes).artifact_schemas);
   const historical = restoreHistoricalSchemas(registry.artifact_schemas, history.changes);
   assert.equal(history.artifact_registry_cid, vectors.artifact_registry_pins.after);
   assert.equal(machineCid(historical), vectors.artifact_registry_pins.after);

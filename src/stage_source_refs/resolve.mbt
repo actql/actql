@@ -87,11 +87,39 @@ pub fn prepare(
   source : @stages.Source,
   limits : Limits,
 ) -> Result[Index, Issue] {
-  if limits.max_work < 0 || limits.max_text_bytes < 0 {
+  prepare_owned(source, limits)
+}
+
+///|
+/// Observe the SAME indexer's charged policy work and successfully admitted
+/// name UTF8 bytes, including partial typed refusal. These are distinct units,
+/// not scan instructions, CPU, byte allocation or a Resource grant. The
+/// ordinary entrance allocates no observer; successful usage is the SAME fact.
+pub fn observe_prepare(
+  source : @stages.Source,
+  limits : Limits,
+) -> (Result[Index, Issue], Usage) {
+  let observed = Ref(index_zero_usage)
+  let result = prepare_owned(source, limits, usage_out=Some(observed))
+  (result, observed.val)
+}
+
+///|
+fn preparation_limits_invalid(limits : Limits) -> Bool {
+  limits.max_work < 0 || limits.max_text_bytes < 0
+}
+
+///|
+fn prepare_owned(
+  source : @stages.Source,
+  limits : Limits,
+  usage_out? : Ref[Usage]? = None,
+) -> Result[Index, Issue] {
+  if preparation_limits_invalid(limits) {
     return Err(InvalidLimits)
   }
-  try {
-    let b = { work: limits.max_work, text: limits.max_text_bytes, }
+  let b : Budget = { work: limits.max_work, text: limits.max_text_bytes, }
+  let result = try {
     let stages : Map[String, StageIndex] = Map([])
     charge(b, @stages.stage_count(source))
     for i in 0..<@stages.stage_count(source) {
@@ -138,6 +166,36 @@ pub fn prepare(
   } catch {
     Stop => Err(BudgetExceeded)
   }
+  if usage_out is Some(observed) {
+    observed.val = match result {
+      Ok(index) => index.usage
+      Err(_) =>
+        {
+          work: limits.max_work - b.work,
+          text_bytes: limits.max_text_bytes - b.text,
+        }
+    }
+  }
+  result
+}
+
+///|
+// Immutable initial observation only. Its equality never admits another input.
+let index_zero_usage : Usage = { work: 0, text_bytes: 0, }
+
+///|
+/// Additional observer Ref1H1R, Some1H1R1W, result/Usage pair1H2R and
+/// failure-only Usage1H2W. Successful observation reuses Index.usage itself.
+/// Original result/index/Map/input backing and retained caller Some are separate.
+pub fn index_preparation_observation_control_extent() -> @shape.CollectionConstructionExtent {
+  index_observer_units
+}
+
+///|
+let index_observer_units : @shape.CollectionConstructionExtent = {
+  record_headers: 4L,
+  reference_slots: 4L,
+  scalar_words: 3L,
 }
 
 ///|

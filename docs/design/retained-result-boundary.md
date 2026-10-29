@@ -979,6 +979,25 @@ Common admission, encoding, conversion and completion tests belong to the MoonBi
 three-target checks. These component checks do not substitute for standard
 Host, native acquisition, real DuckDB or end-to-end performance acceptance.
 
+
+For the fixed numeric Values preparation, the original initial reservation
+also funds construction of the selected Local module before an execution Run
+exists. Installation supplies the same immutable family composition, constructor
+and selected retained-output mode. Domain inventories count provider policy and
+callback bodies, module and registry controls, selected physical sequence views,
+IO policy carriers and their construction scratch. Shared representation tariffs
+and checked composition convert those units; they do not issue another budget.
+The factory's returned array coexists with the module snapshot while private
+constructor and eligibility calls can reuse a peak only after returning.
+
+The same preparation owner retains the configured module, checked sequences and
+compiled artifact. Completion releases construction workspace only after the
+constructor returns; adoption hands those originals and their reservation to the
+existing managed Run. A synchronous construction fence refuses reentrant cleanup
+or completion. The JavaScript scope clears only that fence after raw callback
+exceptions unwind, leaving partial originals and funding for existing cleanup.
+It does not acknowledge physical stop, settle a reservation or refund work.
+
 ## Complete accounting history at a backed-child boundary
 
 A successful backed-child report records whether the complete owned

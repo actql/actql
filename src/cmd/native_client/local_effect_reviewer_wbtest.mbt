@@ -86,17 +86,20 @@ test "CLI refuses unselected null or duplicate Reviewer field before original fi
 }
 
 ///|
-test "CLI Reviewer binding compiles original caller roles and opaque custody scope without CID substitution" {
-  let caller : (
-    @local_host.NativeLocalHostConnection,
-    LocalHostSettings,
-    @local_crypto.Library,
-    @local_host.NativeClientSubmissionReference,
-    @run_host.ClientRequestIdentity,
-    @source_owner.ResidentOriginalEffectApprovalScope,
-  ) -> Result[
-    @local_host.NativeLocalEffectReviewerBinding,
-    @local_host.NativeLocalEffectReviewerBindingIssue,
-  ] = local_bind_effect_reviewer
+test "Native Host Reviewer binding retains the opaque original custody scope" {
+  let caller = fn(
+    host : @local_host.NativeLocalHostConnection,
+    crypto : @local_crypto.Library,
+    principal : String,
+    connection : String,
+    reference : @local_host.NativeClientSubmissionReference,
+    request : @run_host.ClientRequestIdentity,
+    scope : @source_owner.ResidentOriginalEffectApprovalScope,
+    now : () -> Double,
+  ) {
+    host.bind_effect_reviewer(
+      crypto, principal, connection, reference, request, scope, now,
+    )
+  }
   caller |> ignore
 }

@@ -27,10 +27,12 @@ function fixture(t) {
       (dependencies[index].length ? `import {${dependencies[index].map(JSON.stringify).join(',')}}\n` : ''));
     mkdirSync(join(module.root, 'src'), {recursive: true});
   }
+  // The pinned compiler supplies its standard library; external module inputs
+  // neither replace it nor need a synthetic package to validate generated imports.
   // These are generation fixtures only, not replacement runtime Owners.
   // Actual external execution uses a separately compiled packed fixture.
-  for (const path of ['connector_sdk', 'physical_host', 'execution_relation',
-    'physical_strategy', 'physical_resources', 'encode_core', 'run_publication',
+  for (const path of ['connector_sdk', 'physical_host', 'physical_host_dispatch', 'execution_relation',
+    'physical_strategy', 'physical_strategy_host', 'physical_resources', 'encode_core', 'run_publication',
     'run_publication_host', 'publication_payload', 'execution_site', 'remote_site_protocol',
     'remote_credential', 'remote_bundle', 'physical_manifest', 'effect_application', 'remote_transfer']) {
     put(join(modules[0].root, 'src', path, 'moon.pkg'), 'supported_targets = "js"\n');
@@ -40,12 +42,12 @@ function fixture(t) {
   put(join(modules[0].root, 'src/physical_resources/ledger.mbt'), readFileSync(
     new URL('../src/physical_resources/ledger.mbt', import.meta.url)));
   put(join(modules[1].root, 'src/driver/moon.pkg'),
-    'supported_targets = "js"\nimport { "actql/actql/physical_host" @host, }\n');
+    'supported_targets = "js"\nimport { "actql/actql/physical_host_dispatch" @host, }\n');
   const manifest = {package: 'fixture/portable/driver', module: 'Contribution',
     configuration: 'Configuration', configure: 'configure', registration: 'registration',
-    contribution: 'contribution', dispatch: 'dispatch', completion_dispatch: 'complete_dispatch',
-    dispatch_result: 'Unit', dispatch_error: {package: 'actql/actql/physical_strategy', type: 'RunIssue'},
-    estimate_error: {package: 'actql/actql/physical_strategy', type: 'RunIssue'},
+    validate_binding: 'validate_binding', contribution: 'contribution', dispatch: 'dispatch', completion_dispatch: 'complete_dispatch',
+    dispatch_result: 'Unit', dispatch_error: {package: 'actql/actql/physical_strategy_host', type: 'RunIssue'},
+    estimate_error: {package: 'actql/actql/physical_strategy_host', type: 'RunIssue'},
     estimate_policy: null, resource_policy: null};
   put(join(modules[1].root, 'declarations/compute-bundle.json'), JSON.stringify(manifest));
   put(join(modules[1].root, 'declarations/node-bundle.json'), JSON.stringify({strategy: {
@@ -126,7 +128,7 @@ test('resolved ownership cannot be replaced by another declaration or widened na
   assert.throws(() => generateComputeAssembly([{...entry, manifest: {...entry.manifest}}],
     {buildInputs: f.resolved}), /UnresolvedComputeBuildEntry/);
   const file = join(f.modules[1].root, 'declarations/compute-bundle.json');
-  writeFileSync(file, JSON.stringify({...entry.manifest, package: 'actql/actql/physical_host'}));
+  writeFileSync(file, JSON.stringify({...entry.manifest, package: 'actql/actql/physical_host_dispatch'}));
   assert.throws(() => resolveConnectorBuildInputs(f.configuration), /owned|belong|Compute/);
   assert.throws(() => checkNodeAssembly(f.modules[2].root, true,
     {buildInputs: f.resolved, names: ['portable']}), /InvalidResolvedNodeBuildSelection/);

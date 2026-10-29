@@ -22,7 +22,6 @@ priv struct StoredNativeAttempt {
 
 ///|
 /// Reserve before construction can trap or before any physical query is sent.
-#export_name("actql_source_reserve_attempt")
 pub fn reserve_native_attempt(
   nonce : Int64,
   configuration : Int,
@@ -75,7 +74,6 @@ pub fn reserve_native_attempt(
 ///|
 /// The current read Account Owner, not Run activation or a caller boolean,
 /// authorizes the exact installed physical binding and checked requirement.
-#export_name("actql_source_start")
 pub fn start_native_attempt(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(handle) is Some(record) &&
@@ -172,7 +170,6 @@ pub fn start_native_attempt(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_source_started")
 pub fn native_attempt_started(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(handle) is Some(record) else {
@@ -191,7 +188,6 @@ pub fn native_attempt_started(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Physical stop and actual cleanup are separate from settlement. A failed
 /// acknowledgement retains this same attempt and all parent loans for retry.
-#export_name("actql_source_close_attempt")
 pub fn close_native_attempt(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(handle) is Some(record) else {
