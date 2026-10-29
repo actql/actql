@@ -463,6 +463,7 @@ distribution[3] = distribution[3]
   .replace('adapters/host-node/client-submission-attempt.test.mjs ',
     'adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs ');
 distribution[3] += ' scripts/connector-authoring.cli.test.mjs';
+distribution[3] += ' scripts/fixtures/external-rest/preparation.test.mjs';
 
 for (const files of [
   ['adapters/host-node/client-null-context.test.mjs'],
