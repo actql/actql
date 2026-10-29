@@ -2,13 +2,13 @@
 // checked declaration, acquisition, planner, Ledger, RowRun and capture.
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
-  rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 
 export const INSTALLED_NOTION_SOURCE_VERSION='actql-installed-notion-source/0.1';
@@ -86,25 +86,33 @@ function captureProvider(provider){
   })));
 }
 
-export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
-  // The existing trusted installer must supply its same-runtime declaration.
-  // Public profile amounts, page/transfer limits and fixed spare constants are
-  // not a full reader retained/workspace supplier. Never choose legacy readPages.
-  if(readerCapacity===undefined||readerCapacity===null)fail('NotionReaderCapacityUnavailable');
+export async function loadInstalledNotionSource(profile,{moon,providerMoon,runtimeBundleCid,
+  resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
+  if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
+    installation===undefined)fail('NotionSourceInitializationUnavailable');
+  const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
+  if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
+    nodeTypes.isAsyncFunction(constructor.value))fail('NotionSourceInitializationUnavailable');
+  const prepareDeclaration=constructor.value;
+  const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
+    new Error('InstalledNotionSourceServicesUnavailable'),{code:'InstalledNotionSourceServicesUnavailable'}));
+  if(configurationReader===undefined||configurationReader===null)fail('InstalledNotionConfigurationReaderUnavailable');
   if(typeof resolveSecret!=='function')fail('NotionCredentialMaterialUnavailable');
   const provider=captureProvider(providerMoon);
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   const{limits}=installed;
+  const implementationProfile=services('sourceReaderImplementationProfile',{
+    installation,sourceInitialization,metadataResponses:0,originUnits:siteProfile.apiOrigin.length});
+  if(limits.maxDeclarationBytes>implementationProfile.maxDeclarationBytes||
+    limits.maxDeclarationNodes>implementationProfile.maxDeclarationNodes)fail('InstalledNotionImplementationBoundsExceeded');
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
+    limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
+    columnCount:provider.notionUserListColumnNames().length});
   const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
     limits.maxDeclarationNodes,limits.maxDepth));
-  const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
-    registration,revision,JSON.stringify({views:[{resource,resource_kind:'notion_users',schema_wire:wire,
-      schema_cid:sha(wire),facts_wire:provider.notionUserListRelationFactsWire()}]}),undefined));
-  const declared=JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared);
-  const authorization=await installRowSourceAuthorization({root,principalId,connectorRegistration:registration,
-    accountConfiguration:installed.accountConfigurationWire});
+  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
+    [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
+      facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
   const connection=`notion:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:'actql-installed-notion-user-target/0.1',
     apiOrigin:siteProfile.apiOrigin,resource:selected,fields:Object.freeze([...fields])});
@@ -112,19 +120,20 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
     Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
     value.fields.every(name=>declared.views[0].fields.includes(name))&&
     canonicalJson(value)===canonicalJson(target(selected,value.fields));
-  const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
-    principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
-    runtimeBundleCid,commonMoon:moon,ca,admitsApprovalTarget,responseHeaders:[],resolveSecret});
-  let providerReader;
+  let opened,providerReader;
   try{
-    providerReader=createInstalledCredentialSourceReader({capacity:readerCapacity,site,
-      operation:NOTION_USER_LIST_OPERATION,maxResponses:limits.maxPages,
-      maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
+    opened=await services('openRowSite',{installation,sourceInitialization,
+      profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),
+      accountConfiguration:installed.accountConfigurationWire,connection,ca,admitsApprovalTarget,
+      responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits});
+    const{authorization,site}=opened;
+    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site,
+      operation:NOTION_USER_LIST_OPERATION,
       preparePageReader({resource:selected,columns},applySynchronousProjection){
         if(selected!==resource)fail('UndeclaredNotionResource');
         return prepareNotionUserListPages({moon:provider,names:columns,limits},applySynchronousProjection);
       }});
-    return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
+    return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,environment,sourceInitialization,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
       authorization,site,readOperation:NOTION_USER_LIST_OPERATION,physicalTarget:target,
       bindingCid:cid({version:'actql-installed-notion-user-binding/0.1',connectorId:installed.connectorId,
@@ -133,5 +142,5 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
       providerReader});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
-    {sourceReader:providerReader,sourceProfile:site});}
+    {sourceReader:providerReader,sourceProfile:opened?.site});}
 }
