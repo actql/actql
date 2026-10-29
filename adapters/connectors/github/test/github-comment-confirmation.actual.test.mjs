@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareGitHubCommentLogicalRequest,finalizeGitHubCommentRequest,
   prepareGitHubCommentConfirmation} from '../site/github-comment-create.mjs';
-const url=process.env.ACTQL_TEST_GITHUB_CONFIRMATION_URL;
-if(!url)throw new Error('ActualGitHubConfirmationComponentUrlRequired');
+const url=process.env.ACTQL_TEST_GITHUB_CONFIRMATION_URL ?? new URL(
+  '../../../../_build/js/release/build/connectors/github/host_node/host_node.js',import.meta.url).href;
 const provider=await import(url);
 const bytes=value=>Buffer.from(JSON.stringify(value));
 const tag='sha256:'+'a'.repeat(64);
