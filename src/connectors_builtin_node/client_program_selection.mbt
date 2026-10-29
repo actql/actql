@@ -232,17 +232,3 @@ fn selected_graph_mean_policy() -> @local_sga_provider.MeanPolicy {
     workspace_bytes: 67108864L,
   }
 }
-
-///|
-// Count the same compiled composition traversed by the actual constructor.
-// No provider callback, policy or kernel is created by this projection.
-fn installed_client_family_provider_count() -> Int {
-  installed_client_family_composition.length()
-}
-
-///|
-// Shared immutable recipe; neither bridge accepts a JS unit/count override.
-let installed_client_module_container_units : @execution.PreparationRepresentationUnits = @local.local_module_container_inventory(
-  1,
-  installed_client_family_provider_count(),
-).unwrap()
