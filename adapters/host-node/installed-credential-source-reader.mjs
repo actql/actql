@@ -139,9 +139,13 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
         } finally {cleanupRunning = false;}
       }
       function sync(value) {
-        const then = value?.then;
-        if (typeof then === 'function') {
-          const pending = new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
+        const native = types.isPromise(value);
+        const then = native ? undefined : value?.then;
+        if (native || typeof then === 'function') {
+          // Retain the actual native computation before observing its public
+          // then property. A throwing getter cannot acknowledge its stop.
+          const pending = native ? value
+            : new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
           pendingCallbacks.add(pending);
           const settled = () => {
             pendingCallbacks.delete(pending);
@@ -149,7 +153,12 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
               try {cleanup();} catch (cause) {transportFailure = cause; hadTransportFailure = true;}
             }
           };
-          void pending.then(settled, settled);
+          if (native) {
+            Reflect.apply(Promise.prototype.then, value, [settled, settled]);
+            // Preserve the original observation failure after the native join.
+            // If joining itself throws, the original remains pending/owned.
+            void value.then;
+          } else void pending.then(settled, settled);
           fail('InstalledSourcePageCallbackNotSynchronous');
         }
         return value;
