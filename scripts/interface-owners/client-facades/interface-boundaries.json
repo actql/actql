@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5b62341a00f6bee5599938b1fc80a9bfd978dd9e36189ada91bcd6a3e1ecc3a2",
+      "sha256": "06a91eb9a8b95b1d570e9c840ac8596d81d8cea464b199160a51562573bbe008",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -40,6 +40,10 @@
         "InvocationAuthorization",
         "InvocationPrimitive",
         "ReadGrantRequest",
+        "RestSourceInstallationDefinition",
+        "RestSourcePageData",
+        "RestSourceProfile",
+        "RestSourceTransform",
         "RowEffectCommand",
         "RowEffectCommandMember",
         "RowEffectDriver",
@@ -68,6 +72,7 @@
         "RowSourceMapping",
         "RuntimeResult",
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -86,6 +91,14 @@
           "result": "Result"
         },
         {
+          "name": "<call>#2",
+          "parameters": [
+            "page: Readonly<RestSourcePageData>",
+            "context: Readonly<{resource: string; columns: readonly string[]}>"
+          ],
+          "result": "Readonly<{rowsWire: string; nextCursor?: string}>"
+        },
+        {
           "name": "checked",
           "parameters": [
             "result: RuntimeResult<T>"
@@ -98,6 +111,55 @@
             "result: unknown"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "createInstalledRestSource",
+          "parameters": [
+            "definition: RestSourceInstallationDefinition",
+            "options?: Readonly<{decodePage?: RestSourceTransform}>"
+          ],
+          "result": "Readonly<{\n    checkProfile(profile: unknown): Readonly<RestSourceProfile>;\n    identityParts(profile: object, providerProfile: RestSourceProfile,\n      readJson?: (path: string) => Promise<unknown>, installation?: object,\n      context?: object): Promise<readonly unknown[]>;\n    publish(profile: RestSourceProfile, options: object): Promise<object>;\n    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;\n  }>"
+        },
+        {
+          "name": "createInstalledRestSource/checkProfile",
+          "parameters": [
+            "profile: unknown"
+          ],
+          "result": "Readonly<RestSourceProfile>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts",
+          "parameters": [
+            "profile: object",
+            "providerProfile: RestSourceProfile",
+            "readJson?: (path: string) => Promise<unknown>",
+            "installation?: object",
+            "context?: object"
+          ],
+          "result": "Promise<readonly unknown[]>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts/<call>",
+          "parameters": [
+            "path: string"
+          ],
+          "result": "Promise<unknown>"
+        },
+        {
+          "name": "createInstalledRestSource/load",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<InstalledRowSource>"
+        },
+        {
+          "name": "createInstalledRestSource/publish",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<object>"
         },
         {
           "name": "createInstalledRowEffect",
@@ -1043,15 +1105,116 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<call>#2",
+            "createInstalledRestSource",
+            "createInstalledRestSource/checkProfile",
+            "createInstalledRestSource/identityParts",
+            "createInstalledRestSource/identityParts/<call>",
+            "createInstalledRestSource/load",
+            "createInstalledRestSource/publish"
+          ],
+          "exports": [
+            "RestSourceInstallationDefinition",
+            "RestSourcePageData",
+            "RestSourceProfile",
+            "RestSourceTransform",
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Declaration and identity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Optional projection"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Identity includes the complete definition and selected Site."
+              },
+              {
+                "path": "packages/local-node/connector-installation.d.ts",
+                "anchor": "export declare function"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Installation and lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "through the managed reader's original active-frame invoker."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Failed initialization must pass the same factory as `sourceReader`"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "The same RowRun owns acquisition, current checks, read decisions, per-call"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "author page limits must be covered in full and supply no physical credit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Initialization bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Verification scope"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/local-node/connector-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6b79194160b5d7f7927902e693ff66d0c23c9c78d82308396152c0260b7fee0",
+      "sha256": "5a7a44d0104a22e95c05671690b1aee1eb2be4e747ba36b11eac166bc72951ce",
       "exports": [
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -1066,13 +1229,12 @@
         "./adapters/host-common/owned-invocation-context.mjs",
         "./adapters/host-common/runtime-result.mjs",
         "./adapters/host-node/installed-host-cleanup.mjs",
+        "./adapters/host-node/installed-rest-source.mjs",
         "./adapters/host-node/installed-row-effect.mjs",
         "./adapters/host-node/installed-row-source.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -1179,6 +1341,94 @@
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Declaration and identity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.mjs",
+                "anchor": "export "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Optional projection"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Identity includes the complete definition and selected Site."
+              },
+              {
+                "path": "packages/local-node/connector-installation.mjs",
+                "anchor": "const "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Installation and lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "through the managed reader's original active-frame invoker."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Failed initialization must pass the same factory as `sourceReader`"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "The same RowRun owns acquisition, current checks, read decisions, per-call"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "author page limits must be covered in full and supply no physical credit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Initialization bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Verification scope"
+              },
+              {
+                "path": "packages/local-node/rest-source.typecheck.mts",
+                "anchor": "const transform: RestSourceTransform"
               }
             ]
           }
