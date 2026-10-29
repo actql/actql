@@ -303,7 +303,11 @@ export function createInstalledCredentialSourceReader(options) {
                 fail('InstalledSourceReaderConstructorNotSynchronous');
               }
               if (typeof child?.then === 'function') {
-                child = await child;
+                const pending = child;
+                // The joined read owns this pending constructor; only an
+                // actual fulfillment supplies a physical child to retire.
+                child = undefined;
+                child = await pending;
                 childStop = ownMethod(child,'requestStop');
                 childRetire = ownMethod(child,'retire'); childObserve = ownMethod(child,'observe');
                 fail('InstalledSourceReaderConstructorNotSynchronous');
