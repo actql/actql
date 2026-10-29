@@ -902,3 +902,50 @@ pub fn client_program_close_host_initialization_preparation(
 ) -> Result[Unit, @client_local_host.ClientHostInitializationIssue] {
   @client_local_host.close_host_initialization_preparation(original)
 }
+
+///|
+#export_name("clientProgramPrepareRequestComputationCheck")
+pub fn client_program_prepare_request_computation_check(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog : @program_check.PreparedSourceCatalog?,
+  source_preparation : @stage_parameters.Source?,
+) -> Result[
+  @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_computation_check_preparation(
+    parent,
+    input,
+    environment,
+    supplied,
+    evidence,
+    program_limits,
+    effect_limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+/// No raw Prepared leaves this terminal bridge. The same parent retains the
+/// compiled body until its actual installed Plan and body borrow are complete.
+#export_name("clientProgramFinishRequestComputation")
+pub fn client_program_finish_request_computation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_preparation(parent, input)
+}

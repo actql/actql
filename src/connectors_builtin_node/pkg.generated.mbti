@@ -1187,6 +1187,8 @@ pub fn client_program_finish_model_content_bytes(@model_execution.ModelContentBy
 
 pub fn client_program_finish_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue]
 
+pub fn client_program_finish_request_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
+
 pub fn client_program_finish_snapshot(@client_local_host.ClientProgramSnapshot[ClientLocalPreparationInputOriginal]) -> Result[@run_publication.CapturedResultSnapshot, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_finish_validation(@client_local_host.ClientProgramValidation[ClientLocalPreparationInputOriginal]) -> Result[Unit, @client_local_host.ClientProgramValidationIssue]
@@ -2488,6 +2490,8 @@ pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedCl
 pub fn client_program_prepare_query_acquisition_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_prepare_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, String) -> Result[@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientQueryTimeIssue]
+
+pub fn client_program_prepare_request_computation_check(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, @program_check.PreparedSourceCatalog?, @stage_parameters.Source?) -> Result[@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_prepare_request_native_program_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @stage_syntax.Limits) -> Result[@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 

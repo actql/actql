@@ -48,6 +48,7 @@ struct ClientRequestPreparation[I] {
   mut native_parameters_ready : Bool
   mut held_program : @syntax.Program?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
+  mut computation_limits : @publication_host.ClientProgramPreparationLimits?
   // SAME reservation continued to its actual final body type; no second owner.
   mut program_capacity : @resources.PreparationCapacity[
     I,
@@ -256,6 +257,7 @@ pub fn[I] begin_request_preparation(
     native_parameters_ready: false,
     held_program: None,
     program_check: None,
+    computation_limits: None,
     program_capacity: None,
     compiled_program: None,
     effect_capacity: None,
@@ -382,6 +384,10 @@ fn[I] prepare_request_check_preparation_owned(
   source_catalog? : @checked.PreparedSourceCatalog? = None,
   source_preparation? : @stages.Source? = None,
   effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+  computation_limits? : (
+    @publication_host.ClientProgramPreparationLimits,
+    @publication_host.ClientEffectComputationLimits,
+  )? = None,
 ) -> Result[
   ClientProgramCheckPreparation[I, Unit],
   ClientRequestPreparationIssue,
@@ -431,6 +437,19 @@ fn[I] prepare_request_check_preparation_owned(
     }
     owner.held_program = Some(program)
     (program, source_catalog)
+  }
+  // This is the original Program's retained parser inventory, not another
+  // operation-name scan, check, resource quote or caller classification.
+  let effect_limits = match computation_limits {
+    None => effect_limits
+    Some((program_limits, effect_limits)) =>
+      if @syntax.program_preparation_data(program).effect_members == 0 {
+        owner.computation_limits = Some(program_limits)
+        None
+      } else {
+        owner.computation_limits = Some(effect_limits.program)
+        Some(effect_limits)
+      }
   }
   owner.phase = Selecting
   let outcome = match effect_limits {
@@ -599,6 +618,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.native_parameters_ready = false
   owner.query_syntax = None
   owner.compiled_program = None
+  owner.computation_limits = None
   owner.compiled_effect = None
   owner.effect_plan = None
   owner.program_data = None

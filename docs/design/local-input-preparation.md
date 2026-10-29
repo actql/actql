@@ -2449,3 +2449,27 @@ empty entrance, same-reservation continuation, concurrent borrowers, cancellatio
 foreign/repeated selection and cleanup; the actual Node caller tests separately
 cover retention before construction and the pre-loader connection. Those tests
 do not establish normal installed Source or physical acceptance.
+
+## Same-original Request checker and compiler terminal
+
+The Request terminal selects Pure or Effect checking from the original
+Program's retained `ProgramPreparationData.effect_members`. Selection does not
+rescan operation names or reconstruct a Program. It issues no permission: the
+existing Source intent, read-only, current authorization and physical boundaries
+remain separate. The original Environment, Catalog, Parameter cursor and supplied
+Source declaration preparation enter the same existing checking controller.
+
+`prepare_request_computation_check_preparation` retains the selected installed
+compiler configuration before a fallible phase. The remaining registry check,
+compiler and typed capacity continuation are driven by
+`finish_request_computation_preparation`. A completed compiler is reused if only
+its following original-current continuation declined; neither checking nor
+compilation is repeated. A rejected or missing-input check keeps its actual
+`CheckOutcome` rather than becoming a compiler phase error or generic Host
+classification. Known work and failure cleanup remain on the same parent.
+
+The Node terminal returns Unit. Its compiled Pure or Effect body stays inside
+the working Request until the actual installed Plan has been quoted, constructed,
+completed and borrowed. Returning an internal Prepared value from a convenience
+callback is not a replacement for that Plan/body handoff. These terminal methods
+therefore supply no raw Prepared escape, second Resource owner or no-plan success.

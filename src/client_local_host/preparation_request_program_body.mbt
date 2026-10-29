@@ -50,6 +50,7 @@ pub fn[I] continue_request_program_preparation(
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
+  owner.computation_limits = None
   owner.program_json = None
   owner.phase = ProgramCompiled
   Ok(prepared)

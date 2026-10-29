@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fe8fce30fe84d9f54da612cde1ef497b7bfa5643eb115fc0b69db2aa4fa08941",
+      "sha256": "fe9a2089f5b837881fe4f7909db5318093334134f86cd30dc4da621e04f0b91a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -26886,6 +26886,101 @@
         }
       ],
       "referenceQualification": "Actual original Node admission and focused caller/typed capacity components only; Source domain/lifetime consumer and ordinary installed acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_terminal.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9c4f765aa612010e4cf83d5d69a417b41c969a43e76a813063d0bc31901152da",
+      "role": "common-semantics",
+      "owner": "Existing Request checking compiler and preparation capacity owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]finish_request_computation_preparation",
+          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_computation_check_preparation",
+          "declaration": "[ I ] prepare_request_computation_check_preparation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]finish_request_computation_preparation",
+            "[I]prepare_request_computation_check_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_terminal_js_wbtest.mbt",
+                "anchor": "test \"normal Request terminal"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original checking/compilation/Plan controls; normal all-entry activation and ordinary acceptance remain separate."
     }
   ]
 }

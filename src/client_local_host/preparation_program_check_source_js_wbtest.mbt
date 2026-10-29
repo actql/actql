@@ -8,6 +8,10 @@ fn registration_parent_fixture(
   environment? : @checked.CheckEnvironment? = None,
   effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
   supplied? : @decode.Cursor? = None,
+  computation_limits? : (
+    @publication_host.ClientProgramPreparationLimits,
+    @publication_host.ClientEffectComputationLimits,
+  )? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -73,27 +77,41 @@ fn registration_parent_fixture(
     Some(original) => original
     None => catalog_domain_environment()
   }
-  let owner = match effect_limits {
+  let owner = match computation_limits {
+    Some((program_limits, selected_effect_limits)) =>
+      prepare_request_computation_check_preparation(
+        parent,
+        input,
+        selected_environment,
+        supplied,
+        [],
+        program_limits,
+        selected_effect_limits,
+        source_preparation=Some(source),
+      ).unwrap()
     None =>
-      prepare_request_program_check_preparation(
-        parent,
-        input,
-        selected_environment,
-        supplied,
-        [],
-        limits,
-        source_preparation=Some(source),
-      ).unwrap()
-    Some(selected) =>
-      prepare_request_effect_check_preparation(
-        parent,
-        input,
-        selected_environment,
-        supplied,
-        [],
-        selected,
-        source_preparation=Some(source),
-      ).unwrap()
+      match effect_limits {
+        None =>
+          prepare_request_program_check_preparation(
+            parent,
+            input,
+            selected_environment,
+            supplied,
+            [],
+            limits,
+            source_preparation=Some(source),
+          ).unwrap()
+        Some(selected) =>
+          prepare_request_effect_check_preparation(
+            parent,
+            input,
+            selected_environment,
+            supplied,
+            [],
+            selected,
+            source_preparation=Some(source),
+          ).unwrap()
+      }
   }
   prepare_program_check_input(owner).unwrap()
   prepare_program_check_prelude(owner).unwrap() |> ignore

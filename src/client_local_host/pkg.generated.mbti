@@ -350,6 +350,8 @@ pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publi
 
 pub fn[I] finish_program_validation(ClientProgramValidation[I]) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestTerminalIssue]
+
 pub fn[I, P] inspect_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -634,6 +636,8 @@ pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) ->
 
 pub fn[I] prepare_program_commit_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I] prepare_request_computation_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
+
 pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I, T] prepare_request_native_program_input(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @stage_syntax.Limits, supplied? : T?) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
@@ -893,6 +897,11 @@ pub(all) suberror ClientRequestQuerySyntaxIssue {
   Frontend(@source_frontend.Issue)
   Work(@physical_resources.PreparationWorkIssue)
   Overflow
+}
+
+pub suberror ClientRequestTerminalIssue {
+  Preparation(ClientRequestPreparationIssue)
+  CheckOutcome(@program_check.CheckOutcome)
 }
 
 // Types and methods
