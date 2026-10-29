@@ -151,9 +151,10 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
       preparePageReader:({columns})=>prepareCalendarListPages({moon:selected.moon,names:columns,limits:bound})});
     const reader=factory.prepare({resource:'calendars',columns:selected.names,signal:selected.signal,
-      verifyRead:()=>selected.current(CALENDAR_LIST_OPERATION),
-      authorizationFor:index=>selected.authorizationFor({operation:CALENDAR_LIST_OPERATION,index}),
-      chargePage:body=>selected.chargeResponse(body),consumePage:(rows,ticket)=>selected.consumePage(rows,ticket)});
+      verifyRead:typeof selected.current==='function'?()=>selected.current(CALENDAR_LIST_OPERATION):selected.current,
+      authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:CALENDAR_LIST_OPERATION,index}):selected.authorizationFor,
+      chargePage:typeof selected.chargeResponse==='function'?body=>selected.chargeResponse(body):selected.chargeResponse,
+      consumePage:typeof selected.consumePage==='function'?(rows,ticket)=>selected.consumePage(rows,ticket):selected.consumePage});
     readers.push(reader);return reader;
   };
   return {root,state,row,journal,scope,grant,control,sign,current,writeAccount,options,create,readers,

@@ -158,9 +158,10 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
       preparePageReader:({columns})=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound})});
     const reader=factory.prepare({resource:'users',columns:selected.names,signal:selected.signal,
-      verifyRead:()=>selected.current(NOTION_USER_LIST_OPERATION),
-      authorizationFor:index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}),
-      chargePage:body=>selected.chargeResponse(body),consumePage:(rows,ticket)=>selected.consumePage(rows,ticket)});
+      verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
+      authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,
+      chargePage:typeof selected.chargeResponse==='function'?body=>selected.chargeResponse(body):selected.chargeResponse,
+      consumePage:typeof selected.consumePage==='function'?(rows,ticket)=>selected.consumePage(rows,ticket):selected.consumePage});
     readers.push(reader);return reader;
   };
   return {root,state,row,journal,scope,grant,control,sign,options,current,writeAccount,create,readers};
