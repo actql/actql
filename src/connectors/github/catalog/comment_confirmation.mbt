@@ -19,9 +19,9 @@ fn comment_tag_data(tag : String) -> Bool {
   if tag.length() != 71 || !tag.has_prefix("sha256:") {
     return false
   }
-  for i = 7; i < tag.length(); i += 1 {
+  for i = 7; i < tag.length(); i = i + 1 {
     let unit = tag.code_unit_at(i).to_int()
-    if !(unit >= 48 && unit <= 57 || unit >= 97 && unit <= 102) {
+    if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
       return false
     }
   }
