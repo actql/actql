@@ -26091,12 +26091,32 @@
     {
       "module": "src/client_local_host/installed_source_material.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7c8970ad78c706806eadff590217c64a9a60b1e105c70bd34622b0a3653956d6",
+      "sha256": "ed573eed3a9b11b20952e2ca4be22a48cd84f60de090cf76242b9f12ed053d4d",
       "exports": [],
       "operations": [
         {
+          "name": "[I,S]complete_installed_source_material",
+          "declaration": "[ I , S ] complete_installed_source_material ( owner : @ resources . PreparationCapacity [ I , ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , input : I , source_original : S , environment : @ source_publication . PreparedPublishedQueryEnvironment , retained : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,S]reconcile_installed_source_construction",
+          "declaration": "[ I , S ] reconcile_installed_source_construction ( owner : @ resources . PreparationCapacity [ I , ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , input : I , retained : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,S]reserve_installed_source_construction",
+          "declaration": "[ I , S ] reserve_installed_source_construction ( owner : @ resources . PreparationCapacity [ I , ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , input : I , quote : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,S]retire_installed_source_material",
+          "declaration": "[ I , S ] retire_installed_source_material ( owner : @ resources . PreparationCapacity [ I , ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , input : I , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
           "name": "[S]borrowed_installed_source_environment",
           "declaration": "[ S ] borrowed_installed_source_environment ( holder : @ resources . PreparationBodyBorrow [ ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , source_original : S , ) - > Result [ @ source_publication . PreparedPublishedQueryEnvironment , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "installed_source_construction_capacity",
+          "declaration": "installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "role": "common-semantics",
@@ -26178,9 +26198,93 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "[I,S]complete_installed_source_material",
+            "[I,S]reconcile_installed_source_construction",
+            "[I,S]reserve_installed_source_construction",
+            "[I,S]retire_installed_source_material",
+            "installed_source_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn installed_source_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@resources.preparation_capacity_working_extents(owner, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "original.material = material;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@resources.check_working_preparation_capacity_current(owner, input)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "return Err(@resources.InvalidExtent)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('original parent refusal precedes configuration open"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn[I, S] retire_installed_source_material("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@execution.execution_capacity_inventory("
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "material.ioPending++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The loader passes `configurationReader` and `sourceInitialization`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_wbtest.mbt",
+                "anchor": "test \"Source Node bridge keeps the original initial tuple and typed Environment borrow\""
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Pure original aggregate/Environment correspondence under the existing Resource borrow/retirement model. Actual pre-loader carrier, construction recipe, Host caller and normal physical backing remain separate requirements."
+      "referenceQualification": "Existing shared execution-capacity units on the original Host initial Source successor, with retained body/borrow retirement. Normal provider consumer, matching compiled service ABI and ordinary physical acceptance remain separately required."
     },
     {
       "module": "src/physical_resources/preparation_publication_phase.mbt",
@@ -27191,6 +27295,154 @@
         }
       ],
       "referenceQualification": "Actual original Node admission and focused caller/typed capacity components only; Source domain/lifetime consumer and ordinary installed acceptance remain separate."
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "2dd1e4838f8d8b4c846fc52835cd2bdc5e6801860a8f5fbdebb134d5112ecab2",
+      "role": "common-semantics",
+      "owner": "Existing Host initialization and Resource Source material owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_abort_uncontinued_source_material",
+          "declaration": "client_program_abort_uncontinued_source_material ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , Unit , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_borrow_installed_source_material",
+          "declaration": "client_program_borrow_installed_source_material ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_borrowed_installed_source_environment",
+          "declaration": "client_program_borrowed_installed_source_environment ( holder : @ resources . PreparationBodyBorrow [ ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , source_original : ClientLocalPreparationInputOriginal , ) - > Result [ @ source_publication . PreparedPublishedQueryEnvironment , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_complete_installed_source_material",
+          "declaration": "client_program_complete_installed_source_material ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , source_original : ClientLocalPreparationInputOriginal , environment : @ source_publication . PreparedPublishedQueryEnvironment , quote : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_continue_installed_source_material",
+          "declaration": "client_program_continue_installed_source_material ( capacity : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , Unit , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_construction_capacity",
+          "declaration": "client_program_installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_installed_source_construction",
+          "declaration": "client_program_reconcile_installed_source_construction ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , quote : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_reserve_installed_source_construction",
+          "declaration": "client_program_reserve_installed_source_construction ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , quote : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_retire_installed_source_material",
+          "declaration": "client_program_retire_installed_source_material ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_return_installed_source_material",
+          "declaration": "client_program_return_installed_source_material ( holder : @ resources . PreparationBodyBorrow [ ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_take_host_initialization_source_capacity",
+          "declaration": "client_program_take_host_initialization_source_capacity ( owner : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ ( ClientLocalPreparationInputOriginal , @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , Unit ] , ) , @ client_local_host . ClientHostInitializationIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_abort_uncontinued_source_material",
+            "client_program_borrow_installed_source_material",
+            "client_program_borrowed_installed_source_environment",
+            "client_program_complete_installed_source_material",
+            "client_program_continue_installed_source_material",
+            "client_program_installed_source_construction_capacity",
+            "client_program_reconcile_installed_source_construction",
+            "client_program_reserve_installed_source_construction",
+            "client_program_retire_installed_source_material",
+            "client_program_return_installed_source_material",
+            "client_program_take_host_initialization_source_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramTakeHostInitializationSourceCapacity\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@resources.preparation_capacity_working_extents(owner, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "original.material = material;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@resources.check_working_preparation_capacity_current(owner, input)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "return Err(@resources.InvalidExtent)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('original parent refusal precedes configuration open"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn[I, S] retire_installed_source_material("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "@execution.execution_capacity_inventory("
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "material.ioPending++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The loader passes `configurationReader` and `sourceInitialization`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_material_wbtest.mbt",
+                "anchor": "test \"Source Node bridge keeps the original initial tuple and typed Environment borrow\""
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Typed Node projection of the SAME original initial input, Source successor, constructor inventory and body borrows. No new issuer, Ledger, normal provider enablement or physical acknowledgement."
     }
   ]
 }

@@ -50125,7 +50125,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4464c9d9e69aac4d7b6cbb5668d974340b3310cab25602d3bfb33560c9ab3b8d",
+      "sha256": "9fedec62735dc85f1a62ea8d8ddf146b25b3213109ae6a94b0bb4d113b8e0750",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -50299,9 +50299,15 @@
           "name": "installedSourceIdentity",
           "parameters": [
             "path",
-            "connectorTable"
+            "connectorTable",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedSourceIdentity/read/read",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installedSourcePaths",
@@ -50354,6 +50360,31 @@
             "installationServices"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSource/loadInstalledSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSourceMember",
+          "parameters": [
+            "path",
+            "root",
+            "principalId",
+            "moon",
+            "runtimeUrl",
+            "baseEnvironmentWire",
+            "resolveSecret",
+            "connectorTable",
+            "installationServices"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSourceMember/read/read",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSources",
@@ -50455,7 +50486,8 @@
         {
           "name": "readProfile",
           "parameters": [
-            "path"
+            "path",
+            "read"
           ],
           "async": true
         },
@@ -50536,7 +50568,11 @@
             "sourceIdentityFromParts",
             "sourceIdentityFromParts/exact/exact",
             "validPluralSourcePaths",
-            "validPluralSourcePaths/validPluralSourcePaths"
+            "validPluralSourcePaths/validPluralSourcePaths",
+            "installedSourceIdentity/read/read",
+            "loadInstalledSource/loadInstalledSource",
+            "loadInstalledSourceMember",
+            "loadInstalledSourceMember/read/read"
           ],
           "exports": [
             "installedSourceFor",
@@ -50562,6 +50598,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "inputsOutputs": [
@@ -50576,6 +50616,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "identity": [
@@ -50590,6 +50634,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "ownership": [
@@ -50604,12 +50652,16 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -50618,6 +50670,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "failure": [
@@ -50632,6 +50688,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "cancellation": [
@@ -50646,6 +50706,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "resources": [
@@ -50660,6 +50724,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "extension": [
@@ -50674,6 +50742,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "verification": [
@@ -50684,6 +50756,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
               }
             ]
           }
@@ -63240,14 +63320,17 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "350f31d5f8a81b8b24c11e8c32cf13f28a712ead9cf1c01db43f25c2d7cb93ea",
+      "sha256": "7bbaf9afa194ab8b528328ec229d180801da939b3dd3ae799664422a0c0a6600",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "captureConfigurationReaders",
+        "installedConfigurationByteLimit",
+        "installedConfigurationChunkBytes",
         "installedRuntimeBundleCid",
         "readBoundedConfigurationText",
         "readBoundedConfigurationUtf8",
+        "readOriginalConfigurationText",
         "readSourceProfileJson",
         "withOriginalFile"
       ],
@@ -63300,7 +63383,8 @@
           "parameters": [
             "path",
             "maxBytes",
-            "openFile"
+            "openFile",
+            "beforeDecode"
           ],
           "async": true
         },
@@ -63333,7 +63417,8 @@
             "path",
             "maxBytes",
             "openFile",
-            "project"
+            "project",
+            "beforeDecode"
           ],
           "async": true
         },
@@ -63342,14 +63427,49 @@
           "parameters": [
             "original"
           ],
+          "async": false
+        },
+        {
+          "name": "readConfigurationBody",
+          "parameters": [
+            "original",
+            "maxBytes",
+            "project",
+            "beforeDecode"
+          ],
           "async": true
+        },
+        {
+          "name": "readOriginalConfigurationText",
+          "parameters": [
+            "path",
+            "openFile",
+            "beforeRead",
+            "beforeDecode"
+          ],
+          "async": true
+        },
+        {
+          "name": "readOriginalConfigurationText/readOriginalConfigurationText",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "readOriginalConfigurationText/readOriginalConfigurationText/readOriginalConfigurationText",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
         },
         {
           "name": "readSourceProfileJson",
           "parameters": [
             "path",
             "maxBytes",
-            "openFile"
+            "openFile",
+            "beforeDecode"
           ],
           "async": true
         },
@@ -63415,12 +63535,19 @@
             "withOriginalFile/retry/retry",
             "withOriginalFile/retry/retry/retry",
             "withOriginalFile/retry/retry/retry#2",
-            "withOriginalFile/status/status"
+            "withOriginalFile/status/status",
+            "readConfigurationBody",
+            "readOriginalConfigurationText",
+            "readOriginalConfigurationText/readOriginalConfigurationText",
+            "readOriginalConfigurationText/readOriginalConfigurationText/readOriginalConfigurationText"
           ],
           "exports": [
             "readBoundedConfigurationText",
             "readBoundedConfigurationUtf8",
-            "readSourceProfileJson"
+            "readSourceProfileJson",
+            "installedConfigurationByteLimit",
+            "installedConfigurationChunkBytes",
+            "readOriginalConfigurationText"
           ],
           "attributes": {
             "responsibility": [
@@ -63439,6 +63566,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The private installed Host acquisition stage searches the selected directory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "inputsOutputs": [
@@ -63461,6 +63592,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export async function readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "identity": [
@@ -63487,6 +63622,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "const captureClose = () => {"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "ownership": [
@@ -63509,6 +63648,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "synchronization": [
@@ -63535,6 +63678,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "// Retain successful observation before any consumer await. Retry may"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "failure": [
@@ -63561,6 +63708,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "if (originalClose === undefined) throw failure;"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "cancellation": [
@@ -63579,6 +63730,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "A pending read remains pending; caller"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "resources": [
@@ -63605,6 +63760,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "close. It captures the original close function and receiver before beginning"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "extension": [
@@ -63627,6 +63786,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "verification": [
@@ -63657,6 +63820,14 @@
               {
                 "path": "adapters/host-node/source-profile-close-original.test.mjs",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
               }
             ]
           }
@@ -84436,16 +84607,75 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "cf8078de721c210829de731b77b237bc4c92abc302acab3552003de4dc35025d",
+      "sha256": "f99576d6261c4c7aeb20de4c8337aa04f65a2a6c89962b9ee3e98602cfb7c5ce",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
+        "assertInstalledSourceConstruction",
+        "beginInstalledSourceInitialization",
+        "borrowInstalledSourceInitialization",
         "captureInstalledSourceServices",
+        "closeInstalledSourceConstruction",
+        "completeInstalledSourceInitialization",
         "createInstalledHostServices",
-        "retainInstalledHostServiceInstallation"
+        "finishInstalledSourceInitialization",
+        "installedSourceConfigurationReader",
+        "reserveInstalledSourceEnvironment",
+        "reserveInstalledSourceRuntimeIdentity",
+        "retainInstalledHostServiceInstallation",
+        "retainInstalledSourceConstruction",
+        "retireInstalledSourceInitialization",
+        "withInstalledSourceLoading"
       ],
       "operations": [
+        {
+          "name": "assertInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "declaration",
+            "declared",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "installation",
+            "connectorId",
+            "baseEnvironmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
+          "parameters": [
+            "views",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "sourceOriginal",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowInstalledSourceInitialization/view/init:environment/init:environment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "borrowInstalledSourceInitialization/view/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "calendarImplementationReaderLimits",
           "parameters": [
@@ -84490,13 +84720,32 @@
           "async": false
         },
         {
+          "name": "closeInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "completeInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "sourceOriginal",
+            "environment",
+            "environmentWire"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledHostServices",
           "parameters": [
             "root",
             "principalId",
             "moon",
             "assertCurrent",
-            "receiver"
+            "receiver",
+            "initialPreparation"
           ],
           "async": false
         },
@@ -84647,6 +84896,134 @@
           "async": false
         },
         {
+          "name": "finishInstalledSourceInitialization",
+          "parameters": [
+            "context",
+            "adapter",
+            "cause",
+            "failed"
+          ],
+          "async": false
+        },
+        {
+          "name": "freezeSourceProjection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/read",
+          "parameters": [
+            "path",
+            "options",
+            "json"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/read/read",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText/value/init:beforeDecode/init:beforeDecode",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText/value/init:beforeRead/init:beforeRead",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readText/init:readText",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "reconcileSource",
+          "parameters": [
+            "original",
+            "material"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSourceConstructor",
+          "parameters": [
+            "services",
+            "installation",
+            "fields",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "reserveInstalledSourceEnvironment",
+          "parameters": [
+            "services",
+            "wires"
+          ],
+          "async": false
+        },
+        {
+          "name": "reserveInstalledSourceRuntimeIdentity",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "reserveSource",
+          "parameters": [
+            "original",
+            "material",
+            "nodes",
+            "text",
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostServiceInstallation",
           "parameters": [
             "services",
@@ -84654,12 +85031,83 @@
             "runtimeBundleCid"
           ],
           "async": false
+        },
+        {
+          "name": "retainInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "source",
+            "declaration",
+            "declared",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainSourceFailure",
+          "parameters": [
+            "material",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireInstalledSourceInitialization",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceCall",
+          "parameters": [
+            "original",
+            "material",
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceMaterial",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceQuote",
+          "parameters": [
+            "original",
+            "material",
+            "nodes",
+            "text",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "withInstalledSourceLoading",
+          "parameters": [
+            "services",
+            "construct"
+          ],
+          "async": true
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-row-source.mjs",
+        "./source-profile-json.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -84693,11 +85141,55 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
             "fail/fail",
-            "retainInstalledHostServiceInstallation"
+            "retainInstalledHostServiceInstallation",
+            "assertInstalledSourceConstruction",
+            "beginInstalledSourceInitialization",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
+            "borrowInstalledSourceInitialization",
+            "borrowInstalledSourceInitialization/view/init:environment/init:environment",
+            "borrowInstalledSourceInitialization/view/init:release/init:release",
+            "closeInstalledSourceConstruction",
+            "completeInstalledSourceInitialization",
+            "finishInstalledSourceInitialization",
+            "freezeSourceProjection",
+            "installedSourceConfigurationReader",
+            "installedSourceConfigurationReader/read",
+            "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+            "installedSourceConfigurationReader/read/read",
+            "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
+            "installedSourceConfigurationReader/reader/init:readText/init:readText",
+            "reconcileSource",
+            "requireSourceConstructor",
+            "reserveInstalledSourceEnvironment",
+            "reserveInstalledSourceRuntimeIdentity",
+            "reserveSource",
+            "retainInstalledSourceConstruction",
+            "retainSourceFailure",
+            "retireInstalledSourceInitialization",
+            "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
+            "sourceCall",
+            "sourceMaterial",
+            "sourceQuote",
+            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
+            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText/value/init:beforeDecode/init:beforeDecode",
+            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText/value/init:beforeRead/init:beforeRead",
+            "withInstalledSourceLoading"
           ],
           "exports": [
             "createInstalledHostServices",
-            "retainInstalledHostServiceInstallation"
+            "retainInstalledHostServiceInstallation",
+            "assertInstalledSourceConstruction",
+            "beginInstalledSourceInitialization",
+            "borrowInstalledSourceInitialization",
+            "closeInstalledSourceConstruction",
+            "completeInstalledSourceInitialization",
+            "finishInstalledSourceInitialization",
+            "installedSourceConfigurationReader",
+            "reserveInstalledSourceEnvironment",
+            "reserveInstalledSourceRuntimeIdentity",
+            "retainInstalledSourceConstruction",
+            "retireInstalledSourceInitialization",
+            "withInstalledSourceLoading"
           ],
           "attributes": {
             "responsibility": [
@@ -84708,6 +85200,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "inputsOutputs": [
@@ -84718,6 +85214,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "identity": [
@@ -84728,6 +85228,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "ownership": [
@@ -84738,6 +85242,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "synchronization": [
@@ -84748,6 +85256,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "failure": [
@@ -84758,6 +85270,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "cancellation": [
@@ -84768,6 +85284,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "resources": [
@@ -84778,6 +85298,10 @@
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
                 "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "extension": [
@@ -84788,6 +85312,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "verification": [
@@ -84802,6 +85330,14 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "test('nominal JSON service refuses a request bound"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
               }
             ]
           }

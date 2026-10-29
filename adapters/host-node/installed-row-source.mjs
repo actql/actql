@@ -2238,6 +2238,7 @@ export async function createInstalledRowSource({moon, declaration,
     }
   }
 
+  let constructionClosed = false;
   const installedSource = Object.freeze({
     realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
@@ -2310,7 +2311,10 @@ export async function createInstalledRowSource({moon, declaration,
       // Only the existing Site's completed physical cleanup releases this
       // constructor's aliases; the request to stop is not its acknowledgement.
       return Promise.resolve(observed).then(value => {
-        closeInstalledSourceConstruction(sourceInitialization, installedSource);
+        if (!constructionClosed) {
+          closeInstalledSourceConstruction(sourceInitialization, installedSource);
+          constructionClosed = true;
+        }
         return value;
       });
     },

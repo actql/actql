@@ -4987,7 +4987,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "7555188bd4b5799f3baf67c712f692cba4fa4c032f5d25d0ad9ced40abad5589",
+      "sha256": "9e3e19c2b612c6cb2006ffc50932fe7262ed3b3d865e78b353c563aaa75513b5",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5175,6 +5175,11 @@
             "prepared",
             "request"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+          "parameters": [],
           "async": false
         },
         {
@@ -5583,6 +5588,14 @@
           "name": "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:retainSourceInitializationServices/init:retainSourceInitializationServices",
+          "parameters": [
+            "runtime",
+            "services"
           ],
           "async": false
         },
@@ -8248,7 +8261,9 @@
             "validateValuesMaxRows",
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+            "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+            "connectEmbeddedLocal/preparation/init:retainSourceInitializationServices/init:retainSourceInitializationServices"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -8325,6 +8340,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "One original Effect computation retains one existing Journal cancellation"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "inputsOutputs": [
@@ -8395,6 +8414,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "identity": [
@@ -8481,6 +8504,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "ownership": [
@@ -8559,6 +8586,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "synchronization": [
@@ -8637,6 +8668,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const after = observeControl();"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "failure": [
@@ -8703,6 +8738,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "cancellation": [
@@ -8765,6 +8804,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "facts, and closed journals refuse. These managed references end with the"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "resources": [
@@ -8851,6 +8894,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "The complete original row has already been admitted"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "extension": [
@@ -8921,6 +8968,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Run bytes, while a new public observation acquires its own current original."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "verification": [
@@ -9059,6 +9110,14 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
+              },
+              {
+                "path": "adapters/host-node/installed-source-initial-material.test.mjs",
+                "anchor": "test('normal loader reserves original profile identity"
               }
             ]
           }

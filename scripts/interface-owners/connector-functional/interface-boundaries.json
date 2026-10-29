@@ -8367,9 +8367,6 @@
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/decideRead/decideRead",
-            "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
-            "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
-            "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/invalidReaderField",
             "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
@@ -8465,7 +8462,14 @@
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/installedSource/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+            "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+            "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/installedSource/installedSource"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -8504,6 +8508,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "When the same Site has already authorized and issued a grant,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "inputsOutputs": [
@@ -8542,6 +8550,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindRunAcquisition(authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "identity": [
@@ -8592,6 +8604,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "ownership": [
@@ -8642,6 +8658,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "synchronization": [
@@ -8696,6 +8716,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "failure": [
@@ -8738,6 +8762,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "issued.state = 'failed'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "cancellation": [
@@ -8776,6 +8804,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const observeCurrent = async () =>"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "resources": [
@@ -8834,6 +8866,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "extension": [
@@ -8872,6 +8908,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const credentialRead = owner.originalRead === undefined ||"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ],
             "verification": [
@@ -8954,6 +8994,10 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original initial Source material"
               }
             ]
           }
@@ -9666,7 +9710,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#11",
             "createInstalledRowSource/openKeyed/cleanup/cleanup",
             "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
             "createInstalledRowSource/openKeyed/init:close/init:close",
@@ -9739,9 +9782,7 @@
           }
         },
         {
-          "operations": [
-            "createInstalledRowSource/init:close/init:close"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -9808,7 +9849,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/managedProviderCaptureCapacity",
             "createInstalledRowSource/prepareOriginalAcquisition"
           ],
@@ -10039,7 +10079,7 @@
           }
         }
       ],
-      "sha256": "27d501fac080fdeff4b96a4c5d05f566e5a41805bf8265e8729799661434fda8",
+      "sha256": "cb14efa93c8237c653d8c29f5cd4602a1e584e6d232352c38adfb4266cd59a56",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10077,6 +10117,8 @@
             "declaration",
             "declared",
             "environmentWire",
+            "environment",
+            "sourceInitialization",
             "connectorId",
             "connectorRegistration",
             "connectorRevision",
@@ -10212,13 +10254,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#11",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/createInstalledRowSource#2",
           "parameters": [
             "name"
@@ -10293,12 +10328,19 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:close/init:close",
+          "name": "createInstalledRowSource/installedSource/init:close/init:close",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+          "name": "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
           "parameters": [
             "keyedAcquisition",
             "maxWork"
@@ -10306,21 +10348,28 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
+          "name": "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+          "name": "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
+          "name": "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/installedSource",
+          "parameters": [
+            "sourceRef"
           ],
           "async": false
         },
@@ -10803,7 +10852,8 @@
             "admitsEffectTargetRead",
             "runAcquisitionLimits",
             "assertCurrent",
-            "receiver"
+            "receiver",
+            "configurationReader"
           ],
           "async": true
         },
@@ -11052,6 +11102,7 @@
             "admitsEffectTargetRead",
             "installationMetadata",
             "runAcquisitionLimits",
+            "configurationReader",
             "ownAuthorization",
             "responseHeaders",
             "now",
@@ -11463,6 +11514,7 @@
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-source.mjs",
