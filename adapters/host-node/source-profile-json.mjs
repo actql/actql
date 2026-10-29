@@ -4,8 +4,10 @@ import {open} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 
-const profileByteLimit = 8 * 1024 * 1024;
-const chunkBytes = 64 * 1024;
+export const installedConfigurationByteLimit = 8 * 1024 * 1024;
+export const installedConfigurationChunkBytes = 64 * 1024;
+const profileByteLimit = installedConfigurationByteLimit;
+const chunkBytes = installedConfigurationChunkBytes;
 const applyOriginal = Reflect.apply;
 
 // Select original read methods only; this owns no I/O, authority or cleanup.
@@ -31,22 +33,22 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
 }
 
 export async function readSourceProfileJson(path,
-  {maxBytes = profileByteLimit, openFile = open} = {}) {
+  {maxBytes = profileByteLimit, openFile = open, beforeDecode} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 ||
       maxBytes > profileByteLimit) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
   return readConfiguration(path, maxBytes, openFile,
-    bytes => JSON.parse(bytes.toString('utf8')));
+    bytes => JSON.parse(bytes.toString('utf8')), beforeDecode);
 }
 
 // Publications may have a different declared ceiling and hash their original
 // UTF-8 text. Do not parse/reserialize them or impose the JSON profile ceiling.
-export async function readBoundedConfigurationText(path, {maxBytes, openFile = open} = {}) {
+export async function readBoundedConfigurationText(path, {maxBytes, openFile = open, beforeDecode} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
-  return readConfiguration(path, maxBytes, openFile, bytes => bytes.toString('utf8'));
+  return readConfiguration(path, maxBytes, openFile, bytes => bytes.toString('utf8'), beforeDecode);
 }
 
 // Project originals must not replace malformed bytes with U+FFFD before the
@@ -60,8 +62,34 @@ export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = o
     new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes));
 }
 
-async function readConfiguration(path, maxBytes, openFile, project) {
+async function readConfiguration(path, maxBytes, openFile, project, beforeDecode) {
+  if (beforeDecode !== undefined && typeof beforeDecode !== 'function') {
+    throw new TypeError('InvalidInstalledConfigurationConstruction');
+  }
+  return withOriginalFile(path, openFile, original =>
+    readConfigurationBody(original, maxBytes, project, beforeDecode));
+}
+
+// An installed issuer key has no JSON-profile/CA/secret ceiling. The normal
+// initializer funds the size observed on THIS opened FD before buffering; a
+// growing original refuses rather than reading beyond that actual envelope.
+// The existing same-handle close/retry owner remains the only I/O owner.
+export async function readOriginalConfigurationText(path,
+  {openFile = open, beforeRead, beforeDecode} = {}) {
+  if (typeof beforeRead !== 'function' || typeof beforeDecode !== 'function') {
+    throw new TypeError('InvalidInstalledConfigurationConstruction');
+  }
   return withOriginalFile(path, openFile, async original => {
+    const observed = await original.stat();
+    if (!Number.isSafeInteger(observed.size) || observed.size < 0) {
+      throw new TypeError('InvalidInstalledSourceProfileByteLimit');
+    }
+    if (beforeRead(observed.size) !== undefined) throw new TypeError('InvalidInstalledConfigurationConstruction');
+    return readConfigurationBody(original, observed.size, bytes => bytes.toString('utf8'), beforeDecode);
+  });
+}
+
+async function readConfigurationBody(original, maxBytes, project, beforeDecode) {
     const chunks = [];
     let bytes = 0;
     let used = 0;
@@ -73,6 +101,12 @@ async function readConfiguration(path, maxBytes, openFile, project) {
         buffer.length - used, null);
       if (bytesRead === 0) {
         chunks.push(buffer.subarray(0, used));
+        // The fixed initializer reserves the complete received native decode
+        // before concatenation/text/JSON construction. The old absent port
+        // keeps this reader's exact buffering and parsing semantics.
+        if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
+          throw new TypeError('InvalidInstalledConfigurationConstruction');
+        }
         return project(Buffer.concat(chunks, bytes));
       }
       bytes += bytesRead;
@@ -86,7 +120,6 @@ async function readConfiguration(path, maxBytes, openFile, project) {
         used = 0;
       }
     }
-  });
 }
 
 // Re-read the selected runtime for each installation. Keep the exact byte

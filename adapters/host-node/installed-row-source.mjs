@@ -38,6 +38,8 @@ import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
+  closeInstalledSourceConstruction} from './installed-host-services.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -162,10 +164,28 @@ export async function loadRowSourceCredentialCustody({
   let privateKey;
   let ca = options.ca;
   try {
-    privateKey = createPrivateKey(await readFile(
-      options.profile.credentialPrivateKeyPath, 'utf8'));
+    const reader = options.configurationReader;
+    let read;
+    if (reader !== undefined) {
+      if (nodeTypes.isProxy(reader)) fail(invalidCode);
+      const field = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') fail(invalidCode);
+      read = field.value;
+    }
+    privateKey = createPrivateKey(await (reader === undefined
+      ? readFile(options.profile.credentialPrivateKeyPath, 'utf8')
+      : Reflect.apply(read, reader, [options.profile.credentialPrivateKeyPath])));
     if (caPath !== undefined) ca = await readFile(caPath);
-  } catch (cause) { fail(invalidCode, cause); }
+  } catch (cause) {
+    const failure = Object.assign(new Error(invalidCode, {cause}), {code: invalidCode});
+    // Preserve the existing same-FD cleanup Owner through the old Site error
+    // wrapper. A failed key read must not become an unowned Source abort.
+    const cleanup = Object.getOwnPropertyDescriptor(Object(cause), 'cleanupHandle');
+    if (cleanup && Object.hasOwn(cleanup, 'value')) {
+      Object.defineProperty(failure, 'cleanupHandle', {value: cleanup.value});
+    }
+    throw failure;
+  }
   if (privateKey.asymmetricKeyType !== 'ed25519') fail(invalidCode);
   // The existing installer can construct its default resolver only after the
   // original key/CA admission. It receives no private key or provider secret.
@@ -798,7 +818,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
   runtimeBundleCid, commonMoon, resolveSecret, ca, admitsApprovalTarget,
   admitsEffectTargetRead,
   installationMetadata,
-  runAcquisitionLimits,
+  runAcquisitionLimits, configurationReader,
   ownAuthorization = false,
   responseHeaders = [],
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
@@ -837,6 +857,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
   const custodyOptions = {profile, principalId,
     connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
     resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal,
+    configurationReader,
     runAcquisitionLimits: selectedAcquisitionLimits,
     ...(secretPresentation === undefined ? {} : {secretPresentation})};
   let custody;
@@ -1043,13 +1064,17 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
-  declared, environmentWire, connectorId, connectorRegistration,
+  declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
+  if (sourceInitialization !== undefined) {
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment);
+    if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
+  }
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -2213,7 +2238,7 @@ export async function createInstalledRowSource({moon, declaration,
     }
   }
 
-  return Object.freeze({
+  const installedSource = Object.freeze({
     realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
@@ -2280,9 +2305,20 @@ export async function createInstalledRowSource({moon, declaration,
           Reflect.apply(originalReader.retire, originalReader.receiver, []) !== true) {
         fail('InstalledSourceReaderCleanupPending');
       }
-      return site.close();
+      const observed = site.close();
+      if (sourceInitialization === undefined) return observed;
+      // Only the existing Site's completed physical cleanup releases this
+      // constructor's aliases; the request to stop is not its acknowledgement.
+      return Promise.resolve(observed).then(value => {
+        closeInstalledSourceConstruction(sourceInitialization, installedSource);
+        return value;
+      });
     },
   });
+  if (sourceInitialization !== undefined) {
+    retainInstalledSourceConstruction(sourceInitialization, installedSource, declaration, declared, environment);
+  }
+  return installedSource;
 }
 
 
@@ -2290,7 +2326,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
   installation, runtimeBundleCid, accountConfiguration, originalContext,
   connection, profile, resolveSecret, ca, responseHeaders = [],
   admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
-  assertCurrent, receiver}) {
+  assertCurrent, receiver, configurationReader}) {
   if (typeof assertCurrent !== 'function' || nodeTypes.isAsyncFunction(assertCurrent) ||
       !installation || typeof installation !== 'object' || nodeTypes.isProxy(installation) ||
       profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
@@ -2330,6 +2366,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
     site = await openRowSourceCredentialSite({root, profile, principalId, authorization,
       connection, connectorRegistration: registration, connectorRevision: revision,
       runtimeBundleCid, commonMoon, resolveSecret, ca, responseHeaders: headers,
+      configurationReader,
       admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits: acquisition,
       ownAuthorization: true, ...(secretPresentation === undefined ? {} : {secretPresentation})});
     current();
