@@ -2387,20 +2387,42 @@ unknown  transport ended without a provable provider outcome
 ```
 
 <!-- requirement-block: reconciliation.effect-row-outcome-receipt-binds-saved-response -->
-For a physically observed row, `actql-effect-row-outcome-receipt/0.1` binds
-the exact private Preview, member and row CIDs, the durable dispatch entry,
-credential-use CID, HTTP status, response byte count and physical SHA-256,
-and the complete typed provider outcome with its independently computed CID.
-Its `receipt_cid` is the CID of the complete canonical body without that
-self field. The response digest identifies the saved bounded HTTP bytes; it
-is not a logical Result CID. The common Host MUST verify that the saved
-response belongs to the exact dispatch, issue and durably retain this receipt,
-and admit its Preview, response and typed-outcome bindings before recording
-that CID as a terminal row Ledger `outcome_receipt_cid`. A response that was
-possibly sent but not saved and admitted remains `unknown` without a terminal
-Outcome Receipt. Shape validation or a matching current provider value alone
-does not prove the earlier attempt succeeded. Evidence viewing and replay
-require their own current authorization and never permit another send.
+For a physically observed row, the common Host MUST bind and durably retain
+`actql-effect-row-outcome-receipt/0.1` to the exact private Preview, member,
+row, durable dispatch entry and complete independently identified typed
+outcome, and admit its exact saved response evidence before recording the
+receipt CID as a terminal row Ledger `outcome_receipt_cid`.
+The existing HTTP alternative binds the original credential-use CID, HTTP
+status, response byte count and physical SHA-256 without changing its bytes,
+checks or CID preimage. A local UPDATE instead uses the closed
+`response_kind: local_operation` alternative and binds the exact
+`actql-local-effect-operation-receipt/0.1` identity, complete receipt byte
+count and physical SHA-256. It does not invent an HTTP status or credential use.
+Both row receipts exclude only their own root `receipt_cid` from their
+canonical identity; a physical digest of complete saved bytes is distinct.
+
+The local operation receipt binds the original Preview/member/row, SQLite
+backend, exact installation configuration, target and row selector,
+canonical request, dispatch entry, authorization use, approval use and
+approved target version. The installation CID hashes the exact bounded
+original configuration UTF-8; the target CID hashes the canonical object
+`{backend_kind: "sqlite", installation_cid, resource, row_identity}` with
+opaque row keys and values preserved. Neither digest grants authority.
+Its closed committed alternative carries the resulting version and an applied
+outcome; its conflict alternative carries the observed version or absent row
+and a failed outcome with error code `conflict`. Both include the complete
+typed outcome and its independent CID and exclude only the root `receipt_cid`
+from the local receipt identity.
+
+The backend atomically commits the conditional mutation and original-operation
+receipt in the same transaction under the actual current authorization and
+approval use. DATA preparation or target equality alone cannot establish that
+commit. An uncertain commit or missing durable evidence remains `unknown`
+without another send. Recovery selects the receipt for that same original
+dispatch and validates all saved bindings under current evidence-read
+authorization; it does not require renewing an expired write approval or
+permit another mutation. Original database, transaction and receipt custody
+and their distinct cleanup acknowledgments remain with the existing owners.
 
 <!-- requirement-block: reconciliation.a-completed-operation-must-not-be-cancelled reconciliation.an-expired-operation-must-not-be-applied-or-cancelled reconciliation.a-runtime-must-not-turn-transport-timeout-into-failed-or -->
 `accepted` binds the OperationRef, poll contract, cancellation capability,

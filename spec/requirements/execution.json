@@ -2292,7 +2292,7 @@
     },
     {
       "requirement_id": "actql.execution/reconciliation.effect-row-outcome-receipt-binds-saved-response",
-      "statement_sha256": "a9f9ed962438a3deaa0045a16d89ad56b7c4c54b57109ba34130dc90a30e98d7",
+      "statement_sha256": "aedf2675dd5c1c437b05ccc9046e6bf9608344f49ec283e0793587e4ee34a79e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
+import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
@@ -103,6 +104,9 @@ const selected = Object.freeze({
   effect_source_artifact: Object.freeze({
     schema: 'effect_source_artifact',
     identity: 'result_artifact_cid',
+  }),
+  effect_local_operation_receipt: Object.freeze({
+    schema: 'effect_local_operation_receipt', identity: 'receipt_cid',
   }),
   effect_row_outcome_receipt: Object.freeze({
     schema: 'effect_row_outcome_receipt',
@@ -517,7 +521,7 @@ function registerArtifactSchema(name, selection) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
   const body = structuredClone(complete);
-  if (['model_invocation_evidence', 'model_capture_bundle'].includes(name)) {
+  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt'].includes(name)) {
     // Both exact registered versions exclude only their own identity field.
     // Unknown versions and mixed embedded captures match neither branch.
     for (const version of body.oneOf) {
@@ -668,6 +672,11 @@ const reviewVectors = join(root,
   'src/run_publication/effect_review_projection.generated_wbtest.mbt');
 if (readFileSync(reviewVectors, 'utf8') !== generateEffectReviewVectors()) {
   throw new Error(`Independent Effect review vectors are stale: ${reviewVectors}`);
+}
+const localVectors = join(root,
+  'src/run_publication/effect_local_operation.generated_wbtest.mbt');
+if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
+  throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
 // EffectOutcome plus the append-only response profile are outside selected.
 console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
