@@ -19524,7 +19524,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19643,7 +19643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -44272,7 +44272,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b72940be2ca8a0889c34ce606c995e267752e03de86697bb05485faccb6e1d1f",
+      "sha256": "5d792caf648ebad6624cf9ecdb1884b680d6d92c0741f234b15da81f2252ee70",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44437,6 +44437,7 @@
             "store",
             "checkpoints",
             "dispatchOwner",
+            "sourceReader",
             "sourceProfile",
             "installedEffect",
             "observation",
@@ -44470,6 +44471,11 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/captureOriginalCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
           "parameters": [],
           "async": false
         },
@@ -44544,6 +44550,11 @@
           "name": "retainInstalledHostInitializationFailure/drain/drain#9",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/drain/retireSourceReader",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "retainInstalledHostInitializationFailure/observeOriginalCleanup",
@@ -44626,6 +44637,7 @@
             "createInstalledHostShutdown/status/status/status",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/attempt",
+            "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
             "retainInstalledHostInitializationFailure/captureOriginalStatus",
             "retainInstalledHostInitializationFailure/drain",
             "retainInstalledHostInitializationFailure/drain/drain",
@@ -44639,6 +44651,7 @@
             "retainInstalledHostInitializationFailure/drain/drain#7",
             "retainInstalledHostInitializationFailure/drain/drain#8",
             "retainInstalledHostInitializationFailure/drain/drain#9",
+            "retainInstalledHostInitializationFailure/drain/retireSourceReader",
             "retainInstalledHostInitializationFailure/observeOriginalCleanup",
             "retainInstalledHostInitializationFailure/retry",
             "retainInstalledHostInitializationFailure/retry/retry",
@@ -83530,7 +83543,7 @@
       "sha256": "89f4091779c1d881c95c5fd925fe85d3fd42cbf7f23c1113899b14c405df21f3",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83883,7 +83896,7 @@
       "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84248,7 +84261,7 @@
       "sha256": "e502ca6700e8b5488cec548b40e024bdd668f08d1b8e0fa005cfdfe682d4a38a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",
