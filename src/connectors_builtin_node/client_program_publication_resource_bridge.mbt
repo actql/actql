@@ -11,9 +11,7 @@ pub fn client_program_reserve_publication(
     @publication_host.PreparedClientProgram,
   ],
 ) -> Result[
-  @client_local_host.ClientProgramPublication[
-    ClientLocalPreparationInputOriginal,
-  ],
+  @client_local_host.ClientProgramPublication,
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
   @client_local_host.reserve_program_publication(owner, prepared, holder)
@@ -47,9 +45,7 @@ pub fn client_program_issue_publication_invocation(
 ///|
 #export_name("clientProgramPrepareCapture")
 pub fn client_program_prepare_capture(
-  publication : @client_local_host.ClientProgramPublication[
-    ClientLocalPreparationInputOriginal,
-  ],
+  publication : @client_local_host.ClientProgramPublication,
   definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -60,7 +56,7 @@ pub fn client_program_prepare_capture(
   authoring : @publication.RunEvidenceValue,
   models : Array[@publication.RunEvidenceValue],
 ) -> Result[
-  @client_local_host.ClientProgramCapture[ClientLocalPreparationInputOriginal],
+  @client_local_host.ClientProgramCapture,
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
   @client_local_host.prepare_program_capture(
@@ -72,11 +68,9 @@ pub fn client_program_prepare_capture(
 ///|
 #export_name("clientProgramStartCapture")
 pub fn client_program_start_capture(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
 ) -> Result[
-  @client_local_host.ClientProgramCapture[ClientLocalPreparationInputOriginal],
+  @client_local_host.ClientProgramCapture,
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
   @client_local_host.start_program_capture(capture)
@@ -85,9 +79,7 @@ pub fn client_program_start_capture(
 ///|
 #export_name("clientProgramAdvanceCapture")
 pub fn client_program_advance_capture(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
   quantum : Int,
 ) -> Result[(Bool, Int), @client_local_host.ClientClosedValuesPreparationIssue] {
   @client_local_host.advance_program_capture(capture, quantum)
@@ -96,9 +88,7 @@ pub fn client_program_advance_capture(
 ///|
 #export_name("clientProgramFinishCapture")
 pub fn client_program_finish_capture(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
 ) -> Result[
   @publication.PublicationContract,
   @client_local_host.ClientClosedValuesPreparationIssue,
@@ -109,9 +99,7 @@ pub fn client_program_finish_capture(
 ///|
 #export_name("clientProgramCancelCapture")
 pub fn client_program_cancel_capture(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
 ) -> Unit {
   @client_local_host.cancel_program_capture(capture)
 }
@@ -119,9 +107,7 @@ pub fn client_program_cancel_capture(
 ///|
 #export_name("clientProgramCaptureLimits")
 pub fn client_program_capture_limits(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
 ) -> Result[
   (Int, Int, Int),
   @client_local_host.ClientClosedValuesPreparationIssue,
@@ -132,9 +118,7 @@ pub fn client_program_capture_limits(
 ///|
 #export_name("clientProgramPrepareChainValidation")
 pub fn client_program_prepare_chain_validation(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
   definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -143,9 +127,7 @@ pub fn client_program_prepare_chain_validation(
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
 ) -> Result[
-  @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  @client_local_host.ClientProgramValidation,
   @client_local_host.ClientProgramValidationIssue,
 ] {
   @client_local_host.prepare_program_chain_validation(
@@ -156,9 +138,7 @@ pub fn client_program_prepare_chain_validation(
 ///|
 #export_name("clientProgramPrepareCommitValidation")
 pub fn client_program_prepare_commit_validation(
-  capture : @client_local_host.ClientProgramCapture[
-    ClientLocalPreparationInputOriginal,
-  ],
+  capture : @client_local_host.ClientProgramCapture,
   definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -174,9 +154,7 @@ pub fn client_program_prepare_commit_validation(
   attempt : @publication.PublicationContract,
   index : @publication.PublicationContract,
 ) -> Result[
-  @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  @client_local_host.ClientProgramValidation,
   @client_local_host.ClientProgramValidationIssue,
 ] {
   @client_local_host.prepare_program_commit_validation(
@@ -188,13 +166,9 @@ pub fn client_program_prepare_commit_validation(
 ///|
 #export_name("clientProgramStartValidation")
 pub fn client_program_start_validation(
-  validation : @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  validation : @client_local_host.ClientProgramValidation,
 ) -> Result[
-  @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  @client_local_host.ClientProgramValidation,
   @client_local_host.ClientProgramValidationIssue,
 ] {
   @client_local_host.start_program_validation(validation)
@@ -203,9 +177,7 @@ pub fn client_program_start_validation(
 ///|
 #export_name("clientProgramAdvanceValidation")
 pub fn client_program_advance_validation(
-  validation : @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  validation : @client_local_host.ClientProgramValidation,
   quantum : Int,
 ) -> Result[(Bool, Int), @client_local_host.ClientProgramValidationIssue] {
   @client_local_host.advance_program_validation(validation, quantum)
@@ -214,9 +186,7 @@ pub fn client_program_advance_validation(
 ///|
 #export_name("clientProgramFinishValidation")
 pub fn client_program_finish_validation(
-  validation : @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  validation : @client_local_host.ClientProgramValidation,
 ) -> Result[Unit, @client_local_host.ClientProgramValidationIssue] {
   @client_local_host.finish_program_validation(validation)
 }
@@ -224,9 +194,7 @@ pub fn client_program_finish_validation(
 ///|
 #export_name("clientProgramCancelValidation")
 pub fn client_program_cancel_validation(
-  validation : @client_local_host.ClientProgramValidation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  validation : @client_local_host.ClientProgramValidation,
 ) -> Unit {
   @client_local_host.cancel_program_validation(validation)
 }
@@ -234,12 +202,10 @@ pub fn client_program_cancel_validation(
 ///|
 #export_name("clientProgramBeginSnapshot")
 pub fn client_program_begin_snapshot(
-  publication : @client_local_host.ClientProgramPublication[
-    ClientLocalPreparationInputOriginal,
-  ],
+  publication : @client_local_host.ClientProgramPublication,
   output : StrategyHostOutputExport,
 ) -> Result[
-  @client_local_host.ClientProgramSnapshot[ClientLocalPreparationInputOriginal],
+  @client_local_host.ClientProgramSnapshot,
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
   @client_local_host.begin_program_snapshot(publication, output.core)
@@ -248,9 +214,7 @@ pub fn client_program_begin_snapshot(
 ///|
 #export_name("clientProgramAdvanceSnapshot")
 pub fn client_program_advance_snapshot(
-  snapshot : @client_local_host.ClientProgramSnapshot[
-    ClientLocalPreparationInputOriginal,
-  ],
+  snapshot : @client_local_host.ClientProgramSnapshot,
   quantum : Int,
 ) -> Result[(Bool, Int), @client_local_host.ClientClosedValuesPreparationIssue] {
   @client_local_host.advance_program_snapshot(snapshot, quantum)
@@ -259,9 +223,7 @@ pub fn client_program_advance_snapshot(
 ///|
 #export_name("clientProgramFinishSnapshot")
 pub fn client_program_finish_snapshot(
-  snapshot : @client_local_host.ClientProgramSnapshot[
-    ClientLocalPreparationInputOriginal,
-  ],
+  snapshot : @client_local_host.ClientProgramSnapshot,
 ) -> Result[
   @publication.CapturedResultSnapshot,
   @client_local_host.ClientClosedValuesPreparationIssue,
@@ -272,9 +234,7 @@ pub fn client_program_finish_snapshot(
 ///|
 #export_name("clientProgramCancelSnapshot")
 pub fn client_program_cancel_snapshot(
-  snapshot : @client_local_host.ClientProgramSnapshot[
-    ClientLocalPreparationInputOriginal,
-  ],
+  snapshot : @client_local_host.ClientProgramSnapshot,
 ) -> Unit {
   @client_local_host.cancel_program_snapshot(snapshot)
 }

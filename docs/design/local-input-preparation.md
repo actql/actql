@@ -2473,3 +2473,33 @@ the working Request until the actual installed Plan has been quoted, constructed
 completed and borrowed. Returning an internal Prepared value from a convenience
 callback is not a replacement for that Plan/body handoff. These terminal methods
 therefore supply no raw Prepared escape, second Resource owner or no-plan success.
+
+## Publication continuation retains the original body
+
+After construction, `ClientProgramPublication` retains the same original body
+borrow and its own issued controller identity. It does not retain the legacy
+ClosedValues preparation, parsed input, or generic input type. Already selected
+Definition/Invocation contracts, row bound and monotone phase quotes are carried
+as immutable binding facts and current debit DATA. Resuming publication does not
+recover or revalidate a preparation through another path.
+
+The fixed constructor still binds the exact prepared body, adopted Run, original
+manager borrow and issued contract pair before creating this continuation. The
+existing scalar row-bound recipe is preserved; removing this backreference does
+not expand its constructor or assert general Content/shape support. A generic
+normal constructor must supply its actual same-Run facts, not a copied wire,
+policy override or guessed bound.
+
+Capture, snapshot and validation use that same controller and original borrow.
+A copied controller cannot replace its issued original. A returned borrow,
+Resource retirement, or controller cancellation fences resumed work. The
+original current callback remains at the existing resource-phase boundary;
+post-callback checks use the controller identity and borrow, without a second
+external current observation.
+
+The existing retiring preparation calls the controller's private clear before
+cutting its local reference. Clear fences reentry, cancels active semantic
+issuers/plans, and drops snapshots and contract aliases. It returns no Resource
+borrow, restores no consumed work and acknowledges no physical cleanup. Only
+actual Run/Host retirement and return of the original borrower can release that
+same reservation. Failure retains existing cleanup custody.

@@ -102,7 +102,9 @@ pub fn[I] sever_closed_values_body(
     return false
   }
   owner.retiring = true
-  clear_program_publication(owner)
+  if owner.publication is Some(publication) {
+    clear_program_publication(publication)
+  }
   owner.publication = None
   owner.adopted_run = None
   owner.publication_definition = None

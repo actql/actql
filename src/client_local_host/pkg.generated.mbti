@@ -58,15 +58,15 @@ pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
-pub fn[I] advance_program_capture(ClientProgramCapture[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
+pub fn advance_program_capture(ClientProgramCapture, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
 pub fn[I, P] advance_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] advance_program_json_preparation(ClientProgramJsonPreparation[I, P], Int) -> Result[@source_value.JsonSourcePreflightPoll, ClientProgramJsonPreparationIssue]
 
-pub fn[I] advance_program_snapshot(ClientProgramSnapshot[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
+pub fn advance_program_snapshot(ClientProgramSnapshot, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
-pub fn[I] advance_program_validation(ClientProgramValidation[I], Int) -> Result[(Bool, Int), ClientProgramValidationIssue]
+pub fn advance_program_validation(ClientProgramValidation, Int) -> Result[(Bool, Int), ClientProgramValidationIssue]
 
 pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
 
@@ -124,7 +124,7 @@ pub fn[I, P] begin_program_check_preparation(@physical_resources.PreparationCapa
 
 pub fn[I, P] begin_program_json_preparation(@physical_resources.PreparationCapacity[I, P], I, String, @stage_syntax.Limits, source_path? : String) -> Result[ClientProgramJsonPreparation[I, P], ClientProgramJsonPreparationIssue]
 
-pub fn[I] begin_program_snapshot(ClientProgramPublication[I], @run_publication_host.PublicationOutputExport) -> Result[ClientProgramSnapshot[I], ClientClosedValuesPreparationIssue]
+pub fn begin_program_snapshot(ClientProgramPublication, @run_publication_host.PublicationOutputExport) -> Result[ClientProgramSnapshot, ClientClosedValuesPreparationIssue]
 
 pub fn[I] begin_request_capture_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
@@ -152,11 +152,11 @@ pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
 pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
 
-pub fn[I] cancel_program_capture(ClientProgramCapture[I]) -> Unit
+pub fn cancel_program_capture(ClientProgramCapture) -> Unit
 
-pub fn[I] cancel_program_snapshot(ClientProgramSnapshot[I]) -> Unit
+pub fn cancel_program_snapshot(ClientProgramSnapshot) -> Unit
 
-pub fn[I] cancel_program_validation(ClientProgramValidation[I]) -> Unit
+pub fn cancel_program_validation(ClientProgramValidation) -> Unit
 
 pub fn check_installed_effect_managed_run(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -340,15 +340,15 @@ pub fn[I] finish_closed_values_text_check(ClientClosedValuesPreparation[I]) -> R
 
 pub fn[I, P] finish_effect_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.EffectComputationCandidate, ClientProgramCheckPreparationIssue]
 
-pub fn[I] finish_program_capture(ClientProgramCapture[I]) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
+pub fn finish_program_capture(ClientProgramCapture) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
 
 pub fn[I, P] finish_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.CheckOutcome, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] finish_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
-pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publication.CapturedResultSnapshot, ClientClosedValuesPreparationIssue]
+pub fn finish_program_snapshot(ClientProgramSnapshot) -> Result[@run_publication.CapturedResultSnapshot, ClientClosedValuesPreparationIssue]
 
-pub fn[I] finish_program_validation(ClientProgramValidation[I]) -> Result[Unit, ClientProgramValidationIssue]
+pub fn finish_program_validation(ClientProgramValidation) -> Result[Unit, ClientProgramValidationIssue]
 
 pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestTerminalIssue]
 
@@ -588,9 +588,9 @@ pub fn[I, P] prepare_parameter_declaration_type(ClientParameterDeclarationPrefli
 
 pub fn[I, P] prepare_parameter_declaration_value(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
-pub fn[I] prepare_program_capture(ClientProgramPublication[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue]
+pub fn prepare_program_capture(ClientProgramPublication, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue]
 
-pub fn[I] prepare_program_chain_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
+pub fn prepare_program_chain_validation(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
 
 pub fn[I, P] prepare_program_check_carriers(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
@@ -634,7 +634,7 @@ pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
-pub fn[I] prepare_program_commit_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
+pub fn prepare_program_commit_validation(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
 
 pub fn[I] prepare_request_computation_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
@@ -674,7 +674,7 @@ pub fn[I] prepared_request_query_lowering(ClientRequestPreparation[I], I) -> Res
 
 pub fn[I] prepared_request_query_syntax(ClientRequestPreparation[I], I) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
-pub fn[I] program_capture_limits(ClientProgramCapture[I]) -> Result[(Int, Int, Int), ClientClosedValuesPreparationIssue]
+pub fn program_capture_limits(ClientProgramCapture) -> Result[(Int, Int, Int), ClientClosedValuesPreparationIssue]
 
 pub fn program_check_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
@@ -754,7 +754,7 @@ pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(I
 
 pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
-pub fn[I] reserve_program_publication(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[ClientProgramPublication[I], ClientClosedValuesPreparationIssue]
+pub fn[I] reserve_program_publication(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -842,9 +842,9 @@ pub fn start_installed_source_read_provider_rows(ClientInstalledSourceRead, @cli
 
 pub fn start_installed_source_read_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
-pub fn[I] start_program_capture(ClientProgramCapture[I]) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue]
+pub fn start_program_capture(ClientProgramCapture) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue]
 
-pub fn[I] start_program_validation(ClientProgramValidation[I]) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
+pub fn start_program_validation(ClientProgramValidation) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
 
 pub fn[I] take_host_initialization_preparation_capacity(ClientHostInitializationPreparation[I]) -> Result[(I, @physical_resources.PreparationCapacity[I, Unit]), ClientHostInitializationIssue]
 
@@ -1131,7 +1131,7 @@ pub(all) struct ClientPreparationCapacityRefusal {
   available_execution : Int64
 } derive(Eq, @debug.Debug)
 
-type ClientProgramCapture[I]
+type ClientProgramCapture
 
 type ClientProgramCheckPreparation[I, P]
 
@@ -1147,11 +1147,11 @@ pub(all) enum ClientProgramJsonPreparationIssue {
   Work(@physical_resources.PreparationWorkIssue)
 } derive(Eq, @debug.Debug)
 
-type ClientProgramPublication[I]
+type ClientProgramPublication
 
-type ClientProgramSnapshot[I]
+type ClientProgramSnapshot
 
-type ClientProgramValidation[I]
+type ClientProgramValidation
 
 pub(all) enum ClientProgramValidationIssue {
   Owner(ClientClosedValuesPreparationIssue)

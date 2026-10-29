@@ -1,41 +1,39 @@
 ///|
 /// A typed continuation of the original adopted preparation, not a new lease.
-/// No raw Prepared is retained here: the manager token and original owner cut
-/// their aliases together during retirement, invalidating escaped handles.
-struct ClientProgramPublication[I] {
-  owner : ClientClosedValuesPreparation[I]
+/// No raw Prepared or legacy preparation owner is retained here. The SAME
+/// original body borrow controls liveness; retiring this existing controller
+/// cuts its semantic aliases before the manager returns that borrow.
+struct ClientProgramPublication {
+  mut original : ClientProgramPublication?
+  mut retiring : Bool
+  mut publication_definition : @publication.PublicationContract?
+  mut publication_invocation : @publication.PublicationContract?
+  row_bound : Int?
+  mut retained_quote : Int64
+  mut execution_quote : Int64
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]
   mut run : @strategy.CapturedDAG?
-  mut snapshot : ClientProgramSnapshot[I]?
+  mut snapshot : ClientProgramSnapshot?
   mut snapshot_starting : Bool
   completed_snapshots : Array[@publication.CapturedResultSnapshot]
   mut next_snapshot_index : Int
   mut capture_started : Bool
-  mut capture : ClientProgramCapture[I]?
+  mut capture : ClientProgramCapture?
 }
 
 ///|
-fn[I] publication_original_body(
-  value : ClientProgramPublication[I],
+fn publication_original_body(
+  value : ClientProgramPublication,
 ) -> @publication_host.PreparedClientProgram? {
-  let owner = value.owner
-  guard owner.original is Some(original) &&
-    physical_equal(original, owner) &&
-    owner.publication is Some(issued) &&
-    physical_equal(issued, value) &&
-    owner.manager_original is Some(holder) &&
-    physical_equal(holder, value.holder) &&
-    owner.adopted &&
-    !owner.retiring &&
-    owner.prepared is Some(prepared) &&
-    @resources.preparation_body_borrow_value(holder) is Some(body) &&
-    physical_equal(body, prepared) &&
-    !@resources.preparation_body_retirement_started(holder) else {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    !value.retiring &&
+    !@resources.preparation_body_retirement_started(value.holder) else {
     return None
   }
-  Some(prepared)
+  @resources.preparation_body_borrow_value(value.holder)
 }
 
 ///|
@@ -54,7 +52,7 @@ pub fn[I] reserve_program_publication(
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ],
-) -> Result[ClientProgramPublication[I], ClientClosedValuesPreparationIssue] {
+) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue] {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.prepared is Some(body) &&
@@ -179,8 +177,14 @@ pub fn[I] reserve_program_publication(
     !owner.retiring else {
     return Err(ForeignOriginal)
   }
-  let value : ClientProgramPublication[I] = {
-    owner,
+  let value : ClientProgramPublication = {
+    original: None,
+    retiring: false,
+    publication_definition: owner.publication_definition,
+    publication_invocation: owner.publication_invocation,
+    row_bound: Some(demand.rows),
+    retained_quote: total_r,
+    execution_quote: total_e,
     holder,
     capture_started: false,
     capture: None,
@@ -192,6 +196,7 @@ pub fn[I] reserve_program_publication(
   }
   owner.retained_quote = total_r
   owner.execution_quote = total_e
+  value.original = Some(value)
   owner.publication = Some(value)
   Ok(value)
 }
@@ -200,13 +205,12 @@ pub fn[I] reserve_program_publication(
 /// Refresh the original admission before any resumed publication constructor.
 /// A zero-delta check still rejects stopping, and exact custody is rechecked
 /// after the imported callback even while other role borrowers remain live.
-fn[I] refresh_publication_original(
-  value : ClientProgramPublication[I],
+fn refresh_publication_original(
+  value : ClientProgramPublication,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientClosedValuesPreparationIssue,
 ] {
-  let owner = value.owner
   guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
@@ -214,8 +218,8 @@ fn[I] refresh_publication_original(
     reserve_program_publication_phase(
       value.holder,
       prepared,
-      owner.retained_quote,
-      owner.execution_quote,
+      value.retained_quote,
+      value.execution_quote,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -229,24 +233,23 @@ fn[I] refresh_publication_original(
 ///|
 /// Internal constructor transition shared by capture and its deterministic
 /// capacity tests. Dimensions come only from fixed original-plan recipes.
-fn[I] reserve_publication_constructor(
-  value : ClientProgramPublication[I],
+fn reserve_publication_constructor(
+  value : ClientProgramPublication,
   retained_add : Int64,
   temporary : Int64,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
-  let owner = value.owner
   guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   if retained_add < 0L ||
     temporary < 0L ||
-    retained_add > 9223372036854775807L - owner.retained_quote ||
+    retained_add > 9223372036854775807L - value.retained_quote ||
     temporary > 9223372036854775807L - publication_projection_execution {
     return Err(Policy)
   }
-  let retained = owner.retained_quote + retained_add
+  let retained = value.retained_quote + retained_add
   let execution = Int64::max(
-    owner.execution_quote,
+    value.execution_quote,
     temporary + publication_projection_execution,
   )
   match
@@ -258,8 +261,8 @@ fn[I] reserve_publication_constructor(
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => {
-      owner.retained_quote = retained
-      owner.execution_quote = execution
+      value.retained_quote = retained
+      value.execution_quote = execution
     }
   }
   guard publication_original_body(value) is Some(_) else {
