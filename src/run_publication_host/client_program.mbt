@@ -702,12 +702,36 @@ pub fn emit_prepared_client_task_pipeline(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientTaskPipelineIssue] {
+  construct_prepared_client_task_pipeline(
+    value, task, limits, max_wire_bytes, max_nodes, max_depth,
+  ).map(original => original.wire)
+}
+
+///|
+// The canonical reader already admitted this exact body before its original
+// final stringify. Retaining that SAME immutable value avoids parsing our own
+// wire again at Fragment construction. This private per-call data is neither
+// a foreign-wire admission nor a grant; it is not cached on a Program or Run.
+priv struct ClientTaskPipelineConstruction {
+  wire : String
+  body : @canonical.CanonicalValue
+}
+
+///|
+fn construct_prepared_client_task_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
   let input = match
     prepare_prepared_client_task_pipeline_input(value, task, limits) {
     Ok(input) => input
     Err(issue) => return Err(issue)
   }
-  emit_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
+  construct_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
 }
 
 ///|
@@ -1042,7 +1066,7 @@ fn prepare_client_task_pipeline_input(
 }
 
 ///|
-fn emit_client_task_pipeline_prefix(
+fn construct_client_task_pipeline_prefix(
   owner : @lower.BoundPrepared,
   end_step : Int,
   output : String,
@@ -1058,7 +1082,7 @@ fn emit_client_task_pipeline_prefix(
   completed_serialization? : (Int, Int)? = None,
   serialization_boundary? : Int? = None,
   preparation? : (PreparedClientProgram, Int)? = None,
-) -> Result[String, ClientTaskPipelineIssue] {
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
   let input = match
     prepare_client_task_pipeline_input(
       owner,
@@ -1077,7 +1101,7 @@ fn emit_client_task_pipeline_prefix(
     Ok(input) => input
     Err(issue) => return Err(issue)
   }
-  emit_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
+  construct_client_task_pipeline(input, max_wire_bytes, max_nodes, max_depth)
 }
 
 ///|
@@ -1241,12 +1265,12 @@ fn emit_client_task_pipeline_projected_steps(
 }
 
 ///|
-fn emit_client_task_pipeline(
+fn construct_client_task_pipeline(
   input : ClientTaskPipelineInput,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[String, ClientTaskPipelineIssue] {
+) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
   let { owner, sequence, end_step, selected, prefix_end, .. } = input
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -1261,9 +1285,10 @@ fn emit_client_task_pipeline(
       return Err(Encoding)
     }
     if selected is None && prefix_end is None {
-      return Ok(
-        @canonical.stringify_value(body, max_wire_bytes, max_nodes, max_depth),
+      let wire = @canonical.stringify_value(
+        body, max_wire_bytes, max_nodes, max_depth,
       )
+      return Ok({ wire, body, })
     }
     let first_step = selected.unwrap_or(0)
     let included : Array[String] = []
@@ -1322,11 +1347,10 @@ fn emit_client_task_pipeline(
       is Some(task_body) else {
       return Err(Encoding)
     }
-    Ok(
-      @canonical.stringify_value(
-        task_body, max_wire_bytes, max_nodes, max_depth,
-      ),
+    let wire = @canonical.stringify_value(
+      task_body, max_wire_bytes, max_nodes, max_depth,
     )
+    Ok({ wire, body: task_body, })
   } catch {
     _ => Err(Encoding)
   }
