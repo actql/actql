@@ -1,3 +1,9 @@
+import fs from 'node:fs';
+import {types} from 'node:util';
+import {parse} from 'acorn';
+import {ownHttpRequest, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {ownInvocationAuthorization, invocationBindingsMatch, invokeScopedCredentialOperation}
+  from '../host-common/owned-invocation-context.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
@@ -171,4 +177,69 @@ test('managed pure provider setup failure returns its original cleanup handle an
   assert.equal(f.reader.observe().phase, 'failed');
   f.reader.requestStop();
   assert.equal(f.reader.observe().cleanupConfirmed, true);
+});
+
+const source = fs.readFileSync(new URL('./installed-credential-source-reader.mjs', import.meta.url), 'utf8');
+const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+const edits = [];
+for (const node of tree.body) {
+  if (node.type === 'ImportDeclaration') edits.push([node.start, node.end]);
+  if (node.type === 'ExportNamedDeclaration') {
+    assert(node.declaration); edits.push([node.start, node.declaration.start]);
+  }
+}
+let executable = source;
+for (const [start, end] of edits.sort((a, b) => b[0] - a[0])) {
+  executable = executable.slice(0, start) + executable.slice(end);
+}
+const binding = Object.freeze({explicitFixtureBinding: true});
+let closes = 0;
+const createReader = Function('types', 'ownHttpRequest', 'ownResponseHeaderNames',
+  'ownInvocationAuthorization', 'invocationBindingsMatch', 'invokeScopedCredentialOperation',
+  'openHttpsCredentialBinding', 'closeHttpsCredentialBinding',
+  executable + '\nreturn createInstalledCredentialSourceReader;')(types,
+  ownHttpRequest, ownResponseHeaderNames, ownInvocationAuthorization, invocationBindingsMatch,
+  invokeScopedCredentialOperation, () => binding, original => {
+    assert.equal(original, binding); closes++; return 'closed';
+  });
+
+
+test('returned asynchronous decoder cannot retire its original response borrow before it settles', async () => {
+  const entered = Promise.withResolvers(), release = Promise.withResolvers();
+  const response = Object.freeze({accepted: true, statusCode: 200,
+    useCid: 'sha256:' + 'a'.repeat(64), headers: [], body: new Uint8Array([91, 93])});
+  let decoderReply, decoderFinished = false, charges = 0, sends = 0;
+  const site = {credential: {}, referenceCurrent() {return true;}, callResource(input) {
+    assert.equal(input.binding, binding); sends++; return response;
+  }};
+  const factory = createReader({capacity: Object.freeze({explicitFixtureDemand: true}), site,
+    operation: 'fixture:read', maxResponses: 1, maxResponseBytes: 32, maxSecretBytes: 32,
+    preparePageReader() {
+      return {fetchPage() {return {method: 'GET', path: '/rows'};}, decodePage(original) {
+        assert.equal(original, response);
+        decoderReply = release.promise.then(() => {
+          assert.equal(original.body, response.body); decoderFinished = true;
+          return {rows: [], done: true};
+        });
+        entered.resolve(); return decoderReply;
+      }};
+    }});
+  const reader = factory.prepare({columns: [], resource: 'records',
+    verifyRead() {}, authorizationFor() {return {grant: {}, useId: 'fixture-use',
+      scope: {operation: 'fixture:read', resourceOrigin: 'https://fixture.invalid'}};},
+    chargePage(bytes) {assert.equal(bytes, response.body); charges++; return {};},
+    consumePage() {assert.fail('an invalid asynchronous decoder must never admit rows');}});
+  const outcome = reader.read().then(() => undefined, error => error);
+  await entered.promise;
+  reader.requestStop(new Error('stop while the returned decoder still borrows the response'));
+  const retiredBeforeDecoder = reader.observe().cleanupConfirmed;
+  // Always settle the exact original computation before any assertions, so
+  // even this expected red leaves no background decoder or cleanup process.
+  release.resolve(); await decoderReply;
+  const error = await outcome;
+  reader.retry();
+  assert.equal(error?.code, 'InstalledSourcePageCallbackNotSynchronous');
+  assert.equal(sends, 1); assert.equal(charges, 1); assert(decoderFinished); assert(closes > 0);
+  assert.equal(retiredBeforeDecoder, false, 'the original response is still borrowed by the pending decoder');
+  assert.equal(reader.observe().cleanupConfirmed, true);
 });
