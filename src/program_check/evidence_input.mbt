@@ -42,10 +42,11 @@ fn construct_parsed(
     supplied,
     evidence,
     limits,
+    effect_headers~,
     source_catalog~,
     source_preparation~,
   )
-  finish_parsed_check_input_owned(original, effect_headers~)
+  finish_parsed_check_input_owned(original)
 }
 
 ///|
@@ -57,6 +58,7 @@ fn prepare_parsed_check_input_owned(
   limits : CheckLimits,
   source_catalog? : PreparedSourceCatalog? = None,
   binding_work_out? : Ref[Int]? = None,
+  effect_headers? : @syntax.EffectHeaders? = None,
   source_preparation? : @stages.Source? = None,
 ) -> ParsedCheckInput raise LocalConstructionFailure {
   if !compile_limits_valid(limits.compilation) {
@@ -87,6 +89,7 @@ fn prepare_parsed_check_input_owned(
     program,
     environment,
     supplied,
+    effect_headers,
     inputs,
     limits,
     source_catalog,
@@ -97,12 +100,12 @@ fn prepare_parsed_check_input_owned(
 ///|
 fn finish_parsed_check_input_owned(
   original : ParsedCheckInput,
-  effect_headers? : @syntax.EffectHeaders? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   let {
     program,
     environment,
     supplied,
+    effect_headers,
     inputs,
     limits,
     source_catalog,

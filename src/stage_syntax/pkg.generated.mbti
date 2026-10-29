@@ -321,6 +321,7 @@ pub(all) enum ProgramJsonInputIssue {
 
 pub(all) struct ProgramPreparationData {
   operations : Int
+  effect_members : Int
   results : Int
   external_inputs : Int
   initial_fields : Int

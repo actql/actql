@@ -6,6 +6,8 @@ fn registration_parent_fixture(
   current? : () -> Bool = () => true,
   text? : String = request_check_wire,
   environment? : @checked.CheckEnvironment? = None,
+  effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+  supplied? : @decode.Cursor? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -67,18 +69,32 @@ fn registration_parent_fixture(
     .unwrap()
     .unwrap()
   clear_parameter_declaration_preflight(parameters).unwrap()
-  let owner = prepare_request_program_check_preparation(
-    parent,
-    input,
-    match environment {
-      Some(original) => original
-      None => catalog_domain_environment()
-    },
-    None,
-    [],
-    limits,
-    source_preparation=Some(source),
-  ).unwrap()
+  let selected_environment = match environment {
+    Some(original) => original
+    None => catalog_domain_environment()
+  }
+  let owner = match effect_limits {
+    None =>
+      prepare_request_program_check_preparation(
+        parent,
+        input,
+        selected_environment,
+        supplied,
+        [],
+        limits,
+        source_preparation=Some(source),
+      ).unwrap()
+    Some(selected) =>
+      prepare_request_effect_check_preparation(
+        parent,
+        input,
+        selected_environment,
+        supplied,
+        [],
+        selected,
+        source_preparation=Some(source),
+      ).unwrap()
+  }
   prepare_program_check_input(owner).unwrap()
   prepare_program_check_prelude(owner).unwrap() |> ignore
   prepare_program_check_registry(owner).unwrap() |> ignore

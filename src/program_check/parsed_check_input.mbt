@@ -10,6 +10,7 @@ pub struct ParsedCheckInput {
   program : @syntax.Program
   environment : CheckEnvironment
   priv supplied : @decode.Cursor?
+  priv effect_headers : @syntax.EffectHeaders?
   priv inputs : @context.ProgramCapacityInputs
   priv limits : CompileLimits
   priv source_catalog : PreparedSourceCatalog?
@@ -71,9 +72,10 @@ pub(all) struct ParsedCheckInputRetainedControlExtent {
 } derive(Eq, Debug)
 
 ///|
-/// Only this actual holder1H7R. Bound-material arrays, original Program/index,
-/// supplied values, Environment/Catalog and phase/Result controls retain their
-/// own inventories. Read installed DATA before constructing the holder.
+/// Retained fixed-control estimate for the existing pricing path. Added fixed
+/// typed linkage belongs to trusted Host overhead, not a new wrapper census.
+/// Bound-material arrays, original Program/index, supplied values and Catalog
+/// retain their actual input-proportional backing at the original owner.
 pub fn parsed_check_input_retained_control_extent() -> ParsedCheckInputRetainedControlExtent {
   parsed_check_input_controls
 }
