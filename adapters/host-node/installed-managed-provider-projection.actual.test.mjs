@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {parse} from 'acorn';
 import {checked} from '../host-common/runtime-result.mjs';
+import {ownInvocationContext,ownInvocationAuthorization,invocationBindingsMatch,invokeScopedCredentialOperation}
+  from '../host-common/owned-invocation-context.mjs';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 import {prepareNotionUserListPages, NOTION_USER_LIST_OPERATION, NOTION_USER_LIST_API_VERSION}
@@ -272,4 +276,67 @@ test('real Notion property projection keeps title originals and captures provide
   const terminal=p.projectResponse(originalRequest,propertyResponse(['original title'],null,'title'));
   assert.equal(terminal.done,true);assert.equal(terminal.valueWire,'"original title"');
   assert.throws(()=>prepareNotionPropertyReadProjection({moon:notion,originalRequest,pageTitle:{...pageTitle},limits:propertyLimits}),{code:'ForeignNotionPropertyOriginal'});
+});
+
+// Execute every original declaration of the actual data-source reader. Only
+// its HTTPS send and dependent-property constructor are explicit ports. The
+// scalar-only checked source must not enter the latter. No Host, Account,
+// Credential issuer, native binding, RowRun or retirement is supplied here.
+async function databaseRequestFixture(maxTotalRows){
+  const file=new URL('../connectors/notion/site/data-source-read.mjs',import.meta.url),code=await readFile(file,'utf8');
+  const declarations=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(node=>{
+    const value=node.declaration??node;
+    return ['VariableDeclaration','FunctionDeclaration','ClassDeclaration'].includes(value.type)?[code.slice(value.start,value.end)]:[];
+  }).join('\n');
+  const operation='notion:data-sources:query',requests=[],grants=[],charges=[],rows=[],observations=[];
+  const scope=Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name=>[name,name])),operation});
+  const bodies=[['one','two'],['three']].map((ids,index)=>Buffer.from(JSON.stringify({object:'list',type:'page_or_data_source',
+    page_or_data_source:{},results:ids.map(id=>({object:'page',id,parent:{type:'data_source_id',data_source_id:'s'},properties:{
+      amount:{id:'n',type:'number',number:'EXACT'},enabled:{id:'b',type:'checkbox',checkbox:true}}})),
+    has_more:index===0,next_cursor:index===0?'same-query-cursor':null}).replaceAll('"EXACT"','9007199254740993.25')));
+  const physical=async input=>{
+    await input.currentBeforeSend();const request=input.operations.get(operation);
+    assert(request);requests.push(request);assert(requests.length<=bodies.length);
+    return{accepted:true,statusCode:200,body:bodies[requests.length-1]};
+  };
+  const create=new Function('checked','ownInvocationContext','ownInvocationAuthorization','invocationBindingsMatch',
+    'invokeScopedCredentialOperation','callHttpsCredentialResource','createNotionPropertyReader',
+    'NOTION_PROPERTY_READ_OPERATION','NOTION_PROPERTY_READ_API_VERSION',declarations+'\nreturn createNotionDataSourceReader;')(
+      checked,ownInvocationContext,ownInvocationAuthorization,invocationBindingsMatch,invokeScopedCredentialOperation,physical,
+      ()=>assert.fail('complete scalar rows require no property child'),'notion:pages:property:read','2026-03-11');
+  const database=checked(notion.notionProjectDatabase(Buffer.from('{"object":"database","id":"db","data_sources":[{"id":"s","name":"tasks"}]}'),...metadataLimits));
+  const source=checked(notion.notionProjectDataSource(database,0,Buffer.from('{"object":"data_source","id":"s","parent":{"type":"database_id","database_id":"db"},"properties":{"amount":{"id":"n","name":"amount","type":"number","number":{"format":"number"}},"enabled":{"id":"b","name":"enabled","type":"checkbox","checkbox":{}}}}'),...metadataLimits));
+  const declaration=checked(notion.notionReadDatabaseDeclaration(Buffer.from('{"id":"db","read_contracts":{"n":[{"column":"amount","projection":"value","contract":{"type":"decimal","nullable":false,"precision":20,"scale":2}}]}}'),...declarationLimits));
+  const readContracts=checked(notion.notionBindDataSourceReadContracts(declaration,source,...declarationLimits));
+  const bounds={maxResponseBytes:16384,maxTotalResponseBytes:131072,maxRequestBytes:1024,maxTargetBytes:1024,
+    maxPages:4,pageSize:2,maxTotalRows,maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:8,
+    maxIdentityBytes:128,maxNameBytes:128,maxCursorBytes:128,maxRowNodes:256,maxRowDepth:16,maxRowTextBytes:4096,
+    maxColumns:16,maxRowWork:1000000,maxPageWork:1000000,maxRowsWireBytes:16384,maxRowsWireNodes:2048,maxRowsWireDepth:20,
+    maxPropertyPages:4,maxPropertyItems:128,maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
+  const reader=create({moon:notion,declaration,source,readContracts,initialAuthorization:{grant:{},scope,useId:'original'},
+    credential:{binding:{}},limits:bounds,async current(value){assert.equal(value,operation);},
+    authorizationFor(input){assert.equal(input.operation,operation);grants.push(input);return{grant:{},scope,useId:`query-${input.index}`};},
+    chargeResponse(body){assert.equal(body,bodies[requests.length-1]);const ticket=Object.freeze({body});charges.push(ticket);return ticket;},
+    consumeObservation(charge){assert(charges.includes(charge));observations.push(charge);},
+    consumePage(page,{charge,originalRows,readContracts:actual}){assert.equal(actual,readContracts);assert.equal(originalRows.length,page.length);
+      assert.equal(charge,charges.at(-1));rows.push(...page);observations.push(charge);}});
+  return{reader,requests,grants,charges,rows,observations,bodies};
+}
+
+test('actual extracted Notion database caller requests only remaining rows on its original query cursor',async()=>{
+  const f=await databaseRequestFixture(3),result=await f.reader.read();
+  assert.equal(result.rowCount,3);assert.equal(result.pages,2);
+  assert.deepEqual(f.requests.map(request=>JSON.parse(request.body)),[{page_size:2},{page_size:1,start_cursor:'same-query-cursor'}]);
+  assert(f.requests.every(request=>request.method==='POST'&&request.path==='/v1/data_sources/s/query'));
+  assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true},{amount:'9007199254740993.25',enabled:true},{amount:'9007199254740993.25',enabled:true}]);
+  assert.equal(f.grants.length,2);assert.deepEqual(result.responseCharges,f.charges);
+  assert.equal(f.reader.observe().cleanupConfirmed,false);
+});
+
+test('actual extracted Notion database caller refuses a capped continuation before another grant or POST',async()=>{
+  const f=await databaseRequestFixture(2);
+  await assert.rejects(f.reader.read(),error=>error.code==='NotionDataSourceReadFailed'&&error.cause.code==='NotionDataSourceRowLimit');
+  assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
+  assert.equal(f.reader.observe().phase,'failed');assert.equal(f.reader.observe().cleanupConfirmed,false);
+  assert.equal(f.rows.length,2,'an earlier prefix is retained, never a successful complete Source');
 });
