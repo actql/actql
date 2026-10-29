@@ -7,16 +7,17 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js';
+const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
+const provider = await import(process.env.ACTQL_TEST_CALENDAR_URL ?? new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js',import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
-import {readCalendarFreeBusy, CALENDAR_FREE_BUSY_OPERATION} from '../site/calendar-free-busy-read.mjs';
+import {prepareCalendarFreeBusyPages, CALENDAR_FREE_BUSY_OPERATION} from '../site/calendar-free-busy-read.mjs';
 
 const repo = new URL('../../../../', import.meta.url).pathname;
 const control = runtimeCore(common).remoteCredentialControl;
@@ -84,7 +85,7 @@ export async function freeBusyFixture(t, {account = 'allow', factsWire = '{}'} =
     {cwd: root, stdio: 'ignore'});
   const [key, cert] = await Promise.all([readFile(join(root, 'server.key')), readFile(join(root, 'server.crt'))]);
   const state = {pages: [JSON.stringify(freeBusyResponse())],
-    requests: [], charges: 0, resolutions: 0, rows: [], status: 200, secret:'calendar-fixture-secret', beforeResponse: undefined, resolved: undefined};
+    requests: [], responses: [], charges: 0, resolutions: 0, rows: [], status: 200, secret:'calendar-fixture-secret', beforeResponse: undefined, resolved: undefined};
   const server = createServer({key, cert}, async (request, response) => {
     const chunks=[];for await(const chunk of request)chunks.push(chunk);
     state.requests.push({path:request.url,authorization:request.headers.authorization,method:request.method,
@@ -97,10 +98,10 @@ export async function freeBusyFixture(t, {account = 'allow', factsWire = '{}'} =
     } catch (error) {response.destroy(error);}
   });
   await new Promise((resolve, reject) => {server.once('error', reject);server.listen(0, '127.0.0.1', resolve);});
-  let binding, journal, row;
+  let journal, row;const readers=[],factories=[];
   t.after(async () => {
     const failures = [];
-    try {if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed');} catch (cause) {failures.push(cause);}
+    try {for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}for(const factory of factories)assert.equal(factory.retire(),true);} catch (cause) {failures.push(cause);}
     try {row?.close();if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n,0n,0n,0n]);} catch (cause) {failures.push(cause);}
     try {journal?.close();} catch (cause) {failures.push(cause);}
     try {await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));} catch (cause) {failures.push(cause);}
@@ -128,16 +129,32 @@ export async function freeBusyFixture(t, {account = 'allow', factsWire = '{}'} =
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'free_busy',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
-  binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire);
+  row=await rowOwner(() => readers.every(reader=>reader.observe().transportClosed), factsWire);
   const initialAuthorization={grant,scope,useId:'initial'};
   const query=checked(provider.calendarPrepareFreeBusyQuery(['sales@example.test','private'],
     '2026-10-17T00:00:00.000Z','2026-10-18T00:00:00.000Z',4096,512,16,4,10,4096,100,4096));
   const options={moon:provider,query,names:['start'],initialAuthorization,
-    credential:{...credential,binding},limits:freeBusyReadLimits,current,
+    credential,limits:freeBusyReadLimits,current,
     authorizationFor:({index}) => ({grant,scope,useId:`query-${index}`}),
     chargeResponse:body => {state.charges++;return row.charge(body);},
     consumePage:(rows,{charge}) => {row.page(rows,charge);state.rows.push(...rows);}};
-  return {root,state,row,journal,binding,scope,grant,control,sign,current,writeAccount,options,
-    read:overrides=>readCalendarFreeBusy({...options,...overrides})};
+  const create=(overrides={})=>{
+    const selected={...options,...overrides},bound=Object.freeze({...selected.limits});
+    const physical=selected.callResource??callHttpsCredentialResource;
+    const site={credential:selected.credential,referenceCurrent:()=>true,async callResource(input){
+      const response=await physical(input);state.responses.push(response);return response;
+    }};
+    const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:CALENDAR_FREE_BUSY_OPERATION,
+      maxResponses:1,maxRequestBytes:bound.maxRequestBytes,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
+      preparePageReader({columns},applySynchronousProjection){return prepareCalendarFreeBusyPages(
+        {moon:selected.moon,query:selected.query,names:columns,limits:bound},applySynchronousProjection);}});
+    factories.push(factory);
+    const reader=factory.prepare({resource:'free_busy',columns:selected.names,signal:selected.signal,
+      verifyRead:typeof selected.current==='function'?()=>selected.current(CALENDAR_FREE_BUSY_OPERATION):selected.current,
+      authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:CALENDAR_FREE_BUSY_OPERATION,index}):selected.authorizationFor,
+      chargePage:selected.chargeResponse,consumePage:selected.consumePage});
+    readers.push(reader);return reader;
+  };
+  return {root,state,row,journal,scope,grant,control,sign,current,writeAccount,options,readers,create,
+    read:overrides=>create(overrides).read()};
 }
