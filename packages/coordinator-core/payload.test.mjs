@@ -6,7 +6,7 @@ import {admitDurablePayloadJson, admitPayloadRequestJson,
   durablePayloadState, payloadRecordDigest, payloadRecordDurableJson,
   payloadRecordOpaqueGeneration, payloadRecordOpaqueOwnership,
   payloadRecordActualBytes,
-  payloadRequestCid, payloadRequestMaxBytes,
+  payloadRequestCid, payloadRequestMaxBytes, payloadRequestFromDurable, payloadRequestFacts,
   payloadTransitionDurableJson, payloadTransitionExpectedRevision,
   preparePayloadOpaqueOwned, preparePayloadOpaqueReclaiming,
   preparePayloadOpaqueSealed, preparePayloadReclaimed,
@@ -78,4 +78,41 @@ test('opaque Store custody uses one durable MoonBit payload owner', () => {
   advance(preparePayloadReclaimed(record));
   assert.equal(durablePayloadState(admitDurablePayloadJson(persisted)),
     'reclaimed');
+});
+
+
+test('durable payload request projects its complete original tuple without changing pending state', () => {
+  const original = admitPayloadRequestJson(requestBody, requestCid);
+  const wire = payloadRecordDurableJson(preparePayloadRecord(original));
+  const durable = admitDurablePayloadJson(wire);
+  const restored = payloadRequestFromDurable(durable);
+  assert.equal(payloadRequestCid(restored), requestCid);
+  assert.deepEqual(payloadRequestFacts(restored), {
+    storeAuthorityCid: cid('8'), publicationAttemptCid: cid('5'),
+    materialGenerationCid: cid('3'), resultDefinitionCid: cid('6'),
+    logicalRelationCid: cid('2'), resultSchemaCid: cid('7'),
+    orderingEvidenceCid: cid('4'), codecContractCid: cid('1'),
+    maxBytes: 32n, rowCount: 2n,
+  });
+  assert(Object.isFrozen(payloadRequestFacts(restored)));
+  assert.equal(durablePayloadState(durable), 'intent');
+  assert.equal(payloadRecordDurableJson(restoreDurablePayload(durable)), wire);
+});
+
+test('sealed payload request retains its original tuple and rejects changed saved request bytes', () => {
+  let record = preparePayloadRecord(admitPayloadRequestJson(requestBody, requestCid));
+  const advance = transition => {record = commitPayloadTransition(transition);};
+  // Pure state-owner fixture; no physical Store acknowledgement is inferred.
+  advance(preparePayloadReserved(record));
+  advance(preparePayloadWriting(record));
+  advance(preparePayloadOpaqueOwned(record, cid('9')));
+  advance(preparePayloadOpaqueSealed(record, cid('9'), 12n, cid('a')));
+  const wire = payloadRecordDurableJson(record), durable = admitDurablePayloadJson(wire);
+  const request = payloadRequestFromDurable(durable);
+  assert.deepEqual(payloadRequestFacts(request), payloadRequestFacts(admitPayloadRequestJson(requestBody, requestCid)));
+  assert.equal(durablePayloadState(durable), 'sealed');
+  assert.equal(payloadRecordActualBytes(restoreDurablePayload(durable)), 12n);
+  const changed = JSON.parse(wire);
+  changed.request_json = changed.request_json.replace(cid('3'), cid('b'));
+  assert.throws(() => admitDurablePayloadJson(JSON.stringify(changed)), {code:'CoordinatorOwnerRejected'});
 });

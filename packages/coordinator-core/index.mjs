@@ -463,6 +463,24 @@ export const durableOutputPublicationFacts = durable => {
 // must verify custody and persist each transition before committing it.
 export const payloadRequestFromOutput =
   owner.coordinatorPayloadRequestFromOutput;
+// Historical typed DATA only. Current read authority and physical sealed
+// generation remain with the existing Store/publication caller.
+export const payloadRequestFromDurable = owner.coordinatorPayloadRequestFromDurable;
+export function payloadRequestFacts(request) {
+  const values = owner.coordinatorPayloadRequestFacts(request);
+  if (!Array.isArray(values) || values.length !== 10 ||
+      values.some(value => typeof value !== 'string') ||
+      values.slice(0, 8).some(value => !/^sha256:[0-9a-f]{64}$/u.test(value)) ||
+      values.slice(8).some(value => !/^(0|[1-9][0-9]*)$/u.test(value))) {
+    throw new Error('InvalidCoordinatorPayloadRequestFacts');
+  }
+  const [storeAuthorityCid, publicationAttemptCid, materialGenerationCid,
+    resultDefinitionCid, logicalRelationCid, resultSchemaCid,
+    orderingEvidenceCid, codecContractCid, maxBytes, rowCount] = values;
+  return Object.freeze({storeAuthorityCid, publicationAttemptCid, materialGenerationCid,
+    resultDefinitionCid, logicalRelationCid, resultSchemaCid, orderingEvidenceCid,
+    codecContractCid, maxBytes: BigInt(maxBytes), rowCount: BigInt(rowCount)});
+}
 export const payloadRequestCid = owner.coordinatorPayloadRequestCid;
 export const payloadRequestMaxBytes = owner.coordinatorPayloadRequestMaxBytes;
 export const admitPayloadRequestJson = (body, claimedCid) =>
