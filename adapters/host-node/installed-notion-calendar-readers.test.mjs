@@ -299,3 +299,14 @@ test('both installed loaders retain the original provider methods and receiver b
     }
   }
 });
+
+test('Notion refuses an incomplete provider before configuration or Site construction',async()=>{
+  const names=['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
+    'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList'];
+  for(const missing of names){
+    const f=await initializationFixture('notion');
+    const provider=Object.fromEntries(names.filter(name=>name!==missing).map(name=>[name,()=>assert.fail('no provider call')]));
+    await assert.rejects(f.load({providerMoon:provider}),{code:'InstalledNotionProviderUnavailable'});
+    assert.equal(f.configurationReads(),0);assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
+  }
+});
