@@ -20,6 +20,20 @@ export const clientValuesHostAdmitEffectPreviewIdentity = (...args) =>
   result('preview', args, {fixturePreview: ++control.serial, memberCount: 2});
 export const clientValuesHostEffectPreviewMemberCount = value => value.memberCount;
 export const clientValuesHostEffectPreviewSemanticIdentity = value => 'fixture:preview-semantic:' + value.fixturePreview;
+export const clientValuesHostAdmitEffectRunMaterials = (...args) =>
+  result('materials', args, {prepared: {}, compilation: {}, allowed: {}, definition: {}});
+export const clientValuesHostRestoredEffectPrepared = value => value.prepared;
+export const clientValuesHostRestoredEffectCompilation = value => value.compilation;
+export const clientValuesHostRestoredEffectAllowed = value => value.allowed;
+export const clientValuesHostRestoredEffectDefinition = value => value.definition;
+export const clientValuesHostRestoredEffectRequest = () => [];
+export const clientValuesHostAdmitEffectCheckpointBinding = (...args) =>
+  result('checkpoint-binding', args, {wire: args[2]});
+export const clientValuesHostEffectCheckpointBindingFields = value =>
+  result('checkpoint-fields', [value], ['sha256:' + 'a'.repeat(64), value.wire,
+    'original Run', 'original unit', ...['b', 'c', 'd', 'e'].map(x => 'sha256:' + x.repeat(64))]);
+export const clientValuesHostAdmitEffectCheckpointPreview = (...args) =>
+  result('checkpoint-preview', args, {fixturePreview: ++control.serial, memberCount: 2});
 export const clientValuesHostIssueEffectfulFinalRunReceipt = (...args) =>
   result('receipt', args, {cid: 'fixture:final', wire: 'fixture final receipt'});
 export const clientValuesHostValidateEffectfulPublicationCommit = (...args) =>
@@ -64,6 +78,54 @@ function originals() {
     preview, setReceiptWire, memberReceiptWires, finalReceipt};
   return {evidence, request, attempt, index, previewOriginal, receiptOriginal};
 }
+
+test('original Checkpoint Preview forwards nominal roots and refuses copied or foreign tuples', () => {
+  control.fail = undefined;
+  const materials = api => api.admitEffectRunMaterials('saved material wire',
+    'original Definition CID', {});
+  const f = materials(owner), other = materials(foreign);
+  const checkpointWire = 'original sealed Checkpoint wire';
+  const binding = owner.effectReviewCheckpointBinding(f.allowed, f.definition, checkpointWire);
+  const bindingCall = control.calls.findLast(call => call.name === 'checkpoint-binding');
+  const original = control.calls.findLast(call => call.name === 'checkpoint-fields').args[0];
+  const foreignBinding = foreign.effectReviewCheckpointBinding(other.allowed,
+    other.definition, checkpointWire);
+  control.calls.length = 0;
+  const storedWire = 'exact stored Checkpoint bytes\n', previewWire = 'original Preview α';
+  const preview = owner.effectReviewCheckpointPreview(binding, f.allowed,
+    f.definition, storedWire, previewWire, limits);
+  assert.deepEqual(control.calls.map(call => call.name), ['checkpoint-preview']);
+  const args = control.calls[0].args;
+  assert.strictEqual(args[0], original);
+  assert.strictEqual(args[1], bindingCall.args[0]);
+  assert.strictEqual(args[2], bindingCall.args[1]);
+  assert.deepEqual(args.slice(3), [storedWire, previewWire, 65536, 4096, 32]);
+  assert(Object.isFrozen(preview));
+  assert.equal(owner.effectPreviewIdentityCid(preview), `fixture:preview-semantic:${control.serial}`);
+
+  const contract = kind => owner.admitPublicationContract(kind, 'fixture:' + kind, limits);
+  const receiptArgs = [contract('run_definition'), contract('run_receipt'),
+    contract('captured_run'), preview, 'set receipt'];
+  control.calls.length = 0;
+  assert.throws(() => owner.issueEffectfulFinalRunReceipt(...receiptArgs,
+    ['one'], limits), /InvalidRunHostEffectReceipts/u);
+  assert.equal(control.calls.length, 0, 'The returned Preview retains its two-member inventory');
+  owner.issueEffectfulFinalRunReceipt(...receiptArgs, ['one', 'two'], limits);
+  assert.strictEqual(control.calls[0].args[3].fixturePreview, control.serial);
+
+  control.calls.length = 0;
+  for (const [selected, allowed, definition] of [
+    [{...binding}, f.allowed, f.definition], [foreignBinding, f.allowed, f.definition],
+    [binding, {...f.allowed}, f.definition], [binding, other.allowed, f.definition],
+    [binding, f.allowed, {...f.definition}], [binding, f.allowed, other.definition],
+  ]) {
+    assert.throws(() => owner.effectReviewCheckpointPreview(selected, allowed,
+      definition, storedWire, previewWire, limits), /ForeignRunHostCheckpointBinding/u);
+  }
+  assert.throws(() => owner.effectPreviewIdentityCid({...preview}), /ForeignRunHostHandle/u);
+  assert.throws(() => foreign.effectPreviewIdentityCid(preview), /ForeignRunHostHandle/u);
+  assert.equal(control.calls.length, 0, 'Copies and foreign tuples must refuse before the Common port');
+});
 
 test('Preview admission forwards the independent original tuple and exact limits once', () => {
   const f = originals();
