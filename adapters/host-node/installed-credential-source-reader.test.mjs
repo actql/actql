@@ -296,3 +296,17 @@ test('rejected native constructor preserves the first original failure without i
     assert.deepEqual(f.inspect(),{reads:0,stops:0,retired:false,bindingCloses:1});
   }
 });
+
+test('rejected generic constructor releases no unresolved placeholder as a physical child',async()=>{
+  const gate = Promise.withResolvers(),rejection = new Error('same generic constructor rejection');
+  const f = asynchronousConstructorFixture(()=>Object.freeze({then(resolve,reject) {
+    return Reflect.apply(Promise.prototype.then,gate.promise,[resolve,reject]);
+  }}));
+  const outcome = f.reader.read().then(()=>assert.fail('rejected constructor cannot succeed'),cause=>cause);
+  await f.entered;
+  assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  gate.reject(rejection);
+  assert.equal(await outcome,rejection);
+  assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+  assert.deepEqual(f.inspect(),{reads:0,stops:0,retired:false,bindingCloses:1});
+});
