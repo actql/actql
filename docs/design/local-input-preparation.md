@@ -3044,3 +3044,29 @@ owner is added. Publication execution, request binding, permission, currentness,
 physical completion and failure cleanup remain separate. The full constructor
 quote must include retained Plans, both graph/Executable-Plan arrays and their
 live aliases; old narrower backing evidence does not price these new fields.
+
+### Original canonical Task pipeline construction
+
+Task pipeline construction returns its original canonical wire together with
+its already admitted immutable `CanonicalValue`. The public wire emitter keeps
+its existing signature and output. Internal Fragment constructors consume the
+same value directly, including selected tasks and the original pre/post-INFER
+and Serialization prefixes. They do not parse that just-produced wire again.
+The construction record is private data local to one call, not a cache on the
+Program, a Resource grant or a replacement for the checked owner/port binding.
+
+The original initial and projected writers, preserving canonical readers and
+final canonical stringify all retain their selected byte/node/depth limits and
+error order. The final stringify remains before a construction is returned;
+there is no bypass for a failed or unfinished encoding. Its complete wire
+already bounds the same value's nodes, depth and decoded scalar text, so parsing
+it again cannot supply new input evidence to the subsequent canonical hash and
+Fragment emitter. Those still use the same codec and original Carrier, output,
+selected-task, Model and Serialization obligations.
+
+Foreign and Saved Fragment input still follows the existing full original
+Program-specific construction and wire comparison. A string or equal CID cannot
+manufacture an internal construction. Removing this own-output parse does not
+adopt external JSON, change a public acceptance rule or establish the complete
+compiler's allocation/backing or consumed-work proof. The remaining constructor
+reservation keeps its existing conservative overlap bound.

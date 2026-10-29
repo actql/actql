@@ -263,8 +263,8 @@ pub fn issue_prepared_client_serialization_prefix_fragment(
     // Preserve the real checked Source/producer ports using the same task
     // emitter as acquired Compute. Only the internal sort is included here;
     // no acquisition, byte generation or capture inventory is fabricated.
-    let wire = match
-      emit_client_task_pipeline_prefix(
+    let construction = match
+      construct_client_task_pipeline_prefix(
         @lower.serialization_owner(barrier),
         step,
         @lower.node_id(output),
@@ -285,7 +285,7 @@ pub fn issue_prepared_client_serialization_prefix_fragment(
       @pipeline.Step(step),
       selected,
       "task_" + task.to_string() + "_before_serialize_" + step.to_string(),
-      wire,
+      construction,
       max_wire_bytes,
       max_nodes,
       max_depth,

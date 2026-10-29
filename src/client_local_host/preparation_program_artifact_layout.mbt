@@ -158,8 +158,10 @@ fn program_artifact_construction_cost(
     }
     held = next
   }
-  // An initial canonical pipeline can coexist with its projected value or
-  // Fragment parse. Both are local to one task, not retained once per task.
+  // An initial canonical pipeline can coexist with its projected value.
+  // Fragment construction now consumes that SAME admitted value without a
+  // second pipeline parse. The remaining Fragment wire/graph parses and this
+  // conservative local overlap remain; no whole-compiler funding is inferred.
   for fragment in value.fragments {
     guard program_artifact_parse_layout(bounded(fragment.initial_pipeline))
       is Some(initial) &&

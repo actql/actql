@@ -230,11 +230,11 @@ pub fn issue_prepared_client_task_fragment(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  let pipeline_wire = match
-    emit_prepared_client_task_pipeline(
+  let construction = match
+    construct_prepared_client_task_pipeline(
       value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(wire) => wire
+    Ok(original) => original
     Err(issue) => return Err(Pipeline(issue))
   }
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
@@ -246,7 +246,7 @@ pub fn issue_prepared_client_task_fragment(
     target,
     @strategy.graph_task_selected_step(value.graph, task),
     "task_" + task.to_string(),
-    pipeline_wire,
+    construction,
     max_wire_bytes,
     max_nodes,
     max_depth,
@@ -439,8 +439,8 @@ fn issue_client_compute_prefix_fragment_for_owner(
     @lower.node_at(@lower.bound_preparation(owner), output_step) is Some(output) else {
     return Err(MissingOutput)
   }
-  let pipeline_wire = match
-    emit_client_task_pipeline_prefix(
+  let construction = match
+    construct_client_task_pipeline_prefix(
       owner,
       prefix_end,
       @lower.node_id(output),
@@ -452,7 +452,7 @@ fn issue_client_compute_prefix_fragment_for_owner(
       max_nodes,
       max_depth,
     ) {
-    Ok(wire) => wire
+    Ok(original) => original
     Err(issue) => return Err(Pipeline(issue))
   }
   issue_client_task_fragment_body(
@@ -460,7 +460,7 @@ fn issue_client_compute_prefix_fragment_for_owner(
     @pipeline.Step(output_step),
     None,
     node_id,
-    pipeline_wire,
+    construction,
     max_wire_bytes,
     max_nodes,
     max_depth,
@@ -483,8 +483,8 @@ fn issue_client_infer_compute_fragment(
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
     return Err(MissingOutput)
   }
-  let pipeline_wire = match
-    emit_client_task_pipeline_prefix(
+  let construction = match
+    construct_client_task_pipeline_prefix(
       owner,
       step,
       @lower.node_id(output),
@@ -498,7 +498,7 @@ fn issue_client_infer_compute_fragment(
       infer_boundary=Some(infer_step),
       serialization_boundary~,
     ) {
-    Ok(wire) => wire
+    Ok(original) => original
     Err(issue) => return Err(Pipeline(issue))
   }
   issue_client_task_fragment_body(
@@ -506,7 +506,7 @@ fn issue_client_infer_compute_fragment(
     @pipeline.Step(step),
     Some(step),
     "task_" + task.to_string() + "_after_infer_" + step.to_string(),
-    pipeline_wire,
+    construction,
     max_wire_bytes,
     max_nodes,
     max_depth,
@@ -557,8 +557,8 @@ fn issue_client_serialized_compute_fragment(
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
     return Err(MissingOutput)
   }
-  let wire = match
-    emit_client_task_pipeline_prefix(
+  let construction = match
+    construct_client_task_pipeline_prefix(
       owner,
       step,
       @lower.node_id(output),
@@ -571,7 +571,7 @@ fn issue_client_serialized_compute_fragment(
       max_depth,
       completed_serialization=Some((component.step, terminal)),
     ) {
-    Ok(wire) => wire
+    Ok(original) => original
     Err(issue) => return Err(Pipeline(issue))
   }
   issue_client_task_fragment_body(
@@ -582,7 +582,7 @@ fn issue_client_serialized_compute_fragment(
     component.task.to_string() +
     "_after_serialize_" +
     step.to_string(),
-    wire,
+    construction,
     max_wire_bytes,
     max_nodes,
     max_depth,
@@ -682,18 +682,13 @@ fn issue_client_task_fragment_body(
   target : @pipeline.Target,
   selected : Int?,
   node_id : String,
-  pipeline_wire : String,
+  construction : ClientTaskPipelineConstruction,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
   serialization_input? : @lower.PreparedSerialization? = None,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
-  guard parse_plan_identity_value(
-      pipeline_wire, max_wire_bytes, max_nodes, max_depth,
-    )
-    is Some(pipeline) else {
-    return Err(Encoding)
-  }
+  let pipeline = construction.body
   let logical_cid = @canonical.cid_value(
     pipeline, max_wire_bytes, max_nodes, max_depth,
   ) catch {
