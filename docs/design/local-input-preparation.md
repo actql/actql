@@ -2488,6 +2488,27 @@ constructing material. The maximum representable borrower counter is only an
 integer representation fence; it supplies no preallocated slots, work, physical
 attempts, capacity or authority.
 
+The input, working capacity, one selection and close fence are the same for
+Node and a backed Native initialization. Backend acquisition remains separate:
+Node retains its fixed Node preparation supplier. Native selects an explicit
+initialization purpose on a fresh live child before frame issuance; an existing
+Read or worker cannot be relabelled. Its nominal preparation admission binds the
+same original input as the live runtime. The physical issuer starts and takes
+that child once and installs its actual funded bootstrap census. The portable
+Host body consumes that prepared original without a second start or take.
+Missing census, foreign input and repeated consumption refuse; this boundary
+does not choose slot counts or imply that a Read census fits Source material.
+
+Native retains the same frame for partial-start, logical stop, C-context
+retirement and reporting in its existing physical order. The portable body
+does not copy Node's report/stop sequence or manufacture a physical ACK.
+Backed initialization close remains pending until the original physical
+issuer's after-owner-ACK retirement is recorded, outstanding usage is settled
+and unknown report/stop outcomes remain absent. Only then can the shared Host
+close release its input alias. The actual Native initialization constructor,
+its complete representation recipe and the physical retirement observation
+are separate obligations; a nominal carrier supplies none of them by itself.
+
 The original installation, input and Resource identities remain unchanged. No
 JavaScript Ledger getter, late Environment/sequence context, completed Request,
 profile CID, copied object or caller Boolean can create the initial carrier. The

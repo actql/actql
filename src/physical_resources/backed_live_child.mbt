@@ -24,6 +24,7 @@ pub struct BackedExecutionLiveAccess[P, C, R] {
 pub struct BackedExecutionLiveProjection[P, C, R] {
   priv mut access : BackedExecutionLiveAccess[P, C, R]?
   priv mut child_ledger_issued : Bool
+  priv mut retired_after_owner_ack : Bool
 }
 
 ///|
@@ -143,6 +144,7 @@ pub fn[P, C, R] admit_backed_execution_live_child(
   let projection : BackedExecutionLiveProjection[P, C, R] = {
     access: Some(access),
     child_ledger_issued: false,
+    retired_after_owner_ack: false,
   }
   access.projection = Some(projection)
   Ok(projection)
@@ -268,6 +270,7 @@ pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(
     Err(issue) => return Err(issue)
   }
   if access.projection is Some(projection) {
+    projection.retired_after_owner_ack = true
     projection.access = None
   }
   if access.child_origin is Some(origin) {
