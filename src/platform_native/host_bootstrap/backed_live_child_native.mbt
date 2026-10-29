@@ -27,6 +27,8 @@ struct NativeBackedLiveChild[T, C, R] {
     R,
   ]?
   mut retired : Bool
+  // Private initialization controls belong to this same physical owner.
+  mut initialization : NativeBackedInitialization[T, C, R]?
 }
 
 ///|
@@ -147,6 +149,7 @@ fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
     access: None,
     projection: None,
     retired: false,
+    initialization: None,
   }
   record.original = Some(record)
   let loan = domain.view.loan
@@ -437,6 +440,14 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
   match self.original_live_child(original, record, runtime) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if record.initialization is Some(initialization) &&
+    (
+      !initialization.physical_retired ||
+      !initialization.inventory_finished ||
+      (initialization.started && !initialization.reported)
+    ) {
+    return Err(Bootstrap(ReadersPending))
   }
   if record.access is Some(access) {
     match
