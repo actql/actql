@@ -207,3 +207,47 @@ test "Values compilation carries its first full lowering into the original prepa
   )
   assert_true(physical_equal(retained, prepared.full_sequences[0].sequence))
 }
+
+///|
+test "Task pipeline retains its original full sequence for compilation and execution" {
+  let prepared = values_compilation_parts_prepared()
+  let limits = prepared_client_values_sequence_limits(prepared)
+  assert_true(prepared.full_sequences.is_empty())
+  let wire = emit_prepared_client_task_pipeline(
+    prepared, 0, limits, 1000000, 100000, 100,
+  ).unwrap()
+  let expected =
+    #|{"output":"values_0","sources":{},"steps":[{"id":"values_0","in":[],"op":"REL.values","params":{"rows":[{"id":1},{"id":2}],"schema":{"id":{"nullable":false,"type":"number"}}}}],"version":"aoa-pipeline/0.1"}
+  assert_eq(wire, expected)
+  assert_eq(prepared.full_sequences.length(), 1)
+  let original = prepared.full_sequences[0].sequence
+  assert_true(
+    physical_equal(
+      original,
+      prepare_prepared_client_full_sequence(prepared, 0, limits).unwrap(),
+    ),
+  )
+  assert_eq(
+    emit_prepared_client_task_pipeline(
+      prepared, 0, limits, 1000000, 100000, 100,
+    ).unwrap(),
+    expected,
+  )
+  assert_true(physical_equal(original, prepared.full_sequences[0].sequence))
+  let foreign = values_compilation_parts_prepared()
+  emit_prepared_client_task_pipeline(foreign, 0, limits, 1000000, 100000, 100).unwrap()
+  |> ignore
+  assert_false(physical_equal(original, foreign.full_sequences[0].sequence))
+  assert_true(
+    emit_prepared_client_task_pipeline(
+      prepared,
+      0,
+      { ..limits, max_rows: 1, },
+      1000000,
+      100000,
+      100,
+    )
+    is Err(Sequence(_)),
+  )
+  assert_true(physical_equal(original, prepared.full_sequences[0].sequence))
+}

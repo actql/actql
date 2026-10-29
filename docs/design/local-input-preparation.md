@@ -2643,3 +2643,99 @@ That same quoted/failed phase cannot be bypassed by expanding the snapshot or
 selecting a Native, JSON, query or legacy input driver. Only the original intent
 may complete; successful finish then admits the original next input phase.
 This is an internal phase fence, not caller-supplied acceptance evidence.
+
+
+## Selected native Request driver
+
+The generic Native Program caller uses its original detached snapshot, Request
+receipt and Environment. The fixed Common entry selects its immutable standard
+syntax/check/compiler configuration and drives the existing Source index,
+Program, Parameter declaration/Source, checker and compiler continuations. It
+does not serialize the snapshot again or construct another preparation parent.
+Every selected phase keeps its original typed failure and complete overlap on
+the same reservation. The installed publication supplies its original required
+Catalog and Effect target publications; the terminal forwards those exact
+originals when the selected compiler needs them.
+
+The branch returned by this entry is immutable compiler DATA. It is selected
+from the retained Program inventory, never by an application mode or permission
+flag. The actual Plan/module constructor and its borrowed body are separate.
+A declined constructor keeps the first exact failure; another read of that
+same preparation does not invoke its checker, compiler or module factory again.
+Reentry cannot take a provisional body or retire a live constructor. An original
+foreign throw can be any JavaScript value, including undefined: a separate
+attempt flag preserves that first occurrence. The SDK retains a primitive cause
+in its attempt-local failure carrier rather than repeating public checking; that
+carrier certifies no known refusal, authority or cleanup. General
+captured, Effect and backend material constructors still require their actual
+checked inventories and physical Host handoffs. This semantic driver cannot
+substitute a source-free Plan, numeric-only emission recipe or an empty Host
+evidence array for those dependencies.
+
+Supplied Parameters retain the exact admitted Cursor through compilation and
+normal preparation metadata. Reading that DATA invokes no parser, serializer,
+checker or external current observer. The same Run handoff cuts the parent's
+heavy aliases; the active handler/Run owns any still-live native metadata under
+its original reservation. Each actual serializer/material consumer must retain
+and release its own original dependency; Cursor presence is not a durable wire
+or an admission to restore a Run.
+
+SDK producer completion is distinct from Run and borrower retirement. A live
+original Run keeps its same Resource current callback after its producer has
+finished. The callback still checks the original receipt/state and installed
+Host; public producer methods and Core phase guards prevent a new preparation
+from using a finished original. Retirement cuts the snapshot, Parameter cursor,
+request and prepared aliases only behind the original Core retirement fence.
+The existing registry retirement callback is mandatory before returning a
+selected holder. A missing callback, pending handler or uncertain cleanup keeps
+the same holder and debit; logical completion never acknowledges physical stop.
+
+### Original compilation at Task admission
+
+The existing source-free Task admission forwards the exact staged compilation
+to the same typed compiled-Run issuer, just as the Values admission does. That
+issuer binds the artifact to its original checked Program. A foreign artifact
+refuses there; refusal cannot select the compiler again. This relay creates no
+artifact, capacity, Run permission or new holder. Its preparation caller must
+construct and retain the artifact under the same Request/Run reservation before
+supplying it. A caller which has not migrated still selects its explicit compiler
+entry; an absent artifact is not evidence that preparation was funded.
+
+Model and Content compiler entries retain their separate original graph
+requirements. A plain source-free artifact cannot stand in for either barrier's
+selected component or its lifetime. Their actual funded handoff remains with
+the corresponding Host construction, rather than being inferred from the Task
+artifact's presence.
+
+The complete Task pipeline also consumes the existing per-Program full-sequence
+holder. Its task ordinal, bound owner and every sequence limit must match the
+original retained entry. Compilation and generated execution therefore retain
+the same full lowering rather than preparing another equal sequence. Acquisition,
+Model and Content prefixes select different ranges and remain on their original
+constructors; a full sequence is not a substitute for such a prefix. A different
+Program, row-limit view or changed limit cannot borrow the earlier entry.
+
+
+### Original Request refusal projection
+
+The native Request driver retains its first nominal terminal Result. Its bridge
+projects a semantic refusal through the same existing Program or Effect issue
+projection used by the document caller. A rejected checker verdict retains its
+original diagnostic; missing inputs retain their original NeedsInputs outcome.
+Program and Parameter admission failures preserve their existing categories.
+The projection reads DATA only: it does not parse, check, compile, invoke a
+getter or observe currentness again.
+
+The normal manager asks for that category once, retains the original issue as
+the exception cause and keeps the same failure on subsequent preparation reads.
+The selected funded SDK entry continues to reject without entering its legacy
+serializer or independent check fallback. No reason is inferred from JavaScript
+constructor names, exception messages or the absence of a Prepared value.
+Foreign identity, phase, Resource, capacity and installation exceptions are not
+semantic input refusals and retain their original uncertain Host failure.
+
+This category is not an audience-bound Check observation or a permission to
+disclose protected Source information. The existing submission/disclosure owner
+must still establish the actual audience and original input binding. It cannot
+replace that obligation with a generic error-code whitelist or treat an
+uncertain Host exception as known nonacceptance.

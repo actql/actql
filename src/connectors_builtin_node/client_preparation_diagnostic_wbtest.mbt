@@ -86,3 +86,138 @@ test "original lookup rejection projection refuses unrelated causes and a genuin
     )
   }
 }
+
+///|
+#external
+priv type RequestDiagnosticTestLoader
+
+///|
+#module("node:module")
+extern "js" fn request_diagnostic_test_loader(
+  url : String,
+) -> RequestDiagnosticTestLoader = "createRequire"
+
+///|
+extern "js" fn request_diagnostic_test_url() -> String =
+  #|() => import.meta.url
+
+///|
+extern "js" fn request_diagnostic_test_receipt() -> ClientLocalPreparationInputOriginal =
+  #|() => Object.freeze({})
+
+///|
+extern "js" fn request_diagnostic_test_json(
+  document : String,
+) -> NativeJsonValue =
+  #|(document) => JSON.parse(document)
+
+///|
+// Original policy Array ABI, matching the ordinary supplier's existing entry.
+#warnings("-deprecated")
+extern "js" fn request_diagnostic_test_original(
+  loader : RequestDiagnosticTestLoader,
+  receipt : ClientLocalPreparationInputOriginal,
+  quote : Array[Int64],
+) -> @resources.OriginalNodeManagedRunReference =
+  #|(loader,receipt,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(receipt,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false,'local-preparation')
+
+///|
+fn request_diagnostic_test_parent() -> (
+  @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  ClientLocalPreparationInputOriginal,
+) {
+  let receipt = request_diagnostic_test_receipt()
+  let policy = client_local_resource_policy_original()
+  let original = request_diagnostic_test_original(
+    request_diagnostic_test_loader(request_diagnostic_test_url()),
+    receipt,
+    client_local_preparation_resource_limits(policy),
+  )
+  let initial = client_program_prepare_local_preparation_admission(
+    original, receipt,
+  ).unwrap()
+  let parent = client_program_begin_request_preparation(
+    initial, receipt, policy,
+  ).unwrap()
+  client_program_reserve_request_snapshot(parent, receipt, 10000L, 10000L).unwrap()
+  (parent, receipt)
+}
+
+///|
+test "Request failure projection uses the original semantic issue without another check" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let program =
+    #|{"version":"actql/0.1","id":"request-refusal","params":{"n":{"type":"number"}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"v"},{"derive":{"value":"id + $n"},"as":"d"}],"results":{"rows":{"from":"d","fields":["value"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  let missing =
+    #|{"version":"actql/0.1","id":"missing-source","stages":[{"id":"s","inputs":{"remote":{"connector":"missing","resource":"rows","view":"records"}},"steps":[{"from":"remote","take":1,"as":"v"}],"results":{"rows":{"from":"v","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  for
+    (document, parameters, expected) in [
+      ("{}", None, "check_invalid_input"),
+      (program, Some("{\"n\":\"wrong type\"}"), "check_invalid_input"),
+      (program, None, "needs_inputs"),
+      (missing, None, "source_unresolved"),
+    ] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_native_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(document),
+      request_diagnostic_test_json(parameters.unwrap_or("null")),
+      environment,
+      publication,
+    )
+    assert_true(result is Err(_))
+    assert_eq(
+      client_program_request_preparation_issue_code(result),
+      Some(expected),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "Request failure projection keeps input admission and nonsemantic uncertainty separate" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  // Foreign identity and retired same-original calls produce real nominal
+  // errors. No test issuer or widened read-only constructor is introduced.
+  let foreign = client_program_prepare_request_native_computation(
+    parent,
+    request_diagnostic_test_receipt(),
+    request_diagnostic_test_json("{}"),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+  )
+  assert_true(foreign is Err(_))
+  assert_eq(client_program_request_preparation_issue_code(foreign), None)
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  let retired = client_program_prepare_request_native_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json("{}"),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+  )
+  assert_true(retired is Err(_))
+  assert_eq(client_program_request_preparation_issue_code(retired), None)
+  assert_eq(
+    client_program_request_preparation_issue_code(Ok("effect_free")),
+    None,
+  )
+}

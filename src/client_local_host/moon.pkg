@@ -57,6 +57,10 @@ import {
 
 options(
   targets: {
+    "preparation_parameter_source_current_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_snapshot_batch_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_parameters_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_topology_locals_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_finish_js_wbtest.mbt": [ "js" ],
     "preparation_program_compile_js_wbtest.mbt": [ "js" ],
@@ -73,6 +77,7 @@ options(
     "preparation_request_parameters_js_wbtest.mbt": [ "js" ],
     "preparation_request_intent_js_wbtest.mbt": [ "js" ],
     "preparation_request_plan_input_js_wbtest.mbt": [ "js" ],
+    "preparation_request_native_computation_js_wbtest.mbt": [ "js" ],
     "preparation_managed_publication_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],

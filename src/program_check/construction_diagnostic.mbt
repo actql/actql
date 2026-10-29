@@ -36,3 +36,10 @@ pub fn source_request_form_diagnostic(
 ) -> CheckDiagnostic {
   construction_failure_diagnostic(Source(RequestForm(issue)))
 }
+
+///|
+/// Preserve an already refused Program input through the same semantic
+/// classification as document checking. This does not parse or check it again.
+pub fn program_input_diagnostic(issue : @syntax.SyntaxError) -> CheckDiagnostic {
+  construction_failure_diagnostic(Program(issue))
+}

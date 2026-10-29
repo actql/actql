@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d943ba91bff32dff8da20481cdbdb78921f400b2bf585ac56c60fc179a9dc169",
+      "sha256": "0ca4765ca0a2dd68394ee558561aef5d4516681291e1af3a046cffb3cabf6842",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -19234,7 +19234,7 @@
             "kind",
             "policy",
             "inferGraph",
-            "valuesCompilation"
+            "compilationOriginal"
           ],
           "async": false
         },
@@ -23721,6 +23721,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "retireCapturedComputation(capturedRun) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "inputsOutputs": [
@@ -23747,6 +23751,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "identity": [
@@ -23773,6 +23781,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "ownership": [
@@ -23803,6 +23815,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "synchronization": [
@@ -23833,6 +23849,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "failure": [
@@ -23859,6 +23879,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('retirement failure preserves the same holder for its original retry'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "cancellation": [
@@ -23885,6 +23909,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "moon.strategyCapturedRunCancel(original);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "resources": [
@@ -23919,6 +23947,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "capturedComputationPreparations.delete(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "extension": [
@@ -23945,6 +23977,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "verification": [
@@ -23987,6 +24023,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ]
           }
@@ -74166,7 +74206,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e8f5932be5e14edf7a37733df201ebd7b6e6a808d981b8920f2fe10cbba416d2",
+      "sha256": "dcad8e27ee65d1dbeb3215ea7e0eaeafdaeb95ab0a9c513a3e5311dc0c5dce35",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -74472,6 +74512,7 @@
             "retainedDefinitionWire",
             "resultDataPolicy",
             "requestIdentity",
+            "compilationOriginal",
             "kind"
           ],
           "async": false
@@ -75944,6 +75985,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "inputsOutputs": [
@@ -75954,6 +75999,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "identity": [
@@ -75964,6 +76013,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "ownership": [
@@ -75974,6 +76027,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "synchronization": [
@@ -75984,6 +76041,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "failure": [
@@ -75994,6 +76055,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "cancellation": [
@@ -76004,6 +76069,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "resources": [
@@ -76014,6 +76083,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "extension": [
@@ -76024,6 +76097,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "verification": [
@@ -76038,6 +76115,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ]
           }

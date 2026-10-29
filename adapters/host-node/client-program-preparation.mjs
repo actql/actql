@@ -5,6 +5,7 @@ import {validCheckOutcome, validSubmitPreparationError} from
 import {installNodePublicSourcePreparation} from
   './public-source-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeIsError, runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 const issueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -50,6 +51,20 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
   .some(code => code !== 'ClientProgramPreparationFailure' &&
     !validSubmitPreparationError({code}))) {
   throw new Error('StaleClientProgramErrorProjection');
+}
+
+// Read only the original typed Request result. The existing Common projection
+// owns categories; JS never decodes an error constructor or checks input again.
+// Foreign/current/capacity/Host failures stay outside semantic nonacceptance.
+export function checkedRequestProgramPreparation(moon, result) {
+  if (runtimeIsError(result)) {
+    const category = moon.clientProgramRequestPreparationIssueCode(result);
+    const code = issueCodes[category] ?? effectIssueCodes[category];
+    if (code !== undefined) {
+      throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
+    }
+  }
+  return checked(result);
 }
 
 function fail(code, cause) {
@@ -169,10 +184,14 @@ export function installNodeClientProgramPreparation({moon, environment,
       }
       return prepared;
     } catch (error) {
-      if (error !== null && (typeof error === 'object' || typeof error === 'function')) {
-        fundedFailures.add(error);
-      }
-      throw error;
+      // A foreign constructor can throw any JS value. Keep that exact cause
+      // in this attempt's failure carrier so even undefined/null cannot fall
+      // through to a second public check or old preparation path.
+      const failure = error !== null && (typeof error === 'object' || typeof error === 'function')
+        ? error : Object.assign(new Error('ClientProgramPreparationFailure', {cause: error}),
+          {code: 'ClientProgramPreparationFailure'});
+      fundedFailures.add(failure);
+      throw failure;
     }
   };
   const prepare = (request, selectedEnvironment = environment) => {

@@ -354,7 +354,7 @@ pub fn finish_program_snapshot(ClientProgramSnapshot) -> Result[@run_publication
 
 pub fn finish_program_validation(ClientProgramValidation) -> Result[Unit, ClientProgramValidationIssue]
 
-pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestTerminalIssue]
+pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[Unit, ClientRequestTerminalIssue]
 
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -646,6 +646,8 @@ pub fn[I] prepare_request_computation_check_preparation(ClientRequestPreparation
 
 pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
+pub fn[I, T] prepare_request_native_computation(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
+
 pub fn[I, T] prepare_request_native_program_input(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @stage_syntax.Limits, supplied? : T?) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
@@ -759,6 +761,10 @@ pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P])
 pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
+
+pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I) -> Result[@decode_core.Cursor?, ClientRequestPreparationIssue]
+
+pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
 
@@ -919,6 +925,7 @@ pub(all) suberror ClientRequestQuerySyntaxIssue {
 pub suberror ClientRequestTerminalIssue {
   Preparation(ClientRequestPreparationIssue)
   CheckOutcome(@program_check.CheckOutcome)
+  Publication(@client_source_publication.PreparedPublicationIssue)
 }
 
 // Types and methods
@@ -1188,6 +1195,11 @@ pub(all) enum ClientQueryResidualIssue {
   Guard(@execution_relation.FixedInputGuardIssue)
   Acquisition(@host.BroadHostIssue)
 }
+
+pub(all) enum ClientRequestComputationKind {
+  Pure
+  Effect
+} derive(Eq, @debug.Debug)
 
 type ClientRequestPreparation[I]
 

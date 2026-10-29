@@ -202,8 +202,24 @@ export function bindClosedValuesSnapshot(state, body) {
 }
 
 export function cleanupClosedValuesInput(state, retireInitialPreparation) {
-  if(state.opening || state.adopting || state.snapshotting) invalid();
+  if(state.opening || state.adopting || state.snapshotting || state.preparing) invalid();
   const moon=state.context.runtime;
+  if(state.holder!==undefined && state.parent!==undefined) {
+    // The same generic Request retains failed construction and every borrow.
+    // Only the original retirement phase permits the selected holder return.
+    try {checked(moon.clientProgramAbortRequestPreparation(state.parent));}
+    catch(cause) {
+      if(moon.clientProgramPreparationBorrowRetirementStarted(state.holder)!==true) throw cause;
+    }
+    if(moon.clientProgramPreparationBorrowRetirementStarted(state.holder)!==true) invalid();
+    if(state.prepared!==undefined) {
+      if(typeof retireInitialPreparation!=='function') invalid();
+      retireInitialPreparation(state.prepared);
+    }
+    state.prepared=state.parametersCursor=undefined;
+    const holder=state.holder;state.holder=undefined;
+    checked(moon.clientProgramPreparationBorrowReturn(holder));
+  }
   if(state.holder!==undefined) {
     try {checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));}
     catch(cause) {
@@ -232,4 +248,6 @@ export function cleanupClosedValuesInput(state, retireInitialPreparation) {
   // revoked, and no local Promise completion stands in for physical cleanup.
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
+  state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
+  state.parameterMetadataLoaded=false;state.preparationFailed=false;
 }

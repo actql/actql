@@ -684,7 +684,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -701,7 +701,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
         : kind === 'serialization' ? 'checked-content' : 'checked-tasks'),
       expiresAt: validUntil,
       ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})},
-    kind === 'serialization' ? serializationGraph : inferGraph);
+    kind === 'serialization' ? serializationGraph : inferGraph, compilationOriginal);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,

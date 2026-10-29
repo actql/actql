@@ -1108,3 +1108,49 @@ pub fn client_program_effect_preparation_input_retirement_started(
 ) -> Bool {
   @resources.preparation_body_retirement_started(original)
 }
+
+///|
+#export_name("clientProgramPrepareRequestNativeComputation")
+pub fn client_program_prepare_request_native_computation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  captured : NativeJsonValue,
+  parameters : NativeJsonValue,
+  environment : @program_check.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_computation(
+    parent,
+    input,
+    captured,
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+    supplied=if native_json_parameter_is_absent(parameters) {
+      None
+    } else {
+      Some(parameters)
+    },
+  ).map(kind => {
+    match kind {
+      @client_local_host.Pure => "effect_free"
+      @client_local_host.Effect => "effectful"
+    }
+  })
+}
+
+///|
+#export_name("clientProgramRequestParametersOriginal")
+pub fn client_program_request_parameters_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[@decode.Cursor?, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.request_preparation_parameters_original(parent, input)
+}

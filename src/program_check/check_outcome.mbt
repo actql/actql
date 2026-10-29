@@ -213,7 +213,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
 ///|
 /// Retain an existing construction failure for diagnostic projection only. This
 /// classification does not construct a checked Program or execution permission.
-fn construction_failure_diagnostic(
+pub fn construction_failure_diagnostic(
   cause : LocalConstructionFailure,
 ) -> CheckDiagnostic {
   { cause, category: classify_diagnostic_cause(cause), }

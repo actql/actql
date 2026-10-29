@@ -321,6 +321,58 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+/// Project the original Request terminal through the SAME existing semantic
+/// issue projection. No document, getter, checker or compiler is entered here.
+/// None deliberately preserves foreign/current/resource/Host uncertainty; it
+/// is not evidence that an input was invalid or that a Run was not accepted.
+#export_name("clientProgramRequestPreparationIssueCode")
+pub fn client_program_request_preparation_issue_code(
+  result : Result[String, @client_local_host.ClientRequestTerminalIssue],
+) -> String? {
+  let issue : ClientProgramBridgeIssue = match result {
+    Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
+    Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
+    Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
+    | Err(Preparation(ProgramCheck(EffectCompilation(Syntax(issue)))))
+    | Err(Preparation(ProgramJson(Syntax(issue))))
+    | Err(Preparation(ProgramJson(Source(Syntax(issue))))) =>
+      Preparation(Check(@program_check.program_input_diagnostic(issue)))
+    Err(Preparation(ProgramCheck(Compilation(issue)))) => Preparation(issue)
+    Err(Preparation(ProgramCheck(EffectCompilation(issue)))) =>
+      return client_program_effect_preparation_issue_code(
+        EffectRejected(Preparation(issue)),
+      )
+    Err(Preparation(ProgramCheck(Check(issue))))
+    | Err(Preparation(ProgramCheck(Catalog(Check(issue)))))
+    | Err(
+      Preparation(
+        ProgramCheck(SourceRegistration(RegistrationConstruction(issue)))
+      )
+    ) =>
+      Preparation(Check(@program_check.construction_failure_diagnostic(issue)))
+    Err(Preparation(ProgramCheck(TopologyEntry(issue))))
+    | Err(Preparation(ProgramCheck(SourceRegistration(ContextInput(issue))))) =>
+      Preparation(Check(@program_check.source_context_diagnostic(issue)))
+    Err(Preparation(Parameters(InvalidFormat))) => InvalidFormat
+    Err(Preparation(Parameters(SuppliedSyntax(issue)))) => SuppliedSyntax(issue)
+    Err(Preparation(Parameters(SuppliedAdmission(issue)))) =>
+      SuppliedAdmission(issue)
+    Err(Preparation(ParameterDeclarations(issue))) =>
+      Preparation(
+        Check(
+          @program_check.source_declarations_diagnostic(
+            @stage_parameters.Declarations(issue),
+          ),
+        ),
+      )
+    Err(Preparation(ParameterSource(issue))) =>
+      Preparation(Check(@program_check.source_declarations_diagnostic(issue)))
+    _ => return None
+  }
+  client_program_preparation_issue_code(Rejected(issue))
+}
+
+///|
 /// Read only the original preparation's named lookup-byte rejection. This
 /// private diagnostic is DATA, not a new check, capacity or acquisition grant.
 /// The coordinates retain the Source Owner's stage and logical join step.
