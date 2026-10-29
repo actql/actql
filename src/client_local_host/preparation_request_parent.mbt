@@ -40,6 +40,12 @@ struct ClientRequestPreparation[I] {
   mut snapshot_base : (Int64, Int64)?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
+  mut submitted_intent : @publication_host.ClientSubmittedIntent?
+  mut intent_base : (Int64, Int64)?
+  mut intent_attempted : Bool
+  mut intent_peak_live : Bool
+  mut intent_work : @resources.PreparationPhaseWork64?
+  mut _observed_intent_work : Int64
   mut query_syntax : ClientRequestQuerySyntax?
   // The same generic domain holder owns its source/index/Program aliases.
   // Unit remains uncompleted until the actual output-type continuation.
@@ -81,6 +87,8 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
+  Intent(@publication_host.ClientSubmittedIntentIssue)
+  Work(@resources.PreparationWorkIssue)
   ParameterPreparation(ClientParameterDeclarationPreflightIssue)
   ParameterDeclarations(@parameters.Issue)
   ParameterSource(@stages.Issue)
@@ -256,6 +264,12 @@ pub fn[I] begin_request_preparation(
     snapshot_base: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
+    submitted_intent: None,
+    intent_base: None,
+    intent_attempted: false,
+    intent_peak_live: false,
+    intent_work: None,
+    _observed_intent_work: 0L,
     query_syntax: None,
     program_json: None,
     native_parameters: None,
@@ -299,7 +313,9 @@ pub fn[I] prepare_request_program_json_preparation(
   ClientProgramJsonPreparation[I, Unit],
   ClientRequestPreparationIssue,
 ] {
-  if owner.phase != Open || owner.program_json is Some(_) {
+  if owner.phase != Open ||
+    !request_intent_input_ready(owner) ||
+    owner.program_json is Some(_) {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -524,7 +540,7 @@ pub fn[I] select_closed_values_preparation(
   input : I,
   module_containers~ : @execution.PreparationRepresentationUnits,
 ) -> Result[ClientClosedValuesPreparation[I], ClientRequestPreparationIssue] {
-  if owner.phase != Open {
+  if owner.phase != Open || owner.intent_base is Some(_) {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -641,6 +657,18 @@ pub fn[I] abort_request_preparation_after_cleanup(
   }
   // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
+  if owner.intent_work is Some(work) {
+    match @resources.finish_preparation_phase_work64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(spent) => {
+        owner._observed_intent_work = spent
+        owner.intent_work = None
+      }
+    }
+  }
+  owner.submitted_intent = None
+  owner.intent_base = None
+  owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
   owner.native_parameters_ready = false

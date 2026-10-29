@@ -61,6 +61,56 @@ async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,
   return {view,calls,shapes,context,get parent(){return parent;},get original(){return admission?.original;}};
 }
 
+test('generic snapshot passes the same native intent and original Request to Common once without a wire fallback', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={};
+  const input={text:'SELECT @text AS text',format:'sql'},parameters={text:'日本語\r\n😀',nested:[{n:2}]};
+  const receipt=f.view.beforeSourceSnapshot('aql',input.text,{parameters},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'aql',input,parameters,
+    stopBefore:'commit',readOnly:true},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  const intent={},cid=`sha256:${'1'.repeat(64)}`;let prepares=0,finishes=0;
+  moon.clientProgramPrepareRequestSubmittedIntent=function(parent,original,value){
+    assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+    assert.deepEqual(Object.keys(value).sort(),['input','kind','parameters','readOnly','stopBefore']);
+    assert.equal(value.input,body.input);assert.equal(value.parameters,body.parameters);
+    assert.equal(value.kind,'aql');assert.equal(value.stopBefore,'commit');assert.equal(value.readOnly,true);
+    prepares++;return ok(cid);
+  };
+  moon.clientProgramFinishRequestSubmittedIntent=function(parent,original){
+    assert.equal(parent,f.parent);assert.equal(original,receipt);finishes++;return ok(undefined);
+  };
+  moon.clientProgramRequestSubmittedIntentOriginal=function(parent,original){
+    assert.equal(parent,f.parent);assert.equal(original,receipt);return intent;
+  };
+  try{
+    assert.equal(f.view.intentCid(receipt,body),cid);
+    assert.equal(f.view.submittedIntentOriginal(request),intent);
+    assert.equal(prepares,1);assert.equal(finishes,1);
+    assert.throws(()=>f.view.submittedIntentOriginal({...request}),{code:'ForeignInstalledSourceProducer'});
+  }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+});
+
+test('generic intent keeps its original Common refusal and does not finish or enter wire fallback', async () => {
+  const f=await fixture(),moon=f.context.runtime;
+  const receipt=f.view.beforeSourceSnapshot('aql','SELECT 1 AS n',{},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'aql',input:{format:'sql',text:'SELECT 1 AS n'},parameters:null},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);
+  const issue={};let calls=0;
+  moon.clientProgramPrepareRequestSubmittedIntent=function(parent,original,value){
+    assert.equal(parent,f.parent);assert.equal(original,receipt);
+    assert.deepEqual(Object.keys(value).sort(),['input','kind','parameters']);
+    calls++;return {$tag:0,_0:issue};
+  };
+  moon.clientProgramFinishRequestSubmittedIntent=()=>assert.fail('Failed construction has not returned an intent');
+  try{
+    assert.throws(()=>f.view.intentCid(receipt,{...body}),{code:'ForeignInstalledSourceProducer'});
+    assert.equal(calls,0);
+    assert.throws(()=>f.view.intentCid(receipt,body),error=>error.code==='MoonBitHostFailure'&&error.cause===issue);
+    assert.equal(calls,1);
+  }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+});
+
 test('normal request manager retains one parent before header and original snapshot reservation',async()=>{
   const f=await fixture();const program=input();
   const receipt=f.view.beforeSourceSnapshot('program',program,undefined,connection);

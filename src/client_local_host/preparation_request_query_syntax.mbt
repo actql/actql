@@ -82,7 +82,8 @@ pub fn[I] parse_request_query_syntax(
   format : @frontend.Format,
   source_path? : String = "<source>",
 ) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue] {
-  if owner.phase != Open && owner.phase != QuerySyntaxQuoted {
+  if !request_intent_input_ready(owner) ||
+    (owner.phase != Open && owner.phase != QuerySyntaxQuoted) {
     return Err(Request(WrongPhase))
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {

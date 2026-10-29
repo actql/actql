@@ -352,6 +352,8 @@ pub fn finish_program_validation(ClientProgramValidation) -> Result[Unit, Client
 
 pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestTerminalIssue]
 
+pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I, P] inspect_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -648,6 +650,8 @@ pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], 
 
 pub fn[I] prepare_request_program_module_body(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[Unit, ClientRequestProgramPlanIssue]
 
+pub fn[I, T] prepare_request_submitted_intent(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T]) -> Result[String, ClientRequestPreparationIssue]
+
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -753,6 +757,8 @@ pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
+
+pub fn[I] request_submitted_intent_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientSubmittedIntent?
 
 pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
@@ -1190,6 +1196,8 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@client_local_preparation.LocalProgramInputIssue)
+  Intent(@run_publication_host.ClientSubmittedIntentIssue)
+  Work(@physical_resources.PreparationWorkIssue)
   ParameterPreparation(ClientParameterDeclarationPreflightIssue)
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)
