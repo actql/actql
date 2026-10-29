@@ -51712,7 +51712,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b11533ce23a35afd20a46ddf32e8188403ffbaf5228694256abd0a943a3a9f26",
+      "sha256": "5406706ed3f302323e0d3ddc9e69959353be42d095b78f22ff1c39dc3a604073",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -51804,6 +51804,7 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointMembers",
+        "effectReviewProjectionBindingFacts",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -52243,6 +52244,13 @@
             "checkpointWire: string"
           ],
           "result": "readonly string[]"
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts",
+          "parameters": [
+            "review: RunEvidence"
+          ],
+          "result": "Readonly<{\n  previewCid: string;\n  authoringContextCid: string;\n  authorityScopeCid: string;\n  approvalClaims: readonly string[];\n}>"
         },
         {
           "name": "effectRunStartCurrent",
@@ -53910,6 +53918,7 @@
             "effectResultSchema",
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointMembers",
+            "effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -54125,6 +54134,7 @@
             "effectResultSchema",
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointMembers",
+            "effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -54271,6 +54281,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Original source preparation in the portable Run Host"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "inputsOutputs": [
@@ -54293,6 +54307,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "identity": [
@@ -54319,6 +54337,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation.mbt",
                 "anchor": "physical_equal(value.environment, environment)"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "ownership": [
@@ -54341,6 +54363,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation.mbt",
                 "anchor": "pub struct ClientSourcePreparation {"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "synchronization": [
@@ -54363,6 +54389,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "original.intent !== intent"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "failure": [
@@ -54385,6 +54415,10 @@
               {
                 "path": "src/run_publication_host/client_effect_run_materials.mbt",
                 "anchor": "request is None || expected_request is None || request != expected_request"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "cancellation": [
@@ -54407,6 +54441,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "alone does not supply this original binding, current authority or a cleanup ACK."
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "resources": [
@@ -54429,6 +54467,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "is name-binding metadata, not acquisition, permission or physical capacity."
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "extension": [
@@ -54451,6 +54493,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "structured preparation and material bytes remain unchanged."
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "verification": [
@@ -54473,6 +54519,14 @@
               {
                 "path": "packages/run-host-core/source-preparation.test.mjs",
                 "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
+                "anchor": "test \"Review binding facts do not reinterpret a different admitted evidence family\""
               }
             ]
           }

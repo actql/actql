@@ -15452,7 +15452,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "a75b272b4f53a17f91d16b52779e59681b3b5003ad80170fe5183427e7e26c89",
+      "sha256": "aadbc2142f8157f0e2cb46964680d66de2f5122c75b362e7c459d9ea75a2da4f",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -15490,6 +15490,7 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointMembers",
+        "effectReviewProjectionBindingFacts",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -16201,6 +16202,20 @@
         },
         {
           "name": "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts",
+          "parameters": [
+            "review"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts",
           "parameters": [
             "value"
           ],
@@ -18730,6 +18745,8 @@
             "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2",
             "effectReviewCheckpointMembers",
             "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
+            "effectReviewProjectionBindingFacts",
+            "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSiteSelection",
             "effectSiteSelection/args/args",
@@ -19058,6 +19075,7 @@
             "effectResultSchema",
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointMembers",
+            "effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -19208,6 +19226,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "inputsOutputs": [
@@ -19230,6 +19252,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "identity": [
@@ -19256,6 +19282,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "ownership": [
@@ -19278,6 +19308,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "synchronization": [
@@ -19300,6 +19334,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "failure": [
@@ -19322,6 +19360,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "cancellation": [
@@ -19344,6 +19386,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "resources": [
@@ -19366,6 +19412,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "extension": [
@@ -19388,6 +19438,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "verification": [
@@ -19410,6 +19464,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Initial and retained-input task dispatch use that same original Source"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
+                "anchor": "test \"Review binding facts do not reinterpret a different admitted evidence family\""
               }
             ]
           }
