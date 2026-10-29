@@ -55,10 +55,12 @@ async function rowOwner(verifyOriginalTransport) {
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']),
+    fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+  const requirement=checked(common.clientProgramPrepareLocalQueryRequirement(program,0,0,contracts,
+    values,fragment,ordered));
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence));
   // Explicit independent component bounds, not normal Host funding.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 24576n, 100000000n, 100000000n, 0));
