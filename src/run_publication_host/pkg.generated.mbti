@@ -239,6 +239,8 @@ pub fn bind_client_table_preview(ClientTableInput, @physical_strategy_host.Captu
 
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
+pub fn bind_prepared_client_compiler_contracts(PreparedClientProgram, @execution_relation.RegisteredOrderedContract?) -> Result[Unit, ClientTaskPipelineIssue]
+
 pub fn bind_prepared_client_effect_original_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientEffectIssuedNormalizationMaterials, request? : ClientRequestIdentity?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]

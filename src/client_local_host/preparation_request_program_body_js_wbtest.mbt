@@ -1150,3 +1150,117 @@ test "measurement storage preserves each original invalid compiler bound before 
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
+
+///|
+fn request_ordered_contract_document(uses_parameter : Bool) -> String {
+  let original = native_driver_program
+    .replace(
+      old="\"derive\":{\"value\":\"id + $n\"}",
+      new="\"derive\":[{\"old\":{\"field\":\"id\"}},{\"id\":{\"add\":[{\"field\":\"old\"},{\"literal\":1}]}},{\"value\":{\"add\":[{\"field\":\"old\"},{\"field\":\"id\"}]}}]",
+    )
+    .replace(
+      old="\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}",
+      new="\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}},\"other\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}",
+    )
+  if uses_parameter {
+    original.replace(
+      old="\"value\":{\"add\":[{\"field\":\"old\"},{\"field\":\"id\"}]}",
+      new="\"value\":\"old + $n\"",
+    )
+  } else {
+    original
+  }
+}
+
+///|
+test "original ordered contract fixture retains its exact unused Parameter refusal" {
+  let document = request_ordered_contract_document(false)
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(document)
+  match
+    prepare_request_native_computation(
+      parent,
+      input,
+      request_native_test_value(document),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ) {
+    Err(CheckOutcome(@checked.Rejected(diagnostic))) => {
+      guard @checked.diagnostic_cause(diagnostic)
+        is @checked.Source(
+          @checked.Identity(References(Usage(UnusedParameter(declaration))))
+        ) else {
+        fail(
+          "the original source must retain its typed unused Parameter refusal",
+        )
+      }
+      assert_eq(declaration.name, "n")
+    }
+    _ => fail("the original invalid source must not reach compilation")
+  }
+  assert_true(parent.program_source_free is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "actual Request compiler retains its original installed ordered contract before emission" {
+  let document = request_ordered_contract_document(true)
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(document)
+  let _ = prepare_request_native_computation(
+    parent,
+    input,
+    request_native_test_value(document),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  assert_true(
+    @publication_host.prepared_client_requires_task_compilation(prepared),
+  )
+  let contracts = request_program_module_contracts()
+  assert_true(contracts.original.value.ordered_contract is Some(_))
+  let calls = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    contracts,
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      []
+    },
+  ).unwrap()
+  // The exact normal caller must have bound this original before any Task
+  // pipeline cache/emission. A late retrofit of unbound material refuses.
+  assert_true(
+    @publication_host.bind_prepared_client_compiler_contracts(
+      prepared,
+      contracts.original.value.ordered_contract,
+    )
+    is Ok(_),
+  )
+  let foreign = request_program_module_contracts()
+  assert_true(
+    @publication_host.bind_prepared_client_compiler_contracts(
+      prepared,
+      foreign.original.value.ordered_contract,
+    )
+    is Err(_),
+  )
+  assert_eq(calls.val, 1)
+  assert_true(parent.program_source_free.unwrap().compilation is Some(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

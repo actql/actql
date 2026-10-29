@@ -55,6 +55,7 @@ fn client_effect_program_view(
     local_normalization: None,
     full_sequences: [],
     task_pipeline_inputs: [],
+    compiler_contracts: None,
   }
 }
 

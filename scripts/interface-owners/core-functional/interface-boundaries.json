@@ -27610,7 +27610,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9ec3ef093f46eb64d0fc2cdc7917ec1d2002790a5d3783a7dc39e42d911e684d",
+      "sha256": "3d3835eda7123f46df1688ac9b7ab3091c146565279225b592ea6d2d683a3173",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -29322,7 +29322,7 @@
     },
     {
       "module": "src/run_publication_host/client_program.mbt",
-      "sha256": "ab007f14f6a9127a469d88b6cd540071e1ddffe0a8a078d19c0702ecc7e0ef71",
+      "sha256": "090c87f5eca0cdc2d25aefc68a62a4df66b9dd352454fd0748b03f9066034734",
       "exports": [],
       "operations": [
         {
@@ -30768,6 +30768,580 @@
         }
       ],
       "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_effect_program.mbt",
+      "sha256": "19b595a140aaadb8fa40406895adef73cfe3716d4cc6d299880aa71f6c423fa2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_prepared_client_effect_run_publication",
+          "declaration": "admit_prepared_client_effect_run_publication ( value : PreparedClientEffectComputation , template : @ publication . RunEvidenceValue , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , compiled_plan : @ publication . PublicationContract , ) - > Result [ @ publication . RunPublicationAdmission , @ publication . RunPublicationAdmissionIssue , ]"
+        },
+        {
+          "name": "bind_prepared_client_effect_run",
+          "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "client_effect_program_view",
+          "declaration": "client_effect_program_view ( value : PreparedClientEffectComputation , ) - > PreparedClientProgram"
+        },
+        {
+          "name": "compile_static_client_effect_computation",
+          "declaration": "compile_static_client_effect_computation ( candidate : @ checked . EffectProgramStaticCandidate , environment : @ environment . WireEnvironment , limits : ClientProgramPreparationLimits , max_mapping_work : Int , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepare_checked_client_effect_computation",
+          "declaration": "observe_prepare_checked_client_effect_computation ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "open_prepared_accounted_captured_client_effect_run",
+          "declaration": "open_prepared_accounted_captured_client_effect_run ( value : PreparedClientEffectRun , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_captured_client_effect_run",
+          "declaration": "open_prepared_captured_client_effect_run ( value : PreparedClientEffectRun , source : @ query . CapturedInputSource , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_multi_captured_client_effect_run",
+          "declaration": "open_prepared_multi_captured_client_effect_run ( value : PreparedClientEffectRun , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_source_free_client_effect_run",
+          "declaration": "open_prepared_source_free_client_effect_run ( value : PreparedClientEffectRun , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "prepare_checked_client_effect_computation",
+          "declaration": "prepare_checked_client_effect_computation ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_checked_client_effect_computation_owned",
+          "declaration": "prepare_checked_client_effect_computation_owned ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "prepare_client_effect_computation",
+          "declaration": "prepare_client_effect_computation ( document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_client_effect_task_sequence",
+          "declaration": "prepare_client_effect_task_sequence ( value : PreparedClientEffectComputation , task : Int , contracts : @ execution . RegisteredRelationContracts , contexts : Array [ @ execution . FragmentRuntimeContext ] , limits : @ lower . SequenceLimits , max_work : Int , max_entries : Int , prepared_sequence ? : @ lower . PreparedSequence ?"
+        },
+        {
+          "name": "prepare_parsed_client_effect_computation",
+          "declaration": "prepare_parsed_client_effect_computation ( parsed : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_static_client_effect_computation",
+          "declaration": "prepare_static_client_effect_computation ( candidate : @ checked . EffectProgramStaticCandidate , limits : ClientProgramPreparationLimits , max_mapping_work : Int , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepared_client_effect_command_target_publication",
+          "declaration": "prepared_client_effect_command_target_publication ( value : PreparedClientEffectComputation , ) - > @ update_targets . CommandTargetPublication ?"
+        },
+        {
+          "name": "prepared_client_effect_computation_candidate",
+          "declaration": "prepared_client_effect_computation_candidate ( value : PreparedClientEffectComputation , ) - > @ checked . EffectProgramStaticCandidate"
+        },
+        {
+          "name": "prepared_client_effect_computation_definition_cid",
+          "declaration": "prepared_client_effect_computation_definition_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_environment_cid",
+          "declaration": "prepared_client_effect_computation_environment_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_graph",
+          "declaration": "prepared_client_effect_computation_graph ( value : PreparedClientEffectComputation , ) - > @ strategy . CheckedEffectComputationDAG"
+        },
+        {
+          "name": "prepared_client_effect_computation_semantics_cid",
+          "declaration": "prepared_client_effect_computation_semantics_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_source",
+          "declaration": "prepared_client_effect_computation_source ( value : PreparedClientEffectComputation , ) - > @ syntax . Program"
+        },
+        {
+          "name": "prepared_client_effect_identity",
+          "declaration": "prepared_client_effect_identity ( value : PreparedClientEffectComputation , ) - > ClientProgramIdentity"
+        },
+        {
+          "name": "prepared_client_effect_publication_data_policy_cid",
+          "declaration": "prepared_client_effect_publication_data_policy_cid ( value : PreparedClientEffectComputation , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_effect_result_count",
+          "declaration": "prepared_client_effect_result_count ( value : PreparedClientEffectComputation , ) - > Int"
+        },
+        {
+          "name": "prepared_client_effect_result_name",
+          "declaration": "prepared_client_effect_result_name ( value : PreparedClientEffectComputation , index : Int , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_effect_run_computation",
+          "declaration": "prepared_client_effect_run_computation ( value : PreparedClientEffectRun , ) - > PreparedClientEffectComputation"
+        },
+        {
+          "name": "prepared_client_effect_run_graph",
+          "declaration": "prepared_client_effect_run_graph ( value : PreparedClientEffectRun , ) - > @ strategy . CheckedEffectRunDAG"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_prepared_client_effect_run_publication",
+            "bind_prepared_client_effect_run",
+            "client_effect_program_view",
+            "compile_static_client_effect_computation",
+            "observe_prepare_checked_client_effect_computation",
+            "open_prepared_accounted_captured_client_effect_run",
+            "open_prepared_captured_client_effect_run",
+            "open_prepared_multi_captured_client_effect_run",
+            "open_prepared_source_free_client_effect_run",
+            "prepare_checked_client_effect_computation",
+            "prepare_checked_client_effect_computation_owned",
+            "prepare_client_effect_computation",
+            "prepare_client_effect_task_sequence",
+            "prepare_parsed_client_effect_computation",
+            "prepare_static_client_effect_computation",
+            "prepared_client_effect_command_target_publication",
+            "prepared_client_effect_computation_candidate",
+            "prepared_client_effect_computation_definition_cid",
+            "prepared_client_effect_computation_environment_cid",
+            "prepared_client_effect_computation_graph",
+            "prepared_client_effect_computation_semantics_cid",
+            "prepared_client_effect_computation_source",
+            "prepared_client_effect_identity",
+            "prepared_client_effect_publication_data_policy_cid",
+            "prepared_client_effect_result_count",
+            "prepared_client_effect_result_name",
+            "prepared_client_effect_run_computation",
+            "prepared_client_effect_run_graph"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_ordered_sequence.mbt",
+      "sha256": "58b8fdb2a0ede99942dc1448738473bee71423bbad448534f4afdabde36d6946",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_compiler_ordered_contract",
+          "declaration": "client_compiler_ordered_contract ( limits : @ execution . RegistryLimits , ) - > @ execution . RegisteredOrderedContract ?"
+        },
+        {
+          "name": "emit_client_sequence_steps",
+          "declaration": "emit_client_sequence_steps ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , out : @ encode . Writer , compiler_contracts ? : ClientCompilerContracts ?"
+        },
+        {
+          "name": "emit_prepared_client_sequence_range",
+          "declaration": "emit_prepared_client_sequence_range ( input : ClientSequenceEmission , first : Int , end : Int , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_prepared_client_sequence_steps",
+          "declaration": "emit_prepared_client_sequence_steps ( input : ClientSequenceEmission , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "prepare_client_sequence_steps",
+          "declaration": "prepare_client_sequence_steps ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , ) - > ClientSequenceEmission raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "prepare_client_sequence_steps_owned",
+          "declaration": "prepare_client_sequence_steps_owned ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , compiler_contracts : ClientCompilerContracts ? , admit ? : ( @ execution . RegistryLimits ) - > @ execution . RegisteredOrderedContract ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_compiler_ordered_contract",
+            "emit_client_sequence_steps",
+            "emit_prepared_client_sequence_range",
+            "emit_prepared_client_sequence_steps",
+            "prepare_client_sequence_steps",
+            "prepare_client_sequence_steps_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_compiler_contract_selection.mbt",
+      "sha256": "e8e62d0d4d160b77fb16570319d5b229c9ec610767ceea5e9c8e8ea956c88eed",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_prepared_client_compiler_contracts",
+          "declaration": "bind_prepared_client_compiler_contracts ( value : PreparedClientProgram , ordered : @ execution . RegisteredOrderedContract ? , ) - > Result [ Unit , ClientTaskPipelineIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_prepared_client_compiler_contracts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
     }
   ]
 }

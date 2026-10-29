@@ -3105,3 +3105,27 @@ or callback wrappers are not a new per-Request census. This collection envelope
 is not the complete nested lowering/Carrier helper scratch proof, complete
 compiler consumed-work accounting, physical backend supply or ordinary-route
 acceptance; those remain separate obligations of the same preparation path.
+
+### Original installed compiler contracts
+
+The installed sequence-contract holder already owns the admitted registry and
+ordered contract. The Request module constructor binds that exact immutable
+ordered contract to its original checked Program before its first module
+callback or compiler measurement. Values, Task and AoA-step emission forward
+that same fact into ordered params; they do not parse and admit the three
+installed registry bodies again. The actual checked kernel, slot references,
+selected range and codec limits retain their existing preparation and guards.
+
+This is a borrowed immutable catalogue fact, not permission or a Run/Resource
+currentness result. It has no Account, callback, dispatch or cleanup argument.
+Its private association follows the existing original Program and its bounded
+views. Rebinding accepts only the same typed original; an equal-body independent
+admission is a different original. Already retained unbound Task input cannot be
+upgraded after emission. Explicit installed absence refuses an ordered kernel
+without entering independent admission. Standalone compiler preparations which
+have not selected an installed holder still perform their own finite admission.
+
+The existing installed holder and its retirement owner remain unchanged. This
+forwarding does not price all nested compiler scratch or consumed work, migrate
+unconnected Source/Model/Content/Effect constructors, replace current/attempt
+checks or establish ordinary matching-artifact and physical-backend acceptance.

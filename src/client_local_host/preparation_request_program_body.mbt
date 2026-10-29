@@ -268,6 +268,16 @@ pub fn[I] prepare_request_program_module_body(
   preparation_module_call(
     () => {
       let installed = contracts.original
+      // Forward the exact already-admitted immutable catalogue before any
+      // module callback, measurement or retained compiler emission exists.
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          installed.value.ordered_contract,
+        ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
       let plan = match owner.program_source_free {
         Some(original) => original
         None =>
