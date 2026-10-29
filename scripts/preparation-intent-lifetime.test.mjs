@@ -58,16 +58,23 @@ test('canonical intent row temporaries are ancestor-scoped while rendered row st
   }
   assert.equal(cases,30);
 });
-test('original canonicalization and Core intent admission retain the proven synchronous seam',async()=>{
+test('funded Request uses its same native intent owner while explicit raw profiles keep canonical admission',async()=>{
+  const manager=await readFile(path.join(root,'adapters/host-node/ordinary-source-managed.mjs'),'utf8');
+  const begin=manager.indexOf('    intentCid(receipt, body) {');
+  const end=manager.indexOf('    finishSourceProducer(',begin);
+  const funded=manager.slice(begin,end);
+  assert.match(funded,/clientProgramPrepareRequestSubmittedIntent\(state.parent, receipt, value\)/);
+  assert.match(funded,/clientProgramFinishRequestSubmittedIntent\(state.parent, receipt\)/);
+  assert.ok(funded.indexOf('clientProgramFinishRequestSubmittedIntent')<funded.indexOf('return cid;'));
+  assert.doesNotMatch(funded,/canonicalValueJson|JSON\.stringify|ClosedValues|preparation\?\.phase/);
   const js=await readFile(path.join(root,'adapters/host-node/embedded-local.mjs'),'utf8');
-  const body=js.slice(js.indexOf('export function managedComputeSubmittedIntentCid'),js.indexOf('\nconst bytesCid',js.indexOf('export function managedComputeSubmittedIntentCid')));
+  const start=js.indexOf('export function managedComputeSubmittedIntentCid');
+  const body=js.slice(start,js.indexOf('\nconst bytesCid',start));
   assert.match(body,/const wire = canonicalValueJson\(/);
-  assert.ok(body.indexOf('const wire = canonicalValueJson(')<body.indexOf('moon.clientProgramPrepareClosedValuesSubmittedIntent(preparationOwner, wire)'));
-  assert.match(body,/moon\.clientProgramPrepareClosedValuesSubmittedIntent\(preparationOwner, wire\)/);
-  assert.doesNotMatch(body,/\bawait\b|\.then\(/);
+  assert.match(body,/moon\.clientSubmittedIntent\(wire, 1048576, 65536, 64\)/);
+  assert.doesNotMatch(body,/\bawait\b|\.then\(|preparationOwner|ClosedValues/);
   const canonical=await readFile(path.join(root,'src/canonical_json/value.mbt'),'utf8');
   assert.match(canonical,/let seen : Map\[String, Unit\] = Map\(\[\]\)/);
   assert.match(canonical,/Object\(\{ values, \}\)/);
   assert.match(canonical,/Array\(\{ values, \}\)/);
-  // No seen Map or callback escapes in a canonical value's returned payload.
 });

@@ -1,6 +1,6 @@
 import {createInstalledHostServices} from './installed-host-services.mjs';
-import {checkedPreparation, openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../local-node/closed-values-preparation-adapter.mjs';
+import {openHostInitializationPreparation, closeHostInitializationPreparation}
+  from '../local-node/request-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
@@ -727,7 +727,7 @@ export function sourceManagedSubmittedIntentCid(originals, originalSourceInstall
 
 // Same existing submitted-intent Owner, under the distinct actual Compute
 // installation. No Source original, copied packet or equal CID can replace it.
-export function managedComputeSubmittedIntentCid(originals, originalComputeInstallation, body, preparationOwner) {
+export function managedComputeSubmittedIntentCid(originals, originalComputeInstallation, body) {
   assertSourceManagedHostPreparation(originals);
   assertManagedComputePreparationCurrent(originalComputeInstallation, originals);
   const moon = originals.installation.projectRuntime;
@@ -735,15 +735,9 @@ export function managedComputeSubmittedIntentCid(originals, originalComputeInsta
     parameters: body.parameters,
     ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
     ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
-  let cid;
-  if (preparationOwner !== undefined) {
-    cid = checkedPreparation(moon,
-      moon.clientProgramPrepareClosedValuesSubmittedIntent(preparationOwner, wire));
-  } else {
-    const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
-    if (intent === undefined) throw clientOperationError('NodeManagedComputeIntentUnavailable');
-    cid = moon.clientSubmittedIntentCid(intent);
-  }
+  const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  if (intent === undefined) throw clientOperationError('NodeManagedComputeIntentUnavailable');
+  const cid = moon.clientSubmittedIntentCid(intent);
   assertSourceManagedHostPreparation(originals);
   assertManagedComputePreparationCurrent(originalComputeInstallation, originals);
   if (typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {

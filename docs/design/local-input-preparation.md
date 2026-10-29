@@ -2699,6 +2699,23 @@ This is an internal phase fence, not caller-supplied acceptance evidence.
 
 ## Selected native Request driver
 
+The normal Node Program entrance uses this Request for both omitted options
+and explicit options. It does not inspect the Program to select a closed numeric
+or ASCII body protocol. The existing SDK snapshot visits the original input once
+and grows this same parent before constructing its detached representation;
+Parameters, compound values and Unicode continue through their original native
+admission. The old Node shape scanner, phase selection, body/adoption/sever and
+submitted-intent bridge exports are retired together with that caller branch.
+No compatibility adapter recreates that phase from a Request.
+
+The publication owner still uses its existing typed preparation-capacity issue
+and projection. Retiring the Node input-phase exports does not retire that
+publication obligation or the separate Core/Native closed-input controllers.
+SQL/AQL parsing and lowerer controllers retain their own existing Request APIs;
+connecting their normal terminal, captured/Effect Plan and physical Host
+continuations remains a distinct caller obligation. A generic input snapshot
+alone does not establish those completed connections.
+
 The generic Native Program caller uses its original detached snapshot, Request
 receipt and Environment. The fixed Common entry selects its immutable standard
 syntax/check/compiler configuration and drives the existing Source index,
@@ -2741,6 +2758,17 @@ request and prepared aliases only behind the original Core retirement fence.
 The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
+
+### Original Request accounting observations
+
+The existing finalization observer reads scalar Ledger and reservation DATA
+through the same Request, including after its typed body continuation and
+retirement. Continuation shares the original reservation; the observer does not
+retain a second preparation or reconstruct a token from limits. It delegates to
+the existing preparation-capacity accounting projection without an external
+current callback, mutation, resize, permission or physical-cleanup assertion.
+Published output holdings and completed constructor scratch remain separately
+observable; a retired input phase is not required to inspect them.
 
 ### Original compilation at Task admission
 

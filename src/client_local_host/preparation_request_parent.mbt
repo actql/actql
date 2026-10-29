@@ -807,3 +807,13 @@ fn[I] make_closed_values_preparation(
   value.original = Some(value)
   value
 }
+
+///|
+/// Read-only scalar diagnostics of this Request's SAME Ledger and reservation.
+/// The typed body continuation shares that reservation; observing it neither
+/// checks currentness nor grants, resizes, settles or restores any resource.
+pub fn[I] request_preparation_accounting(
+  owner : ClientRequestPreparation[I],
+) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
+  @resources.preparation_capacity_accounting(owner.capacity)
+}
