@@ -2,6 +2,7 @@ import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginRe
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
@@ -387,7 +388,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.preparing = true;
           try {
             if (state.compilationKind === undefined) {
-              state.compilationKind = checked(moon.clientProgramPrepareRequestNativeComputation(
+              state.compilationKind = checkedRequestProgramPreparation(moon, moon.clientProgramPrepareRequestNativeComputation(
                 state.parent, producer.receipt, producer.body.input, producer.body.parameters,
                 environment, state.context.preparedEnvironment));
             }

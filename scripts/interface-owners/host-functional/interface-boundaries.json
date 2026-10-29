@@ -18850,10 +18850,11 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "23ba6058318a34984d339018de4b2c0228f3fece036741ca1db75f26ea214ed9",
+      "sha256": "5be38f428f9f2f0021bf9925a48e7c70036c2cfc0e2a0fd5ef56b6b252758245",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
+        "checkedRequestProgramPreparation",
         "installNodeClientEffectProgramPreparation",
         "installNodeClientProgramPreparation"
       ],
@@ -18862,6 +18863,14 @@
           "name": "<anonymous>",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedRequestProgramPreparation",
+          "parameters": [
+            "moon",
+            "result"
           ],
           "async": false
         },
@@ -19125,11 +19134,13 @@
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
             "serializeProgram",
-            "installNodeClientProgramPreparation/prepareFunded/prepareFunded"
+            "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
+            "checkedRequestProgramPreparation"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
-            "installNodeClientProgramPreparation"
+            "installNodeClientProgramPreparation",
+            "checkedRequestProgramPreparation"
           ],
           "attributes": {
             "responsibility": [
@@ -19172,6 +19183,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "inputsOutputs": [
@@ -19218,6 +19233,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "identity": [
@@ -19264,6 +19283,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "ownership": [
@@ -19314,6 +19337,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "synchronization": [
@@ -19360,6 +19387,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "failure": [
@@ -19406,6 +19437,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "cancellation": [
@@ -19444,6 +19479,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "resources": [
@@ -19490,6 +19529,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "extension": [
@@ -19536,6 +19579,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "verification": [
@@ -19586,6 +19633,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ]
           }
@@ -19885,6 +19936,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./public-source-preparation.mjs"
       ],
@@ -76634,7 +76686,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "75343512d2cfcc1c55ff636433d689d25fb26d31cf9fdd6c0ec6c6e4dd45eb70",
+      "sha256": "7f3b1a8e71f48ce2d5fe80f78308d90dd4d1f04f2bd18a10f0d36fd0d5a145c2",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77163,6 +77215,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/closed-values-preparation-adapter.mjs",
+        "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "node:fs/promises"

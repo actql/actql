@@ -501,3 +501,41 @@ test('normal generic Native Request retains an undefined foreign failure without
     assert.equal(constructors,1);
   }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
 });
+
+
+test('normal generic Native Request projects its retained typed refusal once without a second compiler', async () => {
+  // Real manager/ordinary Resource lifecycle, explicit nominal Core result ports.
+  // These categories must be selected by Core, never reconstructed from JS tags.
+  for (const [category,code] of [
+    ['program_syntax','ClientProgramInvalidInput'],
+    ['check_invalid_input','ClientProgramInvalidInput'],
+    ['supplied_admission','ClientParametersInvalid'],
+    ['needs_inputs','ClientProgramNeedsInputs'],
+    ['source_unresolved','ClientProgramRejected'],
+    [undefined,'MoonBitHostFailure'],
+  ]) {
+    const f=await fixture(),moon=f.context.runtime,request={};
+    const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+    const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+    f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+    const issue=Object.freeze({}),result=Object.freeze({$tag:0,_0:issue});
+    let constructors=0,projections=0,originalFailure;
+    moon.clientProgramPrepareRequestNativeComputation=function(parent,original){
+      assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+      constructors++;return result;
+    };
+    moon.clientProgramRequestPreparationIssueCode=function(original){
+      assert.equal(this,moon);assert.equal(original,result);projections++;return category;
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody=()=>assert.fail('No Plan after typed refusal');
+    try {
+      await assert.rejects(f.view.fundedPreparation(request,undefined),error=>{
+        assert.equal(error.code,code);assert.equal(error.cause,issue);originalFailure=error;return true;
+      });
+      await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===originalFailure);
+      assert.equal(constructors,1);assert.equal(projections,1);
+    } finally {f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});

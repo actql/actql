@@ -155,6 +155,8 @@ pub fn completion_free_inventory_matches(CompletionFreeInventory, EffectProgramS
 
 pub fn completion_free_inventory_work(CompletionFreeInventory) -> Int
 
+pub fn construction_failure_diagnostic(LocalConstructionFailure) -> CheckDiagnostic
+
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
 pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format, DiagnosticLocation)?
@@ -670,6 +672,8 @@ pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[P
 pub fn prepare_source_catalog_with_contents_limits(CheckEnvironment, SourceCatalogLimits, @check_environment.Limits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
 pub fn prepare_template_declarations(@stage_syntax.Program, CheckEnvironment, CheckLimits, source_preparation? : @stage_parameters.Source?) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure]
+
+pub fn program_input_diagnostic(@stage_syntax.SyntaxError) -> CheckDiagnostic
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 

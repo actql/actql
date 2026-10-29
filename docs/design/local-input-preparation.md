@@ -2714,3 +2714,28 @@ the same full lowering rather than preparing another equal sequence. Acquisition
 Model and Content prefixes select different ranges and remain on their original
 constructors; a full sequence is not a substitute for such a prefix. A different
 Program, row-limit view or changed limit cannot borrow the earlier entry.
+
+
+### Original Request refusal projection
+
+The native Request driver retains its first nominal terminal Result. Its bridge
+projects a semantic refusal through the same existing Program or Effect issue
+projection used by the document caller. A rejected checker verdict retains its
+original diagnostic; missing inputs retain their original NeedsInputs outcome.
+Program and Parameter admission failures preserve their existing categories.
+The projection reads DATA only: it does not parse, check, compile, invoke a
+getter or observe currentness again.
+
+The normal manager asks for that category once, retains the original issue as
+the exception cause and keeps the same failure on subsequent preparation reads.
+The selected funded SDK entry continues to reject without entering its legacy
+serializer or independent check fallback. No reason is inferred from JavaScript
+constructor names, exception messages or the absence of a Prepared value.
+Foreign identity, phase, Resource, capacity and installation exceptions are not
+semantic input refusals and retain their original uncertain Host failure.
+
+This category is not an audience-bound Check observation or a permission to
+disclose protected Source information. The existing submission/disclosure owner
+must still establish the actual audience and original input binding. It cannot
+replace that obligation with a generic error-code whitelist or treat an
+uncertain Host exception as known nonacceptance.
