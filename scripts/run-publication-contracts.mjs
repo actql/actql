@@ -198,7 +198,7 @@ export function correctedEffectReviewContracts(registry) {
   return next;
 }
 
-export function effectRowOutcomeReceiptSchema(outcome) {
+export function httpEffectRowOutcomeReceiptSchema(outcome) {
   return {
     type: 'object',
     additionalProperties: false,
@@ -232,6 +232,59 @@ export function effectRowOutcomeReceiptSchema(outcome) {
       receipt_cid: clone(cid),
     },
   };
+}
+
+function localUpdateOutcomes(outcome) {
+  const applied = clone(outcome.oneOf.find(branch => branch.properties?.state?.const === 'applied'));
+  delete applied.properties.action;
+  const conflict = clone(outcome.oneOf.find(branch => branch.properties?.state?.const === 'failed'));
+  conflict.properties.error.properties.code = {const: 'conflict'};
+  return {applied, conflict};
+}
+
+export function effectLocalOperationReceiptSchema(outcome) {
+  const {applied, conflict} = localUpdateOutcomes(outcome);
+  const identities = ['effect_preview_cid', 'effect_member_preview_cid', 'row_preview_cid',
+    'installation_cid', 'target_cid', 'canonical_request_cid', 'dispatch_entry_cid',
+    'authorization_use_cid', 'approval_use_cid', 'target_version_cid', 'typed_outcome_cid', 'receipt_cid'];
+  return {type: 'object', additionalProperties: false,
+    required: ['version', ...identities, 'backend_kind', 'operation_kind',
+      'commit_status', 'observed_version_cid', 'typed_outcome'],
+    properties: {version: {const: 'actql-local-effect-operation-receipt/0.1'},
+      ...Object.fromEntries(identities.map(name => [name, clone(cid)])),
+      backend_kind: {const: 'sqlite'}, operation_kind: {const: 'update'},
+      commit_status: {enum: ['committed', 'conflict']},
+      observed_version_cid: {oneOf: [clone(cid), {type: 'null'}]},
+      typed_outcome: {oneOf: [applied, conflict]}},
+    oneOf: [
+      {properties: {commit_status: {const: 'committed'}, observed_version_cid: clone(cid), typed_outcome: applied}},
+      {properties: {commit_status: {const: 'conflict'}, typed_outcome: conflict}},
+    ]};
+}
+
+export function effectRowOutcomeReceiptSchema(outcome) {
+  const http = httpEffectRowOutcomeReceiptSchema(outcome);
+  const local = clone(http);
+  local.required = local.required.filter(name => !['credential_use_cid', 'http_status_code'].includes(name));
+  delete local.properties.credential_use_cid;
+  delete local.properties.http_status_code;
+  local.required.push('response_kind', 'local_operation_receipt_cid');
+  local.properties.response_kind = {const: 'local_operation'};
+  local.properties.local_operation_receipt_cid = clone(cid);
+  const {applied, conflict} = localUpdateOutcomes(outcome);
+  local.properties.typed_outcome = {oneOf: [applied, conflict]};
+  return {oneOf: [http, local]};
+}
+
+export function correctedLocalEffectOutcomeContracts(registry) {
+  const next = clone(registry);
+  next.artifact_schemas.effect_row_outcome_receipt = effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
+  next.artifact_schemas.effect_local_operation_receipt = effectLocalOperationReceiptSchema(next.schemas.effect_outcome);
+  for (const name of ['effect_row_outcome_receipt', 'effect_local_operation_receipt']) {
+    next.artifact_schema_cids[name] = machineCid(next.artifact_schemas[name]);
+  }
+  next.artifact_registry_cid = machineCid(next.artifact_schemas);
+  return next;
 }
 
 export function effectApplyReceiptSchema() {
@@ -555,6 +608,8 @@ export function correctedContracts(registry, cli) {
   next.artifact_schemas.run_state = state;
   next.artifact_schemas.effect_row_outcome_receipt =
     effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
+  next.artifact_schemas.effect_local_operation_receipt =
+    effectLocalOperationReceiptSchema(next.schemas.effect_outcome);
   next.artifact_schemas.effect_apply_receipt = effectApplyReceiptSchema();
   next.artifact_schemas.effect_set_apply_receipt =
     effectSetApplyReceiptSchema(next.artifact_schemas.effect_set_apply_receipt);
@@ -689,7 +744,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const read = path => JSON.parse(readFileSync(path, 'utf8'));
   const registry = read(registryPath);
   const cli = read(cliPath);
-  if (process.argv.includes('--review-only')) {
+  if (process.argv.includes('--local-effect-only')) {
+    const next = correctedLocalEffectOutcomeContracts(registry);
+    if (process.argv.includes('--write')) writeFileSync(registryPath, JSON.stringify(next, null, 2) + '\n');
+    else assert.deepEqual(registry, next, 'Local Effect outcome schemas are stale');
+  } else if (process.argv.includes('--review-only')) {
     const next = correctedEffectReviewContracts(registry);
     if (process.argv.includes('--write')) {
       writeFileSync(registryPath, JSON.stringify(next, null, 2) + '\n');
@@ -704,7 +763,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   } else {
     checkContracts(registry, cli);
   }
-  if (!process.argv.includes('--review-only')) {
+  if (!process.argv.includes('--review-only') && !process.argv.includes('--local-effect-only')) {
     for (const [path, expected] of [
       [cliReceiptPath, cliResultDeliveryReceiptFileSchema(read(registryPath))],
       [cliVerificationPath, cliOutputVerificationSchema()],
@@ -713,7 +772,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       else assert.deepEqual(read(path), expected, `CLI receipt container/report is stale: ${path}`);
     }
   }
-  console.log(process.argv.includes('--review-only')
+  console.log(process.argv.includes('--local-effect-only')
+    ? 'Local Effect outcome evidence 0.1 schemas verified; unrelated publication/CLI contracts not checked.'
+    : process.argv.includes('--review-only')
     ? 'Effect Preview/review 0.1 schemas verified; unrelated publication/CLI contracts not checked.'
     : 'Run publication 0.1 schemas and embeddings verified.');
 }

@@ -75,6 +75,155 @@ function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
   return {installation, path, write, providerPath, selection};
 }
 
+function npmFixture(t) {
+  const f = fixture(t);
+  f.configuration.modules = [f.modules[0], f.modules[2]];
+  f.mod(2, ['actql/actql@0.0.1']);
+  f.connector = join(f.root, 'npm-connector');
+  const h = hostFixture(f, ['source']);
+  delete h.installation.providerBundle;
+  rmSync(dirname(h.providerPath), {recursive: true});
+  h.write();
+  const pin = {name: '@actql-connectors/numeric', version: '1.2.3', root: f.connector};
+  const metadata = {name: pin.name, version: pin.version, type: 'module',
+    peerDependencies: {'@actql/local-node': '0.0.1'}};
+  const packagePath = join(f.connector, 'package.json');
+  const writePackage = (value = metadata) => f.put(packagePath, JSON.stringify(value));
+  f.put(join(f.modules[0].root, 'packages/local-node/package.json'),
+    JSON.stringify({name: '@actql/local-node', version: '0.0.1'}));
+  writePackage();
+  f.configuration.packages = [pin];
+  f.configuration.connectors = [{name: 'numeric', package: pin.name,
+    directory: 'src/connectors/numeric'}];
+  return {...f, h, pin, metadata, packagePath, writePackage};
+}
+
+test('npm-only Source resolves exact pinned ownership without a MoonBit contribution', t => {
+  const f = npmFixture(t), resolved = resolveConnectorBuildInputs(f.configuration);
+  const owner = resolved.modules.find(value => value.namespace === f.pin.name);
+  assert.deepEqual(owner, {namespace: f.pin.name, version: '1.2.3', root: f.connector,
+    source: '.', sourceRoot: f.connector, dependencies: {}, kind: 'npm'});
+  assert.deepEqual(resolved.modules.map(value => value.namespace),
+    ['actql/actql', 'example/host', f.pin.name]);
+  const [entry] = resolved.hostEntries;
+  assert.equal(entry.namespace, f.pin.name);
+  assert.equal(entry.root, f.connector);
+  assert.equal(entry.sourceRoot, f.connector);
+  assert.equal(entry.revision, 'numeric/0.1');
+  assert.equal(entry.source.modulePath, join(f.connector, f.h.installation.source.module));
+  assert.equal(entry.effect, undefined);
+  assert.equal(entry.providerBundle, undefined);
+  assert.equal(entry.providerPackagePath, undefined);
+  assert.deepEqual(resolved.computeEntries, []);
+  assert.deepEqual(resolved.nodeEntries, []);
+  assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved}), resolved.hostEntries);
+  assert.ok(Object.isFrozen(owner.dependencies));
+  assert.ok(Object.isFrozen(entry.source.exports));
+  f.writePackage({...f.metadata, version: '9.9.9'});
+  f.h.write({...f.h.installation, revision: 'numeric/0.2'});
+  assert.equal(owner.version, '1.2.3');
+  assert.equal(entry.revision, 'numeric/0.1');
+});
+
+test('npm-only pins require exact package and sole original Host peer identities', t => {
+  const f = npmFixture(t);
+  for (const change of [
+    {name: '@actql-connectors/other'}, {version: '1.2.4'}, {type: 'commonjs'},
+    {peerDependencies: {}}, {peerDependencies: {'@actql/local-node': '^0.0.1'}},
+    {peerDependencies: {'@actql/local-node': '0.0.1', hidden: '1.0.0'}},
+    {dependencies: {}}, {scripts: {}},
+  ]) {
+    f.writePackage({...f.metadata, ...change});
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration),
+      /npm Connector identity or Host dependency mismatch/, JSON.stringify(change));
+  }
+  f.writePackage();
+  for (const change of [{name: 'unscoped'}, {version: '^1.2.3'}, {root: './relative'}]) {
+    assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+      packages: [{...f.pin, ...change}]}), /Invalid explicit npm Connector pin/);
+  }
+  f.put(join(f.modules[0].root, 'packages/local-node/package.json'),
+    JSON.stringify({name: '@actql/local-node', version: '0.0.2'}));
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Host dependency mismatch/);
+});
+
+test('npm-only ownership refuses overlapping roots ambiguous selectors and npm Hosts', t => {
+  const f = npmFixture(t), selection = f.configuration.connectors[0];
+  for (const root of [f.modules[0].root, f.modules[2].root,
+    join(f.modules[2].root, 'nested'), f.root]) {
+    assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+      packages: [{...f.pin, root}]}), /overlapping npm Connector ownership/);
+  }
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+    packages: [f.pin, f.pin]}), /overlapping npm Connector ownership/);
+  for (const selected of [
+    {...selection, module: 'example/numeric'},
+    {name: 'numeric', module: f.pin.name, directory: selection.directory},
+    {...selection, package: 'example/host'}, {...selection, package: '@absent/connector'},
+  ]) assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+    connectors: [selected]}), /Invalid or duplicate Connector selection/);
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration, host: f.pin.name}),
+    /separate explicit Host module and Core/);
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+    connectors: [{...selection, revision: 'numeric/0.2'}]}), /Host Connector identity mismatch/);
+});
+
+test('npm-only Source refuses MoonBit metadata and Compute Node or provider contributions', t => {
+  const f = npmFixture(t);
+  for (const name of ['moon.mod', 'moon.mod.json']) {
+    const path = join(f.connector, name);
+    f.put(path, '{}');
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration),
+      /Ambiguous npm and MoonBit Connector ownership/);
+    rmSync(path);
+  }
+  for (const name of ['compute', 'node']) {
+    const path = join(f.connector, 'src/connectors/numeric', `${name}-bundle.json`);
+    f.put(path, '{}');
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration),
+      /npm-only Connector cannot select a MoonBit contribution/);
+    rmSync(path);
+  }
+  f.h.write({...f.h.installation, providerBundle: 'connectors/numeric/host_node'});
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration),
+    /npm-only Connector cannot select a MoonBit contribution/);
+});
+
+test('npm-only package roots metadata and adapter paths retain alias and escape refusals', t => {
+  const f = npmFixture(t), rootAlias = join(f.root, 'npm-alias');
+  symlinkSync(f.connector, rootAlias, 'dir');
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+    packages: [{...f.pin, root: rootAlias}]}), /aliased or nonregular build input/);
+  const originalPackage = join(f.root, 'original-package.json');
+  f.put(originalPackage, readFileSync(f.packagePath));
+  rmSync(f.packagePath); symlinkSync(originalPackage, f.packagePath);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /aliased or nonregular build input/);
+  rmSync(f.packagePath); f.writePackage();
+  const adapter = join(f.connector, f.h.installation.source.module);
+  const originalAdapter = join(f.root, 'original-source.mjs');
+  f.put(originalAdapter, readFileSync(adapter));
+  rmSync(adapter); symlinkSync(originalAdapter, adapter);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /aliased or nonregular build input/);
+  rmSync(adapter); f.put(adapter, readFileSync(originalAdapter));
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+    connectors: [{...f.configuration.connectors[0], directory: '../host'}]}), /relative path/);
+});
+
+test('compiler standard-library imports remain toolchain-owned and explicit shadow pins refuse', t => {
+  const f = fixture(t), path = join(f.connector, 'src/driver/moon.pkg');
+  f.put(path, 'supported_targets = "js"\nimport { "actql/actql/connector_sdk", ' +
+    '"moonbitlang/core/array", }\n');
+  assert.equal(resolveConnectorBuildInputs(f.configuration)
+    .resolvePackage('example/numeric/driver'), path);
+  for (const namespace of ['moonbitlang/core', 'moonbitlang/core/array']) {
+    const root = join(f.root, 'compiler-shadow');
+    f.put(join(root, 'moon.mod'), `name = "${namespace}"\nversion = "0.0.1"\n`);
+    assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+      modules: [...f.modules, {namespace, version: '0.0.1', root}]}),
+    /Compiler standard library cannot be supplied or shadowed/);
+  }
+});
+
 test('shared reviewed module options preserve both consumers and original module identity', t => {
   const f = fixture(t), core = f.modules[0].root;
   const modulePath = join(core, 'moon.mod'), original = readFileSync(modulePath, 'utf8');
