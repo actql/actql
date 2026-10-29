@@ -59,8 +59,8 @@ function fixture(family,pages,{limits={},names=columns[family],status=200,consum
       delivered.push(...rows);consume?.(rows);}};
   const factory=createInstalledCredentialSourceReader({capacity:{},site,operation,
     maxResponses:bounded.maxPages,maxResponseBytes:bounded.maxResponseBytes,maxSecretBytes:64,
-    preparePageReader({columns:selected}){return (family === 'notion' ? prepareNotionUserListPages
-      :prepareCalendarListPages)({moon,names:selected,limits:bounded});}});
+    preparePageReader({columns:selected},applySynchronousProjection){return (family === 'notion' ? prepareNotionUserListPages
+      :prepareCalendarListPages)({moon,names:selected,limits:bounded},applySynchronousProjection);}});
   const reader=factory.prepare(callbacks);
   return {reader,requests,events,delivered,moon,bounded,callbacks,
     notCurrent(){live=false;},bytes:bodies.reduce((n,b)=>n+BigInt(b.length),0n)};

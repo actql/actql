@@ -156,7 +156,7 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
     const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:NOTION_USER_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
-      preparePageReader:({columns})=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound})});
+      preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
     const reader=factory.prepare({resource:'users',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,

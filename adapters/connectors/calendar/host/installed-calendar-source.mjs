@@ -122,9 +122,9 @@ export async function loadInstalledCalendarSource(profile,{root,principalId,moon
       providerReader:createInstalledCredentialSourceReader({capacity:readerCapacity,site,
         operation:CALENDAR_LIST_OPERATION,maxResponses:limits.maxPages,
         maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
-        preparePageReader({resource:selected,columns}){
+        preparePageReader({resource:selected,columns},applySynchronousProjection){
           if(selected!==resource)fail('UndeclaredCalendarResource');
-          return prepareCalendarListPages({moon:provider,names:columns,limits});
+          return prepareCalendarListPages({moon:provider,names:columns,limits},applySynchronousProjection);
         }})});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }

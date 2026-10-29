@@ -149,7 +149,7 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
     const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
     const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:CALENDAR_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
-      preparePageReader:({columns})=>prepareCalendarListPages({moon:selected.moon,names:columns,limits:bound})});
+      preparePageReader:({columns},applySynchronousProjection)=>prepareCalendarListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
     const reader=factory.prepare({resource:'calendars',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(CALENDAR_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:CALENDAR_LIST_OPERATION,index}):selected.authorizationFor,

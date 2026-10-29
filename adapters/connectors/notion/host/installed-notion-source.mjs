@@ -116,9 +116,9 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
       providerReader:createInstalledCredentialSourceReader({capacity:readerCapacity,site,
         operation:NOTION_USER_LIST_OPERATION,maxResponses:limits.maxPages,
         maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
-        preparePageReader({resource:selected,columns}){
+        preparePageReader({resource:selected,columns},applySynchronousProjection){
           if(selected!==resource)fail('UndeclaredNotionResource');
-          return prepareNotionUserListPages({moon:provider,names:columns,limits});
+          return prepareNotionUserListPages({moon:provider,names:columns,limits},applySynchronousProjection);
         }})});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }

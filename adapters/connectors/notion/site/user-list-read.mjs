@@ -22,12 +22,13 @@ export class NotionUserListReadFailure extends Error {
   }
 }
 
-export function prepareNotionUserListPages({moon, names, limits}) {
+export function prepareNotionUserListPages({moon, names, limits}, applySynchronousProjection) {
   if (!Array.isArray(names) || !limits || typeof limits !== 'object') fail('InvalidNotionUserListRead');
+  if (typeof applySynchronousProjection !== 'function') fail('InvalidNotionUserListRead');
   const provider = Object.freeze(Object.fromEntries(providerExports.map(name => {
     const original = moon?.[name];
     if (typeof original !== 'function') fail('InvalidNotionUserListRead');
-    return [name, (...args) => Reflect.apply(original, moon, args)];
+    return [name, (...args) => applySynchronousProjection(original, moon, args)];
   })));
   const bound = Object.freeze({...limits});
   if (!limitFields.every(name => positive(bound[name])) || bound.pageSize > 100) fail('InvalidNotionUserListRead');

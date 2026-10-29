@@ -18,13 +18,14 @@ export class CalendarListReadFailure extends Error {
   }
 }
 
-export function prepareCalendarListPages({moon, names, limits}) {
+export function prepareCalendarListPages({moon, names, limits}, applySynchronousProjection) {
   if (!Array.isArray(names) || new Set(names).size !== names.length ||
       !limits || typeof limits !== 'object') fail('InvalidCalendarListRead');
+  if (typeof applySynchronousProjection !== 'function') fail('InvalidCalendarListRead');
   const provider = Object.freeze(Object.fromEntries(providerExports.map(name => {
     const original = moon?.[name];
     if (typeof original !== 'function') fail('InvalidCalendarListRead');
-    return [name, (...args) => Reflect.apply(original, moon, args)];
+    return [name, (...args) => applySynchronousProjection(original, moon, args)];
   })));
   const bound = Object.freeze({...limits});
   if (!limitFields.every(key => positive(bound[key])) || bound.perPage > 250 ||
