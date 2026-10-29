@@ -52,9 +52,10 @@ for (const deferred of [false, true]) {
         assert.notEqual(original(value), value, 'Ingress owns its admitted derivative');
         assert.throws(() => original({...value}), {code: 'InstalledHostPreparationChanged'});
         aliases.push(value); probes++;
-        // A static read has no submitted producer, so ordinary preparation
-        // continues without claiming that it obtained managed Run funding.
-        return undefined;
+        // Explicit original preparation port; this fixture issues no Resource
+        // admission or public Run and cannot claim normal static-plan funding.
+        return {kind:'effect_free',prepared:checkedProgram,
+          originalInputs:{environment:selected,parameters:undefined}};
       }});
     const plan = installClientStaticPlan({moon, prepare, authorize: () => current,
       control: {readCheckedClientStaticPlan(value) {
