@@ -13,7 +13,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
-import {prepareGitHubCommentRequest, sendGitHubIssueComment,
+import {prepareGitHubCommentRequest, prepareGitHubCommentLogicalRequest,
+  finalizeGitHubCommentRequest, GITHUB_COMMENT_STAMP_RECIPE, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
@@ -193,7 +194,7 @@ function selectedWrite(path, ports) {
 // Actual provider factories and the complete changed normal-caller declaration,
 // with explicit native codec/check/classifier DATA ports. No Common, Account,
 // grant issuer, real provider or normal installed execution is substituted.
-test('GitHub normal declaration keeps original GraphQL request, sender envelope and read-before-write check', async () => {
+test('GitHub normal declaration keeps marked GraphQL request, sender envelope and read-before-write check', async () => {
   const providerMoon = {githubAddCommentRequestJson: (subject, body) => JSON.stringify({body: JSON.stringify({subject, body})}),
     githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
     githubResponseHeadersJson: () => '["x-ratelimit-remaining"]'};
@@ -202,7 +203,8 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
     GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
     site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
-    prepareGitHubCommentRequest, commentValue: (_resource, value) => value,
+    prepareGitHubCommentRequest, prepareGitHubCommentLogicalRequest, finalizeGitHubCommentRequest,
+    GITHUB_COMMENT_STAMP_RECIPE, commentValue: (_resource, value) => value,
     fail: code => {throw Object.assign(new Error(code), {code});},
     checkGitHubCommentSubject(context) {checks++; assert.equal(context.repository, repository); return 'checked';},
     projectGitHubCommentObservation: () => ({kind: 'typed-success-response'}),
@@ -210,9 +212,14 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   });
   const driver = deriveInstalledRowWrite(write, 'github');
   const value = {body: 'original comment', subject_id: 'I_original'};
-  const prepared = driver.prepareRequest({member, value});
-  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id, body: value.body});
-  assert.deepEqual(prepared.request, old); assert.equal(prepared.requestCid, old.requestCid);
+  const tag = `sha256:${'d'.repeat(64)}`;
+  const logical = driver.prepareRequest({member, value,
+    createRowIdentity: {content_cid: providerCid, occurrence: 0}});
+  const prepared = await driver[standardWriteStamp].finalize(logical.request, tag);
+  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id,
+    body: value.body + '\n\n<!-- actql:effect:' + tag + ' -->'});
+  assert.deepEqual(prepared.request, {...old, logicalBody: value.body, requestTag: tag});
+  assert.equal(prepared.requestCid, old.requestCid);
   assert.equal(driver.requestFacts(prepared.request).value, value);
   assert.equal(driver.checkRequest({request: prepared.request}), 'checked'); assert.equal(checks, 1);
   const calls = [], context = {request: prepared.request, authorization: authorization(GITHUB_COMMENT_CREATE_OPERATION),
@@ -669,4 +676,90 @@ test('GitHub standard declaration forwards original logical request and late sta
   assert.equal(finalized, 1); assert.equal(result.requestCid, boundaryCid);
   assert.equal(result.request.requestTag, tag); assert.equal(result.request.logicalBody, '');
   assert.equal(driver.requestFacts(result.request).value, value);
+});
+
+// Actual normal declaration, A's original provider helpers and the enclosing
+// RSE late-finalization/recovery helpers. The encoder, original key getter,
+// Account/current/Plan and repository read are explicit component ports.
+// This is not an actual Common DispatchKey, funded Host or physical claim.
+test('GitHub normal stamped declaration finalizes original key bytes and restores without encoding', async () => {
+  let encoded = 0, checks = 0;
+  const providerMoon = {githubAddCommentRequestJson(subjectId, body) {
+    encoded++;
+    return JSON.stringify({body: JSON.stringify({subjectId, body})});
+  }, githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
+  githubResponseHeadersJson: () => '["x-ratelimit-remaining"]'};
+  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository'});
+  const selectedMember = Object.freeze({kind: 'create', resource: 'issue_comments', mapping: {mappingCid: boundaryCid}});
+  const value = Object.freeze({subject_id: 'I_original', body: ''});
+  const identity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  const key = Object.freeze({}), tag = `sha256:${'e'.repeat(64)}`;
+  const githubSource = readFileSync(new URL('../connectors/github/host/installed-github-effect.mjs', import.meta.url), 'utf8');
+  const githubTree = parse(githubSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const originalFunction = name => {const node = githubTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert.ok(node); return githubSource.slice(node.start, node.end);};
+  const keysNode = githubTree.body.flatMap(node => node.declarations ?? []).find(node => node.id.name === 'sameKeys').init;
+  const originalValue = Function(`const sameKeys = ${githubSource.slice(keysNode.start, keysNode.end)};
+    const fail = code => {throw Object.assign(new Error(code), {code});}; return (${originalFunction('commentValue')});`)();
+  const originalOutcome = Function(`return (${originalFunction('commentOutcome')});`)();
+  const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+    GITHUB_COMMENT_STAMP_RECIPE, prepareGitHubCommentLogicalRequest, finalizeGitHubCommentRequest,
+    prepareGitHubCommentRequest, site, repository, boundaryCid, providerMoon,
+    commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
+    commentValue: originalValue,
+    fail: code => {throw Object.assign(new Error(code), {code});},
+    checkGitHubCommentSubject(context) {checks++; assert.equal(context.repository, repository);
+      assert.equal(context.subjectId, value.subject_id); return 'checked';},
+    projectGitHubCommentObservation: ({observation}) => ({kind: 'typed-success-response', observation,
+      result: {commentId: 123, nodeId: 'IC_original'}}),
+    commentOutcome: originalOutcome,
+  });
+  const driver = deriveInstalledRowWrite(write, 'github');
+  const logical = driver.prepareRequest({member: selectedMember, value, createRowIdentity: identity});
+  assert.equal(encoded, 0, 'logical Preview preparation cannot encode physical marked bytes');
+  assert.equal(logical.request.logicalBody, '');
+  assert.equal(Object.hasOwn(logical.request, 'body'), false);
+  assert.equal(Object.hasOwn(logical.request, 'requestCid'), false);
+  assert.equal(driver.checkRequest({request: logical.request}), 'checked');
+  assert.equal(checks, 1, 'published repository verification remains an independent read');
+  const owner = {owned: driver, connectorRegistration: 'github', connectorRevision: 'github/0.1',
+    runtimeBundleCid: providerCid, bindingCid: boundaryCid, connection: 'github:original'};
+  const ports = {standardWriteStamp, ownerOf: original => {assert.equal(original, selectedMember); return owner;},
+    fail: code => {throw Object.assign(new Error(code), {code});}, canonicalValueJson,
+    cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); return tag;}}};
+  const rows = Object.freeze([Object.freeze([Object.freeze({...logical, value, target: undefined})])]);
+  const entries = await stampedRowClosure('finalizeRequests', ports)({members: [selectedMember],
+    entries: rows, keys: [[key]], assertCurrent() {}});
+  assert.equal(encoded, 1);
+  const request = entries[0][0].request;
+  assert.deepEqual(JSON.parse(request.body), {subjectId: value.subject_id,
+    body: '\n\n<!-- actql:effect:' + tag + ' -->'});
+  assert.equal(request.logicalBody, ''); assert.equal(request.requestTag, tag);
+  assert.equal(request.subjectId, value.subject_id); assert.equal(request.path, '/graphql');
+  const hash = createHash('sha256');
+  for (const part of ['actql-github-comment-create-request/0.1', origin, 'POST', '/graphql', request.body]) {
+    const bytes = Buffer.from(part); hash.update(`${bytes.byteLength}:`); hash.update(bytes);
+  }
+  assert.equal(request.requestCid, `sha256:${hash.digest('hex')}`);
+  assert.notEqual(request.requestCid, logical.requestCid);
+  assert.equal(entries[0][0].requestCid, request.requestCid);
+  const rowCid = `sha256:${'c'.repeat(64)}`;
+  const body = {effects: [{changes: [{row_preview_cid: rowCid,
+    target_row_identity: identity, after: {value}}], row_order: [rowCid]}]};
+  const durable = {connectorRecovery: [{memberIndex: 0,
+    ...driver.recoveryEntry({member: selectedMember, entries: entries[0]})}]};
+  const coldDriver = deriveInstalledRowWrite(write, 'github');
+  const coldOwner = {...owner, owned: coldDriver};
+  const coldPorts = {...ports, ownerOf: () => coldOwner, singular: coldOwner, resourceFields: () => ({})};
+  const restored = stampedRowClosure('recoveredEntries', coldPorts)({members: [selectedMember], body, durable,
+    recorded: {members: [{claims: [{canonicalRequestCid: request.requestCid}]}]}, previewWire: 'admitted Preview port',
+    runInvocationCid: providerCid, dispatches: [boundaryCid], keys: [[key]]}).entries[0][0];
+  assert.equal(encoded, 1, 'cold must restore complete final bytes without preparing or finalizing');
+  assert.deepEqual(restored.request, request); assert.equal(restored.requestCid, request.requestCid);
+  assert.deepEqual(coldDriver.requestFacts(restored.request).value, value);
+  const classified = coldDriver.project({request: restored.request, observation: response});
+  assert.equal(classified.kind, 'provider-response'); assert.equal(Object.hasOwn(classified, 'outcome'), false);
+  assert.equal(classified.providerEvidence.kind, 'CreatedComment');
 });
