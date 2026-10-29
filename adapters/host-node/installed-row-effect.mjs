@@ -390,6 +390,8 @@ function requireSynchronousEffectResource(value) {
 }
 
 // Standard CREATE plumbing for the SAME Row Effect, not another lifecycle.
+const standardWriteStamp = Symbol('installed-row-write-stamp');
+
 function deriveInstalledRowWrite(write, connectorRegistration) {
   const fail = () => { throw Object.assign(new TypeError('InvalidInstalledRowWrite'),
     {code: 'InvalidInstalledRowWrite'}); };
@@ -473,7 +475,32 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     state.active.delete(value);
     return Object.freeze(value);
   }
-  function bindRequest(request, resource, value, expectedCid) {
+  const stamp = data(write, 'stamp', true);
+  let stampRecipe, finalize;
+  if (stamp !== undefined) {
+    if (stamp === null || typeof stamp !== 'object' || nodeTypes.isProxy(stamp) ||
+        Reflect.ownKeys(stamp).length !== 2) fail();
+    stampRecipe = data(stamp, 'recipe');
+    finalize = data(stamp, 'finalize');
+    if (!stampRecipe || typeof stampRecipe !== 'object' || typeof finalize !== 'function' ||
+        nodeTypes.isAsyncFunction(finalize)) fail();
+    freezeRequestData(stampRecipe);
+    if (Buffer.byteLength(JSON.stringify(stampRecipe)) > localContractLimits.maxWireBytes) fail();
+    Object.freeze(stamp);
+  }
+  function bindLogicalRequest(request, resource, value, identity) {
+    if (!identity || typeof identity !== 'object' || Reflect.ownKeys(identity).length !== 2 ||
+        !cid(data(identity, 'content_cid')) || !Number.isSafeInteger(data(identity, 'occurrence')) ||
+        identity.occurrence < 0 || identity.occurrence > 2147483647 || originals.has(request) ||
+        data(request, 'origin') !== origin || data(request, 'method') !== method || data(request, 'path') !== path ||
+        ['body', 'requestCid', 'requestTag', 'headers', 'query'].some(name =>
+          Object.getOwnPropertyDescriptor(request, name) !== undefined)) fail();
+    freezeRequestData(request);
+    const logicalPayloadCid = identity.content_cid;
+    originals.set(request, Object.freeze({resource, value, requestCid: logicalPayloadCid, logicalPayloadCid}));
+    return Object.freeze({request, requestCid: logicalPayloadCid});
+  }
+  function bindRequest(request, resource, value, expectedCid, stampData) {
     if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
         data(request, 'then', true) !== undefined || originals.has(request)) fail();
     const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
@@ -495,15 +522,15 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       exact.headers, exact.body])).digest('hex')}`;
     if (expectedCid !== undefined && expectedCid !== requestCid) fail();
     freezeRequestData(request);
-    originals.set(request, Object.freeze({resource, value, exact, requestCid}));
+    originals.set(request, Object.freeze({resource, value, exact, requestCid, ...stampData}));
     return Object.freeze({request, requestCid});
   }
   const recoveryKind = 'standard_row_write';
   const recoveryBinding = resource => [connectorRegistration, resourceKind,
     boundaryCid, operation, origin, method, path, headers, responseHeaders,
-    maxRequestBytes, maxResponseBytes, resource];
+    maxRequestBytes, maxResponseBytes, resource, ...(stamp === undefined ? [] : [stampRecipe])];
   const wireCid = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
-  function restoreMembers({durable, members}, indexes) {
+  function restoreMembers({durable, members, body, requestTags}, indexes) {
     if (!Array.isArray(durable?.connectorRecovery)) fail();
     return {requests: indexes.map(index => {
       const member = members[index];
@@ -518,10 +545,17 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
           JSON.stringify(envelope) !== saved[0].wire ||
           JSON.stringify(envelope[0]) !== JSON.stringify(recoveryBinding(member.resource)) ||
           !Array.isArray(envelope[1])) fail();
-      return envelope[1].map(row => {
-        if (!Array.isArray(row) || row.length !== 3 || !cid(row[0]) ||
+      return envelope[1].map((row, rowIndex) => {
+        if (!Array.isArray(row) || row.length !== (stamp === undefined ? 3 : 5) || !cid(row[0]) ||
             row[1] === null || typeof row[1] !== 'object') fail();
-        return bindRequest(row[2], member.resource, row[1], row[0]).request;
+        let stampData;
+        if (stamp !== undefined) {
+          if (!cid(row[3]) || !cid(row[4]) || requestTags?.[index]?.[rowIndex] !== row[4] ||
+              body?.effects?.[index]?.changes?.[rowIndex]?.target_row_identity?.content_cid !== row[3] ||
+              data(row[2], 'requestTag') !== row[4]) fail();
+          stampData = {logicalPayloadCid: row[3], requestTag: row[4]};
+        }
+        return bindRequest(row[2], member.resource, row[1], row[0], stampData).request;
       });
     })};
   }
@@ -535,8 +569,45 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       const resource = context.member.resource;
       const value = freezeInput(context.value);
       const request = Reflect.apply(map, write, [Object.freeze({resource, value})]);
-      return bindRequest(request, resource, value);
+      return stamp === undefined ? bindRequest(request, resource, value)
+        : bindLogicalRequest(request, resource, value, context.createRowIdentity);
     },
+    ...(stamp === undefined ? {} : {[standardWriteStamp]: Object.freeze({
+      recipe: stampRecipe,
+      logicalPayloadCid: request => original(request).logicalPayloadCid,
+      async finalize(request, requestTag) {
+        const selected = original(request);
+        if (!cid(requestTag)) fail();
+        if (selected.requestTag !== undefined) {
+          if (selected.requestTag !== requestTag) fail();
+          return Object.freeze({request, requestCid: selected.requestCid});
+        }
+        if (selected.finalized !== undefined) {
+          if (original(selected.finalized.request).requestTag !== requestTag) fail();
+          return selected.finalized;
+        }
+        const physical = Reflect.apply(finalize, stamp, [Object.freeze({request, requestTag})]);
+        const then = physical !== null && ['object', 'function'].includes(typeof physical)
+          ? Reflect.get(physical, 'then') : undefined;
+        if (typeof then === 'function') {
+          // Join an invalid async borrow under the SAME capture await. It
+          // remains invalid after either settlement; no detached cleanup ACK.
+          try { await new Promise((resolve, reject) => Reflect.apply(then, physical, [resolve, reject])); }
+          catch { /* Settlement only; the callback is still not synchronous. */ }
+          fail();
+        }
+        freezeRequestData(physical);
+        if (data(physical, 'requestTag') !== requestTag || data(physical, 'body') === undefined) fail();
+        for (const key of Object.keys(request)) {
+          if (JSON.stringify(data(physical, key)) !== JSON.stringify(data(request, key))) fail();
+        }
+        const prepared = bindRequest(physical, selected.resource, selected.value, undefined,
+          {logicalPayloadCid: selected.logicalPayloadCid, requestTag});
+        if (prepared.requestCid === selected.logicalPayloadCid) fail();
+        originals.set(request, Object.freeze({...selected, finalized: prepared}));
+        return prepared;
+      },
+    })}),
     requestCid: request => original(request).requestCid,
     recoveryEntry({member, entries}) {
       if (member?.kind !== 'create' || !text(member.resource) || !Array.isArray(entries)) fail();
@@ -545,7 +616,9 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         const selected = original(entry.request);
         if (selected.resource !== member.resource || entry.requestCid !== selected.requestCid ||
             entry.value !== selected.value) fail();
-        return [selected.requestCid, selected.value, entry.request];
+        if (stamp !== undefined && !cid(selected.requestTag)) fail();
+        return [selected.requestCid, selected.value, entry.request,
+          ...(stamp === undefined ? [] : [selected.logicalPayloadCid, selected.requestTag])];
       });
       freezeRequestData([bindingValue, selectedRows]);
       const binding = JSON.stringify(bindingValue);
@@ -567,7 +640,8 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     },
     requestFacts(request) { return {value: original(request).value}; },
     async send({request, authorization, credential, callResource, signal}) {
-      const {exact} = original(request);
+      const selected = original(request), {exact} = selected;
+      if (stamp !== undefined && selected.requestTag === undefined) fail();
       if (authorization?.scope?.resourceOrigin !== origin) fail();
       signal?.throwIfAborted();
       const response = await invokeScopedCredentialOperation({authorization, credential,
@@ -822,6 +896,7 @@ export function retainInstalledRowEffectAdapter(original, projection) {
 }
 
 function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
+  const hasStampedWrites = owners.some(owner => owner.owned[standardWriteStamp] !== undefined);
   // Common runtime, Ledger location and limits were independently compared for
   // every retained owner before a composed stage can be constructed.
   const {moon, ledgerRoot} = owners[0];
@@ -857,7 +932,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const originals = new Map();
     for (const member of members) {
       const owner = ownerOf(member);
-      if (owner.resources === undefined) continue;
+      if (owner.resources === undefined) {
+        if (owner.owned[standardWriteStamp] !== undefined) fail('InstalledEffectResourcesUnavailable');
+        continue;
+      }
       if (!originals.has(owner)) {
         const original = requireSynchronousEffectResource(owner.resources.bindRunOriginal(facts));
         if (original === null || typeof original !== 'object') {
@@ -1042,6 +1120,27 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
+  const finalizeRequests = async ({members, entries, keys, assertCurrent}) => {
+    const finalized = [];
+    for (const [memberIndex, member] of members.entries()) {
+      const stamp = ownerOf(member).owned[standardWriteStamp];
+      if (stamp === undefined) { finalized.push(entries[memberIndex]); continue; }
+      if (!Array.isArray(keys?.[memberIndex]) || keys[memberIndex].length !== entries[memberIndex].length) {
+        fail('InvalidInstalledRowEffectStamp');
+      }
+      const rows = [];
+      for (const [rowIndex, entry] of entries[memberIndex].entries()) {
+        assertCurrent?.();
+        const requestTag = effect.dispatchKeyCid(keys[memberIndex][rowIndex]);
+        const prepared = await stamp.finalize(entry.request, requestTag);
+        assertCurrent?.();
+        rows.push(requestEntry(member, {value: entry.value, selector: entry.target}, prepared));
+      }
+      finalized.push(Object.freeze(rows));
+    }
+    return Object.freeze(finalized);
+  };
+
   // The common sealed capability of an installation whose driver issues
   // none: its runtime, connection and Mapping, and the exact requests.
   const commonCapability = (member, entries) => {
@@ -1057,7 +1156,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
       operation: owned.writeOperation(member),
       route: 'single_serial', idempotency: 'unavailable',
-      request_cids: entries.map(entry => entry.requestCid)}),
+      ...(owned[standardWriteStamp] === undefined ? {request_cids: entries.map(entry => entry.requestCid)} : {
+        stamp_recipe: owned[standardWriteStamp].recipe,
+        business_payload_cids: entries.map(entry => owned[standardWriteStamp].logicalPayloadCid(entry.request))})}),
     route: 'single_serial'});
   };
 
@@ -1884,17 +1985,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         entry, state: observed[row].state, versionCid: observed[row].versionCid,
         before: observed[row].before}))));
     }
-    const entries = Object.freeze(rowsOf.map(rows =>
+    const logicalEntries = Object.freeze(rowsOf.map(rows =>
       Object.freeze(rows.map(row => row.entry))));
     // Every create row passes the provider check before a Preview.
-    await checkRows({members, entries, runInvocationCid, dispatches,
+    await checkRows({members, entries: logicalEntries, runInvocationCid, dispatches,
       subjectOf: member => checkSubject(runInvocationCid, member), signal, assertCurrent});
     assertCurrent?.();
     const capabilities = members.map((member, index) => admitCapability(
-      member, entries[index], currents[index], runInvocationCid,
+      member, logicalEntries[index], currents[index], runInvocationCid,
       dispatches[index]));
     const footprints = members.map((member, index) =>
-      footprintOf(member, entries[index]));
+      footprintOf(member, logicalEntries[index]));
     if (sourceSet.dependencies !== undefined) {
       retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
         store, storedResults, control, runDefinition: plan.runDefinition});
@@ -1909,11 +2010,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const body = JSON.parse(preview.wire);
     // The admitted Preview must state exactly the rows its requests write.
     body.effects.forEach((member, index) => {
-      if (member.changes.length !== entries[index].length ||
+      if (member.changes.length !== logicalEntries[index].length ||
           member.changes.some((change, row) =>
-            !sameEffectValue(members[index].kind, approvedValue(members[index].kind, change), entries[index][row].value) ||
+            !sameEffectValue(members[index].kind, approvedValue(members[index].kind, change), logicalEntries[index][row].value) ||
             (targeted(members[index].kind) && !sameValue(
-              change.target_row_identity, entries[index][row].target)))) {
+              change.target_row_identity, logicalEntries[index][row].target)))) {
         fail('InstalledRowEffectPreviewOrderMismatch');
       }
     });
@@ -1922,6 +2023,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const admittedPreview = control.admitEffectComputationPreview(
       preview.wire, plan.runDefinition, authoringContext,
       plan.contractLimits);
+    const entries = hasStampedWrites ? await finalizeRequests({members, entries: logicalEntries,
+      keys: preview.keys, assertCurrent}) : logicalEntries;
     const holdings = await preparePinnedEffectSourceHoldings({
       sources: sourceSet, store, control, preview: admittedPreview,
       invocation: plan.invocation,
@@ -2138,10 +2241,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // exactly the request its durable claim names, the value the Preview
   // approved and, for an update, the Preview's target.
   const recoveredEntries = ({members, body, durable, recorded,
-    previewWire, runInvocationCid, dispatches}) => {
+    previewWire, runInvocationCid, dispatches, keys}) => {
+    const requestTags = members.some(member => ownerOf(member).owned[standardWriteStamp] !== undefined)
+      ? members.map((member, index) => ownerOf(member).owned[standardWriteStamp] === undefined ? undefined
+        : keys[index].map(key => effect.dispatchKeyCid(key))) : undefined;
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
       singular.owned.recoverRequests({durable, recorded, previewWire, body,
         members, runInvocationCid, dispatches,
+        ...(requestTags === undefined ? {} : {requestTags}),
         ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
     const usesRecovery = members.map(() => rebuilt !== undefined);
@@ -2154,6 +2261,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         if (memberIndexes.length === 0) continue;
         const recovered = owner.owned.recoverMemberRequests({durable, recorded,
           previewWire, body, memberIndexes, members, runInvocationCid, dispatches,
+          ...(owner.owned[standardWriteStamp] === undefined ? {} : {requestTags}),
           ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
             recovered.requests.length !== memberIndexes.length ||
@@ -2318,7 +2426,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         maxWork: limits.maxWork});
       assertCurrent?.();
       const {entries, currents} = recoveredEntries({members, body, durable,
-        recorded, previewWire, runInvocationCid, dispatches});
+        recorded, previewWire, runInvocationCid, dispatches, keys});
       assertCurrent?.();
       const finish = () => {
         // The installation as loaded now must issue and admit the same
