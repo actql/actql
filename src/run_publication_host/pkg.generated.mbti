@@ -1642,6 +1642,10 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedCl
 
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
+pub fn measure_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFactGeometry, ClientPublicationPlanFactIssue]
+
+pub fn measure_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnessGeometry, ClientPublicationWitnessIssue]
+
 pub fn measure_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[(Int, Int, Int), ClientResultPlanIssue]
 
 pub fn measure_prepared_client_task_fragment_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[((Int, Int, Int), (Int, Int, Int), (Int, Int, Int)), ClientTaskFragmentIssue]
@@ -3563,6 +3567,12 @@ pub(all) enum ClientPublicationLimitSetIssue {
   MissingLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ClientPublicationPlanFactGeometry {
+  limits : Array[(Int, Int, Int)]
+  bindings : Array[(Int, Int, Int)]
+  entries : Array[(Int, Int, Int)]
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationPlanFactIssue {
   Limits(ClientPublicationLimitSetIssue)
   Bindings(ClientPublicationBindingSetIssue)
@@ -3581,6 +3591,13 @@ pub(all) enum ClientPublicationStoreBindingIssue {
 pub(all) enum ClientPublicationWitnessAdmissionIssue {
   Issue(ClientPublicationWitnessIssue)
   MismatchedWitnesses
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientPublicationWitnessGeometry {
+  bodies : Array[(Int, Int, Int)]
+  occurrences : Int64
+  emitted_bytes : Int64
+  emitted_nodes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientPublicationWitnessIssue {

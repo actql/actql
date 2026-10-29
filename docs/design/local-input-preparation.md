@@ -2835,6 +2835,30 @@ workspace/work and all concurrently live schema, graph, fact, witness, template,
 bindings, protocol, wire and parsed representations before construction.
 
 
+### Checked publication construction input
+
+Publication construction geometry follows the original checked Unit, Result
+port and row/byte scope order. Resolved limits use the capacity owner's retained
+measurement. Bindings share the real argument projection, exact subject/unit/
+enforcement checks and body serializer; a not-yet-issued identity contributes
+only its fixed encoded SHA-256 extent to a measuring writer. No representative
+CID, wire, parser output or binding evidence is created for this purpose.
+
+Witness measurement and issuance share the same original claim traversal,
+deduplication order and finite identity bound. Geometry retains each distinct
+body's extent once while recording all emitter occurrences and their total
+encoded byte/value-node dimensions, including repeated bodies. These totals
+describe that emission work, not complete compiler work or process CPU. The
+actual issuer still compares full bodies for an equal CID, and saved admission
+still compares the complete original inventory. Equal geometry is not identity
+or semantic admission.
+
+These variable-size arrays and measurement traversal also require backing on
+the same Request before allocation. Their extents are inputs to the complete
+compilation overlap quote, not a reservation themselves. Ordinary issuance does
+not perform a second measurement pass or accept measured facts in place of its
+original checked Program, claims, contracts or manifests.
+
 ### Original Task pipeline construction input
 
 The initial Task pipeline writer has one field definition shared by text output

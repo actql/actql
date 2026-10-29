@@ -6,7 +6,7 @@ pub(all) enum ClientPublicationBindingIssue {
 } derive(Eq, Debug)
 
 ///|
-fn emit_client_publication_binding(
+fn[C] emit_client_publication_binding(
   writer : @encode.Writer,
   unit_definition_cid : String,
   result_name : String,
@@ -14,12 +14,13 @@ fn emit_client_publication_binding(
   subject : String,
   effective_max : Int64,
   resolved_limit_cid : String,
-  binding_cid : String?,
+  binding_cid : C?,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   if binding_cid is Some(cid) {
     @encode.key(writer, "binding_cid")
-    @encode.string_value(writer, cid)
+    emit_cid(cid, writer)
   }
   @encode.key(writer, "effective_max")
   @encode.number_value(writer, effective_max.to_double())
@@ -77,6 +78,83 @@ fn emit_client_publication_binding_material(
   (String, ClientPublicationBindingFields?),
   ClientPublicationBindingIssue,
 ] {
+  let (
+    unit_definition_cid,
+    result_name,
+    measure,
+    subject,
+    effective_max,
+    resolved_limit_cid,
+  ) = match client_publication_binding_arguments(value, unit, index, scope) {
+    Ok(fields) => fields
+    Err(issue) => return Err(issue)
+  }
+  let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  emit_client_publication_binding(
+    hash,
+    unit_definition_cid,
+    result_name,
+    measure,
+    subject,
+    effective_max,
+    resolved_limit_cid,
+    None,
+    (value, writer) => @encode.string_value(writer, value),
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  let binding_cid = "sha256:" +
+    (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  emit_client_publication_binding(
+    writer,
+    unit_definition_cid,
+    result_name,
+    measure,
+    subject,
+    effective_max,
+    resolved_limit_cid,
+    Some(binding_cid),
+    (value, writer) => @encode.string_value(writer, value),
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  // Preserve the saved reader's exact safe-integer domain. A wider Int64 can
+  // be rendered as a Number, but cannot supply admitted binding fields.
+  let fields : ClientPublicationBindingFields? = @scalar.read_safe_integer(
+    effective_max.to_double(),
+  ).map(decoded_max => {
+    binding_cid,
+    effective_max: decoded_max,
+    resolved_limit_cid,
+    subject_ref: subject,
+    kind: "result_publication",
+    measure,
+    result_name,
+    unit_definition_cid,
+    unit: measure,
+    version: "actql-execution-limit-binding/0.1",
+  })
+  Ok((body, fields))
+}
+
+///|
+// Same typed input and exact subject checks for the real writer and its
+// construction measurement. This creates neither a binding CID nor authority.
+fn client_publication_binding_arguments(
+  value : PreparedClientProgram,
+  unit : Int,
+  index : Int,
+  scope : ClientPublicationLimitScope,
+) -> Result[
+  (String, String, String, String, Int64, String),
+  ClientPublicationBindingIssue,
+] {
   let program = @strategy.graph_program(value.graph)
   guard @checked.unit_publication_at(program, unit, index) is Some(publication) &&
     @checked.unit_definition_cid(program, unit) is Some(unit_definition_cid) else {
@@ -102,54 +180,9 @@ fn emit_client_publication_binding_material(
   }
   let effective_max = @arithmetic.minimum_value(@capacity.limit_minimum(claim))
   let resolved_limit_cid = @capacity.limit_cid(claim)
-  let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  emit_client_publication_binding(
-    hash,
-    unit_definition_cid,
-    result_name,
-    measure,
-    subject,
-    effective_max,
-    resolved_limit_cid,
-    None,
-  ) catch {
-    _ => return Err(Encoding)
-  }
-  let binding_cid = "sha256:" +
-    (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  emit_client_publication_binding(
-    writer,
-    unit_definition_cid,
-    result_name,
-    measure,
-    subject,
-    effective_max,
-    resolved_limit_cid,
-    Some(binding_cid),
-  ) catch {
-    _ => return Err(Encoding)
-  }
-  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
-  // Preserve the saved reader's exact safe-integer domain. A wider Int64 can
-  // be rendered as a Number, but cannot supply admitted binding fields.
-  let fields : ClientPublicationBindingFields? = @scalar.read_safe_integer(
-    effective_max.to_double(),
-  ).map(decoded_max => {
-    binding_cid,
-    effective_max: decoded_max,
-    resolved_limit_cid,
-    subject_ref: subject,
-    kind: "result_publication",
-    measure,
-    result_name,
-    unit_definition_cid,
-    unit: measure,
-    version: "actql-execution-limit-binding/0.1",
-  })
-  Ok((body, fields))
+  Ok(
+    (
+      unit_definition_cid, result_name, measure, subject, effective_max, resolved_limit_cid,
+    ),
+  )
 }
