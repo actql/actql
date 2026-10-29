@@ -814,17 +814,6 @@ pub fn client_program_closed_values_submitted_intent_original(
 }
 
 ///|
-#export_name("clientProgramClosedValuesCompilationOriginal")
-pub fn client_program_closed_values_compilation_original(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  prepared : @publication_host.PreparedClientProgram,
-) -> @publication_host.ClientValuesCompilation? {
-  @client_local_host.closed_values_compilation_original(owner, prepared)
-}
-
-///|
 #export_name("strategyCapturedRunPreparationLimits")
 pub fn strategy_captured_run_preparation_limits(
   original : @publication.CapturedRunIssuancePreparation,

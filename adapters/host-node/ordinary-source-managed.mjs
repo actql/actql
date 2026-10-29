@@ -460,7 +460,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined || state.prepared !== prepared || state.holder === undefined || !state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
-      const original = state.context.runtime.clientProgramClosedValuesCompilationOriginal(state.phase, prepared);
+      if (run.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
+      const original = state.context.runtime.clientProgramInstalledManagedRunCompilationOriginal(run.value, prepared);
       if (original === undefined) fail('NodeManagedRunCompilationUnavailable');
       return original;
     },

@@ -13,7 +13,9 @@ extern "js" fn closed_module_test_original(
   #|}
 
 ///|
-fn closed_module_fixture() -> (
+fn closed_module_fixture(
+  current? : () -> Unit = () => (),
+) -> (
   ClientClosedValuesPreparation[Array[Int]],
   @resources.Ledger,
   @checked.CheckEnvironment,
@@ -37,7 +39,7 @@ fn closed_module_fixture() -> (
         limits.execution_bytes,
       ]
     },
-    () => (),
+    current,
   )
   let initial = @resources.prepare_node_local_preparation_admission(
     original, input,

@@ -770,6 +770,61 @@ pub fn client_program_issue_task_compiled_run(
 }
 
 ///|
+/// Borrow from the actual same-owner Run/Plan, never a ClosedValues phase.
+#export_name("clientProgramInstalledManagedRunCompilationOriginal")
+pub fn client_program_installed_managed_run_compilation_original(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.ClientRunCompilation? {
+  @client_local_host.installed_managed_run_compilation_original(run, prepared)
+}
+
+///|
+/// The existing closed compilation sum preserves its actual Values type.
+/// A foreign owner or wrong variant refuses in the original issuer; there is
+/// no recompile, identity cast or admission from an equal serialized body.
+#export_name("clientProgramIssueOriginalValuesCompiledRun")
+pub fn client_program_issue_original_values_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientRunCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  match original {
+    Values(compilation) =>
+      @publication_host.issue_client_values_compiled_run(
+        prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+      )
+    _ => Err(ForeignOwner)
+  }
+}
+
+///|
+#export_name("clientProgramIssueOriginalTaskCompiledRun")
+pub fn client_program_issue_original_task_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientRunCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  match original {
+    Tasks(compilation) =>
+      @publication_host.issue_client_task_compiled_run(
+        prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+      )
+    _ => Err(ForeignOwner)
+  }
+}
+
+///|
 #export_name("clientProgramCompiledRunTemplate")
 pub fn client_program_compiled_run_template(
   value : @publication_host.ClientCompiledRun,

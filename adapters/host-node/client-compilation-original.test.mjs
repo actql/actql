@@ -13,13 +13,14 @@ function method(file, name, context) {
 const failure=code=>Object.assign(new Error(code),{code});
 
 test('funded compilation getter borrows exact live driver original and never reconstructs missing artifacts',()=>{
- const prepared={},phase={},holder={},compilation={};
- const state={prepared,phase,holder,adopting:true,context:{runtime:{clientProgramClosedValuesCompilationOriginal(owner,p){assert.equal(owner,phase);assert.equal(p,prepared);return compilation;}}}};
- const run={producer:{preparation:state}};
+ const prepared={},parent={},value={},holder={},compilation={};
+ const state={prepared,parent,holder,adopting:true,context:{runtime:{clientProgramInstalledManagedRunCompilationOriginal(run,p){assert.equal(run,value);assert.equal(p,prepared);return compilation;}}}};
+ const run={value,producer:{preparation:state}};
  const get=method('./ordinary-source-managed.mjs','compilationOriginal',{runFor:p=>{assert.equal(p,prepared);return run;},fail:code=>{throw failure(code);}});
  assert.equal(get(prepared),compilation);
  state.holder=undefined;assert.throws(()=>get(prepared),{code:'ForeignInstalledSourceProducer'});state.holder=holder;
- state.context.runtime.clientProgramClosedValuesCompilationOriginal=()=>undefined;
+ run.value=undefined;assert.throws(()=>get(prepared),{code:'NodeManagedRunAdmissionUnavailable'});run.value=value;
+ state.context.runtime.clientProgramInstalledManagedRunCompilationOriginal=()=>undefined;
  assert.throws(()=>get(prepared),{code:'NodeManagedRunCompilationUnavailable'});
 });
 
@@ -39,7 +40,9 @@ test('Values admission consumes staged nominal compilation without invoking the 
  const prepared={},compilation={},issued={};let compiles=0,issues=0;
  const moon={clientProgramCompileLocalValues(){compiles++;return compilation;},
   clientProgramIssueValuesCompiledRun(p,c){issues++;assert.equal(p,prepared);if(c!==compilation)throw failure('ForeignOwner');return issued;},
-  clientProgramIssueTaskCompiledRun(){throw failure('ForeignOwner');}};
+  clientProgramIssueTaskCompiledRun(){throw failure('ForeignOwner');},
+  clientProgramIssueOriginalValuesCompiledRun(p,c){return this.clientProgramIssueValuesCompiledRun(p,c);},
+  clientProgramIssueOriginalTaskCompiledRun(){throw failure('ForeignOwner');}};
  for(const key of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+key]=()=>({});
  const compiledRunTokens=new WeakMap();
  const get=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens,serializationPlanTokens:new WeakMap(),compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,inspectAdmission:x=>x});
@@ -64,7 +67,8 @@ test('source-free Values passes its original and fixed installation warms compil
 test('staged Task admission uses the original artifact and leaves foreign refusal with its issuer',()=>{
  const prepared={},compilation={},issued={};let compiles=0,issues=0;
  const moon={clientProgramCompileLocalTasks(p){assert.equal(p,prepared);compiles++;return compilation;},
-  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignTaskCompilation');return issued;}};
+  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignTaskCompilation');return issued;},
+  clientProgramIssueOriginalTaskCompiledRun(p,c){return this.clientProgramIssueTaskCompiledRun(p,c);}};
  for(const key of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+key]=()=>({});
  const compiledRunTokens=new WeakMap();
  const get=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens,serializationPlanTokens:new WeakMap(),compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,inspectAdmission:x=>x});

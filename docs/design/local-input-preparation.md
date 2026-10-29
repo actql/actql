@@ -2739,3 +2739,33 @@ disclose protected Source information. The existing submission/disclosure owner
 must still establish the actual audience and original input binding. It cannot
 replace that obligation with a generic error-code whitelist or treat an
 uncertain Host exception as known nonacceptance.
+
+
+### Run-held original compilation
+
+The installed source-free Plan retains the existing ClientRunCompilation sum,
+whose Values or Tasks member is the actual compiler artifact. The already
+funded Values constructor binds its issued artifact to that same Plan before
+adoption. The Run retains the Plan and the original Prepared owner; its
+immutable getter reads that association directly. A generic Request has no
+ClosedValues phase and must never borrow a compilation from one.
+
+Typed Values and Task admission consume the corresponding original member and
+use the existing issuer's Prepared-owner binding. A wrong variant, foreign
+Prepared, missing Plan or retired Run payload refuses. It cannot invoke a
+compiler to rescue that missing original. Nonmigrated explicit compilation
+remains a separate caller until its own construction/lifetime is migrated.
+
+Reading the retained original performs no Resource/current callback, work debit
+or capacity recalculation. The existing Run payload-retirement fence blocks new
+reads before final physical cleanup. Existing operations must retain their own
+registered dependencies. A missing payload does not acknowledge physical stop;
+an equal CID, copied wrapper or prepared token cannot recreate its custody.
+
+The Plan reference and typed sum share the artifact body; they do not fund its
+construction. Every generic Values/Task constructor must reserve its real
+variable wire/tree/schema/metadata overlap on the original Request capacity
+before allocation, then bind that artifact to this Plan before completing and
+adopting the body. Neither the module quote nor an available codec ceiling is
+spare compiler backing, and a Plan with an absent artifact is not evidence of a
+funded compilation.
