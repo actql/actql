@@ -216,6 +216,7 @@ pub struct EffectSetApplyReceiptEvidence {
   priv receipt : PublicationContract
   priv disposition : Int
   priv all_unattempted : Bool
+  priv member_wire_usage : (Int, Int, Int)?
 }
 
 ///|
@@ -234,6 +235,7 @@ pub fn admit_effect_set_apply_receipt_evidence(
     return Err(MemberCountMismatch)
   }
   let receipts : Array[PublicationContract] = []
+  let mut member_wire_usage : (Int, Int, Int)? = Some((0, 0, 0))
   let members : Map[String, Int] = Map([])
   for index in 0..<count {
     let receipt = match
@@ -249,6 +251,11 @@ pub fn admit_effect_set_apply_receipt_evidence(
       Err(issue) => return Err(MemberReceipt(index, issue))
     }
     receipts.push(receipt)
+    member_wire_usage = match (member_wire_usage, receipt.wire_usage) {
+      (Some((b, n, d)), Some((bytes, nodes, depth))) =>
+        Some((Int::max(b, bytes), Int::max(n, nodes), Int::max(d, depth)))
+      _ => None
+    }
     let member_cid = effect_preview_member_identity(preview, index).unwrap()
     members[member_cid] = index
   }
@@ -326,7 +333,7 @@ pub fn admit_effect_set_apply_receipt_evidence(
       }
     }
   }
-  Ok({ receipt: set, disposition, all_unattempted, })
+  Ok({ receipt: set, disposition, all_unattempted, member_wire_usage, })
 }
 
 ///|
@@ -360,4 +367,33 @@ pub fn effect_set_receipt_run_disposition(
   admit_effect_set_apply_receipt_evidence(
     preview, set_wire, member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
   ).map(value => value.disposition)
+}
+
+///|
+/// Apply tighter wire limits to the same admitted Set and every member.
+/// These maxima came from the original final writers; no wire is parsed,
+/// hashed or retained again, and no permission or physical capacity is granted.
+pub fn effect_set_apply_receipt_check_limits(
+  value : EffectSetApplyReceiptEvidence,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  match
+    publication_contract_check_limits(
+      value.receipt,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard value.member_wire_usage is Some((bytes, nodes, depth)) else {
+    return Err(Encoding)
+  }
+  if bytes > max_wire_bytes || nodes > max_nodes || depth > max_depth {
+    return Err(Encoding)
+  }
+  Ok(())
 }
