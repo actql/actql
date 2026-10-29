@@ -9,10 +9,13 @@ pub fn client_values_host_admit_effect_preview_identity(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.EffectPreviewIdentity, @publication.EffectPreviewIdentityIssue] {
+) -> Result[
+  @publication.EffectPreviewIdentity,
+  @publication.EffectPreviewIdentityIssue,
+] {
   @publication.admit_effect_preview_identity(
-    preview_wire, expected_run_identity_cid, expected_authoring_context_cid,
-    max_wire_bytes, max_nodes, max_depth,
+    preview_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
   )
 }
 
@@ -30,7 +33,10 @@ pub fn client_values_host_issue_effectful_final_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.EffectfulFinalReceiptIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.EffectfulFinalReceiptIssuanceIssue,
+] {
   @publication.issue_effectful_final_run_receipt(
     run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
     member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
@@ -65,10 +71,26 @@ pub fn client_values_host_validate_effectful_publication_commit(
   max_depth : Int,
 ) -> Result[Unit, @publication.EffectfulPublicationCommitIssue] {
   @publication.validate_effectful_publication_commit_with_result_evidence(
-    run_definition, invocation, definitions, artifacts, derivations, orderings,
-    retentions, bindings, manifest, computation_receipt, captured_run, preview,
-    set_receipt_wire, member_receipt_wires,
-    @publication.publication_contract_json(final_receipt), request, attempt,
-    index_entry, max_wire_bytes, max_nodes, max_depth,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    bindings,
+    manifest,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    @publication.publication_contract_json(final_receipt),
+    request,
+    attempt,
+    index_entry,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   )
 }
