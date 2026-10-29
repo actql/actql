@@ -256,3 +256,43 @@ test "Pure provider tuple refuses foreign original request declaration and occur
   retire_installed_source_read(read).unwrap()
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "Pure provider read retains its original partial child when current replaces the selected capacity" {
+  let selected_plan : Ref[ClientInstalledManagedCapturePlan?] = Ref(None)
+  let replacement : Ref[ClientInstalledCaptureCapacity?] = Ref(None)
+  let (parent, owner, plan, declaration) = pure_provider_capture_fixture(current=() => {
+    if selected_plan.val is Some(original) && replacement.val is Some(other) {
+      original.captures[0] = other
+    }
+    true
+  })
+  let original = plan.captures[0]
+  let acquisition = original.acquisition.unwrap()
+  let (_, provider) = original.provider.unwrap()
+  replacement.val = installed_provider_row_capture_capacity(
+    acquisition,
+    Some(provider),
+  )
+  selected_plan.val = Some(plan)
+  assert_true(
+    begin_installed_managed_capture_source_read(
+      owner,
+      plan.prepared,
+      plan.request,
+      declaration,
+      0,
+    )
+    is Err(ForeignOriginal),
+  )
+  let retained = owner.reads[0].unwrap()
+  assert_true(
+    retained.acquisition is Some(held) && physical_equal(held, acquisition),
+  )
+  assert_true(retained.declaration is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  selected_plan.val = None
+  retire_installed_source_read(retained).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
