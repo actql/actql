@@ -1274,7 +1274,7 @@
     },
     {
       "module": "src/connectors/calendar/catalog/free_busy.mbt",
-      "sha256": "5e4a87bbfa7c0b14edb88c8aac1192b37f16e7c9648a6ee2889be990be0c9423",
+      "sha256": "291b31d64109a22501da2b20c25bb163d682a7fbb7d8f6ac437723031f3ec597",
       "exports": [],
       "operations": [
         {
