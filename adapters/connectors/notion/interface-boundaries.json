@@ -718,7 +718,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "570f1d2075aaf5fa993624c573027a9e8bb0ddd7081781a08e83e274ec32d4bd",
+      "sha256": "9a26f48c179f0c7704a3e1bf5c44375491aba4e5883fb2b76e7975215613491d",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
