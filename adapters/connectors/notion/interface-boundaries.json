@@ -167,7 +167,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "await Reflect.apply(chargePage, options, [response.body])"
+                "anchor": "await Reflect.apply(chargePage, selected, [response.body])"
               }
             ],
             "failure": [
@@ -218,6 +218,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders retire their same created reader before Site cleanup on construction failure"
               },
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
@@ -1686,7 +1690,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "ea295af04fb5abdec064229438813e7654b34d0ab8d1656ac0758eda6ef066c1",
+      "sha256": "a31e16d37050fc440da327bcb2b5aeef2b3eb81f252e8c8790628df4f4a7a1ea",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1942,13 +1946,13 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "await Reflect.apply(chargePage, options, [response.body])"
+                "anchor": "await Reflect.apply(chargePage, selected, [response.body])"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "retainInstalledHostInitializationFailure(cause,{sourceProfile:site})"
+                "anchor": "{sourceReader:providerReader,sourceProfile:site}"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
@@ -1993,6 +1997,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders retire their same created reader before Site cleanup on construction failure"
               },
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",

@@ -137,6 +137,10 @@ original read error, and retry performs no send or replacement-use acquisition.
 The existing RowRun separately controls capture and reservation release. No new
 reader Owner, Ledger, cleanup engine or GC/RSS receipt is introduced.
 
+If Source construction fails after the reader factory was created, the installed
+loader retains that same factory with its Site in the existing Host initialization
+cleanup. Its original retirement must complete before the Site can close.
+
 The actual physical counters use original Common SQL/AQL preparation, Account,
 signed Credential grants, SQLite claims, loopback TLS and canonical RowRun.
 Their independent component bounds do not qualify a normal reader supplier;

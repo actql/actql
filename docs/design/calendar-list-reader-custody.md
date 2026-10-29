@@ -67,6 +67,10 @@ original read error remains primary if physical close also fails. Retirement of
 managed aliases is not a GC/RSS proof, row completeness, permission, successful
 Run or resolution of an uncertain Credential use.
 
+If Source construction fails after the reader factory was created, the installed
+loader retains that same factory with its Site in the existing Host initialization
+cleanup. Its original retirement must complete before the Site can close.
+
 ## Ordinary installed calendars Source
 
 The Calendar-owned Host manifest registers the private
