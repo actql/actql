@@ -32,7 +32,13 @@ pub fn issue_prepared_client_serialization_compilation(
   }
   let material = match
     issue_prepared_client_execution_material_with_template(
-      owner, manifests, template, max_wire_bytes, max_nodes, max_depth,
+      owner,
+      manifests,
+      template,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      result_plans=component.graph.result_plans,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Material(issue))
@@ -49,6 +55,7 @@ pub fn issue_prepared_client_serialization_compilation(
       max_nodes,
       max_depth,
       required_profiles=profiles,
+      result_plans=component.graph.result_plans,
     ) {
     Ok(plan) => { plan, }
     Err(issue) => return Err(Plan(issue))

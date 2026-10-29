@@ -12,7 +12,7 @@ priv struct ClosedValuesExecutionPlanControlsLayout {
 ///|
 fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanControlsLayout? {
   // Fixed policy/cache records (H,R,W):
-  // ClientInstalledManagedSourceFreePreparation including contracts:1,9,3
+  // ClientInstalledManagedSourceFreePreparation including contracts:1,10,3
   // Pure owner and Some installed contracts:                         2,2,2
   // ClientLocalCapacityPlan16 fields +Some original graph:            2,13,5
   // LedgerLimits:                                                   1,0,6
@@ -27,11 +27,13 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   //                                                               2,4,3
   // Retained demand-inventory Some (underlying schema owner borrowed):1,1,1
   // The absent actual-module choice is an inline scalar tag, not a module.
-  // Sum24,41,74. ResourcePolicy and exact contract bodies remain borrowed.
+  // Original typed compilation sum+the Plan reference:               1,1,1
+  // The actual artifact payload is already owned by compilation, not copied.
+  // Sum25,43,75. ResourcePolicy and exact contract bodies remain borrowed.
   let records : @execution.PreparationRepresentationUnits = {
-    record_headers: 24L,
-    reference_slots: 41L,
-    scalar_words: 74L,
+    record_headers: 25L,
+    reference_slots: 43L,
+    scalar_words: 75L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

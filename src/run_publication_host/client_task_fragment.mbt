@@ -259,6 +259,102 @@ pub fn issue_prepared_client_task_fragment(
 }
 
 ///|
+/// Initial pipeline, projected pipeline upper extent and complete Task Fragment
+/// upper extent. This is sizing DATA only; original contract, identity, graph
+/// and reference admission still belong to the real issuer.
+pub fn measure_prepared_client_task_fragment_construction(
+  value : PreparedClientProgram,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ((Int, Int, Int), (Int, Int, Int), (Int, Int, Int)),
+  ClientTaskFragmentIssue,
+] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let (initial, pipeline) = match
+    measure_prepared_client_task_pipeline_construction(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(geometry) => geometry
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    client_task_output_target(value.graph, task) is Some(target) &&
+    client_task_target_port(@lower.bound_preparation(owner), target)
+    is Some(output_port) else {
+    return Err(MissingTask)
+  }
+  let selected = @strategy.graph_task_selected_step(value.graph, task)
+  let node_id = "task_" + task.to_string()
+  try {
+    let empty = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_object(empty)
+    @encode.end_object(empty)
+    let empty_pipeline = @encode.finish_measurement_usage(empty)
+    let header_writer = @encode.measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    match
+      emit_client_task_fragment_body(
+        owner,
+        selected,
+        node_id,
+        output_port,
+        empty_pipeline,
+        (),
+        (),
+        emit_client_task_pipeline_measurement,
+        measure_client_fragment_cid,
+        client_task_input_contract_measurement,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        header_writer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let header = @encode.finish_measurement_usage(header_writer)
+    let room = max_wire_bytes.to_int64() -
+      header.0.to_int64() +
+      empty_pipeline.0.to_int64()
+    let pipeline_upper = (
+      Int64::min(room, pipeline.0.to_int64()).to_int(),
+      pipeline.1,
+      pipeline.2,
+    )
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    match
+      emit_client_task_fragment_body(
+        owner,
+        selected,
+        node_id,
+        output_port,
+        pipeline_upper,
+        (),
+        (),
+        emit_client_task_pipeline_measurement,
+        measure_client_fragment_cid,
+        client_task_input_contract_measurement,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        writer,
+      ) {
+      Ok(_) => Ok((initial, pipeline, @encode.finish_measurement_usage(writer)))
+      Err(issue) => Err(issue)
+    }
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
 /// Seal only the pure prefix that supplies an Infer acquisition. This is
 /// adjacent computation, not an Infer Plan or an execution authorization.
 pub fn issue_prepared_client_infer_prefix_fragment(
@@ -478,6 +574,93 @@ fn issue_client_serialized_compute_fragment(
 }
 
 ///|
+fn client_task_input_contract_cid(
+  carrier : @carrier.Carrier,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String? {
+  client_task_carrier_contract(carrier, max_wire_bytes, max_nodes, max_depth).map(pair => {
+      pair.1
+    },
+  )
+}
+
+///|
+// This interpretation sizes only the existing CID representation. It does not
+// issue, hash or admit an input contract, nor promise a representable Carrier.
+fn client_task_input_contract_measurement(
+  _carrier : @carrier.Carrier,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Unit? {
+  Some(())
+}
+
+///|
+fn[P, C] emit_client_task_fragment_body(
+  owner : @lower.BoundPrepared,
+  selected : Int?,
+  node_id : String,
+  output_port : String,
+  pipeline : P,
+  logical_cid : C,
+  output_contract_cid : C,
+  emit_pipeline : (P, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  input_contract : (@carrier.Carrier, Int, Int, Int) -> C?,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  writer : @encode.Writer,
+) -> Result[Unit, ClientTaskFragmentIssue] raise @encode.EncodeFailure {
+  let prepared = @lower.bound_preparation(owner)
+  let checked = @lower.pipeline(prepared)
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_contracts")
+  @encode.begin_object(writer)
+  let input_count = if selected is Some(step) {
+    @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
+  } else {
+    @pipeline.input_count(checked)
+  }
+  for index in 0..<input_count {
+    let input = if selected is Some(step) {
+      @lower.node_at(prepared, step)
+      .bind(node => @lower.node_input_target(node, index))
+      .bind(target => @lower.preparation_carrier_at(prepared, target))
+      .map(carrier => ("input_" + index.to_string(), carrier))
+    } else {
+      @pipeline.input_at(checked, index)
+    }
+    guard input is Some((name, carrier)) &&
+      input_contract(carrier, max_wire_bytes, max_nodes, max_depth)
+      is Some(input_contract_cid) else {
+      return Err(UnsupportedCarrier)
+    }
+    @encode.key(writer, name)
+    emit_cid(input_contract_cid, writer)
+  }
+  @encode.end_object(writer)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "aoa_fragment")
+  @encode.key(writer, "logical_cid")
+  emit_cid(logical_cid, writer)
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, node_id)
+  @encode.key(writer, "output_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, output_port)
+  emit_cid(output_contract_cid, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "pipeline")
+  emit_pipeline(pipeline, writer)
+  @encode.end_object(writer)
+  Ok(())
+}
+
+///|
 fn issue_client_task_fragment_body(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -501,7 +684,6 @@ fn issue_client_task_fragment_body(
     _ => return Err(Encoding)
   }
   let prepared = @lower.bound_preparation(owner)
-  let checked = @lower.pipeline(prepared)
   guard client_task_target_port(prepared, target) is Some(output_port) &&
     @lower.preparation_carrier_at(prepared, target) is Some(output) else {
     return Err(MissingOutput)
@@ -538,48 +720,26 @@ fn issue_client_task_fragment_body(
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "input_contracts")
-    @encode.begin_object(writer)
-    let input_count = if selected is Some(step) {
-      @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
-    } else {
-      @pipeline.input_count(checked)
+    match
+      emit_client_task_fragment_body(
+        owner,
+        selected,
+        node_id,
+        output_port,
+        pipeline,
+        logical_cid,
+        output_contract_cid,
+        @canonical.emit_value,
+        (cid, out) => @encode.string_value(out, cid),
+        client_task_input_contract_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        writer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    for index in 0..<input_count {
-      let input = if selected is Some(step) {
-        @lower.node_at(prepared, step)
-        .bind(node => @lower.node_input_target(node, index))
-        .bind(target => @lower.preparation_carrier_at(prepared, target))
-        .map(carrier => ("input_" + index.to_string(), carrier))
-      } else {
-        @pipeline.input_at(checked, index)
-      }
-      guard input is Some((name, carrier)) &&
-        client_task_carrier_contract(
-          carrier, max_wire_bytes, max_nodes, max_depth,
-        )
-        is Some((_, input_contract_cid)) else {
-        return Err(UnsupportedCarrier)
-      }
-      @encode.key(writer, name)
-      @encode.string_value(writer, input_contract_cid)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "aoa_fragment")
-    @encode.key(writer, "logical_cid")
-    @encode.string_value(writer, logical_cid)
-    @encode.key(writer, "node_id")
-    @encode.string_value(writer, node_id)
-    @encode.key(writer, "output_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, output_port)
-    @encode.string_value(writer, output_contract_cid)
-    @encode.end_object(writer)
-    @encode.key(writer, "pipeline")
-    @canonical.emit_value(pipeline, writer)
-    @encode.end_object(writer)
     Ok({
       wire: @encode.finish(writer),
       node_id,

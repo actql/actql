@@ -46,6 +46,40 @@ pub fn issue_prepared_client_publication_witnesses(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientPublicationWitnesses, ClientPublicationWitnessIssue] {
+  collect_client_publication_witnesses(
+    value,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    witness => {
+      let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
+      }
+      @capacity.emit(witness, writer) catch {
+        _ => return Err(Encoding)
+      }
+      Ok(@encode.finish(writer)) catch {
+        _ => Err(Encoding)
+      }
+    },
+    (left, right) => left == right,
+  ).map(original => { bodies: original.0, cids: original.1, })
+}
+
+///|
+// Keep traversal, deduplication order and finite witness count in one place.
+// The actual issuer compares complete original bodies; geometry only compares
+// measurements and cannot substitute for that content/identity check.
+fn[T] collect_client_publication_witnesses(
+  value : PreparedClientProgram,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  emit : (@capacity.WireWitness) -> Result[T, ClientPublicationWitnessIssue],
+  same : (T, T) -> Bool,
+) -> Result[(Array[T], Array[String]), ClientPublicationWitnessIssue] {
   if max_witnesses <= 0 ||
     max_wire_bytes <= 0 ||
     max_nodes <= 0 ||
@@ -53,7 +87,7 @@ pub fn issue_prepared_client_publication_witnesses(
     return Err(InvalidLimits)
   }
   let program = @strategy.graph_program(value.graph)
-  let bodies : Array[String] = []
+  let bodies : Array[T] = []
   let cids : Array[String] = []
   for unit in 0..<@checked.unit_count(program) {
     guard @checked.unit_publication_count(program, unit) is Some(count) else {
@@ -75,13 +109,10 @@ pub fn issue_prepared_client_publication_witnesses(
             return Err(MissingPublication)
           }
           let cid = @capacity.cid(witness)
-          let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-            _ => return Err(Encoding)
+          let body = match emit(witness) {
+            Ok(body) => body
+            Err(issue) => return Err(issue)
           }
-          @capacity.emit(witness, writer) catch {
-            _ => return Err(Encoding)
-          }
-          let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
           let mut existing = -1
           for previous in 0..<cids.length() {
             if cids[previous] == cid {
@@ -89,7 +120,7 @@ pub fn issue_prepared_client_publication_witnesses(
             }
           }
           if existing >= 0 {
-            if bodies[existing] != body {
+            if !same(bodies[existing], body) {
               return Err(ConflictingWitness)
             }
           } else {
@@ -103,7 +134,7 @@ pub fn issue_prepared_client_publication_witnesses(
       }
     }
   }
-  Ok({ bodies, cids, })
+  Ok((bodies, cids))
 }
 
 ///|

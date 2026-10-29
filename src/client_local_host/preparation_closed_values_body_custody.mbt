@@ -154,21 +154,3 @@ pub fn[I] closed_values_preparation_accounting(
   }
   Ok(@resources.preparation_capacity_accounting(owner.capacity))
 }
-
-///|
-/// Borrow only the request-independent artifact staged by this original owner.
-/// A foreign or severed preparation cannot resurrect an artifact by identity.
-pub fn[I] closed_values_compilation_original(
-  owner : ClientClosedValuesPreparation[I],
-  prepared : @publication_host.PreparedClientProgram,
-) -> @publication_host.ClientValuesCompilation? {
-  guard owner.original is Some(original) &&
-    physical_equal(original, owner) &&
-    !owner.retiring &&
-    owner.body_ready &&
-    owner.prepared is Some(issued) &&
-    physical_equal(issued, prepared) else {
-    return None
-  }
-  owner.compilation
-}

@@ -551,6 +551,17 @@ bind that exact original review identity, Preview, authority scope, claims,
 Authoring Context and immutable redaction policy; a public shape or CID is not
 authority to apply or resume an Effect.
 
+The row Outcome Receipt has two closed response alternatives. The HTTP
+alternative retains its original credential-use, status and byte preimage.
+The local alternative has `response_kind: local_operation` and
+`local_operation_receipt_cid`, without HTTP or Credential fields. That identity
+selects the same SQLite backend's atomic original-operation receipt, binding
+installation, target, request, dispatch, authorization/approval use and version
+to the exact Preview row. Its physical SHA-256 addresses complete saved local
+receipt bytes; it does not replace either receipt's semantic self-CID. Only
+committed UPDATE or known conflict outcomes are local terminal evidence;
+uncertain COMMIT remains Unknown and cannot authorize a resend.
+
 <!-- requirement-block: effect-outcome-wire.upsert-action -->
 The `effect_row_outcome_receipt` for an applied upsert MUST include
 `typed_outcome.action` as `created` or `updated`, bound by `typed_outcome_cid`
@@ -870,7 +881,8 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:8b96ef58002bd3dcf7404fba1d692f1e5baf1b7decb54fc493756a08f8e825e1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:8b4147335ba233b174f0493e12ca98ce76a39ea7046b2d911653df8ad116e79c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_local_operation_receipt sha256:b02752bd4be29b22e064abf4ffb907332f5be4e58f8e0645d2bc12ef256c6bc5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62

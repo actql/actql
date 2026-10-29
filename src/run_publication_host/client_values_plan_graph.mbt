@@ -4,6 +4,7 @@
 pub struct ClientValuesPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
+  priv result_plans : Array[ClientResultPlanIdentity]
 }
 
 ///|
@@ -86,6 +87,7 @@ fn issue_prepared_client_values_plan_graph_parts(
   }
   let roots : Array[@canonical.CanonicalValue] = []
   let transformations : Array[ClientResultTransformation] = []
+  let result_plans : Array[ClientResultPlanIdentity] = []
   let nodes = [node]
   let edges : Array[@canonical.CanonicalValue] = []
   for result in 0..<@strategy.graph_result_count(graph) {
@@ -108,6 +110,7 @@ fn issue_prepared_client_values_plan_graph_parts(
       edges.push(edge)
     }
     roots.push(parts.root)
+    result_plans.push(parts.plan)
     if parts.selection is Some(selection) {
       transformations.push(selection)
     }
@@ -136,7 +139,13 @@ fn issue_prepared_client_values_plan_graph_parts(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok(({ wire: @encode.finish(writer), transformations, }, fragment, aoa))
+    Ok(
+      (
+        { wire: @encode.finish(writer), transformations, result_plans, },
+        fragment,
+        aoa,
+      ),
+    )
   } catch {
     _ => Err(Encoding)
   }

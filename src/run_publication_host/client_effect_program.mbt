@@ -54,6 +54,7 @@ fn client_effect_program_view(
     check_environment_cid: value.check_environment_cid,
     local_normalization: None,
     full_sequences: [],
+    task_pipeline_inputs: [],
   }
 }
 

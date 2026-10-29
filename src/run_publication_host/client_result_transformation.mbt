@@ -38,6 +38,18 @@ pub fn prepare_client_result_transformation(
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
+  prepare_client_result_transformation_from_plan(
+    owner, result, occurrence, plan,
+  )
+}
+
+///|
+fn prepare_client_result_transformation_from_plan(
+  owner : PreparedClientProgram,
+  result : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  plan : ClientResultPlanIdentity,
+) -> Result[ClientResultTransformation, ClientResultTransformationIssue] {
   let definition = match
     @publication.prepare_result_definition(
       prepared_client_identity(owner).program_definition_cid,
@@ -60,12 +72,33 @@ pub fn prepare_client_compiled_result_transformation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientResultTransformation, ClientResultTransformationIssue] {
-  prepare_client_result_transformation(
+  guard @strategy.graph_result_occurrence(compiled.owner.graph, result)
+    is Some(occurrence) else {
+    return Err(MissingResult)
+  }
+  let originals = match compiled.compilation {
+    Values(value) => value.plan.result_plans
+    Tasks(value) => value.plan.plan.result_plans
+    Effects(allowed) => allowed.compilation.compiled.plan.plan.result_plans
+  }
+  let plan = match
+    client_material_result_plan(
+      compiled.owner,
+      result,
+      originals,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      issue_prepared_client_result_plan,
+    ) {
+    Ok(plan) => plan
+    Err(issue) => return Err(Plan(issue))
+  }
+  prepare_client_result_transformation_from_plan(
     compiled.owner,
     result,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
+    occurrence,
+    plan,
   )
 }
 

@@ -235,6 +235,9 @@ fn[I] construct_closed_values_module_body(
     Err(issue) => return Err(Compilation(issue))
     Ok(value) => value
   }
+  // Share the actual typed artifact with the SAME Plan before adoption. The
+  // Run retains that Plan after the preparation's heavy aliases are severed.
+  source_free.compilation = Some(@publication_host.Values(artifact))
   owner.compilation = Some(artifact)
   // No shrink here: constructor locals and previous phase owners can remain
   // live until this exact call unwinds. The next fixed call performs the cut.

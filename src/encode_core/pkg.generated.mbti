@@ -44,6 +44,8 @@ pub fn emit_document(Writer, EncodedDocument) -> Unit raise EncodeFailure
 
 pub fn emit_json(Json, Writer) -> Unit raise EncodeFailure
 
+pub fn emit_measurement(Writer, (Int, Int, Int)) -> Unit raise EncodeFailure
+
 pub fn end_array(Writer) -> Unit raise EncodeFailure
 
 pub fn end_object(Writer) -> Unit raise EncodeFailure

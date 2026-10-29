@@ -5,7 +5,7 @@ fn executable_plan_emission_value(wire : String) -> @canonical.CanonicalValue {
 
 ///|
 fn checked_executable_plan_emission(
-  parts : ClientExecutablePlanBody,
+  parts : ClientExecutablePlanBody[@canonical.CanonicalValue, String],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -22,7 +22,7 @@ fn checked_executable_plan_emission(
 ///|
 // Complete prior emission/parse/hash/finalization path, retained as a reference.
 fn reference_executable_plan_emission(
-  parts : ClientExecutablePlanBody,
+  parts : ClientExecutablePlanBody[@canonical.CanonicalValue, String],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -46,19 +46,19 @@ fn reference_executable_plan_emission(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "bound_witnesses")
-    client_plan_emit_array(writer, witness_values)
+    client_plan_emit_array(writer, witness_values, @canonical.emit_value)
     @encode.key(writer, "data_edges")
     @canonical.emit_value(edges, writer)
     @encode.key(writer, "execution_material")
     @canonical.emit_value(material_value, writer)
     @encode.key(writer, "limit_bindings")
-    client_plan_emit_array(writer, binding_values)
+    client_plan_emit_array(writer, binding_values, @canonical.emit_value)
     @encode.key(writer, "nodes")
     @canonical.emit_value(nodes, writer)
     @encode.key(writer, "plan_fact_manifest_cid")
     @encode.string_value(writer, manifest.cid)
     @encode.key(writer, "plan_facts")
-    client_plan_emit_array(writer, fact_values)
+    client_plan_emit_array(writer, fact_values, @canonical.emit_value)
     @encode.key(writer, "required_profiles")
     @encode.begin_array(writer)
     for (profile_id, contract_cid) in required_profiles {
@@ -71,7 +71,7 @@ fn reference_executable_plan_emission(
     }
     @encode.end_array(writer)
     @encode.key(writer, "resolved_limits")
-    client_plan_emit_array(writer, limit_values)
+    client_plan_emit_array(writer, limit_values, @canonical.emit_value)
     @encode.key(writer, "root_refs")
     @canonical.emit_value(roots, writer)
     @encode.key(writer, "source_state_requirements")
@@ -100,7 +100,10 @@ fn reference_executable_plan_emission(
 }
 
 ///|
-fn executable_plan_emission_fixture_0() -> ClientExecutablePlanBody {
+fn executable_plan_emission_fixture_0() -> ClientExecutablePlanBody[
+  @canonical.CanonicalValue,
+  String,
+] {
   {
     fact_values: [],
     limit_values: [],
@@ -174,7 +177,10 @@ test "executable Plan complete empty extent retains exact byte node and depth re
 }
 
 ///|
-fn executable_plan_emission_fixture_1() -> ClientExecutablePlanBody {
+fn executable_plan_emission_fixture_1() -> ClientExecutablePlanBody[
+  @canonical.CanonicalValue,
+  String,
+] {
   {
     fact_values: [executable_plan_emission_value("{\"fact\":\"a\"}")],
     limit_values: [executable_plan_emission_value("{\"count\":1}")],
@@ -253,4 +259,88 @@ test "executable Plan complete mixed extent retains exact byte node and depth re
   assert_true(
     checked_executable_plan_emission(parts, bytes, nodes, depth - 1) is Err(_),
   )
+}
+
+///|
+fn executable_plan_child_measurement(
+  value : @canonical.CanonicalValue,
+) -> (Int, Int, Int) raise @encode.EncodeFailure {
+  let writer = @encode.measuring_writer(65536, 8192, 64)
+  @canonical.emit_value(value, writer)
+  @encode.finish_measurement_usage(writer)
+}
+
+///|
+fn executable_plan_array_measurements(
+  values : Array[@canonical.CanonicalValue],
+) -> Array[(Int, Int, Int)] raise @encode.EncodeFailure {
+  let measurements = []
+  for value in values {
+    measurements.push(executable_plan_child_measurement(value))
+  }
+  measurements
+}
+
+///|
+test "executable Plan construction geometry composes original children without an identity" {
+  for
+    parts in [
+      executable_plan_emission_fixture_0(),
+      executable_plan_emission_fixture_1(),
+    ] {
+    let profiles = []
+    for (profile, _) in parts.required_profiles {
+      profiles.push((profile, ()))
+    }
+    let measured : ClientExecutablePlanBody[(Int, Int, Int), Unit] = {
+      fact_values: executable_plan_array_measurements(parts.fact_values),
+      limit_values: executable_plan_array_measurements(parts.limit_values),
+      binding_values: executable_plan_array_measurements(parts.binding_values),
+      witness_values: executable_plan_array_measurements(parts.witness_values),
+      nodes: executable_plan_child_measurement(parts.nodes),
+      edges: executable_plan_child_measurement(parts.edges),
+      roots: executable_plan_child_measurement(parts.roots),
+      material_value: executable_plan_child_measurement(parts.material_value),
+      manifest_cid: (),
+      required_profiles: profiles,
+    }
+    let writer = @encode.measuring_writer(65536, 8192, 64)
+    emit_client_executable_plan_body(
+      writer,
+      measured,
+      Some(()),
+      (extent, out) => @encode.emit_measurement(out, extent),
+      measure_client_fragment_cid,
+    )
+    let measurement = @encode.finish_measurement_usage(writer)
+    let (wire, _) = finish_client_executable_plan_body(parts, 65536, 8192, 64)
+    assert_eq(measurement.0, @utf8.encode(wire).length())
+    let actual = executable_plan_child_measurement(
+      parse_plan_identity_value(wire, 65536, 8192, 64).unwrap(),
+    )
+    assert_eq(measurement, actual)
+    let (bytes, nodes, depth) = measurement
+    for
+      (b, n, d) in [
+        (bytes - 1, nodes, depth),
+        (bytes, nodes - 1, depth),
+        (bytes, nodes, depth - 1),
+      ] {
+      let short = @encode.measuring_writer(b, n, d)
+      try
+        emit_client_executable_plan_body(
+          short,
+          measured,
+          Some(()),
+          (extent, out) => @encode.emit_measurement(out, extent),
+          measure_client_fragment_cid,
+        )
+      catch {
+        @encode.OutputLimit => ()
+        _ => assert_true(false)
+      } noraise {
+        _ => assert_true(false)
+      }
+    }
+  }
 }

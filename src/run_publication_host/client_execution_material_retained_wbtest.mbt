@@ -109,6 +109,7 @@ test "executable plan consumes its original typed material without changing the 
     100000,
     10000,
     100,
+    result_plans=graph.result_plans,
   ).unwrap()
   let body = parse_plan_identity_value(plan.wire, 100000, 10000, 100).unwrap()
   let embedded = @canonical.object_field(body, "execution_material").unwrap()
@@ -140,6 +141,7 @@ test "executable plan consumes its original typed material without changing the 
       100000,
       10000,
       100,
+      result_plans=graph.result_plans,
     )
     is Err(Encoding),
   )

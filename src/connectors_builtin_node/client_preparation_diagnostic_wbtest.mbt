@@ -221,3 +221,70 @@ test "Request failure projection keeps input admission and nonsemantic uncertain
     None,
   )
 }
+
+///|
+test "original compilation sum preserves actual Values Task issuers and foreign owner refusal" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let text =
+    #|{"version":"actql/0.1","id":"original-typed-compilation","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"v"}],"results":{"rows":{"from":"v","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+  let prepare = () => {
+    client_program_preparation_ready(
+      client_program_prepare_effect_free_with_parameters(
+        text,
+        "json",
+        environment,
+        None,
+      ),
+    ).unwrap()
+  }
+  let prepared = prepare()
+  let foreign = prepare()
+  let values = client_program_compile_local_values(prepared).unwrap()
+  let tasks = client_program_compile_local_tasks(prepared).unwrap()
+  let context = "sha256:" + "a".repeat(64)
+  let policy = "sha256:" + "b".repeat(64)
+  let expires = "2030-01-01T00:00:00.000Z"
+  let original_values : @publication_host.ClientRunCompilation = @publication_host.Values(
+    values,
+  )
+  let original_tasks : @publication_host.ClientRunCompilation = @publication_host.Tasks(
+    tasks,
+  )
+  for
+    (original, is_values) in [(original_values, true), (original_tasks, false)] {
+    let result = if is_values {
+      client_program_issue_original_values_compiled_run(
+        prepared, original, context, policy, expires,
+      )
+    } else {
+      client_program_issue_original_task_compiled_run(
+        prepared, original, context, policy, expires,
+      )
+    }
+    assert_true(
+      @publication_host.client_compiled_run_matches(result.unwrap(), prepared),
+    )
+    let foreign_result = if is_values {
+      client_program_issue_original_values_compiled_run(
+        foreign, original, context, policy, expires,
+      )
+    } else {
+      client_program_issue_original_task_compiled_run(
+        foreign, original, context, policy, expires,
+      )
+    }
+    assert_true(foreign_result is Err(ForeignOwner))
+  }
+  assert_true(
+    client_program_issue_original_values_compiled_run(
+      prepared, original_tasks, context, policy, expires,
+    )
+    is Err(ForeignOwner),
+  )
+  assert_true(
+    client_program_issue_original_task_compiled_run(
+      prepared, original_values, context, policy, expires,
+    )
+    is Err(ForeignOwner),
+  )
+}

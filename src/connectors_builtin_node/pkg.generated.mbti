@@ -673,8 +673,6 @@ pub fn client_program_close_host_initialization_preparation(@client_local_host.C
 
 pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
 
-pub fn client_program_closed_values_compilation_original(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientValuesCompilation?
-
 pub fn client_program_closed_values_initial_control(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
 
 pub fn client_program_closed_values_initial_retirement_started(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Bool
@@ -1567,6 +1565,8 @@ pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManage
 
 pub fn client_program_installed_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_managed_run_compilation_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientRunCompilation?
+
 pub fn client_program_installed_managed_run_issue_is_unsupported(@client_local_host.ClientInstalledManagedRunIssue) -> Bool
 
 pub fn client_program_installed_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1720,6 +1720,10 @@ pub fn client_program_issue_local_values_fragment(@run_publication_host.Prepared
 pub fn client_program_issue_local_values_output_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[@execution_relation.RelationSchemaIdentity, @run_publication_host.ClientValuesOutputSchemaIssue]
 
 pub fn client_program_issue_local_values_plan_graph(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesPlanGraph, @run_publication_host.ClientValuesPlanGraphIssue]
+
+pub fn client_program_issue_original_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRunCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_issue_original_values_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRunCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
 pub fn client_program_issue_prepared_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[String, @run_publication_host.ClientEffectRunMaterialsIssue]
 

@@ -2719,13 +2719,24 @@ function publicationControl(moon) {
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
-      let value = compiledRunResult(kind === 'values'
-        ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
-          compilation, policy.executionContextCid, policy.hostPolicyCid,
-          policy.expiresAt)
-        : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
-          compilation, policy.executionContextCid, policy.hostPolicyCid,
-          policy.expiresAt), 'RunHostAdmissionRejected');
+      // A staged original is the existing typed Values/Tasks sum held by the
+      // actual Plan. The fixed Common entry validates its variant and owner.
+      // Unmigrated explicit compilation keeps its separate raw artifact entry.
+      let value = compiledRunResult(compilationOriginal !== undefined
+        ? kind === 'values'
+          ? moon.clientProgramIssueOriginalValuesCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+          : moon.clientProgramIssueOriginalTaskCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+        : kind === 'values'
+          ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt)
+          : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+            compilation, policy.executionContextCid, policy.hostPolicyCid,
+            policy.expiresAt), 'RunHostAdmissionRejected');
       if (kind === 'infer') {
         const original = policy.resultDataPolicy;
         if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
