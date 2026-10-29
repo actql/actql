@@ -1310,10 +1310,6 @@
           "declaration": "calendar_rfc3339 ( text : String ) - > String ?"
         },
         {
-          "name": "free_busy_digits",
-          "declaration": "free_busy_digits ( text : String , start : Int , end : Int ) - > Int ?"
-        },
-        {
           "name": "free_busy_limits_valid",
           "declaration": "free_busy_limits_valid ( limits : CalendarFreeBusyLimits ) - > Bool"
         },
@@ -1345,7 +1341,6 @@
             "calendar_free_busy_rows_wire",
             "calendar_free_busy_schema_wire",
             "calendar_rfc3339",
-            "free_busy_digits",
             "free_busy_limits_valid",
             "free_busy_no_errors",
             "prepare_calendar_free_busy_query",
