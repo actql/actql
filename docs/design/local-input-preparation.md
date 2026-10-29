@@ -2745,6 +2745,34 @@ projected as evidence that the authored input was invalid. The SQL/Pipe entry
 alone does not qualify the other Source document controllers or ordinary
 installed/backend execution.
 
+### Source document Request continuation
+
+The existing public JSON/YAML Source spellings select their explicit Program
+grammar on the same Request as SQL/Pipe and native Program input. These formats
+carry declarations in their original Program; an external declaration override
+remains invalid there. Native supplied values are admitted first under their
+existing limits and normalization rules, before parsing the document.
+
+The fixed caller folds the original document's UTF16 length and bounded node
+upper extent through the existing common value-node/text allowances for the
+simultaneous parser output and new index. Its fixed controls use the existing
+Program Host baseline. These are logical allowances, not measured memory,
+physical supply or a new parser/Resource policy. The exact selected original
+parser then constructs the index once, preserving Program key rules, Unicode,
+spans, typed first refusal and the same immutable input limits. No format
+fallback, serialization or alternate interpretation is inserted.
+
+After the parser returns, actual immutable index geometry feeds the existing
+Source/index dependency recipe. The same Program phase is retained before its
+reconciliation/current callback, and only returned parse scratch is released.
+JSON preflight and direct document parsing therefore share the same index,
+Program constructor, retirement and Resource owner; neither fabricates the
+other's parser geometry. Native Program intake uses that same holder constructor.
+The existing shared checker/compiler, Catalog, Pure/Effect selection, original
+Plan and Run handoff continue unchanged. The Request Selecting fence covers
+reentry; failure retains its original parent cleanup duty and does not authorize
+resubmission, a physical ACK or replacement capacity.
+
 ### Original Request accounting observations
 
 The existing finalization observer reads scalar Ledger and reservation DATA

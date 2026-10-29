@@ -609,3 +609,41 @@ test('normal SQL and AQL Request keeps native Parameters declarations and one co
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   }
 });
+
+// This consumes the actual manager and explicit compiler ports. The separate
+// Core case executes the unchanged parser/checker/compiler/Plan/Run itself.
+test('normal JSON and YAML Source forwards one captured document and Parameters original', async () => {
+  for (const format of ['json','aql-json','yaml','aql-yaml']) {
+    const f=await fixture(),moon=f.context.runtime,request={},prepared={},holder={},parametersCursor={};
+    const text=format.includes('json')?'{"version":"actql/0.1"}':'version: actql/0.1';
+    const parameters={n:9},receipt=f.view.beforeSourceSnapshot('aql',text,{format,parameters},connection);
+    const body=f.view.captureSourceSnapshot(receipt,{kind:'aql',input:{format,text},parameters},snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+    const contracts={},calls=[];f.originals.installation={sequenceContractOriginal:{moon,admission:contracts}};
+    moon.clientProgramPrepareRequestNativeComputation=()=>assert.fail('Source document must keep its original text/format, not a native Program replacement');
+    moon.clientProgramPrepareRequestSourceComputation=function(parent,original,captured,supplied,environment,publication){
+      assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+      assert.equal(captured,body.input);assert.equal(captured.text,text);assert.equal(captured.format,format);
+      assert.equal(supplied,body.parameters);assert.equal(supplied.n,9);
+      assert.equal(publication,f.context.preparedEnvironment);calls.push('document');return ok('effect_free');
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody=function(parent,original,selected){
+      assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(selected,contracts);calls.push('module');return ok(undefined);
+    };
+    moon.clientProgramBorrowRequestProgramPreparation=actual=>{assert.equal(actual,f.parent);return ok(holder);};
+    moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
+    moon.clientProgramRequestParametersOriginal=()=>ok(parametersCursor);
+    let returned=false;const abort=moon.clientProgramAbortRequestPreparation;
+    moon.clientProgramAbortRequestPreparation=function(parent){return returned||!calls.includes('module')?Reflect.apply(abort,moon,[parent]):{$tag:0,_0:{pendingOriginal:holder}};};
+    moon.clientProgramPreparationBorrowRetirementStarted=actual=>{assert.equal(actual,holder);return true;};
+    moon.clientProgramPreparationBorrowReturn=actual=>{assert.equal(actual,holder);returned=true;return ok(false);};
+    try {
+      for(let attempt=0;attempt<2;attempt++){
+        const result=await f.view.fundedPreparation(request,undefined);
+        assert.equal(result.prepared,prepared);assert.equal(result.originalInputs.parametersCursor,parametersCursor);
+      }
+      assert.deepEqual(calls,['document','module']);assert.equal(f.calls.filter(x=>x==='parent').length,1);
+    } finally {f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});
