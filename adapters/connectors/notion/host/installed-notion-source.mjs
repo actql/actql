@@ -20,6 +20,8 @@ const siteKeys=['version','apiOrigin','credentialAuthorityId','credentialKeyId',
 const readLimitKeys=['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','maxRows','maxTotalRows','maxPages','pageSize','maxCursorBytes','maxIdentityBytes','maxTargetBytes',
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 const limitKeys=[...readLimitKeys,'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
+const providerNames=['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
+  'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList'];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);
@@ -77,13 +79,21 @@ export async function installedNotionSourceIdentityParts(profile,providerProfile
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
-export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon:provider,
+function captureProvider(provider){
+  return Object.freeze(Object.fromEntries(providerNames.map(name=>{
+    const method=provider?.[name];if(typeof method!=='function')fail('InstalledNotionProviderUnavailable');
+    return[name,(...args)=>Reflect.apply(method,provider,args)];
+  })));
+}
+
+export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon,
   baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
   // The existing trusted installer must supply its same-runtime declaration.
   // Public profile amounts, page/transfer limits and fixed spare constants are
   // not a full reader retained/workspace supplier. Never choose legacy readPages.
   if(readerCapacity===undefined||readerCapacity===null)fail('NotionReaderCapacityUnavailable');
   if(typeof resolveSecret!=='function')fail('NotionCredentialMaterialUnavailable');
+  const provider=captureProvider(providerMoon);
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   const{limits}=installed;
   const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
