@@ -1,4 +1,30 @@
 ///|
+/// Reuse the original Checkpoint/Run owner for independent authoring binding.
+#export_name("clientValuesHostAdmitEffectCheckpointPreview")
+pub fn client_values_host_admit_effect_checkpoint_preview(
+  original : @checkpoint.SealedCheckpoint,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  stored_wire : String,
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.EffectPreviewIdentity,
+  @host.ClientEffectCheckpointReconciliationIssue,
+] {
+  @host.admit_client_effect_review_checkpoint_preview(
+    original,
+    allowed,
+    definition,
+    stored_wire,
+    preview_wire,
+    { max_wire_bytes, max_nodes, max_depth, },
+  )
+}
+
+///|
 /// Admit historical Preview DATA against an independently supplied original
 /// Run/context tuple. This supplies no current approval or dispatch authority.
 #export_name("clientValuesHostAdmitEffectPreviewIdentity")

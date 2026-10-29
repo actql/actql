@@ -153,6 +153,11 @@ export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
 /** Same admitted original only; no wire admission, persistence or current grant. */
 export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding,
   allowed: AllowedEffectRun, definition: RunDefinition): EffectReviewCheckpointBinding;
+/** Derive authoring context from the original checked Effect owner and bind
+ * the actual stored Checkpoint/Preview. No current permission or ACK follows. */
+export function effectReviewCheckpointPreview(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
+  previewWire: string, limits: PublicationLimits): EffectPreviewIdentity;
 /** Same nominal binding and actual stored wire, not a persistence/current grant. */
 export function effectReviewCheckpointWaitingState(binding: EffectReviewCheckpointBinding,
   allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,

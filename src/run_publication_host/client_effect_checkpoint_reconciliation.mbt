@@ -11,22 +11,20 @@ pub(all) enum ClientEffectCheckpointReconciliationIssue {
 }
 
 ///|
-/// Project complete admitted Unknown receipts for this original review only.
-/// Journal custody/currentness and physical outcome evidence remain with the
-/// caller. This is neither an Effect permit nor a stopping or cleanup ACK.
-pub fn client_effect_review_checkpoint_reconciliation_state(
+/// Read the original Checkpoint's Preview through the existing subject,
+/// compiled Run and authoring owners. This historical DATA supplies neither
+/// current permission, an Effect outcome nor a persistence acknowledgement.
+pub fn admit_client_effect_review_checkpoint_preview(
   original : @checkpoint.SealedCheckpoint,
   allowed : ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
   stored_wire : String,
   preview_wire : String,
-  invocation_wire : String,
-  set_wire : String,
-  member_receipt_wires : Array[String],
-  updated_at : String,
-  declared_results : Array[String],
   limits : @checkpoint.WireLimits,
-) -> Result[String, ClientEffectCheckpointReconciliationIssue] {
+) -> Result[
+  @publication.EffectPreviewIdentity,
+  ClientEffectCheckpointReconciliationIssue,
+] {
   match @checkpoint.confirm_checkpoint_persisted(original, stored_wire) {
     Ok(_) => ()
     Err(issue) => return Err(Checkpoint(issue))
@@ -72,6 +70,33 @@ pub fn client_effect_review_checkpoint_reconciliation_state(
   if @publication.effect_preview_semantic_identity(preview) !=
     original.checkpoint.required_artifact_cid {
     return Err(ForeignPreview)
+  }
+  Ok(preview)
+}
+
+///|
+/// Project complete admitted Unknown receipts for this original review only.
+/// Journal custody/currentness and physical outcome evidence remain with the
+/// caller. This is neither an Effect permit nor a stopping or cleanup ACK.
+pub fn client_effect_review_checkpoint_reconciliation_state(
+  original : @checkpoint.SealedCheckpoint,
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  stored_wire : String,
+  preview_wire : String,
+  invocation_wire : String,
+  set_wire : String,
+  member_receipt_wires : Array[String],
+  updated_at : String,
+  declared_results : Array[String],
+  limits : @checkpoint.WireLimits,
+) -> Result[String, ClientEffectCheckpointReconciliationIssue] {
+  let preview = match
+    admit_client_effect_review_checkpoint_preview(
+      original, allowed, definition, stored_wire, preview_wire, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let invocation = match
     @publication.admit_publication_contract(
