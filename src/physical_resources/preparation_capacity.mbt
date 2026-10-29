@@ -244,29 +244,10 @@ fn[I, P] finish_preparation_capacity_run_current(
 pub fn[I, P] borrow_preparation_capacity(
   owner : PreparationCapacity[I, P],
 ) -> Result[PreparationCapacityBorrow[I, P], PreparationCapacityIssue] {
-  if owner.phase != Ready && owner.phase != Run {
-    return Err(Retired)
-  }
-  if owner.borrowers >= owner.max_borrowers {
-    return Err(InvalidExtent)
-  }
   guard owner.body is Some(body) else { return Err(Retired) }
-  // Claim the finite borrower slot before invoking imported currentness. A
-  // reentrant retirement cannot release the body's reservation during that
-  // callback, and recursive borrows cannot bypass the original slot bound.
-  owner.borrowers += 1
-  match check_imported_child_admission(owner.ledger) {
-    Err(issue) => {
-      owner.borrowers -= 1
-      return Err(Resource(issue))
-    }
+  match claim_preparation_borrow_slot(owner, false) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
-  }
-  if owner.phase != Ready && owner.phase != Run {
-    owner.borrowers -= 1
-    // The existing retirement owner retries cleanup; do not convert a failed
-    // borrow into an independent release acknowledgement.
-    return Err(Retired)
   }
   Ok({ owner, body: Some(body), returned: false, })
 }
