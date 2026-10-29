@@ -358,7 +358,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
-    fundedPreparation(request, environment) {
+    async fundedPreparation(request, environment) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
@@ -381,7 +381,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (prepared === undefined) fail('ForeignInstalledSourceProducer');
       if (state.prepared !== undefined && state.prepared !== prepared) fail('ForeignInstalledSourceProducer');
       state.prepared = prepared;
-      return prepared;
+      return Object.freeze({kind: 'effect_free', prepared,
+        originalInputs: Object.freeze({environment: state.context.environment,
+          parameters: undefined})});
     },
     publicationPreparation(prepared) {
       const run = runFor(prepared), state = run.producer.preparation;

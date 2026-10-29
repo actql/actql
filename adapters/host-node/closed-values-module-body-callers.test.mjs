@@ -8,7 +8,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 // These are the actual JS callers with explicit Core result/identity ports.
 // No fixture here issues a Core preparation, resource admission or public Run.
 const manager = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const start = manager.indexOf('    fundedPreparation(request, environment) {');
+const start = manager.indexOf('    async fundedPreparation(request, environment) {');
 const end = manager.indexOf('    publicationPreparation(prepared) {', start);
 assert.ok(start >= 0 && end > start);
 const body = manager.slice(start, end).trim().replace(/,$/, '');
@@ -46,7 +46,7 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
   assert.equal(callbacks, 0);
 });
 
-test('funded caller passes the same installed mode to one ModuleBody then completes after return', () => {
+test('funded caller passes the same installed mode to one ModuleBody then completes after return', async () => {
   for (const mode of [false, true]) {
     const phase = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
     const calls = [];
@@ -71,12 +71,18 @@ test('funded caller passes the same installed mode to one ModuleBody then comple
       'checkedPreparation', 'closedValuesPreparationAvailable',
       `return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
       originals, (_moon, value) => value, closedValuesPreparationAvailable);
-    assert.strictEqual(read({}, environment), prepared);
-    assert.strictEqual(read({}, environment), prepared);
+    for(let i=0;i<2;i++){
+      const original=await read({}, environment);
+      assert.strictEqual(original.prepared, prepared);
+      assert.equal(original.kind,'effect_free');
+      assert.deepEqual(original.originalInputs,{environment,parameters:undefined});
+      assert.equal(Object.isFrozen(original),true);
+      assert.equal(Object.isFrozen(original.originalInputs),true);
+    }
     assert.deepEqual(calls, ['body', 'complete']);
     assert.strictEqual(state.prepared, prepared);
     state.context = context(moon, undefined);
-    assert.throws(() => read({}, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    await assert.rejects(read({}, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.deepEqual(calls, ['body', 'complete']);
   }
 });
