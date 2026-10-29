@@ -804,8 +804,8 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined)"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -1142,8 +1142,8 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined)"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
