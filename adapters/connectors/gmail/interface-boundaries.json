@@ -1289,7 +1289,7 @@
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "b8a171c781d74be4882282faa5a96e1adf6043719c2345612eef6d53e360432f",
+      "sha256": "689491a6921902dedd95fdb69c17233df1e434351e2f542fdd8324c781beb3b2",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -1398,11 +1398,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGmailSource/init:readPages/init:readPages",
-          "parameters": [],
           "async": false
         },
         {
@@ -1537,7 +1532,6 @@
             "loadInstalledGmailSource",
             "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
-            "loadInstalledGmailSource/init:readPages/init:readPages",
             "loadInstalledGmailSource/readerSite/init:issueReadGrant/init:issueReadGrant",
             "loadInstalledGmailSource/target/target",
             "originalReaderFactory",
@@ -1686,7 +1680,7 @@
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
-                "anchor": "response envelope is (P + T) \u00d7 B"
+                "anchor": "response envelope is (P + T) × B"
               }
             ],
             "extension": [
@@ -1696,7 +1690,7 @@
               },
               {
                 "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-                "anchor": "readPages(){fail('InstalledGmailLegacyReaderUnavailable');}"
+                "anchor": "providerReader:threads?createGmailThreadReaderFactory"
               }
             ],
             "verification": [

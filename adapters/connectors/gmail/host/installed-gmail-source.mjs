@@ -193,7 +193,6 @@ export async function loadInstalledGmailSource(profile,{root,principalId,moon,pr
         maxPageRows:threads?1:limits.maxRows,maxCaptureRows:threads?limits.maxThreads:limits.maxRows},
       providerReader:threads?createGmailThreadReaderFactory({moon:provider,site:readerSite,capacity:readerCapacity,
         mailbox:installed.mailbox,limits,maxSecretBytes:limits.maxSecretBytes})
-        :originalReaderFactory({provider,site,installed,capacity:readerCapacity}),
-      readPages(){fail('InstalledGmailLegacyReaderUnavailable');}});
+        :originalReaderFactory({provider,site,installed,capacity:readerCapacity})});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }
