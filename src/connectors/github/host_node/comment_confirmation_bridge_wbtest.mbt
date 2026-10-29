@@ -46,12 +46,14 @@ test "Comment bridge retains original context and returns confirmation DATA only
     },
   }
   assert_eq(
-    github_project_comment_confirmation_json(
-      held,
-      200,
-      @utf8.encode(body.stringify()),
+    @json.parse(
+      github_project_comment_confirmation_json(
+        held,
+        200,
+        @utf8.encode(body.stringify()),
+      ),
     ),
-    "{\"id\":\"7\",\"kind\":\"Confirmed\",\"nodeId\":\"IC_7\"}",
+    ({ "kind": "Confirmed", "id": "7", "nodeId": "IC_7" } : Json),
   )
   assert_eq(
     github_project_comment_confirmation_json(held, 404, b"{}"),
