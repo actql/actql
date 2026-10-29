@@ -83377,6 +83377,26 @@
           "async": false
         },
         {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync/pending/pending",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/verify/verify",
           "parameters": [],
           "async": true
@@ -83402,18 +83422,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "sync",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sync/sync",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -83424,7 +83432,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3d577f765b7fe1fa29abc02685bda770cef8602f3091563223bf6719b8e0b58b",
+      "sha256": "e6dc798450acc717bf5a55c3e33ad78c6d5570ee5ea382e4fa8ba40c5e474168",
       "contracts": [
         {
           "operations": [
@@ -83438,12 +83446,13 @@
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:read/init:read/response/response",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync/pending/pending",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/sync/settled/settled",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/verify/verify",
             "fail/fail",
             "method",
-            "positive/positive",
-            "sync",
-            "sync/sync"
+            "positive/positive"
           ],
           "exports": [
             "createInstalledCredentialSourceReader"
