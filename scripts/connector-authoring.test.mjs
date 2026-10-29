@@ -3,11 +3,15 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathS
   rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {initRestConnector, projectRestConnector, writeRestConnector} from './connector-authoring.mjs';
 import {connectorCommand} from './connector.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkHostBundle, generateInstallations} from './connector-host-bundles.mjs';
+import {checkNodeAssembly} from './connector-node-bundles.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-rest-author-'));
@@ -103,6 +107,38 @@ function packageFixture(t) {
     connectors: [{name: 'acme', package: '@actql-connectors/acme', directory: 'src/connectors/acme'}]};
   return {...f, core, host, configuration};
 }
+
+test('generated npm-only REST installation reaches the actual normal Host copy graph without a provider compiler', async t => {
+  const f = fixture(t);f.build();
+  const core = fileURLToPath(new URL('../', import.meta.url)), host = join(f.root, 'host');
+  f.put(join(host, 'moon.mod'), 'name = "fixture/rest_host"\nversion = "0.0.1"\n' +
+    'source = "src"\nimport { "actql/actql@0.0.1", }\n');
+  mkdirSync(join(host, 'src'), {recursive: true});
+  const buildInputs = resolveConnectorBuildInputs({target: 'js', modules: [
+    {namespace: 'actql/actql', version: '0.0.1', root: core},
+    {namespace: 'fixture/rest_host', version: '0.0.1', root: host}], host: 'fixture/rest_host',
+    packages: [{name: '@actql-connectors/acme', version: '0.0.1', root: f.output}],
+    connectors: [{name: 'acme', package: '@actql-connectors/acme', directory: 'src/connectors/acme'}]});
+  // Existing generation and packaging graph only: no compiler, prepack,
+  // runtime module import, Site, Account or public operation is executed.
+  checkNodeAssembly(host, true, {buildInputs, installations: true});
+  const inputs = localNodePackageInputs(host, {buildInputs});
+  assert.deepEqual(inputs.providerBundles, []);
+  assert.equal(inputs.runtimeInputs.some(input => input.moduleRoot === f.output), false);
+  const copies = await localNodeAdapterSourceInputs({root: host, inputs});
+  for (const path of ['adapters/host-node/installed-rest-source.mjs',
+    'adapters/host-node/rest-source-metadata.mjs', 'adapters/host-node/rest-source-page.mjs',
+    'adapters/host-node/installed-host-services.mjs', 'adapters/host-node/installed-credential-source-reader.mjs',
+    'adapters/connectors/acme/host/installation.mjs']) {
+    assert.equal(copies.filter(input => input.path === path).length, 1, path);
+  }
+  const table = inputs.installationTable.render(join(host, 'package'));
+  assert.match(table, /registration: "acme"/u);
+  assert.doesNotMatch(table, /providerBundle/u);
+  const api = readFileSync(join(core, 'packages/local-node/connector-installation.mjs'), 'utf8');
+  assert.match(api, /export \{createInstalledRestSource\} from\s+'\.\/adapters\/host-node\/installed-rest-source\.mjs'/u);
+  assert.equal(existsSync(join(f.output, 'moon.mod')), false);
+});
 
 test('same external resolver accepts an explicitly pinned npm-only Source contribution', t => {
   const f = packageFixture(t), resolved = resolveConnectorBuildInputs(f.configuration);
