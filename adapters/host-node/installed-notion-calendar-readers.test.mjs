@@ -310,3 +310,48 @@ test('Notion refuses an incomplete provider before configuration or Site constru
     assert.equal(f.configurationReads(),0);assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
   }
 });
+
+// Execute each original fixture's after callback with the actual shared
+// factory. RowRun, Journal and server are explicit ordering ports here; no
+// Common admission, native I/O or physical cleanup receipt is synthesized.
+test('provider fixtures retire their original factories before closing dependent fixture owners',async()=>{
+  for(const family of ['notion','calendar'])for(const returned of [true,false]){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const ast=parse(code,{ecmaVersion:'latest',sourceType:'module'});
+    const fixture=ast.body.find(node=>node.type==='ExportNamedDeclaration'&&
+      node.declaration?.id?.name===(family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    const failure=new Error('same original provider preparation failure'),events=[];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader(){
+        if(!returned)throw failure;
+        return{fetchPage(){assert.fail('no page request');},decodePage(){assert.fail('no projection');}};
+      }});
+    const options={resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}};
+    const readers=[];
+    const assertRetired=()=>assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+    try{
+      if(returned)readers.push(factory.prepare(options));
+      else assert.throws(()=>factory.prepare(options),error=>error===failure);
+      const row={close(){assertRetired();events.push('row');},usage:()=>({})};
+      const journal={close(){assertRetired();events.push('journal');}};
+      const server={close(done){assertRetired();events.push('server');done();}};
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,readers,[factory],
+        row,journal,server,{diagnostic(){}},'/UNOPENED/fixture',()=>[0n,0n,0n,0n]);
+      await cleanup();
+      assertRetired();assert.deepEqual(events,['row','journal','server']);
+      if(returned)assert.equal(readers[0].observe().cleanupConfirmed,true);
+    }finally{
+      // Test-owned unwinding retains the same original even on the red.
+      for(const reader of readers)reader.requestStop();
+      assert.equal(factory.retire(),true);
+    }
+  }
+});
