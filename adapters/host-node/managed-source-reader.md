@@ -131,3 +131,7 @@ retained-plan support refuses instead of preparing another equal query or
 acquisition. Later current checks and the ordinary Credential read grant still
 apply. This borrow does not fund earlier installation/configuration/schema
 construction or replace the original parent's constructor/failure overlap.
+
+Native callback Promises stay in the existing pending-callback inventory before
+their public `then` property is observed. The original getter error remains the
+read failure; only actual native settlement can release that callback borrow.

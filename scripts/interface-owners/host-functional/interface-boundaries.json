@@ -19524,7 +19524,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19643,7 +19643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -83621,10 +83621,10 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "9c96bc35de6312d0d3b5be9d2320785b8bec86c934e6eaa90a74ca635dba5c0c",
+      "sha256": "4bb35a0044f013a30530693f2efa4ff1de811b354f670d2cee145bb0b428f325",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83979,6 +83979,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-http-reader.test.mjs",
+                "anchor": "test('shared Reader cannot acknowledge retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-http-reader.test.mjs",
+                "anchor": "test('native setup with a hidden then method"
               }
             ]
           }
@@ -83990,7 +83998,7 @@
       "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84355,7 +84363,7 @@
       "sha256": "69ce059bf1e5dd7eb8d092f575b61b5f45e011844dac26ef1abd71f760aabf70",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",
