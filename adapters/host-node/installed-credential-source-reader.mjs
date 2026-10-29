@@ -34,13 +34,14 @@ function ownMethod(value, name) {
 }
 
 export function createInstalledCredentialSourceReader(options) {
-  const {capacity, originalSite, site, createReader, readPages, preparePageReader,
+  let {capacity, originalSite, site, createReader, readPages, preparePageReader,
     operation, assertCurrent, maxResponses, maxResponseBytes, maxSecretBytes} = options;
   const requestBound = Object.getOwnPropertyDescriptor(options, 'maxRequestBytes');
   if (requestBound !== undefined && (!Object.hasOwn(requestBound, 'value') || !positive(requestBound.value))) {
     fail('InvalidInstalledCredentialSourceReader');
   }
   const maxRequestBytes = requestBound?.value;
+  options = undefined;
   const standard = preparePageReader !== undefined, hosted = originalSite !== undefined;
   if (capacity === undefined || capacity === null || !positive(maxResponses) ||
       (standard ? typeof preparePageReader !== 'function' || createReader !== undefined ||
