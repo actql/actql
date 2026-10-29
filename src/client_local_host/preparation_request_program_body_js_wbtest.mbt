@@ -48,6 +48,118 @@ fn request_program_installed_plan(
 }
 
 ///|
+fn request_program_module_contracts() -> ClientInstalledSequenceContracts {
+  let assets = @publication_host.client_local_product_assets()
+  prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+}
+
+///|
+test "Request module constructor retains same checked output and actual Plan before the first body borrow" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let original = parent.program_capacity.unwrap()
+  let calls = Ref(0)
+  let reentry = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      if parent.phase == Selecting &&
+        parent.program_plan_quote is Some(_) &&
+        parent.compiled_program is Some(body) &&
+        physical_equal(body, prepared) {
+        reentry.val += 1
+      }
+      if abort_request_preparation_after_cleanup(parent) is Err(WrongPhase) {
+        reentry.val += 1
+      }
+      if borrow_request_program_preparation(parent) is Err(WrongPhase) {
+        reentry.val += 1
+      }
+      []
+    },
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(reentry.val, 3)
+  assert_true(physical_equal(parent.program_capacity.unwrap(), original))
+  let plan = parent.program_source_free.unwrap()
+  assert_true(plan.configuration is Some(_))
+  assert_true(plan.owner is Pure(body) && physical_equal(body, prepared))
+  let manager = borrow_request_program_preparation(parent).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(manager).unwrap(),
+      prepared,
+    ),
+  )
+  assert_true(
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      retained_output=true,
+      provider_factory=_ => {
+        calls.val += 1
+        []
+      },
+    )
+    is Err(Preparation(WrongPhase)),
+  )
+  assert_eq(calls.val, 1)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "request-module-original",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), plan))
+  assert_true(
+    parent.program_source_free is None && parent.compiled_program is None,
+  )
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(@resources.return_preparation_body_borrow(manager).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request module callback exception unwinds its original constructor before cleanup" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let caught = closed_module_test_catch(() => {
+    ignore(
+      prepare_request_program_module_body(
+        parent,
+        input,
+        request_program_module_contracts(),
+        retained_output=true,
+        provider_factory=_ => closed_module_test_throw(),
+      ),
+    )
+  })
+  assert_true(caught)
+  assert_true(parent.phase == ProgramBodyFailed)
+  assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))
+  assert_true(parent.program_source_free is None)
+  assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    before.live_reservations > 0 && before.reserved_retention_bytes > 0L,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  let after = @resources.ledger_usage(parent.ledger)
+  assert_eq(after.live_reservations, 0)
+  assert_eq(after.reserved_retention_bytes, 0L)
+  assert_eq(after.attempts, before.attempts)
+}
+
+///|
 test "actual Request continues original compiler to the same typed reservation and preserves work history" {
   let calls = Ref(0)
   let action : Ref[(() -> Unit)?] = Ref(None)
@@ -317,4 +429,148 @@ test "retained original dimensions keep a large scalar literal and long projecti
   assert_true(usage.reserved_retention_bytes < 512L * 1024L * 1024L)
   assert_true(usage.reserved_execution_bytes < 512L * 1024L * 1024L)
   abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "Request installed module keeps Unicode Text outside the old numeric construction profile" {
+  let text = request_check_wire
+    .replace(old="\"type\":\"number\"", new="\"type\":\"string\"")
+    .replace(old="\"rows\":[]", new="\"rows\":[{\"id\":\"é😀\"}]")
+  let (parent, child, _, input) = registration_parent_fixture(text~)
+  finish_program_check_preparation(child).unwrap() |> ignore
+  let prepared = compile_program_check_preparation(
+    child,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  continue_request_program_preparation(parent, input).unwrap() |> ignore
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let plan = parent.program_source_free.unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "request-module-text",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  let setup = open_installed_managed_source_free_host(
+      run,
+      prepared,
+      request,
+      plan.installed_contracts,
+      plan.values_body,
+      plan.fragment_body,
+      plan.ordered_body,
+      true,
+    )
+    .unwrap()
+    .unwrap()
+  let output = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  assert_eq(output.rows().unwrap(), ["{\"id\":\"é😀\"}"])
+  assert_true(output.close())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  // The authored Values stage and Result-consuming Take stage each started.
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 2)
+}
+
+///|
+test "Request installed module preserves exact one-byte-short refusal before its original factory" {
+  for retention in [true, false] {
+    let (parent, input, _) = request_program_body_fixture()
+    let contracts = request_program_module_contracts()
+    let calls = Ref(0)
+    let factory = _ => {
+      calls.val += 1
+      []
+    }
+    assert_true(
+      prepare_request_program_module_body(
+        parent,
+        [1],
+        contracts,
+        retained_output=true,
+        provider_factory=factory,
+      )
+      is Err(Preparation(ForeignOriginal)),
+    )
+    let capacity = parent.program_capacity.unwrap()
+    let base = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - base.0
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - base.1
+      },
+    ).unwrap()
+    assert_true(
+      prepare_request_program_module_body(
+        parent,
+        input,
+        contracts,
+        retained_output=true,
+        provider_factory=factory,
+      )
+      is Err(Preparation(Capacity(_))),
+    )
+    let quote = parent.program_plan_quote.unwrap()
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    let short = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - quote.0 + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - quote.1 + 1L
+      },
+    ).unwrap()
+    let declined = prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      retained_output=true,
+      provider_factory=factory,
+    )
+    assert_true(
+      if retention {
+        declined is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        declined is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    assert_eq(calls.val, 0)
+    assert_true(
+      parent.phase == ProgramPlanQuoted && !parent.program_body_attempted,
+    )
+    assert_eq(parent.program_plan_quote.unwrap(), quote)
+    @resources.settle_capacity(parent.ledger, short).unwrap()
+    prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      retained_output=true,
+      provider_factory=factory,
+    ).unwrap()
+    assert_eq(calls.val, 1)
+    assert_eq(parent.program_plan_quote.unwrap(), quote)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
 }

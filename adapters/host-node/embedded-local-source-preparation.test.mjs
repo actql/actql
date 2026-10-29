@@ -16,12 +16,13 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
     maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
 
-async function fixture(receiver, perform) {
+async function fixture(receiver, perform, waitObservation) {
   // Protocol fixture only; exact Common identities have independent vectors.
   receiver.intentCid ??= () => cid('d');
   let storeCloses = 0, sends = 0;
   const port = {[sourcePreparationPort]: receiver, async perform(operation, request) {
     if (operation === 'connect') return profile;
+    if (operation === 'wait' && waitObservation !== undefined) return waitObservation;
     sends++;
     assert.equal(operation, 'submit-intent');
     return perform(request);
@@ -187,4 +188,41 @@ test('a sibling last lease cannot release another lease original pending Source 
   await f.client.close();
   await sibling.close();
   assert.equal(f.storeCloses, 1); assert.equal(f.sends, 1); assert.equal(finishes, 2);
+});
+
+
+test('installed Host lease forwards the same connection and funded snapshot through its original producer lifetime', async () => {
+  const receipt = {}, order = [];let connection, reads = 0;
+  const parameters = {get n() {reads++;return 7;}};
+  const receiver = {
+    beforeSourceSnapshot() {assert.fail('NoSecondSnapshotAdmission');},
+    beforeSourceQuery(format, text, supplied, options, originalConnection) {
+      assert.equal(this, receiver);assert.equal(format, 'sql');assert.equal(text, 'SELECT @n AS n');
+      assert.equal(supplied, parameters);assert.equal(reads, 0);assert.equal(options, undefined);
+      assert.equal(Object.isFrozen(originalConnection), true);connection = originalConnection;
+      order.push('before');return receipt;
+    },
+    assertSourceSnapshotCurrent(original) {assert.equal(original, receipt);order.push('current');},
+    captureSourceSnapshot(original, value, snapshot) {
+      assert.equal(this, receiver);assert.equal(original, receipt);assert.equal(reads, 0);
+      order.push('capture');return snapshot(value, () => {});
+    },
+    bindSourceSnapshot(original, body) {assert.equal(original, receipt);assert.equal(reads, 1);assert.equal(body.parameters.n, 7);order.push('bind');},
+    bindSourceRequest(original, _body, packet) {assert.equal(original, receipt);assert.deepEqual(packet.connection, connection);assert.notEqual(packet.connection, connection);},
+    finishSourceProducer(original, terminal) {assert.equal(original, receipt);assert.ok(['returned', 'failed'].includes(terminal));order.push('finish:' + terminal);},
+  };
+  const f = await fixture(receiver, packet => readySubmissionAttempt(packet, admission), {
+    version: 'actql-run-state/0.1', run_id: 'snapshot-original', revision: 1,
+    status: 'succeeded', updated_at: '2026-10-20T00:00:00.000Z',
+    next_action: {kind: 'read_result', results: ['answer']}, result_available: true,
+    result_availability: {answer: {state: 'available', observed_at: '2026-10-20T00:00:00.000Z', reason: 'confirmed_present'}},
+  });
+  receiver.captureSourceSnapshot = () => assert.fail('ReplacedHostCapture');
+  try {
+    await f.client.sql('SELECT @n AS n', parameters);
+    assert.equal(reads, 1);
+    assert.deepEqual(order, ['before', 'current', 'capture', 'current', 'bind', 'finish:returned']);
+    assert.equal(f.sends, 1);
+  } finally {await f.client.close();}
+  assert.equal(f.storeCloses, 1);
 });

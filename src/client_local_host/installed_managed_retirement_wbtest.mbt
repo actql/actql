@@ -35,9 +35,15 @@ test "installed managed retirement tombstone rejects new borrows" {
     keyed: None,
     keyed_reads: [],
     source_free_preparation: None,
+    captured_preparation: None,
     preparation_retirement: None,
     source_free_captured: None,
     source_free_opening: false,
+    publication_invocation_started: false,
+    publication_definition: None,
+    publication_invocation: None,
+    publication_started: false,
+    publication: None,
   }
   value.original = Some(value)
   value.source_free_opening = true

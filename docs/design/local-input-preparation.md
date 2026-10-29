@@ -25,6 +25,99 @@ Installed contract originals contain validated immutable contract data. They
 do not issue resources or permit dispatch. Request originals, installed
 contracts and resource children are separate identities.
 
+## Captured native Program input
+
+The normal Node representation reader projects DATA from the SDK's detached
+snapshot. Its own property descriptors never invoke a source getter again. All
+JavaScript representation operations remain in the Node package; Source and
+Program admission stay portable. This is an internal representation adapter,
+not another connector authoring interface, Resource owner or admission proof.
+
+The existing Source Owner constructs one source tree while measuring its byte,
+node and depth bounds. It shares the original parser's Program-key decision,
+including the root-anchored Effect literal-key exceptions. The raw DATA reader preserves literal keys by default; supplied Parameters
+select the same existing Local admission key policy as textual Parameters. Each Number uses the existing scalar-domain conversion;
+there is no second whole-input serializer or parser. In particular, the native
+snapshot's rounded numeric value is used rather than an obsolete rawJSON token.
+Native input has no authored textual coordinates; its spans are synthetic.
+
+The Request parent adds one input-proportional Source/index expansion on its
+original capacity before construction. Its bound comes from the same SDK
+traversal's observed envelope, using the existing Source/index representation
+recipes and shared tariff. The key inventory uses the observed envelope even
+when a tighter node policy will reject, because enumerating an original object
+retains all its keys. No policy-wide buffer, per-node current callback or second
+Ledger is introduced. Fixed reader/call frames remain trusted Host overhead.
+
+The existing Program controller retains that index and continues through its
+ordinary structural decoder and checker. The original reservation, spent work,
+input identity and cleanup remain with the same Request. A failed expansion or
+typed admission is terminal for that preparation; cleanup does not recreate the
+input or acknowledge unrelated physical children. This representation adapter
+does not by itself enable every ordinary Node body/Parameters/options consumer
+or establish complete work accounting or physical backing.
+
+## Installation Source lifetime before Requests
+
+Source configuration, runtime and schema material must enter their actual
+initial owner before their constructors. A later Request or Row Run cannot
+retroactively supply that initial overlap. The ordinary Host configuration and
+cleanup registry, including `retainPreparation`, does not issue funded backing.
+An installation-lifetime original borrowed by Requests must retain its actual
+admitted lifetime, currentness and physical retirement, rather than a profile
+flag or detached scalar credit. The Source Owner keeps its material recipe and
+failed-construction/retirement duties; the initial admission and forwarding
+must use the same existing accounting owner without a parallel Source Ledger.
+
+## Captured Parameter Values on the Request
+
+The Local Parameter input Owner supplies its existing source/tree limits to
+both textual and captured intake. The captured entry uses its existing key
+normalization policy, including duplicate-key refusal. It does not infer a new
+literal-data exception from the Program Effect-key policy. Bounds and refusal
+priority remain with that same Owner; Parameter input is admitted before the
+Program document as in the existing Local entrance.
+
+One Request expansion covers the actual simultaneously retained Program and
+Parameter source/index material. The Request keeps the original Parameter
+cursor and supplies that exact cursor to the existing binder/checker. An equal
+independent cursor cannot replace it. Missing values remain absent; a supplied
+null produced from a nonfinite native value remains supplied and cannot turn
+into a default. The existing compiler/Plan/Run handoff retains the same parent;
+its actual retirement cuts the remaining captured-input aliases.
+
+The native SDK traversal retains separate geometric high-water marks for its
+value visits and combined key/Text units. Observing long Text does not invent
+thousands of source nodes. Either actual envelope expansion grows the original
+reservation before native construction continues; identical observations do
+not invoke current again. These are conservative representation bounds, not
+full work counts, allocated-byte measurements, physical backing or permissions.
+
+## Native SDK snapshot handoff
+
+The SDK remains the single owner of native JSON snapshot semantics. The Host
+receives this call's frozen connection and original Request receipt before any
+option, Parameter or input getter. Query convenience methods forward that same
+connection rather than using the first connection attached to an installation.
+The existing serializer observes its own native traversal; no pre-scan repeats
+getters, `toJSON`, Proxy enumeration or boxed-number conversion.
+
+An input-proportional data envelope grows geometrically on the same Request
+reservation. Each actual expansion uses the shared representation tariff; an
+individual field does not enter a Resource callback merely for being visited.
+The native wire and detached JSON value overlap and remain covered together.
+The original wire is retained from that serialization, before the detached
+value is constructed, for the subsequent original-input handoff. VM-private
+property enumeration and garbage collection are not physical reserved-memory
+promises; regular input limits and the Host/process boundary remain required.
+
+Only the SDK's one original captured value may proceed. A Host bridge cannot
+skip the serializer, repeat it or substitute an equal-shaped copy. A failure
+from the original Resource observer keeps its actual identity. A caller getter
+or `toJSON` throwing an error with the same spelling remains an ordinary native
+snapshot failure; an error code cannot certify Resource origin. Host lease
+retirement retains the same receipt through failure and pending cleanup.
+
 ## Identity and currentness
 
 Admission, ownership transfer, external callbacks, execution and retirement
@@ -2151,13 +2244,22 @@ The selected sequences, Plan and module constructor receives its additional
 coexisting-data envelope before construction. A declined grow keeps the same
 quote and original prepared Program, rather than checking or compiling again.
 
+The generic module entry invokes the selected installed constructor once on
+that retained compiler output. It returns no raw Prepared; only the subsequent
+body borrow can expose the original after Plan/configuration completion.
+Synchronous construction fences reentry until the provider callback unwinds.
+A callback exception leaves the original working reservation for the existing
+failed-construction cleanup. The completed-body retirement path applies only
+after actual capacity completion has been attempted. The same fixed unwind
+scope serves the earlier construction route without another cleanup owner.
+
 After the actual installed Plan returns, completion binds its exact prepared
 Program and configuration to that same capacity. A manager borrows the original
 body through the existing nominal borrower. Source-free Run adoption consumes
 the original initial admission, input, prepared body and installed Plan. It
 never opens a replacement Run Root. Captured Source and Effect retain their
 separate original Plan and request contracts; a source-free body cannot stand
-in for those unfinished ordinary connections.
+in for them.
 
 The synchronous adoption claims its two real body holders before one original
 external currentness callback. Its post-callback fence checks the same original
@@ -2173,6 +2275,27 @@ Connector definitions supply ordinary contracts and provider data; the Host
 selects the original Request, policy and backing. No per-wrapper census or
 connector-supplied H/R/W inventory is an adoption requirement.
 
+
+### Request-owned Parameter Source
+
+The normal Request check entry selects the existing Parameter declaration and
+Source continuation when its caller has not already supplied that original.
+The Request retains this same continuation before fallible construction and
+uses its own capacity for declaration preflight, types, defaults and the final
+Source. An external test or frontend does not have to construct it first.
+
+A completed Source on that same Request and Program is immutable retained DATA.
+Reusing it checks its original declaration controller and references without
+another reader, work receipt or current callback. Typed declaration/default and
+Source errors remain their original variants; they do not become a generic
+phase failure or successful absence. Reentry is fenced while the Request selects
+this continuation, and a refused grow keeps its original partial duty attached.
+
+The actual checker receives this same Source and supplied-value cursor.
+Compilation retains the semantic output before the Request clears the domain's
+local aliases and continues its capacity to Pure or Effect. Failed preparation
+clears the same domain before the existing Request retirement; clearing these
+aliases neither settles capacity nor acknowledges physical cleanup.
 
 ### Effect inventory on the same parsed input
 
@@ -2235,3 +2358,208 @@ nominal input/purpose/phase checks. It supplies no currentness or permission
 witness. The following atomic Run adoption performs the real external current
 callback and its original post-callback reservation/stopping fence once.
 There is no reusable currentness proof or additional cleanup owner.
+
+### Captured Source Plan on the original Pure body
+
+A captured Pure computation retains its already selected original Source
+requirements, Row acquisitions or Native capture envelopes, complete generated
+sequences and configured Compute suffix before Run adoption. The original
+occurrence, checked Program and bound invocation context must match; equal CIDs
+or reconstructed declarations cannot substitute. Source and Effect use one
+Compute configuration/capacity constructor. Source acquisition transport and
+the actual configured task overlap remain part of the same resulting limits.
+
+The Request's existing prepared-Program body and its two Resource holders own
+this immutable Plan dependency. A manager borrows that same body. The captured
+Run keeps the original Plan in its existing preparation fields, without another
+Run kind, admission, allocator or cleanup engine. Its read constructor attaches
+the retained original Row acquisition directly. The acquisition already owns
+its admitted declaration; reading this Plan does not restore a declaration,
+prepare another query or regenerate a sequence.
+
+Ledger binding first checks immutable original references, then crosses the
+existing current callback and post-callback reentry fence once. Host opening
+uses the same retained configuration and accounted captured sources. It never
+calls the provider factory again or returns a successful absent Host. The
+original DAG construction error remains typed; an issued DAG whose later
+configuration fails stays on the Run for cleanup. Live reads, manager borrows
+and physical duties still block retirement. Clearing the Plan alias does not
+refund spent attempts, transfer or preparation work.
+
+The normal Host must retain and back its provider, reader, credentials, response
+and failed-child overlap before these constructors. This Core connection does
+not supply external authority or physical backing. Content/serialization and
+Model boundaries retain their separate existing contracts and cannot be
+silently promoted into this Pure Source purpose.
+
+### Original query syntax continuation
+
+SQL and Pipe syntax can cross a preparation boundary as the actual admitted
+query owner, including its original authored source document. The parsed
+continuation uses the same frontend compiler, target publications, public
+Result selection and emission bounds as the ordinary text entry. It does not
+parse a serialized Program to recover that owner. The retained published
+Environment supplies the same Catalog and declaration context; a foreign
+Environment cannot replace it by matching canonical identities.
+
+The selected parser can also return its original lexical and grammar work
+prefix on failure. These are the existing declared counters, not invocation
+counts, process CPU or lowerer/checker work. Input-document admission precedes
+those counters. Failure there is explicitly incomplete, so a zero known prefix
+cannot establish that no preparation work occurred. A preparation caller must
+fund and retain that input/index backing separately and carry the same original
+syntax into lowering and Program checking. These pure continuation functions
+create no capacity, Resource owner, permission or physical cleanup witness.
+
+
+## Request-owned query syntax
+
+The existing Request retains the admitted SQL/Pipe Query, original document,
+format and source coordinates. The same bounded frontend scanner/parser is
+called once after an input-proportional grow. A declined grow retains its exact
+original tuple and cached quote. Syntax success is not name resolution, Program
+checking or execution permission. The existing lexical/grammar counters retain
+an explicitly incomplete prefix when admission fails before those counters;
+they are not a complete meter of later lowering or all preparation work.
+
+## Request-owned query lowering and Program handoff
+
+The original published Environment and Catalog enter the existing lowerer with
+that retained Query. No source text, installation publication or Catalog is
+parsed again. One coarse shared-tariff envelope covers input-proportional
+expanded fields, generated Program data and encoding overlap. It uses retained
+Catalog size DATA, without charging or replaying its historical admission work.
+Small fixed helpers remain Host overhead. Only an actual capacity expansion
+calls external currentness; immutable completed getters and the Program take do
+not. A callback can reenter, so the existing original/phase fences remain.
+
+The Request retains the exact lowered Program, Catalog and diagnostic source.
+The checker receives those same originals and the supplied Parameter cursor;
+it does not obtain a replacement Program from the generated document. Existing
+Parameter declarations/defaults, checking, compiler and installed Plan laws
+remain authoritative. The same prepared body continues into the existing Run
+and final borrower retirement. Query temporary aliases are cut only after
+successful adoption has retained that original body. Unknown and physical
+cleanup obligations remain separate; neither a returned lowerer nor a DATA
+getter acknowledges them. Complete work metering and normal Host adoption must
+be established by their actual consumers, not inferred from syntax counters.
+
+
+The actual Node opening reads the six immutable limits from its original
+Common policy once and passes that same policy to the original admission.
+It does not accept a numerical requirements object or ask an already
+initialized Source to supply that object. The manager and the initial
+constructor can therefore use the same opening without a Source-dependent
+quote callback. The original current and physical-child observations remain
+mandatory; policy DATA does not certify either one or fund the Source body.
+
+
+## Publication uses the adopted body borrow
+
+After Run adoption, publication grows the original reservation through its
+existing live body borrow. The fixed Resource adapter retains the real
+borrower internally; publication does not recover the generic preparation
+input or select a new reservation. The same token, current boundary,
+monotone retained/execution peaks and cleanup duties remain in force.
+
+If currentness returns that selected borrow, another live holder cannot
+authorize the constructor. The existing publication projection still reports
+ForeignOriginal; the Resource operation retains its precise BorrowReturned
+result. Neither a returned token nor an equal body can create replacement
+custody. Original stopping and actual physical cleanup stay separate.
+
+## Host initialization before Source loading
+
+The existing Local connection initialization owns one original initial Resource
+admission before `loadInstalledSources`. This is separate from a Request parent:
+Source installation material survives completed Requests, while each Request
+borrows and returns that same material. Closing a Request does not reload Sources
+or release the installation's backing.
+
+`begin_host_initialization_preparation` starts that actual original admission
+under the selected immutable Local policy. Its empty working capacity has a live
+zero-byte reservation; fixed VM/control wrappers remain in the existing startup
+envelope. Zero is not a quote for Source data, proof of an empty inventory, or a
+physical cleanup acknowledgement. The original Source constructor takes the
+capacity once with `take_host_initialization_preparation_capacity`, then uses the
+existing typed continuation and adds its complete representation quote before
+constructing material. The maximum representable borrower counter is only an
+integer representation fence; it supplies no preallocated slots, work, physical
+attempts, capacity or authority.
+
+The original installation, input and Resource identities remain unchanged. No
+JavaScript Ledger getter, late Environment/sequence context, completed Request,
+profile CID, copied object or caller Boolean can create the initial carrier. The
+actual connection retains the state before fallible Resource construction and
+passes the nominal carrier to its existing installation-services constructor.
+
+The Source owner retains material, concurrent Request borrows, failed children
+and physical cleanup through its existing lifetime. It must retire that same
+reservation, including any typed successor, before
+`close_host_initialization_preparation` closes the original initial admission.
+The initial owner can abort only an unselected empty entrance. After selection,
+its old handle observes settlement and cannot retire a successor or acknowledge
+Source cleanup. Cancellation fences new work without discarding existing
+cleanup custody. No failed or uncertain observation becomes an implicit release.
+
+This boundary does not define the Source recipe or restore its material from a
+sample. The Source owner supplies the actual construction, coexistence,
+borrowing and retirement inventory. Direct original-admission tests cover the
+empty entrance, same-reservation continuation, concurrent borrowers, cancellation,
+foreign/repeated selection and cleanup; the actual Node caller tests separately
+cover retention before construction and the pre-loader connection. Those tests
+do not establish normal installed Source or physical acceptance.
+
+## Same-original Request checker and compiler terminal
+
+The Request terminal selects Pure or Effect checking from the original
+Program's retained `ProgramPreparationData.effect_members`. Selection does not
+rescan operation names or reconstruct a Program. It issues no permission: the
+existing Source intent, read-only, current authorization and physical boundaries
+remain separate. The original Environment, Catalog, Parameter cursor and supplied
+Source declaration preparation enter the same existing checking controller.
+
+`prepare_request_computation_check_preparation` retains the selected installed
+compiler configuration before a fallible phase. The remaining registry check,
+compiler and typed capacity continuation are driven by
+`finish_request_computation_preparation`. A completed compiler is reused if only
+its following original-current continuation declined; neither checking nor
+compilation is repeated. A rejected or missing-input check keeps its actual
+`CheckOutcome` rather than becoming a compiler phase error or generic Host
+classification. Known work and failure cleanup remain on the same parent.
+
+The Node terminal returns Unit. Its compiled Pure or Effect body stays inside
+the working Request until the actual installed Plan has been quoted, constructed,
+completed and borrowed. Returning an internal Prepared value from a convenience
+callback is not a replacement for that Plan/body handoff. These terminal methods
+therefore supply no raw Prepared escape, second Resource owner or no-plan success.
+
+## Publication continuation retains the original body
+
+After construction, `ClientProgramPublication` retains the same original body
+borrow and its own issued controller identity. It does not retain the legacy
+ClosedValues preparation, parsed input, or generic input type. Already selected
+Definition/Invocation contracts, row bound and monotone phase quotes are carried
+as immutable binding facts and current debit DATA. Resuming publication does not
+recover or revalidate a preparation through another path.
+
+The fixed constructor still binds the exact prepared body, adopted Run, original
+manager borrow and issued contract pair before creating this continuation. The
+existing scalar row-bound recipe is preserved; removing this backreference does
+not expand its constructor or assert general Content/shape support. A generic
+normal constructor must supply its actual same-Run facts, not a copied wire,
+policy override or guessed bound.
+
+Capture, snapshot and validation use that same controller and original borrow.
+A copied controller cannot replace its issued original. A returned borrow,
+Resource retirement, or controller cancellation fences resumed work. The
+original current callback remains at the existing resource-phase boundary;
+post-callback checks use the controller identity and borrow, without a second
+external current observation.
+
+The existing retiring preparation calls the controller's private clear before
+cutting its local reference. Clear fences reentry, cancels active semantic
+issuers/plans, and drops snapshots and contract aliases. It returns no Resource
+borrow, restores no consumed work and acknowledges no physical cleanup. Only
+actual Run/Host retirement and return of the original borrower can release that
+same reservation. Failure retains existing cleanup custody.

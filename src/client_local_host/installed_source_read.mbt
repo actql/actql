@@ -191,6 +191,15 @@ pub fn attach_installed_source_read_acquisition(
     (stage != occurrence || source_index != 0) {
     return Err(ForeignOriginal)
   }
+  if value.managed_run is Some((run, occurrence)) &&
+    run.captured_preparation is Some(plan) {
+    guard plan.captures.get(occurrence) is Some(original) &&
+      original.acquisition is Some(expected) &&
+      physical_equal(expected, acquisition) &&
+      physical_equal(original.requirement, requirement) else {
+      return Err(ForeignOriginal)
+    }
+  }
   let matches = match owner {
     Pure(prepared) =>
       @publication_host.client_query_requirement_matches_program(

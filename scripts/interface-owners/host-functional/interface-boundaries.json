@@ -19524,7 +19524,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19643,7 +19643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -29542,7 +29542,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6ccb32aeb796cc5cf6e16d04c9b559dd017fc427f8a7e032303b761adde73a46",
+      "sha256": "cbfd3f568227e8ac13a8f970b12af8f1e754ed3ac387ad423b8df09dab48f35c",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -29663,6 +29663,13 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
           "parameters": [
             "schemaOrOptions",
@@ -29676,7 +29683,8 @@
             "format",
             "text",
             "parameters",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -29704,6 +29712,15 @@
           "parameters": [
             "receipt",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
           ],
           "async": false
         },
@@ -29986,8 +30003,10 @@
         {
           "operations": [
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer"
           ],
           "exports": [],
@@ -30001,7 +30020,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "beforeSourceQuery(format, text, parameters, options) {"
+                "anchor": "beforeSourceQuery(format, text, parameters, options, originalConnection) {"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -30027,7 +30046,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));"
+                "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options, originalConnection));"
               }
             ],
             "failure": [
@@ -59260,7 +59279,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "09d49cc6bd7ddeb7a6fc7e1973969ea3963419ce5517f9ab60411952ae8f8168",
+      "sha256": "7dc280d355f12fde59afbb70054ed07e90dd33c14550354453f02bf3652c7783",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -76496,7 +76515,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "6af70995ea1c844ed76820e54a999a4a1918d5e7a636c2a3af748b225881b67d",
+      "sha256": "b467e46eb425b17ed1bcc4b482480c115ec236b7b0c8f8b2a9983f8624d510f5",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76699,7 +76718,8 @@
             "format",
             "text",
             "parameters",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -76714,7 +76734,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
           "parameters": [],
           "async": false
         },
@@ -76740,6 +76760,24 @@
           "parameters": [
             "prepared",
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
+          "parameters": [
+            "units",
+            "document",
+            "values"
           ],
           "async": false
         },
@@ -77023,7 +77061,6 @@
             "fail/fail",
             "fileIdentity/fileIdentity",
             "pending/pending",
-            "prepareOrdinarySourceManagedInstallation",
             "prepareOrdinaryManagedInstallation/closeChild",
             "prepareOrdinaryManagedInstallation/current/current",
             "prepareOrdinaryManagedInstallation/producerFor/producerFor",
@@ -77049,7 +77086,8 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
+            "prepareOrdinarySourceManagedInstallation"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -77554,8 +77592,10 @@
             "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
@@ -81680,14 +81720,18 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "852305cdcff349565e2d991a392872fa48df87e71f15a00690e63cc51387d034",
+      "sha256": "ba33606ee31b71f90940044e4941643642103c9beb74dc03625e1895ed21752d",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
+        "beginRequestInput",
         "bindClosedValuesSnapshot",
         "checkedPreparation",
         "cleanupClosedValuesInput",
-        "closedValuesPreparationAvailable"
+        "closeHostInitializationPreparation",
+        "closedValuesPreparationAvailable",
+        "openHostInitializationPreparation",
+        "openRequestPreparation"
       ],
       "operations": [
         {
@@ -81704,7 +81748,16 @@
             "input",
             "receipt",
             "connection",
-            "requirements",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginRequestInput",
+          "parameters": [
+            "state",
+            "receipt",
+            "connection",
             "assertCurrent"
           ],
           "async": false
@@ -81749,6 +81802,13 @@
           "async": false
         },
         {
+          "name": "closeHostInitializationPreparation",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "commonInt/commonInt",
           "parameters": [
             "value"
@@ -81763,6 +81823,52 @@
         {
           "name": "noPhysicalChildren/noPhysicalChildren",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openHostInitializationPreparation",
+          "parameters": [
+            "state",
+            "moon",
+            "input",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparationAdmission",
+          "parameters": [
+            "state",
+            "moon",
+            "input",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparationAdmission/openPreparationAdmission",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparationAdmission/openPreparationAdmission#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRequestPreparation",
+          "parameters": [
+            "state",
+            "input",
+            "assertCurrent",
+            "childrenPending"
+          ],
           "async": false
         },
         {
@@ -81799,6 +81905,7 @@
           "operations": [
             "<module>",
             "beginClosedValuesInput",
+            "beginRequestInput",
             "bindClosedValuesSnapshot",
             "checkedPreparation",
             "cleanupClosedValuesInput",
@@ -81807,14 +81914,24 @@
             "invalid/invalid",
             "noPhysicalChildren/noPhysicalChildren",
             "phaseAdapter/phaseAdapter",
-            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork"
+            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
+            "openRequestPreparation",
+            "closeHostInitializationPreparation",
+            "openHostInitializationPreparation",
+            "openPreparationAdmission",
+            "openPreparationAdmission/openPreparationAdmission",
+            "openPreparationAdmission/openPreparationAdmission#2"
           ],
           "exports": [
             "beginClosedValuesInput",
+            "beginRequestInput",
             "bindClosedValuesSnapshot",
             "checkedPreparation",
             "cleanupClosedValuesInput",
-            "closedValuesPreparationAvailable"
+            "closedValuesPreparationAvailable",
+            "openRequestPreparation",
+            "closeHostInitializationPreparation",
+            "openHostInitializationPreparation"
           ],
           "attributes": {
             "responsibility": [
@@ -83540,7 +83657,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83789,7 +83906,7 @@
       "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84154,7 +84271,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

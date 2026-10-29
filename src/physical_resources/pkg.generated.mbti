@@ -302,6 +302,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn[P] preparation_body_borrow_reserved_extents(PreparationBodyBorrow[P]) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
 pub fn[P] preparation_body_borrow_value(PreparationBodyBorrow[P]) -> P?
 
 pub fn[P] preparation_body_retirement_started(PreparationBodyBorrow[P]) -> Bool
@@ -313,6 +315,8 @@ pub fn[I, P] preparation_capacity_accounting(PreparationCapacity[I, P]) -> (Int6
 pub fn[I, P] preparation_capacity_available(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn[I, P] preparation_capacity_borrow_value(PreparationCapacityBorrow[I, P]) -> P?
+
+pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
@@ -386,7 +390,7 @@ pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P,
 
 pub fn[I, P] reserve_preparation_capacity(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
 
-pub fn[I, P] reserve_preparation_publication_phase(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
+pub fn[P] reserve_preparation_publication_phase(PreparationBodyBorrow[P], P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 

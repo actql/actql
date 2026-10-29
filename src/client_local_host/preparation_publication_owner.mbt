@@ -1,41 +1,39 @@
 ///|
 /// A typed continuation of the original adopted preparation, not a new lease.
-/// No raw Prepared is retained here: the manager token and original owner cut
-/// their aliases together during retirement, invalidating escaped handles.
-struct ClientProgramPublication[I] {
-  owner : ClientClosedValuesPreparation[I]
+/// No raw Prepared or legacy preparation owner is retained here. The SAME
+/// original body borrow controls liveness; retiring this existing controller
+/// cuts its semantic aliases before the manager returns that borrow.
+struct ClientProgramPublication {
+  mut original : ClientProgramPublication?
+  mut retiring : Bool
+  mut publication_definition : @publication.PublicationContract?
+  mut publication_invocation : @publication.PublicationContract?
+  row_bound : Int?
+  mut retained_quote : Int64
+  mut execution_quote : Int64
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]
   mut run : @strategy.CapturedDAG?
-  mut snapshot : ClientProgramSnapshot[I]?
+  mut snapshot : ClientProgramSnapshot?
   mut snapshot_starting : Bool
   completed_snapshots : Array[@publication.CapturedResultSnapshot]
   mut next_snapshot_index : Int
   mut capture_started : Bool
-  mut capture : ClientProgramCapture[I]?
+  mut capture : ClientProgramCapture?
 }
 
 ///|
-fn[I] publication_original_body(
-  value : ClientProgramPublication[I],
+fn publication_original_body(
+  value : ClientProgramPublication,
 ) -> @publication_host.PreparedClientProgram? {
-  let owner = value.owner
-  guard owner.original is Some(original) &&
-    physical_equal(original, owner) &&
-    owner.publication is Some(issued) &&
-    physical_equal(issued, value) &&
-    owner.manager_original is Some(holder) &&
-    physical_equal(holder, value.holder) &&
-    owner.adopted &&
-    !owner.retiring &&
-    owner.prepared is Some(prepared) &&
-    @resources.preparation_body_borrow_value(holder) is Some(body) &&
-    physical_equal(body, prepared) &&
-    !@resources.preparation_body_retirement_started(holder) else {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    !value.retiring &&
+    !@resources.preparation_body_retirement_started(value.holder) else {
     return None
   }
-  Some(prepared)
+  @resources.preparation_body_borrow_value(value.holder)
 }
 
 ///|
@@ -48,32 +46,18 @@ let publication_projection_execution : Int64 = 371664L
 ///|
 /// Fixed adopted-owner entry. No supplied row count, policy override or bytes.
 /// One issued continuation fences the serial Result-publication invocation.
-pub fn[I] reserve_program_publication(
-  owner : ClientClosedValuesPreparation[I],
+pub fn reserve_program_publication(
+  owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
-  holder : @resources.PreparationBodyBorrow[
-    @publication_host.PreparedClientProgram,
-  ],
-) -> Result[ClientProgramPublication[I], ClientClosedValuesPreparationIssue] {
-  guard owner.original is Some(original) &&
-    physical_equal(original, owner) &&
-    owner.input is Some(input) &&
-    owner.prepared is Some(body) &&
-    physical_equal(body, prepared) &&
-    owner.manager_original is Some(issued) &&
-    physical_equal(issued, holder) &&
-    @resources.preparation_body_borrow_value(holder) is Some(held) &&
-    physical_equal(held, prepared) else {
-    return Err(ForeignOriginal)
+) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue] {
+  let holder = match managed_run_publication_body(owner, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
-  if !owner.adopted ||
-    owner.retiring ||
-    owner.publication_started ||
-    owner.publication is Some(_) ||
-    @resources.preparation_body_retirement_started(holder) {
+  if owner.publication_started || owner.publication is Some(_) {
     return Err(WrongPhase)
   }
-  guard owner.source_free is Some(source_free) else {
+  guard owner.source_free_preparation is Some(source_free) else {
     return Err(ForeignOriginal)
   }
   let plan = source_free.capacity_plan
@@ -82,22 +66,22 @@ pub fn[I] reserve_program_publication(
     physical_equal(demand.original, inventory) &&
     plan.graph is Some(graph) &&
     owner.publication_definition is Some(_) &&
-    owner.publication_invocation is Some(_) else {
-    return Err(Policy)
-  }
-  guard owner.adopted_run is Some(adopted_run) else {
+    owner.publication_invocation is Some(_) &&
+    !owner.source_free_opening &&
+    owner.source_free_captured is Some(captured) &&
+    owner.ledger is Some(ledger) &&
+    physical_equal(ledger, @strategy.captured_dag_ledger(captured)) else {
     return Err(ForeignOriginal)
   }
-  let captured = match
-    installed_managed_publication_dag(adopted_run, prepared) {
-    Err(issue) => return Err(Installed(issue))
+  let (baseline, prior_execution) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
   owner.publication_started = true
   // The fixed future descriptor/control packet is separate from row payloads:
   // input bag/Plan/extent/empty arrays616, getter112, issued capture handle and
   // result/Option/transition carriers <=512; 808 explicit conservative slack.
-  let baseline = owner.retained_quote
   if baseline > 9223372036854775807L - 2048L {
     return Err(Policy)
   }
@@ -112,26 +96,18 @@ pub fn[I] reserve_program_publication(
   }
   let controls_retained = baseline + 2048L + node_arrays
   let quote_execution = Int64::max(
-    owner.execution_quote,
-    publication_projection_execution,
+    prior_execution, publication_projection_execution,
   )
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
-      prepared,
-      controls_retained,
-      quote_execution,
+    reserve_program_publication_phase(
+      holder, prepared, controls_retained, quote_execution,
     ) {
-    Err(issue) => return Err(Capacity(issue))
-    Ok(_) => {
-      owner.retained_quote = controls_retained
-      owner.execution_quote = quote_execution
-    }
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   guard @resources.preparation_body_borrow_value(holder) is Some(current) &&
     physical_equal(current, prepared) &&
-    !owner.retiring else {
+    managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
   guard scalar_snapshot_layout(inventory.fields, inventory.names, demand.rows)
@@ -174,25 +150,24 @@ pub fn[I] reserve_program_publication(
     quote_execution,
     execution + publication_projection_execution,
   )
-  match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
-      prepared,
-      total_r,
-      total_e,
-    ) {
-    Err(issue) => return Err(Capacity(issue))
+  match reserve_program_publication_phase(holder, prepared, total_r, total_e) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   // Recheck the exact token after imported callbacks, not merely borrower count.
   guard @resources.preparation_body_borrow_value(holder) is Some(current) &&
     physical_equal(current, prepared) &&
-    !owner.retiring else {
+    managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
-  let value : ClientProgramPublication[I] = {
-    owner,
+  let value : ClientProgramPublication = {
+    original: None,
+    retiring: false,
+    publication_definition: owner.publication_definition,
+    publication_invocation: owner.publication_invocation,
+    row_bound: Some(demand.rows),
+    retained_quote: total_r,
+    execution_quote: total_e,
     holder,
     capture_started: false,
     capture: None,
@@ -202,8 +177,7 @@ pub fn[I] reserve_program_publication(
     next_snapshot_index: 0,
     completed_snapshots: [],
   }
-  owner.retained_quote = total_r
-  owner.execution_quote = total_e
+  value.original = Some(value)
   owner.publication = Some(value)
   Ok(value)
 }
@@ -212,26 +186,23 @@ pub fn[I] reserve_program_publication(
 /// Refresh the original admission before any resumed publication constructor.
 /// A zero-delta check still rejects stopping, and exact custody is rechecked
 /// after the imported callback even while other role borrowers remain live.
-fn[I] refresh_publication_original(
-  value : ClientProgramPublication[I],
+fn refresh_publication_original(
+  value : ClientProgramPublication,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientClosedValuesPreparationIssue,
 ] {
-  let owner = value.owner
-  guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
-      owner.retained_quote,
-      owner.execution_quote,
+      value.retained_quote,
+      value.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   match publication_original_body(value) {
@@ -243,43 +214,99 @@ fn[I] refresh_publication_original(
 ///|
 /// Internal constructor transition shared by capture and its deterministic
 /// capacity tests. Dimensions come only from fixed original-plan recipes.
-fn[I] reserve_publication_constructor(
-  value : ClientProgramPublication[I],
+fn reserve_publication_constructor(
+  value : ClientProgramPublication,
   retained_add : Int64,
   temporary : Int64,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
-  let owner = value.owner
-  guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   if retained_add < 0L ||
     temporary < 0L ||
-    retained_add > 9223372036854775807L - owner.retained_quote ||
+    retained_add > 9223372036854775807L - value.retained_quote ||
     temporary > 9223372036854775807L - publication_projection_execution {
     return Err(Policy)
   }
-  let retained = owner.retained_quote + retained_add
+  let retained = value.retained_quote + retained_add
   let execution = Int64::max(
-    owner.execution_quote,
+    value.execution_quote,
     temporary + publication_projection_execution,
   )
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       retained,
       execution,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => {
-      owner.retained_quote = retained
-      owner.execution_quote = execution
+      value.retained_quote = retained
+      value.execution_quote = execution
     }
   }
   guard publication_original_body(value) is Some(_) else {
     return Err(ForeignOriginal)
   }
   Ok(())
+}
+
+///|
+// The existing publication failure stays ForeignOriginal when its exact
+// manager borrow was returned during currentness. This is one typed Result
+// projection, not another check/current call or an error-code whitelist.
+fn reserve_program_publication_phase(
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, ClientClosedValuesPreparationIssue] {
+  @resources.reserve_preparation_publication_phase(
+    holder, prepared, retained, execution,
+  ).map_err(issue => {
+    match issue {
+      BorrowReturned => ForeignOriginal
+      _ => Capacity(issue)
+    }
+  })
+}
+
+///|
+/// The fixed actual Run supplies its existing private body holder. No caller
+/// provides a substitute borrow, raw preparation input or second owner. This
+/// is original correspondence DATA; the later Resource grow owns currentness.
+fn managed_run_publication_body(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  ClientClosedValuesPreparationIssue,
+] {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.ledger is Some(_) &&
+    value.preparation is Some(PureManaged(_, original_prepared)) &&
+    physical_equal(original_prepared, prepared) &&
+    value.preparation_retirement is Some(PurePreparation(custody)) &&
+    custody.holder is Some(holder) &&
+    !@resources.preparation_body_retirement_started(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(holder)
+}
+
+///|
+/// Semantic alias retirement only, before returning the Run's same body role.
+fn clear_managed_run_publication(value : ClientInstalledManagedRun) -> Unit {
+  if value.publication is Some(publication) {
+    clear_program_publication(publication)
+  }
+  value.publication = None
+  value.publication_definition = None
+  value.publication_invocation = None
 }

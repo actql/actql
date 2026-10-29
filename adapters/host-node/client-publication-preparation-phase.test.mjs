@@ -4,11 +4,20 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-test('publication phase manager relays the exact original preparation and manager holder without numeric grant',()=>{
- const prepared={},phase={},holder={},seen=[];const state={prepared,phase,holder,adopting:true,context:{runtime:{clientProgramReservePublication(...args){seen.push(args);return 'result';}}}};
- const invoke=get('./ordinary-source-managed.mjs','reservePublication',{runFor:p=>{assert.equal(p,prepared);return {producer:{preparation:state}};},fail,checkedPreparation:(moon,result)=>{assert.equal(result,'result');return 'original-resource';}},true);
- assert.equal(invoke(prepared),'original-resource');assert.deepEqual(seen,[[phase,prepared,holder]]);
+test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
+ const prepared={},phase={},holder={},runOriginal={},seen=[];const state={prepared,phase,holder,adopting:true,context:{runtime:{clientProgramReservePublication(...args){seen.push(args);return 'result';}}}};
+ const invoke=get('./ordinary-source-managed.mjs','reservePublication',{runFor:p=>{assert.equal(p,prepared);return {producer:{preparation:state},value:runOriginal};},fail,checkedPreparation:(moon,result)=>{assert.equal(result,'result');return 'original-resource';}},true);
+ assert.equal(invoke(prepared),'original-resource');assert.deepEqual(seen,[[runOriginal,prepared]]);
  state.holder=undefined;assert.throws(()=>invoke(prepared),{code:'ForeignInstalledSourceProducer'});assert.equal(seen.length,1);
+});
+test('publication invocation selects the same admitted Run for generic and legacy preparation',()=>{
+ const prepared={},runOriginal={},state={prepared,holder:{},adopting:true};
+ const run={producer:{preparation:state},value:runOriginal};
+ const invoke=get('./ordinary-source-managed.mjs','publicationPreparation',{runFor:p=>{assert.equal(p,prepared);return run;},fail},true);
+ assert.equal(invoke(prepared),runOriginal);
+ state.phase={};assert.equal(invoke(prepared),runOriginal);
+ run.value=undefined;assert.throws(()=>invoke(prepared),{code:'NodeManagedRunAdmissionUnavailable'});
+ run.value=runOriginal;state.adopting=false;assert.throws(()=>invoke(prepared),{code:'ForeignInstalledSourceProducer'});
 });
 test('installed publication phase refuses foreign runtime, missing funding and closed originals',()=>{
  const runtime={},prepared={},seen=[];const run={runtime,prepared,preparationFunded:true,manager:{reservePublication:p=>seen.push(p)}};

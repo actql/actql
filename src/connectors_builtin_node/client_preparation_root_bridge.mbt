@@ -76,6 +76,120 @@ pub fn client_program_begin_request_preparation(
 }
 
 ///|
+#export_name("clientProgramReserveRequestSnapshot")
+pub fn client_program_reserve_request_snapshot(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  units : Int64,
+  values : Int64,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_snapshot(parent, input, units, values)
+}
+
+///|
+#export_name("clientProgramPrepareRequestNativeProgramInput")
+pub fn client_program_prepare_request_native_program_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  captured : NativeJsonValue,
+  parameters : NativeJsonValue,
+  limits : @stage_syntax.Limits,
+) -> Result[
+  @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_native_program_input(
+    parent,
+    input,
+    captured,
+    native_json_reader,
+    limits,
+    supplied=if native_json_parameter_is_absent(parameters) {
+      None
+    } else {
+      Some(parameters)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramParseRequestQuerySyntax")
+pub fn client_program_parse_request_query_syntax(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  document : String,
+  spelling : String,
+) -> Result[
+  @query_syntax.Query,
+  @client_local_host.ClientRequestQuerySyntaxIssue,
+] {
+  let format = match @source_frontend.select_format(spelling) {
+    Err(issue) =>
+      return Err(
+        @client_local_host.ClientRequestQuerySyntaxIssue::Frontend(issue),
+      )
+    Ok(value) => value
+  }
+  @client_local_host.parse_request_query_syntax(parent, input, document, format)
+}
+
+///|
+#export_name("clientProgramLowerRequestPublishedQuery")
+pub fn client_program_lower_request_published_query(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  declarations : String?,
+  public_primary : Bool,
+) -> Result[
+  (
+    @source_frontend.Lowered,
+    @program_check.PreparedSourceCatalog,
+    @source_frontend.DiagnosticSource,
+  ),
+  @client_local_host.ClientRequestQueryLoweringIssue,
+] {
+  @client_local_host.lower_request_published_query(
+    parent,
+    input,
+    publication,
+    environment,
+    declarations,
+    public_primary~,
+  )
+}
+
+///|
+#export_name("clientProgramPreparedRequestQueryLowering")
+pub fn client_program_prepared_request_query_lowering(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  (
+    @source_frontend.Lowered,
+    @program_check.PreparedSourceCatalog,
+    @source_frontend.DiagnosticSource,
+  ),
+  @client_local_host.ClientRequestQueryLoweringIssue,
+] {
+  @client_local_host.prepared_request_query_lowering(parent, input)
+}
+
+///|
 /// The existing parent retains this exact Source child on the same original input.
 #export_name("clientProgramPrepareRequestProgramJson")
 pub fn client_program_prepare_request_program_json(
@@ -756,4 +870,130 @@ pub fn strategy_begin_original_effect_free_captured_run(
     max_workspace,
     content_generations~,
   )
+}
+
+///|
+/// The SAME installation initialization original, before Environment/sequence
+/// contracts or Source loading. It is never a completed Request preparation.
+#export_name("clientProgramBeginHostInitializationPreparation")
+pub fn client_program_begin_host_initialization_preparation(
+  initial : @resources.NodePreparationAdmission[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Result[
+  @client_local_host.ClientHostInitializationPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  @client_local_host.ClientHostInitializationIssue,
+] {
+  @client_local_host.begin_host_initialization_preparation(
+    initial, input, policy,
+  )
+}
+
+///|
+#export_name("clientProgramCloseHostInitializationPreparation")
+pub fn client_program_close_host_initialization_preparation(
+  original : @client_local_host.ClientHostInitializationPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @client_local_host.ClientHostInitializationIssue] {
+  @client_local_host.close_host_initialization_preparation(original)
+}
+
+///|
+#export_name("clientProgramPrepareRequestComputationCheck")
+pub fn client_program_prepare_request_computation_check(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog : @program_check.PreparedSourceCatalog?,
+  source_preparation : @stage_parameters.Source?,
+) -> Result[
+  @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_computation_check_preparation(
+    parent,
+    input,
+    environment,
+    supplied,
+    evidence,
+    program_limits,
+    effect_limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+/// No raw Prepared leaves this terminal bridge. The same parent retains the
+/// compiled body until its actual installed Plan and body borrow are complete.
+#export_name("clientProgramFinishRequestComputation")
+pub fn client_program_finish_request_computation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_preparation(parent, input)
+}
+
+///|
+/// The checked Request original, not a new raw or no-plan preparation. The
+/// existing installed contracts/factory construct the selected module once.
+#export_name("clientProgramPrepareRequestProgramModuleBody")
+pub fn client_program_prepare_request_program_module_body(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+) -> Result[Unit, @client_local_host.ClientRequestProgramPlanIssue] {
+  @client_local_host.prepare_request_program_module_body(
+    parent,
+    input,
+    contracts,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+#export_name("clientProgramBorrowRequestProgramPreparation")
+pub fn client_program_borrow_request_program_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_program_preparation(parent)
+}
+
+///|
+#export_name("clientProgramAdoptRequestProgramPreparation")
+pub fn client_program_adopt_request_program_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_program_managed_run(parent, request)
 }

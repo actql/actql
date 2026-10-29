@@ -4,6 +4,7 @@
 fn request_effect_fixture(
   current? : () -> Bool = () => true,
   limits? : @publication_host.ClientEffectComputationLimits? = None,
+  automatic? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -46,6 +47,18 @@ fn request_effect_fixture(
       ),
     ),
     supplied=Some(supplied),
+    computation_limits=if automatic {
+      Some(
+        (
+          @publication_host.client_standard_program_preparation_limits(),
+          limits.unwrap_or(
+            @publication_host.client_standard_effect_computation_limits(),
+          ),
+        ),
+      )
+    } else {
+      None
+    },
   )
   (parent, child, input, supplied)
 }

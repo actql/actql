@@ -32,9 +32,15 @@ struct ClientInstalledManagedRun {
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
+  mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
   mut source_free_captured : @strategy.CapturedDAG?
   mut source_free_opening : Bool
+  mut publication_invocation_started : Bool
+  mut publication_definition : @publication.PublicationContract?
+  mut publication_invocation : @publication.PublicationContract?
+  mut publication_started : Bool
+  mut publication : ClientProgramPublication?
 }
 
 ///|
@@ -651,9 +657,15 @@ fn new_installed_managed_run_owned(
     keyed: None,
     keyed_reads: [],
     source_free_preparation: None,
+    captured_preparation: None,
     preparation_retirement: None,
     source_free_captured: None,
     source_free_opening: false,
+    publication_invocation_started: false,
+    publication_definition: None,
+    publication_invocation: None,
+    publication_started: false,
+    publication: None,
   }
   value.original = Some(value)
   value
@@ -759,6 +771,21 @@ pub fn check_installed_managed_run(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match check_installed_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  require_installed_managed_run(value).map(_ => ())
+}
+
+///|
+// Immutable original binding only. The consuming operation owns one actual
+// current callback and the existing post-callback reentry fence.
+fn check_installed_managed_run_binding(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let selected = match preparation {
     PureManaged(_, prepared) => Some(prepared)
@@ -771,7 +798,11 @@ pub fn check_installed_managed_run(
     value.request == request else {
     return Err(ForeignOriginal)
   }
-  require_installed_managed_run(value).map(_ => ())
+  if value.captured_preparation is Some(plan) &&
+    !physical_equal(plan.request, request) {
+    return Err(ForeignOriginal)
+  }
+  Ok(())
 }
 
 ///|
@@ -827,7 +858,7 @@ pub fn prepare_installed_managed_run_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
-  match check_installed_managed_run(value, prepared, request) {
+  match check_installed_managed_run_binding(value, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -860,6 +891,12 @@ fn prepare_installed_managed_run_ledger_owned(
     transport_bytes.length() != capacities.length() ||
     transport_execution_bytes.length() != capacities.length() {
     return Err(Unsupported)
+  }
+  if value.captured_preparation is Some(plan) {
+    return prepare_retained_installed_capture_ledger(
+      value, plan, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
   }
   if value.preparation is Some(PlannedEffectManaged(_, plan)) {
     return prepare_planned_installed_effect_ledger(
@@ -1165,6 +1202,7 @@ pub fn retire_installed_managed_run(
   value.keyed_reads.clear()
   value.keyed = None
   value.source_free_preparation = None
+  value.captured_preparation = None
   value.source_free_captured = None
   Ok(())
 }
@@ -1197,10 +1235,18 @@ pub fn installed_managed_publication_limits(
   prepared : @publication_host.PreparedClientProgram,
   max_payload_bytes : Int,
 ) -> @publication_host.PublicationOutputExportLimits? {
-  guard require_installed_managed_run(value) is Ok(_) &&
-    value.source_free_preparation is Some(original) else {
-    return None
+  guard require_installed_managed_run(value) is Ok(_) else { return None }
+  if value.captured_preparation is Some(plan) {
+    if !physical_equal(plan.prepared, prepared) {
+      return None
+    }
+    return client_node_publication_limits(
+      prepared,
+      max_payload_bytes,
+      plan.capacity_plan,
+    )
   }
+  guard value.source_free_preparation is Some(original) else { return None }
   prepared_installed_managed_publication_limits(
     original, prepared, max_payload_bytes,
   )

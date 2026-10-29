@@ -271,101 +271,24 @@ pub fn prepare_installed_effect_managed_plan(
     guard selected is Some(capacity) else { return Err(Unsupported) }
     captures.push(capacity)
   }
-  // Retain the same concrete Local configuration used for this quote. Opening
-  // Compute never selects the sequences or derives their capacity a second time.
-  let (compute_sequences, capacity_plan, local_capacity) = match source_free {
-    Some(original) =>
-      (
-        original.sequences,
-        original.capacity_plan,
-        {
-          limits: original.limits,
-          provider_retained: original.provider_retained_bytes,
-          provider_execution: original.provider_execution_bytes,
-          simultaneous: None,
-        },
-      )
-    None => {
-      let first = @strategy.graph_captured_prefix(graph)
-      let tail = []
-      for task in first..<sequences.length() {
-        tail.push(sequences[task])
-      }
-      let max_rows = @publication_host.client_standard_values_sequence_limits().max_rows
-      let configuration = client_local_capacity_plan(
-        tail,
-        max_rows,
-        graph=Some(graph),
-        graph_offset=first,
-      )
-      let inputs = Array::make(tail.length(), 0)
-      for task in first..<sequences.length() {
-        guard @strategy.graph_task_input_count(graph, task) is Some(count) else {
-          return Err(Unsupported)
-        }
-        inputs[task - first] = count
-      }
-      guard client_local_sequence_capacity_original(
-          tail,
-          @strategy.graph_task_count(graph),
-          capacity_plan=Some(configuration),
-          retained_inputs=Some(inputs),
-          max_rows~,
-        )
-        is Some(capacity) else {
-        return Err(Unsupported)
-      }
-      (tail, configuration, capacity)
-    }
-  }
-  let configuration = match
-    prepare_client_local_configuration(
-      graph,
-      capacity_plan,
-      ExecutionRows,
-      local_capacity.provider_retained,
-      local_capacity.provider_execution,
+  let compute = match
+    prepare_installed_compute_preparation(
+      Effect(prepared),
+      source_free,
+      sequences,
+      captures,
+      transport_bytes,
+      transport_execution_bytes,
       true,
       provider_factory,
     ) {
-    Some(value) => value
-    None => return Err(Unsupported)
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
-  let actual_local_capacity = match
-    client_prepared_local_configuration_capacity(
-      configuration,
-      local_capacity.limits,
-    ) {
-    Some(value) => value
-    None => return Err(Unsupported)
-  }
-  let compute_limits = match source_free {
-    Some(_) => {
-      if !declarations.is_empty() ||
-        !transport_bytes.is_empty() ||
-        !transport_execution_bytes.is_empty() {
-        return Err(Unsupported)
-      }
-      actual_local_capacity.limits
-    }
-    None => {
-      if @strategy.graph_captured_prefix(graph) == 0 {
-        return Err(Unsupported)
-      }
-      guard multi_captured_capacity_limits_selected(
-          graph,
-          captures.map(value => (value.retained_bytes, value.execution_bytes)),
-          transport_bytes,
-          transport_execution_bytes,
-          sequences,
-          local_capacity=Some(actual_local_capacity),
-        )
-        is Some(limits) else {
-        return Err(Unsupported)
-      }
-      limits
-    }
-  }
+  let compute_sequences = compute.sequences
+  let capacity_plan = compute.capacity_plan
+  let configuration = compute.configuration
+  let compute_limits = compute.limits
 
   let original_compute_limits = compute_limits
   let compute_limits = match model {

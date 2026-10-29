@@ -528,3 +528,39 @@ pub fn prepare_client_effect_query_requirement_at_query_time(
     limits,
   )
 }
+
+///|
+/// Same prepared Program/occurrence and original invocation context. This
+/// reads completed immutable binding DATA; it issues no current/Run permission.
+pub fn client_query_requirement_matches_original_query_time(
+  prepared : PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  requirement : @planning.QueryRequirement,
+  selected : ClientQueryTimePreparation?,
+  request : ClientRequestIdentity,
+) -> Bool {
+  if !client_query_requirement_matches_program(
+      prepared, stage, source_index, requirement,
+    ) {
+    return false
+  }
+  let acquisition = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
+  match selected {
+    None => @acquisition.query_acquisition_query_time(acquisition) is None
+    Some(original) => {
+      guard original.owner is Query(owner) &&
+        physical_equal(owner, prepared) &&
+        client_query_time_acquisition_context(original, request)
+        is Some(context) &&
+        @acquisition.query_acquisition_query_time(acquisition) is Some(captured) else {
+        return false
+      }
+      physical_equal(context, captured)
+    }
+  }
+}
