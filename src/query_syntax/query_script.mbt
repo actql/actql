@@ -42,6 +42,38 @@ pub fn parse_selected_query_script(
 }
 
 ///|
+/// Observe only the original lexer/parser's declared work counters, including
+/// a refused grammar/lexical prefix. Input-document admission precedes those
+/// counters; failure there is explicitly incomplete, never a zero-work proof.
+/// This performs one original parse and introduces no alternate syntax route.
+pub fn observe_selected_query_script(
+  text : String,
+  limits : QueryLimits,
+  sql_only : Bool,
+  source_path? : String = "<query>",
+) -> (Result[QueryScript?, Diagnostic], Int64, Bool) {
+  let spent = Ref(0L)
+  let lexical = Ref(false)
+  let parser = Ref(false)
+  let result = parse_selected_query_script_owned(
+    text,
+    limits,
+    sql_only,
+    source_path,
+    observe_lexical=Some(value => {
+      spent.val += value.to_int64()
+      lexical.val = true
+    }),
+    observe_parser=Some(value => {
+      spent.val += value.to_int64()
+      parser.val = true
+    }),
+  )
+  let complete = lexical.val && (parser.val || result is Ok(None))
+  (result, spent.val, complete)
+}
+
+///|
 fn parse_selected_query_script_owned(
   text : String,
   limits : QueryLimits,
@@ -53,6 +85,8 @@ fn parse_selected_query_script_owned(
   ] = (text, max_bytes, path) => {
     @origin.document(text, max_bytes, source_path=path)
   },
+  observe_lexical? : ((Int) -> Unit)? = None,
+  observe_parser? : ((Int) -> Unit)? = None,
 ) -> Result[QueryScript?, Diagnostic] {
   if [limits.max_syntax_nodes, limits.max_cte_count, limits.max_work].any(n => {
       n < 0 || n == 2147483647
@@ -67,6 +101,7 @@ fn parse_selected_query_script_owned(
       false,
       query_route=Some(sql_only),
       read_document~,
+      observe_work=observe_lexical,
     ) {
     Ok(source) => source
     Err(issue) => return Err(issue)
@@ -85,7 +120,7 @@ fn parse_selected_query_script_owned(
       return Ok(None)
     }
   }
-  parse_query_tokens(source, limits).map(query => {
+  parse_query_tokens(source, limits, observe_work=observe_parser).map(query => {
     Some(single_query_script(query))
   })
 }

@@ -1,13 +1,13 @@
 ///|
 /// One tracked snapshot continuation. It owns no second grant and never exposes
 /// its raw issuer. Completed/cancelled escaped handles lose their heavy issuer.
-struct ClientProgramSnapshot[I] {
-  publication : ClientProgramPublication[I]
+struct ClientProgramSnapshot {
+  publication : ClientProgramPublication
   mut issuer : @publication_host.PublicationOutputSnapshotPreparation?
 }
 
 ///|
-fn[I] program_snapshot_slot_matches(value : ClientProgramSnapshot[I]) -> Bool {
+fn program_snapshot_slot_matches(value : ClientProgramSnapshot) -> Bool {
   match value.publication.snapshot {
     Some(original) => physical_equal(original, value)
     None => false
@@ -15,7 +15,7 @@ fn[I] program_snapshot_slot_matches(value : ClientProgramSnapshot[I]) -> Bool {
 }
 
 ///|
-fn[I] program_snapshot_current(value : ClientProgramSnapshot[I]) -> Bool {
+fn program_snapshot_current(value : ClientProgramSnapshot) -> Bool {
   program_snapshot_slot_matches(value) && value.issuer is Some(_)
 }
 
@@ -24,14 +24,13 @@ fn[I] program_snapshot_current(value : ClientProgramSnapshot[I]) -> Bool {
 /// exact B/N; depth3 is logical wrapper -> row array -> flat scalar row object.
 /// The original schema/row plan already funded the constructor and is checked
 /// again here. No caller dimensions or content/CID-equivalent substitute exist.
-pub fn[I] begin_program_snapshot(
-  value : ClientProgramPublication[I],
+pub fn begin_program_snapshot(
+  value : ClientProgramPublication,
   output : @publication_host.PublicationOutputExport,
-) -> Result[ClientProgramSnapshot[I], ClientClosedValuesPreparationIssue] {
+) -> Result[ClientProgramSnapshot, ClientClosedValuesPreparationIssue] {
   guard publication_original_body(value) is Some(_) &&
     value.run is Some(run) &&
-    value.owner.source_free is Some(source_free) &&
-    source_free.capacity_plan.scalar_demand is Some(demand) else {
+    value.row_bound is Some(row_bound) else {
     return Err(ForeignOriginal)
   }
   if value.snapshot_starting ||
@@ -49,7 +48,7 @@ pub fn[I] begin_program_snapshot(
     Ok(extent) => extent
     Err(issue) => return Err(PublicationSnapshot(issue))
   }
-  if rows < 0 || rows > demand.rows || bytes < 1 || nodes < 1 {
+  if rows < 0 || rows > row_bound || bytes < 1 || nodes < 1 {
     return Err(Policy)
   }
   // Consume the occurrence before imported currentness can reenter. Failure
@@ -74,7 +73,7 @@ pub fn[I] begin_program_snapshot(
       return Err(PublicationSnapshot(issue))
     }
   }
-  let snapshot : ClientProgramSnapshot[I] = {
+  let snapshot : ClientProgramSnapshot = {
     publication: value,
     issuer: Some(issuer),
   }
@@ -84,8 +83,8 @@ pub fn[I] begin_program_snapshot(
 }
 
 ///|
-pub fn[I] advance_program_snapshot(
-  value : ClientProgramSnapshot[I],
+pub fn advance_program_snapshot(
+  value : ClientProgramSnapshot,
   quantum : Int,
 ) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue] {
   if !program_snapshot_current(value) {
@@ -105,8 +104,8 @@ pub fn[I] advance_program_snapshot(
 }
 
 ///|
-pub fn[I] finish_program_snapshot(
-  value : ClientProgramSnapshot[I],
+pub fn finish_program_snapshot(
+  value : ClientProgramSnapshot,
 ) -> Result[
   @publication.CapturedResultSnapshot,
   ClientClosedValuesPreparationIssue,
@@ -135,7 +134,7 @@ pub fn[I] finish_program_snapshot(
 ///|
 /// Cleanup is permitted after retirement, but only for the exact tracked
 /// original. A stale finished handle is inert and cannot cancel its successor.
-pub fn[I] cancel_program_snapshot(value : ClientProgramSnapshot[I]) -> Unit {
+pub fn cancel_program_snapshot(value : ClientProgramSnapshot) -> Unit {
   if !program_snapshot_slot_matches(value) {
     return
   }
@@ -149,9 +148,7 @@ pub fn[I] cancel_program_snapshot(value : ClientProgramSnapshot[I]) -> Unit {
 ///|
 /// Called by the original preparation owner before cutting publication/Run
 /// aliases. No currentness refresh is required to discharge cleanup custody.
-fn[I] cancel_active_program_snapshot(
-  value : ClientProgramPublication[I],
-) -> Unit {
+fn cancel_active_program_snapshot(value : ClientProgramPublication) -> Unit {
   if value.snapshot is Some(snapshot) {
     if snapshot.issuer is Some(issuer) {
       issuer.cancel()

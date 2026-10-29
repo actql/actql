@@ -2,6 +2,12 @@
 priv enum ClientRequestPreparationPhase {
   Open
   Selecting
+  QuerySyntaxQuoted
+  QuerySyntaxParsed
+  QuerySyntaxFailed
+  QueryLoweringQuoted
+  QueryLowered
+  QueryLoweringFailed
   ProgramJson
   ProgramJsonFailed
   ProgramCheck
@@ -31,11 +37,20 @@ struct ClientRequestPreparation[I] {
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
+  mut snapshot_base : (Int64, Int64)?
+  mut snapshot_units : Int64
+  mut snapshot_values : Int64
+  mut query_syntax : ClientRequestQuerySyntax?
   // The same generic domain holder owns its source/index/Program aliases.
   // Unit remains uncompleted until the actual output-type continuation.
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
+  mut native_parameters : @decode.Cursor?
+  mut native_parameters_ready : Bool
   mut held_program : @syntax.Program?
+  mut parameter_declarations : ClientParameterDeclarationPreflight[I, Unit]?
+  mut parameter_source : @stages.Source?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
+  mut computation_limits : @publication_host.ClientProgramPreparationLimits?
   // SAME reservation continued to its actual final body type; no second owner.
   mut program_capacity : @resources.PreparationCapacity[
     I,
@@ -51,6 +66,7 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
+  mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -64,6 +80,10 @@ pub(all) enum ClientRequestPreparationIssue {
   Capacity(@resources.PreparationCapacityIssue)
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
+  Parameters(@local_preparation.LocalProgramInputIssue)
+  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
+  ParameterDeclarations(@parameters.Issue)
+  ParameterSource(@stages.Issue)
 } derive(Debug)
 
 ///|
@@ -233,9 +253,18 @@ pub fn[I] begin_request_preparation(
     ledger,
     capacity,
     input: Some(input),
+    snapshot_base: None,
+    snapshot_units: 0L,
+    snapshot_values: 0L,
+    query_syntax: None,
     program_json: None,
+    native_parameters: None,
+    native_parameters_ready: false,
     held_program: None,
+    parameter_declarations: None,
+    parameter_source: None,
     program_check: None,
+    computation_limits: None,
     program_capacity: None,
     compiled_program: None,
     effect_capacity: None,
@@ -244,6 +273,7 @@ pub fn[I] begin_request_preparation(
     program_data: None,
     program_plan_quote: None,
     program_source_free: None,
+    program_captured: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -361,28 +391,91 @@ fn[I] prepare_request_check_preparation_owned(
   source_catalog? : @checked.PreparedSourceCatalog? = None,
   source_preparation? : @stages.Source? = None,
   effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+  computation_limits? : (
+    @publication_host.ClientProgramPreparationLimits,
+    @publication_host.ClientEffectComputationLimits,
+  )? = None,
 ) -> Result[
   ClientProgramCheckPreparation[I, Unit],
   ClientRequestPreparationIssue,
 ] {
-  guard owner.phase == ProgramJson &&
-    owner.held_program is None &&
-    owner.program_check is None &&
-    owner.program_json is Some(source) else {
+  guard owner.program_check is None &&
+    (owner.phase == ProgramJson || owner.phase == QueryLowered) else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  owner.phase = Selecting
-  let program = match take_program_json_preparation_program(source) {
-    Err(issue) => {
-      owner.phase = ProgramJson
-      return Err(ProgramJson(issue))
+  let supplied = if owner.native_parameters_ready {
+    match (owner.native_parameters, supplied) {
+      (Some(original), Some(selected)) if !physical_equal(original, selected) =>
+        return Err(ForeignOriginal)
+      (None, Some(_)) => return Err(ForeignOriginal)
+      (original, _) => original
     }
-    Ok(value) => value
+  } else {
+    supplied
   }
-  owner.held_program = Some(program)
+  let (program, source_catalog) = if owner.phase == QueryLowered {
+    guard owner.held_program is Some(program) &&
+      owner.query_syntax is Some(query) &&
+      query.lowering is Some(lowering) &&
+      physical_equal(lowering.environment, environment) &&
+      lowering.output is Some((_, catalog, _)) else {
+      return Err(ForeignOriginal)
+    }
+    if source_catalog is Some(selected) && !physical_equal(selected, catalog) {
+      return Err(ForeignOriginal)
+    }
+    // The lowerer already retained this exact Program and Catalog. Taking
+    // immutable DATA cannot reenter current or construct a replacement tree.
+    (program, Some(catalog))
+  } else {
+    guard owner.held_program is None && owner.program_json is Some(source) else {
+      return Err(WrongPhase)
+    }
+    owner.phase = Selecting
+    let program = match take_program_json_preparation_program(source) {
+      Err(issue) => {
+        owner.phase = ProgramJson
+        return Err(ProgramJson(issue))
+      }
+      Ok(value) => value
+    }
+    owner.held_program = Some(program)
+    (program, source_catalog)
+  }
+  // This is the original Program's retained parser inventory, not another
+  // operation-name scan, check, resource quote or caller classification.
+  let effect_limits = match computation_limits {
+    None => effect_limits
+    Some((program_limits, effect_limits)) =>
+      if @syntax.program_preparation_data(program).effect_members == 0 {
+        owner.computation_limits = Some(program_limits)
+        None
+      } else {
+        owner.computation_limits = Some(effect_limits.program)
+        Some(effect_limits)
+      }
+  }
+  owner.phase = Selecting
+  let source_preparation = match source_preparation {
+    Some(original) => Some(original)
+    None => {
+      let checking = match effect_limits {
+        Some(selected) => selected.program.checking
+        None => limits
+      }
+      match
+        prepare_request_parameter_source_owned(owner, input, program, checking) {
+        Err(issue) => {
+          owner.phase = ProgramCheckFailed
+          return Err(issue)
+        }
+        Ok(source) => Some(source)
+      }
+    }
+  }
   let outcome = match effect_limits {
     None =>
       begin_program_check_preparation(
@@ -542,15 +635,24 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
     owner.phase = previous
   }
-  // Both registered controllers have relinquished only their own aliases.
+  match clear_request_parameter_source(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
+  owner.native_parameters = None
+  owner.native_parameters_ready = false
+  owner.query_syntax = None
   owner.compiled_program = None
+  owner.computation_limits = None
   owner.compiled_effect = None
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_source_free = None
+  owner.program_captured = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if owner.effect_capacity is Some(capacity) {
@@ -640,14 +742,8 @@ fn[I] make_closed_values_preparation(
     body_ready: false,
     manager_issued: false,
     adopted: false,
-    adopted_run: None,
     submitted_intent: None,
     manager_original: None,
-    publication: None,
-    publication_started: false,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
   }
   value.original = Some(value)
   value

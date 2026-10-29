@@ -30,15 +30,11 @@ test "typed snapshot wrapper retains one shared-tariff control packet" {
 /// under a real preparation holder. Positive producer lineage is exercised by
 /// the ordinary public publication suite, not claimed by this custody test.
 test "typed snapshot foreign terminal handle cannot cut the original slot" {
-  let (publication, ledger) = publication_custody_fixture(() => ())
-  let original : ClientProgramSnapshot[Array[Int]] = {
-    publication,
-    issuer: None,
-  }
-  let foreign : ClientProgramSnapshot[Array[Int]] = {
-    publication,
-    issuer: None,
-  }
+  let (publication, ledger, owner) = publication_custody_fixture_originals(() => {
+    ()
+  })
+  let original : ClientProgramSnapshot = { publication, issuer: None, }
+  let foreign : ClientProgramSnapshot = { publication, issuer: None, }
   publication.snapshot = Some(original)
   assert_true(program_snapshot_slot_matches(original))
   assert_false(program_snapshot_slot_matches(foreign))
@@ -53,10 +49,9 @@ test "typed snapshot foreign terminal handle cannot cut the original slot" {
   assert_eq(publication.next_snapshot_index, 0)
   assert_eq(publication.completed_snapshots.length(), 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 1000000L)
-  assert_false(
-    @resources.retire_preparation_capacity(publication.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(publication.owner, publication.holder))
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(publication)
+  assert_true(sever_closed_values_body(owner, publication.holder))
   assert_true(
     @resources.return_preparation_body_borrow(publication.holder).unwrap(),
   )

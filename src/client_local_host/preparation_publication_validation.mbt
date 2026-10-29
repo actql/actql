@@ -8,8 +8,8 @@ pub(all) enum ClientProgramValidationIssue {
 }
 
 ///|
-struct ClientProgramValidation[I] {
-  capture : ClientProgramCapture[I]
+struct ClientProgramValidation {
+  capture : ClientProgramCapture
   commit_kind : Bool
   mut plan : @publication.PublicationValidationPlan?
   mut chain : @publication.ComputationEvidenceCheck?
@@ -20,7 +20,7 @@ struct ClientProgramValidation[I] {
 ///|
 /// Cancel semantic aliases before allowing the same capture to prepare another
 /// serial check. A stale wrapper cannot remove a newer active continuation.
-pub fn[I] cancel_program_validation(value : ClientProgramValidation[I]) -> Unit {
+pub fn cancel_program_validation(value : ClientProgramValidation) -> Unit {
   if value.closed {
     return
   }
@@ -43,7 +43,7 @@ pub fn[I] cancel_program_validation(value : ClientProgramValidation[I]) -> Unit 
 }
 
 ///|
-fn[I] validation_original(value : ClientProgramValidation[I]) -> Bool {
+fn validation_original(value : ClientProgramValidation) -> Bool {
   !value.closed &&
   value.capture.validation is Some(current) &&
   physical_equal(current, value) &&
@@ -54,8 +54,8 @@ fn[I] validation_original(value : ClientProgramValidation[I]) -> Bool {
 }
 
 ///|
-fn[I, T] validation_failure(
-  value : ClientProgramValidation[I],
+fn[T] validation_failure(
+  value : ClientProgramValidation,
   issue : ClientProgramValidationIssue,
 ) -> Result[T, ClientProgramValidationIssue] {
   cancel_program_validation(value)
@@ -63,10 +63,10 @@ fn[I, T] validation_failure(
 }
 
 ///|
-fn[I] new_program_validation(
-  capture : ClientProgramCapture[I],
+fn new_program_validation(
+  capture : ClientProgramCapture,
   commit_kind : Bool,
-) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue] {
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   guard publication_original_body(capture.publication) is Some(_) &&
     capture.publication.capture is Some(original) &&
     physical_equal(original, capture) &&
@@ -78,7 +78,7 @@ fn[I] new_program_validation(
   }
   // This fixed six-slot handle and Some are part of the publication owner's
   // pre-admitted continuation control packet, before callback-bearing growth.
-  let value : ClientProgramValidation[I] = {
+  let value : ClientProgramValidation = {
     capture,
     commit_kind,
     plan: None,
@@ -91,8 +91,8 @@ fn[I] new_program_validation(
 }
 
 ///|
-fn[I] grow_program_validation(
-  value : ClientProgramValidation[I],
+fn grow_program_validation(
+  value : ClientProgramValidation,
   retained : Int64,
   execution : Int64,
 ) -> Result[Unit, ClientProgramValidationIssue] {
@@ -100,32 +100,30 @@ fn[I] grow_program_validation(
     return Err(Owner(ForeignOriginal))
   }
   let capture = value.capture
-  let owner = capture.publication.owner
-  guard owner.input is Some(input) &&
-    publication_original_body(capture.publication) is Some(prepared) else {
+  let publication = capture.publication
+  guard publication_original_body(capture.publication) is Some(prepared) else {
     return Err(Owner(ForeignOriginal))
   }
   let target = Int64::max(capture.validation_retained, retained)
   let delta = target - capture.validation_retained
   if retained < 0L ||
     execution < 0L ||
-    delta > 9223372036854775807L - owner.retained_quote {
+    delta > 9223372036854775807L - publication.retained_quote {
     return Err(Owner(Policy))
   }
-  let total = owner.retained_quote + delta
-  let peak = Int64::max(owner.execution_quote, execution)
+  let total = publication.retained_quote + delta
+  let peak = Int64::max(publication.execution_quote, execution)
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      capture.publication.holder,
       prepared,
       total,
       peak,
     ) {
-    Err(issue) => return Err(Owner(Capacity(issue)))
+    Err(issue) => return Err(Owner(issue))
     Ok(_) => {
-      owner.retained_quote = total
-      owner.execution_quote = peak
+      publication.retained_quote = total
+      publication.execution_quote = peak
       capture.validation_retained = target
     }
   }
@@ -136,8 +134,8 @@ fn[I] grow_program_validation(
 }
 
 ///|
-fn[I] fund_validation_inventory(
-  value : ClientProgramValidation[I],
+fn fund_validation_inventory(
+  value : ClientProgramValidation,
   slots : Int64,
   arrays : Int,
 ) -> Result[Unit, ClientProgramValidationIssue] {
@@ -149,10 +147,10 @@ fn[I] fund_validation_inventory(
 }
 
 ///|
-fn[I] finish_program_validation_plan(
-  value : ClientProgramValidation[I],
+fn finish_program_validation_plan(
+  value : ClientProgramValidation,
   plan : @publication.PublicationValidationPlan,
-) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue] {
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   value.plan = Some(plan)
   // This Host recipe owns metadata validation only. An unmatched/stale capture
   // never silently enters the full row-revalidation path under this allowance.
@@ -177,8 +175,8 @@ fn[I] finish_program_validation_plan(
 }
 
 ///|
-pub fn[I] prepare_program_chain_validation(
-  capture : ClientProgramCapture[I],
+pub fn prepare_program_chain_validation(
+  capture : ClientProgramCapture,
   run_definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -186,7 +184,7 @@ pub fn[I] prepare_program_chain_validation(
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
-) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue] {
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   let value = match new_program_validation(capture, false) {
     Ok(v) => v
     Err(e) => return Err(e)
@@ -221,8 +219,8 @@ pub fn[I] prepare_program_chain_validation(
 }
 
 ///|
-pub fn[I] prepare_program_commit_validation(
-  capture : ClientProgramCapture[I],
+pub fn prepare_program_commit_validation(
+  capture : ClientProgramCapture,
   run_definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -237,7 +235,7 @@ pub fn[I] prepare_program_commit_validation(
   request : @publication.PublicationContract,
   attempt : @publication.PublicationContract,
   index_entry : @publication.PublicationContract,
-) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue] {
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   let value = match new_program_validation(capture, true) {
     Ok(v) => v
     Err(e) => return Err(e)
@@ -290,9 +288,9 @@ pub fn[I] prepare_program_commit_validation(
 }
 
 ///|
-pub fn[I] start_program_validation(
-  value : ClientProgramValidation[I],
-) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue] {
+pub fn start_program_validation(
+  value : ClientProgramValidation,
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
   }
@@ -301,7 +299,7 @@ pub fn[I] start_program_validation(
     grow_program_validation(
       value,
       value.capture.validation_retained,
-      value.capture.publication.owner.execution_quote,
+      value.capture.publication.execution_quote,
     ) {
     Err(issue) => return validation_failure(value, issue)
     Ok(_) => ()
@@ -326,8 +324,8 @@ pub fn[I] start_program_validation(
 }
 
 ///|
-pub fn[I] advance_program_validation(
-  value : ClientProgramValidation[I],
+pub fn advance_program_validation(
+  value : ClientProgramValidation,
   quantum : Int,
 ) -> Result[(Bool, Int), ClientProgramValidationIssue] {
   if !validation_original(value) {
@@ -350,8 +348,8 @@ pub fn[I] advance_program_validation(
 }
 
 ///|
-pub fn[I] finish_program_validation(
-  value : ClientProgramValidation[I],
+pub fn finish_program_validation(
+  value : ClientProgramValidation,
 ) -> Result[Unit, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))

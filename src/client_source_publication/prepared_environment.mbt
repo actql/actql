@@ -275,13 +275,11 @@ pub fn lower_prepared_published_query(
   (@source_frontend.Lowered, @program_check.PreparedSourceCatalog),
   PreparedPublicationIssue,
 ] {
-  if !prepared_published_query_environment_matches(prepared, environment) {
-    return Err(ForeignEnvironment)
+  let context = match
+    prepared_published_query_context(prepared, environment, declarations) {
+    Err(issue) => return Err(issue)
+    Ok(context) => context
   }
-  let parameters = client_source_declarations(declarations) catch {
-    PublicationStop(issue) => return Err(Publication(issue))
-  }
-  let context = { ..prepared.context, parameter_declarations: parameters, }
   @source_frontend.lower(
     document,
     format,
@@ -293,6 +291,57 @@ pub fn lower_prepared_published_query(
     public_primary~,
   )
   .map(lowered => (lowered, prepared.catalog))
+  .map_err(issue => Frontend(issue))
+}
+
+///|
+fn prepared_published_query_context(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  declarations : String?,
+) -> Result[@query_program.Context, PreparedPublicationIssue] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  let parameters = client_source_declarations(declarations) catch {
+    PublicationStop(issue) => return Err(Publication(issue))
+  }
+  Ok({ ..prepared.context, parameter_declarations: parameters, })
+}
+
+///|
+/// The same published installation and already parsed original query. Source
+/// annotations survive this handoff; no query text, publication or Catalog is
+/// reparsed to recover the original Program before its funded check.
+pub fn lower_prepared_published_parsed_query(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  query : @query_syntax.Query,
+  declarations : String?,
+  public_primary? : Bool = false,
+) -> Result[
+  (
+    @source_frontend.Lowered,
+    @program_check.PreparedSourceCatalog,
+    @source_frontend.DiagnosticSource,
+  ),
+  PreparedPublicationIssue,
+] {
+  let context = match
+    prepared_published_query_context(prepared, environment, declarations) {
+    Err(issue) => return Err(issue)
+    Ok(context) => context
+  }
+  @source_frontend.lower_parsed_with_source(
+    query,
+    Some(context),
+    table_writes=prepared.table_writes,
+    update_targets=prepared.update_targets,
+    store_targets=prepared.store_targets,
+    command_targets=prepared.command_targets,
+    public_primary~,
+  )
+  .map(pair => (pair.0, prepared.catalog, pair.1))
   .map_err(issue => Frontend(issue))
 }
 

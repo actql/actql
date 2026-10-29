@@ -1,24 +1,23 @@
 ///|
 /// Reserved continuation, not another token. Its plan is consumed or cleared
 /// before the original preparation's last borrower can release capacity.
-struct ClientProgramCapture[I] {
-  publication : ClientProgramPublication[I]
+struct ClientProgramCapture {
+  publication : ClientProgramPublication
   mut plan : @publication.CapturedRunConstructionPlan?
   mut issuer : @publication.CapturedRunIssuancePreparation?
-  mut validation : ClientProgramValidation[I]?
+  mut validation : ClientProgramValidation?
   mut validation_retained : Int64
 }
 
 ///|
-fn[I] clear_program_publication(
-  owner : ClientClosedValuesPreparation[I],
-) -> Unit {
-  if owner.publication is Some(value) {
-    cancel_active_program_snapshot(value)
-    value.run = None
-    value.completed_snapshots.clear()
-  }
-  if owner.publication is Some(value) && value.capture is Some(capture) {
+fn clear_program_publication(value : ClientProgramPublication) -> Unit {
+  // Fence before any original cancellation callback can reenter this same
+  // controller. This cuts semantic aliases only, never its actual body borrow.
+  value.retiring = true
+  cancel_active_program_snapshot(value)
+  value.run = None
+  value.completed_snapshots.clear()
+  if value.capture is Some(capture) {
     if capture.validation is Some(validation) {
       cancel_program_validation(validation)
     }
@@ -32,14 +31,17 @@ fn[I] clear_program_publication(
     capture.issuer = None
     value.capture = None
   }
+  value.publication_definition = None
+  value.publication_invocation = None
+  value.original = None
 }
 
 ///|
 /// Own the four inventories before measuring, fund their storage before copy,
 /// then fund the exact original plan's constructor before returning its handle.
 /// Only the fixed publication continuation supplies these nominal originals.
-pub fn[I] prepare_program_capture(
-  value : ClientProgramPublication[I],
+pub fn prepare_program_capture(
+  value : ClientProgramPublication,
   definition : @publication.PublicationContract,
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
@@ -49,13 +51,11 @@ pub fn[I] prepare_program_capture(
   snapshots : Array[@publication.CapturedResultSnapshot],
   authoring : @publication.RunEvidenceValue,
   models : Array[@publication.RunEvidenceValue],
-) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue] {
-  let owner = value.owner
+) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue] {
   guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) &&
-    owner.publication_definition is Some(original_definition) &&
+    value.publication_definition is Some(original_definition) &&
     physical_equal(original_definition, definition) &&
-    owner.publication_invocation is Some(original_invocation) &&
+    value.publication_invocation is Some(original_invocation) &&
     physical_equal(original_invocation, invocation) else {
     return Err(ForeignOriginal)
   }
@@ -83,20 +83,19 @@ pub fn[I] prepare_program_capture(
   // Four copied Array wrapper/backing pairs; conservative8+2L backing per
   // inventory, no row/value copying. Fixed Plan/inputs616 are already reserved.
   let arrays = 480L + 16L * slots
-  if arrays > 9223372036854775807L - owner.retained_quote {
+  if arrays > 9223372036854775807L - value.retained_quote {
     return Err(Policy)
   }
-  let array_retained = owner.retained_quote + arrays
+  let array_retained = value.retained_quote + arrays
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       array_retained,
-      owner.execution_quote,
+      value.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
-    Ok(_) => owner.retained_quote = array_retained
+    Err(issue) => return Err(issue)
+    Ok(_) => value.retained_quote = array_retained
   }
   guard publication_original_body(value) is Some(_) else {
     return Err(ForeignOriginal)
@@ -120,7 +119,7 @@ pub fn[I] prepare_program_capture(
     is Some(plan) else {
     return Err(Policy)
   }
-  let capture : ClientProgramCapture[I] = {
+  let capture : ClientProgramCapture = {
     publication: value,
     plan: Some(plan),
     issuer: None,
@@ -153,9 +152,9 @@ pub fn[I] prepare_program_capture(
 }
 
 ///|
-pub fn[I] start_program_capture(
-  capture : ClientProgramCapture[I],
-) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue] {
+pub fn start_program_capture(
+  capture : ClientProgramCapture,
+) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue] {
   let value = capture.publication
   guard publication_original_body(value) is Some(_) &&
     value.capture is Some(original) &&
@@ -163,20 +162,17 @@ pub fn[I] start_program_capture(
     capture.plan is Some(plan) else {
     return Err(ForeignOriginal)
   }
-  let owner = value.owner
-  guard owner.input is Some(input) &&
-    publication_original_body(value) is Some(prepared) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
-      owner.retained_quote,
-      owner.execution_quote,
+      value.retained_quote,
+      value.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   guard publication_original_body(value) is Some(_) &&
@@ -197,8 +193,8 @@ pub fn[I] start_program_capture(
 }
 
 ///|
-pub fn[I] advance_program_capture(
-  capture : ClientProgramCapture[I],
+pub fn advance_program_capture(
+  capture : ClientProgramCapture,
   quantum : Int,
 ) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue] {
   guard publication_original_body(capture.publication) is Some(_) &&
@@ -219,8 +215,8 @@ pub fn[I] advance_program_capture(
 }
 
 ///|
-pub fn[I] finish_program_capture(
-  capture : ClientProgramCapture[I],
+pub fn finish_program_capture(
+  capture : ClientProgramCapture,
 ) -> Result[
   @publication.PublicationContract,
   ClientClosedValuesPreparationIssue,
@@ -243,7 +239,7 @@ pub fn[I] finish_program_capture(
 }
 
 ///|
-pub fn[I] cancel_program_capture(capture : ClientProgramCapture[I]) -> Unit {
+pub fn cancel_program_capture(capture : ClientProgramCapture) -> Unit {
   if capture.validation is Some(validation) {
     cancel_program_validation(validation)
   }
@@ -258,8 +254,8 @@ pub fn[I] cancel_program_capture(capture : ClientProgramCapture[I]) -> Unit {
 }
 
 ///|
-pub fn[I] program_capture_limits(
-  capture : ClientProgramCapture[I],
+pub fn program_capture_limits(
+  capture : ClientProgramCapture,
 ) -> Result[(Int, Int, Int), ClientClosedValuesPreparationIssue] {
   match refresh_publication_original(capture.publication) {
     Err(issue) => return Err(issue)

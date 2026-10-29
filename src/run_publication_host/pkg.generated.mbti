@@ -941,6 +941,8 @@ pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[Stri
 
 pub fn client_query_requirement_matches_effect_program(PreparedClientEffectComputation, Int, Int, @query_planning.QueryRequirement) -> Bool
 
+pub fn client_query_requirement_matches_original_query_time(PreparedClientProgram, Int, Int, @query_planning.QueryRequirement, ClientQueryTimePreparation?, ClientRequestIdentity) -> Bool
+
 pub fn client_query_requirement_matches_program(PreparedClientProgram, Int, Int, @query_planning.QueryRequirement) -> Bool
 
 pub fn client_query_time_preparation_context(ClientQueryTimePreparation) -> @run_publication.QueryEvaluationTime?

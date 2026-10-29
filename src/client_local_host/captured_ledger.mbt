@@ -778,6 +778,7 @@ struct ClientInstalledCaptureCapacity {
   retained_bytes : Int64
   execution_bytes : Int64
   original_input : Bool
+  acquisition : @row_source_host.RowAcquisition?
   provider : (@row_source_host.RowAcquisition, @execution.ExecutionCapacity)?
 }
 
@@ -792,6 +793,7 @@ pub fn installed_pending_duckdb_capture_capacity(
     retained_bytes: pending.retained_bytes,
     execution_bytes: pending.execution_bytes,
     original_input: false,
+    acquisition: None,
     provider: None,
   }
 }
@@ -925,6 +927,7 @@ pub fn installed_duckdb_capture_capacity(
     retained_bytes: capacity.retained_bytes,
     execution_bytes: capacity.execution_bytes,
     original_input: false,
+    acquisition: None,
     provider: None,
   })
 }
@@ -943,6 +946,7 @@ pub fn installed_row_capture_capacity(
     retained_bytes: retained,
     execution_bytes: execution,
     original_input: true,
+    acquisition: Some(selected),
     provider: None,
   })
 }

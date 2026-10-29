@@ -9,7 +9,7 @@ import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparatio
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
   readSourceManagedEffectRunRequirements,
   readLocalMockModelRunRequirements, readLocalContentRunRequirements,
-  readLocalPreparationResourceRequirements, prepareInstalledSequenceContractOriginal,
+  prepareInstalledSequenceContractOriginal,
   readLocalPreparationContext, retireSourceManagedInitialPreparation}
   from './embedded-local.mjs';
 
@@ -138,7 +138,6 @@ export function prepareManagedComputeInstallation(originals) {
     validator: assertSourceManagedHostPreparation, request: originalSourceManagedHostRequest,
     intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
-    preparationRequirements: readLocalPreparationResourceRequirements,
     preparationContext: readLocalPreparationContext,
     retireInitialPreparation: retireSourceManagedInitialPreparation,
     mockRequirements: readLocalMockModelRunRequirements,
