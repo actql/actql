@@ -6430,12 +6430,15 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d17a67b63f58627f1fba278195082a74d1cab22947aa9348b059c94e7e10caf",
+      "sha256": "dc2d9263f1abdd5a9a99dde1ef4e88c6f20f1b4b6b63c0d09eeb9a118f98e718",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
         "GITHUB_COMMENT_CREATE_OPERATION",
+        "GITHUB_COMMENT_STAMP_RECIPE",
         "checkGitHubCommentSubject",
+        "finalizeGitHubCommentRequest",
+        "prepareGitHubCommentLogicalRequest",
         "prepareGitHubCommentRequest",
         "projectGitHubCommentObservation",
         "sendGitHubIssueComment"
@@ -6507,6 +6510,29 @@
           "async": false
         },
         {
+          "name": "finalizeGitHubCommentRequest",
+          "parameters": [
+            "moon",
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "finalizeGitHubCommentRequest/finalizeGitHubCommentRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "finalizeGitHubCommentRequest/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pairs/pairs",
           "parameters": [
             "headers"
@@ -6524,6 +6550,15 @@
           "name": "pairs/pairs/pairs#2",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentLogicalRequest",
+          "parameters": [
+            "origin",
+            "subjectId",
+            "body"
           ],
           "async": false
         },
@@ -6715,6 +6750,79 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-create.test.mjs",
                 "anchor": "the request is the fixed mutation and its identity is the exact bytes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "finalizeGitHubCommentRequest",
+            "finalizeGitHubCommentRequest/finalizeGitHubCommentRequest",
+            "finalizeGitHubCommentRequest/original/original",
+            "prepareGitHubCommentLogicalRequest"
+          ],
+          "exports": [
+            "GITHUB_COMMENT_STAMP_RECIPE",
+            "finalizeGitHubCommentRequest",
+            "prepareGitHubCommentLogicalRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "Core-issued DispatchKey CID text only after that exact Preview is approved"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "prepareGitHubCommentLogicalRequest"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "exactRequestCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "Host retains and validates the original logical carrier/key association"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous logical and physical DATA preparation; the Host supplies its original post-Preview DispatchKey association before durable claim. No I/O or claim occurs here."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "InvalidGitHubCommentRequest"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These synchronous helpers start no attempt or I/O and issue no cleanup ACK; original Host cancellation and cleanup remain with their existing owners."
+            },
+            "resources": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "provider's physical body limits apply after the marker is inserted"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "GITHUB_COMMENT_STAMP_RECIPE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
+                "anchor": "Comment logical preparation stays separate and finalizes exact body and original tag DATA"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
+                "anchor": "Comment marker refuses malformed or missing DATA without invoking an encoder or accessor"
               }
             ]
           }
