@@ -2495,6 +2495,8 @@ pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequ
 
 pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_prepare_request_source_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
+
 pub fn client_program_prepare_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue) -> Result[String, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_prepare_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[@client_local_host.ClientRetainedContentOutput, @client_local_host.ClientInferRetainedInputIssue]

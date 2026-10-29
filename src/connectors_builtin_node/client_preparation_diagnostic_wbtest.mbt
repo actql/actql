@@ -288,3 +288,110 @@ test "original compilation sum preserves actual Values Task issuers and foreign 
     is Err(ForeignOwner),
   )
 }
+
+///|
+test "native Query terminal projects original syntax declaration and missing-input refusals" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for
+    (source, expected) in [
+      ("{\"format\":\"sql\",\"text\":\"SELECT (\"}", "source_invalid_input"),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\",\"parameterDeclarations\":null}",
+        "source_declarations",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT id FROM missing\"}", "source_unresolved",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT @n AS n\",\"parameterDeclarations\":{\"n\":{\"type\":\"number\"}}}",
+        "needs_inputs",
+      ),
+    ] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(source),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+    )
+    assert_true(result is Err(_))
+    assert_eq(
+      client_program_request_preparation_issue_code(result),
+      Some(expected),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "native Query terminal keeps foreign and retired originals outside semantic refusal" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let source = request_diagnostic_test_json(
+    "{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"}",
+  )
+  let supplied = request_diagnostic_test_json("null")
+  let foreign = client_program_prepare_request_source_computation(
+    parent,
+    request_diagnostic_test_receipt(),
+    source,
+    supplied,
+    environment,
+    publication,
+  )
+  assert_true(foreign is Err(_))
+  assert_eq(client_program_request_preparation_issue_code(foreign), None)
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  let retired = client_program_prepare_request_source_computation(
+    parent, receipt, source, supplied, environment, publication,
+  )
+  assert_true(retired is Err(_))
+  assert_eq(client_program_request_preparation_issue_code(retired), None)
+}
+
+///|
+test "native Query terminal does not relabel an unconnected valid Source document format" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for format in ["json", "yaml"] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let source = request_diagnostic_test_json(
+      "{\"format\":\"" + format + "\",\"text\":\"{}\"}",
+    )
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      source,
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+    )
+    assert_true(
+      result
+      is Err(
+        @client_local_host.ClientRequestTerminalIssue::Preparation(WrongPhase)
+      ),
+    )
+    assert_eq(client_program_request_preparation_issue_code(result), None)
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}

@@ -2707,6 +2707,35 @@ The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
 
+### Normal SQL and AQL Request continuation
+
+SQL and Pipe Source inputs retain the same SDK snapshot and Request as native
+Programs. Fixed own-DATA header reads select the existing frontend; native
+Parameters are admitted before query-local declarations under one shared
+input-proportional quote. The publication owner supplies its existing JSON,
+index and declaration limits. Native declaration admission retains its original
+Cursor and typed Declarations; the lowerer consumes those facts without a JS
+serialization or another declaration-document parse. No policy limit becomes
+physical backing, and fixed small header/Result carriers remain Host baseline.
+
+The same original parsed Query enters the retained publication lowerer once.
+Its Program and interpreted Catalog owners continue to the existing shared
+checker/compiler tail. A required-reuse Catalog wrapper is matched by the
+existing interpreted-owner identity and is itself forwarded to the checker;
+an equal CID or separately admitted Catalog does not satisfy that binding. The
+wrapper's no-fallback condition must survive, rather than being discarded after
+an outer reference comparison. Subsequent reads of completed semantic DATA
+perform no parser, lowerer or native input admission.
+
+Native declaration/index aliases remain owned through compilation and are cut
+at the same Program, capture or Effect Run adoption and failed-input cleanup.
+The actual Plan/Host consumer still owns its branch, currentness, physical
+resources and retirement. A valid Source format routed to a continuation which
+does not implement it is an internal correspondence failure; it cannot be
+projected as evidence that the authored input was invalid. The SQL/Pipe entry
+alone does not qualify the other Source document controllers or ordinary
+installed/backend execution.
+
 ### Original Request accounting observations
 
 The existing finalization observer reads scalar Ledger and reservation DATA

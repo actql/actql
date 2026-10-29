@@ -52,6 +52,7 @@ struct ClientRequestPreparation[I] {
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
   mut native_parameters : @decode.Cursor?
   mut native_parameters_ready : Bool
+  mut native_query_declarations : (@decode.Cursor, @parameters.Declarations)?
   mut held_program : @syntax.Program?
   mut parameter_declarations : ClientParameterDeclarationPreflight[I, Unit]?
   mut parameter_source : @stages.Source?
@@ -289,6 +290,7 @@ pub fn[I] begin_request_preparation(
     program_json: None,
     native_parameters: None,
     native_parameters_ready: false,
+    native_query_declarations: None,
     held_program: None,
     parameter_declarations: None,
     parameter_source: None,
@@ -464,8 +466,17 @@ fn[I] prepare_request_check_preparation_owned(
       lowering.output is Some((_, catalog, _)) else {
       return Err(ForeignOriginal)
     }
-    if source_catalog is Some(selected) && !physical_equal(selected, catalog) {
-      return Err(ForeignOriginal)
+    let catalog = match source_catalog {
+      Some(selected) => {
+        // Required-reuse wrappers retain the SAME interpreted Catalog owners.
+        // Keep the selected wrapper, including its no-fallback requirement;
+        // equal CIDs or a separately admitted Catalog cannot replace it.
+        if !@checked.source_catalog_same_original(selected, catalog) {
+          return Err(ForeignOriginal)
+        }
+        selected
+      }
+      None => catalog
     }
     // The lowerer already retained this exact Program and Catalog. Taking
     // immutable DATA cannot reenter current or construct a replacement tree.
@@ -699,6 +710,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
+  owner.native_query_declarations = None
   owner.native_parameters_ready = false
   owner.query_syntax = None
   owner.compiled_program = None

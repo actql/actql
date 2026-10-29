@@ -580,6 +580,7 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_artifact_inputs = None
       owner.program_source_free = None
       owner.native_parameters = None
+      owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
       owner.submitted_intent = None

@@ -203,3 +203,392 @@ test "normal Native driver keeps the original Effect branch and its native Param
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "normal Query driver retains native SQL AQL originals through one compiler module and Run" {
+  let (environment, publication) = request_query_publication_fixture()
+  for
+    (document, format) in [
+      ("SELECT @text AS label", @frontend.Sql),
+      (
+        "WITH seed AS (SELECT @text AS label) FROM seed |> SELECT label",
+        @frontend.Text,
+      ),
+    ] {
+    let (parent, input) = native_driver_parent(
+      document + " declaration and supplied 日本語😀",
+    )
+    let reads = Ref(0)
+    let reader = {
+      ..native_json_reader,
+      field: fn(value, key) {
+        reads.val += 1
+        (native_json_reader.field)(value, key)
+      },
+    }
+    let supplied = request_native_test_value("{\"text\":\"日本語😀\"}")
+    let declarations = request_native_test_value(
+      "{\"text\":{\"type\":\"string\"}}",
+    )
+    assert_eq(
+      prepare_request_native_query_computation(
+        parent,
+        input,
+        document,
+        format,
+        reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+        supplied=Some(supplied),
+        declarations=Some(declarations),
+      ).unwrap(),
+      Pure,
+    )
+    let syntax = parent.query_syntax.unwrap()
+    let original = syntax.lowering.unwrap().output.unwrap()
+    assert_true(
+      physical_equal(parent.held_program.unwrap(), original.0.program.unwrap()),
+    )
+    assert_true(
+      physical_equal(
+        original.1,
+        @source_publication.prepared_published_query_catalog(
+          publication, environment,
+        ).unwrap(),
+      ),
+    )
+    let parameters = request_preparation_parameters_original(parent, input)
+      .unwrap()
+      .unwrap()
+    assert_true(physical_equal(parameters, parent.native_parameters.unwrap()))
+    let before_reads = reads.val
+    let before = @resources.ledger_usage(parent.ledger)
+    assert_true(
+      prepare_request_native_query_computation(
+        parent,
+        input,
+        document,
+        format,
+        reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+        supplied=Some(supplied),
+        declarations=Some(declarations),
+      )
+      is Err(Preparation(WrongPhase)),
+    )
+    assert_eq(reads.val, before_reads)
+    assert_eq(@resources.ledger_usage(parent.ledger), before)
+    let prepared = parent.compiled_program.unwrap()
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=true,
+      provider_factory=_ => [],
+    ).unwrap()
+    let holder = borrow_request_program_preparation(parent).unwrap()
+    let plan = parent.program_source_free.unwrap()
+    let request = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "native-query-driver",
+    ).unwrap()
+    let run = begin_request_program_managed_run(parent, request).unwrap()
+    assert_true(
+      parent.native_query_declarations is None &&
+      parent.native_parameters is None,
+    )
+    let setup = open_installed_managed_source_free_host(
+        run,
+        prepared,
+        request,
+        plan.installed_contracts,
+        plan.values_body,
+        plan.fragment_body,
+        plan.ordered_body,
+        true,
+      )
+      .unwrap()
+      .unwrap()
+    let output = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+      true
+    }).unwrap()
+    assert_eq(output.rows().unwrap(), ["{\"label\":\"日本語😀\"}"])
+    assert_true(output.close())
+    assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "Query input controls absent native data adds no current callback before the parser quote" {
+  let input = [1]
+  let calls = Ref(0)
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current=() => {
+      calls.val += 1
+      true
+    }),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_snapshot(parent, input, 100L, 100L).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let observed = calls.val
+  prepare_request_native_query_input(
+    parent,
+    input,
+    native_json_reader,
+    None,
+    None,
+  ).unwrap()
+  assert_eq(calls.val, observed)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(
+    parent.native_parameters_ready &&
+    parent.native_parameters is None &&
+    parent.native_query_declarations is None,
+  )
+  parse_request_query_syntax(parent, input, "SELECT 1 AS n", @frontend.Sql).unwrap()
+  |> ignore
+  assert_eq(calls.val - observed, 1)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Query input controls preserve supplied refusal before declarations and query syntax" {
+  let (parent, input) = native_driver_parent("parameters and declarations")
+  let declarations = request_native_test_value("null")
+  let visits = Ref(0)
+  let reader = {
+    ..native_json_reader,
+    kind: fn(value) {
+      if physical_equal(value, declarations) {
+        visits.val += 1
+      }
+      (native_json_reader.kind)(value)
+    },
+  }
+  assert_true(
+    prepare_request_native_query_input(
+      parent,
+      input,
+      reader,
+      Some(request_native_test_value("{\"é\":1,\"é\":2}")),
+      Some(declarations),
+    )
+    is Err(Preparation(Parameters(_))),
+  )
+  assert_eq(visits.val, 0)
+  assert_true(parent.query_syntax is None && !parent.native_parameters_ready)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Query input controls retain nominal NULL declaration refusal and clear original cursor" {
+  let (parent, input) = native_driver_parent("supplied and NULL declaration")
+  assert_true(
+    prepare_request_native_query_input(
+      parent,
+      input,
+      native_json_reader,
+      Some(request_native_test_value("{\"text\":\"日本語😀\"}")),
+      Some(request_native_test_value("null")),
+    )
+    is Err(Publication(Publication(@source_publication.Declarations))),
+  )
+  assert_true(
+    parent.native_parameters is Some(_) && parent.query_syntax is None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    parent.native_parameters is None && parent.native_query_declarations is None,
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Query input controls one short grow refuses before either original native tree" {
+  let supplied = request_native_test_value("{\"text\":\"日本語😀\"}")
+  let declarations = request_native_test_value(
+    "{\"text\":{\"type\":\"string\"}}",
+  )
+  let (observed, original) = native_driver_parent("same actual input shape")
+  let before = @resources.ledger_usage(observed.ledger)
+  prepare_request_native_query_input(
+    observed,
+    original,
+    native_json_reader,
+    Some(supplied),
+    Some(declarations),
+  ).unwrap()
+  let after = @resources.ledger_usage(observed.ledger)
+  let required_r = after.reserved_retention_bytes -
+    before.reserved_retention_bytes
+  let required_e = after.reserved_execution_bytes -
+    before.reserved_execution_bytes
+  assert_true(required_r > 0L && required_e > 0L)
+  abort_request_preparation_after_cleanup(observed).unwrap()
+  for retention in [true, false] {
+    let (parent, input) = native_driver_parent("same actual input shape")
+    let base = @resources.ledger_usage(parent.ledger)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - base.reserved_retention_bytes - required_r + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - base.reserved_execution_bytes - required_e + 1L
+      },
+    ).unwrap()
+    let reads = Ref(0)
+    let reader = {
+      ..native_json_reader,
+      kind: fn(value) {
+        reads.val += 1
+        (native_json_reader.kind)(value)
+      },
+    }
+    assert_true(
+      prepare_request_native_query_input(
+        parent,
+        input,
+        reader,
+        Some(supplied),
+        Some(declarations),
+      )
+      is Err(Preparation(Capacity(_))),
+    )
+    assert_eq(reads.val, 0)
+    assert_true(
+      parent.native_parameters is None &&
+      parent.native_query_declarations is None &&
+      parent.query_syntax is None,
+    )
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "Query input controls keep the selected reuse wrapper and refuse a foreign Catalog original" {
+  let (environment, publication) = request_query_publication_fixture()
+  let (_, foreign_publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent("SELECT 1 AS n")
+  parse_request_query_syntax(parent, input, "SELECT 1 AS n", @frontend.Sql).unwrap()
+  |> ignore
+  let lowered = lower_request_published_query(
+    parent,
+    input,
+    publication,
+    environment,
+    None,
+  ).unwrap()
+  let (foreign_environment, _) = request_query_publication_fixture()
+  // This second publication has a separately admitted Environment/Catalog,
+  // despite the exact same authored immutable product documents/CID.
+  let foreign = @source_publication.prepared_published_query_catalog(
+    foreign_publication, foreign_environment,
+  )
+  assert_true(foreign is Err(@source_publication.ForeignEnvironment))
+  let (other_environment, other_publication) = request_query_publication_fixture()
+  let foreign = @source_publication.prepared_published_query_catalog(
+    other_publication, other_environment,
+  ).unwrap()
+  assert_eq(
+    @checked.checking_environment_cid(other_environment),
+    @checked.checking_environment_cid(environment),
+  )
+  assert_true(!@checked.source_catalog_same_original(foreign, lowered.1))
+  assert_true(
+    prepare_request_program_check_preparation(
+      parent,
+      input,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_program_preparation_limits().checking,
+      source_catalog=Some(@checked.require_source_catalog_reuse(foreign)),
+    )
+    is Err(ForeignOriginal),
+  )
+  let required = @checked.require_source_catalog_reuse(lowered.1)
+  let child = prepare_request_program_check_preparation(
+    parent,
+    input,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_program_preparation_limits().checking,
+    source_catalog=Some(required),
+  ).unwrap()
+  assert_true(
+    physical_equal(child.arguments.unwrap().source_catalog.unwrap(), required),
+  )
+  assert_true(
+    @checked.source_catalog_requires_reuse(
+      child.arguments.unwrap().source_catalog.unwrap(),
+    ),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Query input controls fence same parent cleanup and replacement during native construction" {
+  let (parent, input) = native_driver_parent("original native query")
+  let flags = Ref(0)
+  let reader = {
+    ..native_json_reader,
+    field: fn(value, key) {
+      if abort_request_preparation_after_cleanup(parent) is Err(WrongPhase) {
+        flags.val = flags.val | 1
+      }
+      if prepare_request_native_query_input(
+          parent,
+          input,
+          native_json_reader,
+          None,
+          None,
+        )
+        is Err(Preparation(WrongPhase)) {
+        flags.val = flags.val | 2
+      }
+      (native_json_reader.field)(value, key)
+    },
+  }
+  prepare_request_native_query_input(
+    parent,
+    input,
+    reader,
+    Some(request_native_test_value("{\"text\":\"original\"}")),
+    Some(request_native_test_value("{\"text\":{\"type\":\"string\"}}")),
+  ).unwrap()
+  assert_eq(flags.val, 3)
+  assert_true(
+    parent.native_parameters_ready &&
+    parent.native_query_declarations is Some(_),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.native_query_declarations is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

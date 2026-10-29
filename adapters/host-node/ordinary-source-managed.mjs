@@ -369,10 +369,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
-      // This SAME receipt owns the detached native Program and Parameters.
+      // This SAME receipt owns the detached Program/Query and Parameters.
       // Its Core entry retains Source/check/compiler originals and typed
       // failure. No serializer, raw preparation or second parent fallback.
-      if (producer.kind !== 'program' || producer.body !== state.snapshot) {
+      if ((producer.kind !== 'program' && producer.kind !== 'aql') || producer.body !== state.snapshot) {
         fail('ForeignInstalledSourceProducer');
       }
       if (state.preparationFailed) throw state.preparationFailure;
@@ -382,9 +382,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         state.preparing = true;
         try {
           if (state.compilationKind === undefined) {
-            state.compilationKind = checkedRequestProgramPreparation(moon, moon.clientProgramPrepareRequestNativeComputation(
-              state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-              environment, state.context.preparedEnvironment));
+            const result = producer.kind === 'program'
+              ? moon.clientProgramPrepareRequestNativeComputation(
+                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
+                environment, state.context.preparedEnvironment)
+              : moon.clientProgramPrepareRequestSourceComputation(
+                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
+                environment, state.context.preparedEnvironment);
+            state.compilationKind = checkedRequestProgramPreparation(moon, result);
           }
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different

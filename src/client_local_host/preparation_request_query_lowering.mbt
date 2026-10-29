@@ -72,6 +72,9 @@ pub fn[I] lower_request_published_query(
     query.query is Some(parsed) else {
     return Err(Request(WrongPhase))
   }
+  if owner.native_parameters_ready && declarations is Some(_) {
+    return Err(Request(ForeignOriginal))
+  }
   if owner.phase == QuerySyntaxParsed {
     let catalog = match
       @source_publication.prepared_published_query_catalog(
@@ -124,13 +127,23 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
-  let outcome = @source_publication.lower_prepared_published_parsed_query(
-    selected.publication,
-    selected.environment,
-    parsed,
-    selected.declarations,
-    public_primary=selected.public_primary,
-  )
+  let outcome = if owner.native_parameters_ready {
+    @source_publication.lower_prepared_query_with_declarations(
+      selected.publication,
+      selected.environment,
+      parsed,
+      owner.native_query_declarations.map(pair => pair.1),
+      public_primary=selected.public_primary,
+    )
+  } else {
+    @source_publication.lower_prepared_published_parsed_query(
+      selected.publication,
+      selected.environment,
+      parsed,
+      selected.declarations,
+      public_primary=selected.public_primary,
+    )
+  }
   owner.phase = QueryLoweringFailed
   match outcome {
     Err(issue) => Err(Publication(issue))

@@ -140,17 +140,14 @@ pub fn read_publication_data(
 fn source_publication_cursor(
   wire : String,
 ) -> @decode.Cursor raise PublicationStop {
-  let node = @source.parse_json_bytes(@utf8.encode(wire), {
-    max_input_bytes: 1048576,
-    max_nodes: 16384,
-    max_depth: 32,
-  }).unwrap_or_else(() => raise PublicationStop(Publication))
-  @decode.admit(node, {
-    max_nodes: 16384,
-    max_depth: 32,
-    max_string_bytes: 65536,
-    max_total_string_bytes: 1048576,
-  }).unwrap_or_else(() => raise PublicationStop(Publication))
+  let (source_limits, tree_limits) = source_publication_input_limits()
+  let node = @source.parse_json_bytes(@utf8.encode(wire), source_limits).unwrap_or_else(() => {
+      raise PublicationStop(Publication)
+    },
+  )
+  @decode.admit(node, tree_limits).unwrap_or_else(() => {
+    raise PublicationStop(Publication)
+  })
 }
 
 ///|
@@ -427,13 +424,62 @@ fn client_source_declarations(
         _ => raise PublicationStop(Declarations)
       }
       Some(
-        @parameter_binding.read_declarations(Some(cursor), {
-          max_parameters: 1024,
-          max_nodes: 8192,
-          max_depth: 64,
-          max_text_bytes: 65536,
-        }).unwrap_or_else(() => raise PublicationStop(Declarations)),
+        read_source_parameter_declarations(cursor).unwrap_or_else(() => {
+          raise PublicationStop(Declarations)
+        }),
       )
     }
   }
+}
+
+///|
+/// The existing publication JSON/index limits; these DATA do not grant backing.
+/// Both native declarations and the textual publication reader use this owner.
+pub fn source_publication_input_limits() -> (
+  @source.ParseLimits,
+  @decode.Limits,
+) {
+  (
+    { max_input_bytes: 1048576, max_nodes: 16384, max_depth: 32, },
+    {
+      max_nodes: 16384,
+      max_depth: 32,
+      max_string_bytes: 65536,
+      max_total_string_bytes: 1048576,
+    },
+  )
+}
+
+///|
+fn read_source_parameter_declarations(
+  cursor : @decode.Cursor,
+) -> Result[@parameter_binding.Declarations, @parameter_binding.Issue] {
+  @parameter_binding.read_declarations(Some(cursor), {
+    max_parameters: 1024,
+    max_nodes: 8192,
+    max_depth: 64,
+    max_text_bytes: 65536,
+  })
+}
+
+///|
+/// Admit detached native declaration DATA under the same existing limits and
+/// label semantics. The Request retains this original index and typed result;
+/// no document serialization or second declaration admission is required.
+pub fn[T] admit_captured_query_declarations(
+  input : T,
+  reader : @source.JsonDataReader[T],
+) -> Result[(@decode.Cursor, @parameter_binding.Declarations), PublicationIssue] {
+  let (source_limits, tree_limits) = source_publication_input_limits()
+  let source = match @source.admit_captured_json(input, reader, source_limits) {
+    Err(_) => return Err(Declarations)
+    Ok(value) => value
+  }
+  let indexed = match @decode.admit(source.node, tree_limits) {
+    Err(_) => return Err(Declarations)
+    Ok(value) => value
+  }
+  read_source_parameter_declarations(indexed)
+  .map(value => (indexed, value))
+  .map_err(_ => Declarations)
 }
