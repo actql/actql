@@ -83338,6 +83338,24 @@
           "async": false
         },
         {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/applySynchronousProjection/applySynchronousProjection",
+          "parameters": [
+            "fn",
+            "receiver",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/callProjection",
+          "parameters": [
+            "fn",
+            "receiver",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/cleanup",
           "parameters": [],
           "async": false
@@ -83432,13 +83450,15 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e6dc798450acc717bf5a55c3e33ad78c6d5570ee5ea382e4fa8ba40c5e474168",
+      "sha256": "8d75e5fe8b48a8e5b3b403f0473c5975d7545038b438e6ef97d8724be3b51a03",
       "contracts": [
         {
           "operations": [
             "<module>",
             "createInstalledCredentialSourceReader",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/applySynchronousProjection/applySynchronousProjection",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/callProjection",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/cleanup",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/closeTransport",
             "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
