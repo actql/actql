@@ -94,7 +94,7 @@ bind the selected workspace/integration and information capabilities itself.
 The reader does not infer those bindings from a user's name, id or bot fields.
 
 Rejected and malformed responses are charged before projection and their exact
-original raw bodies remain on the failure. A lost response retains the original
+original raw bodies remain with the shared Host until its actual retirement. A lost response retains the original
 Credential Journal use as Unknown; another `read()` or reuse of that claim
 cannot resend or resolve a replacement token. Cancellation also retains the
 same failure, raw observations and cleanup responsibility. No retry queue,
@@ -105,27 +105,32 @@ additional authorization Owner or OAuth exchange is introduced.
 Before I/O the trusted caller must supply the complete simultaneous retained
 and workspace envelope through the existing original acquisition/Resource
 owner. Per-page limits, canonical RowRun transfer charge and an explicit
-component reservation are not that complete numerical supplier. The graph
-includes original options and callback/credential references, AbortController
-and combined signal, frozen projection/limit/export tables, the reader state
-and its three methods, original raw response/body aliases across all pages,
-metadata and parsed Catalog/checked-cell graphs, complete id/cursor sets,
-request target/query encoding, bounded row output/JSON parse and the escaped
-success/failure observation arrays. Shared objects and cloned arrays still
-have reference/layout costs; they do not make overlapping holdings free.
-Pending I/O, signing/secret resolution, callback Promises and their handlers
-may overlap this graph. Retention lasts through the original consuming
-acquisition, not merely through the last physical socket read.
+component reservation are not that complete numerical supplier. Original raw
+bodies, parser/checked-page graphs, metadata and row wire, complete identity and
+cursor sets, request encoding and callback references may overlap. Shared
+objects and cloned arrays still have reference/layout costs.
 
-The same reader is single-use. Its private WeakMap rejects copied receivers;
-`read`, `requestStop` and `observe` retain the original phase and stop handle.
-`observe().cleanupConfirmed` remains false because raw, row, closure and error
-aliases can escape. Transport close, fulfilled Promise, canonical RowRun close,
-freezing or GC does not manufacture a retirement receipt. The existing
-provider-reader caller must keep the same Resource/RowRun borrower pending
-until a genuine transfer/retirement supplier exists. Normal installation,
-complete reader funding, actual physical retirement and public Notion
-read/write acceptance remain separate outstanding boundaries.
+`prepareNotionUserListPages` snapshots the original compiled functions, names
+and limits. Its synchronous request/decode callbacks retain API cursor and ID
+state only; they receive no Credential, grant, current callback, cancellation
+handle or cleanup method. The same provider retains the fixed Notion-Version,
+opaque cursor, full page validation and aggregate body/row refusals.
+
+The existing `createInstalledCredentialSourceReader` is the single Host owner
+for the read phase, AbortController, original indexed grants, current checks,
+physical Credential binding, response retention, charge-before-decode and
+same-ticket RowRun delivery. Raw observations do not escape in its result or
+provider error; the latter preserves the same cause. The Host snapshots its
+original methods and receivers before awaiting work. It refuses accidental
+asynchronous page callbacks and must join their same retained Promise before
+retiring response aliases.
+
+Read settlement and transport visibility are not cleanup acknowledgement. Stop
+and retry retain the same binding/read/callback duties until actual physical
+close and joined work permit retirement. A failed close does not replace an
+original read error, and retry performs no send or replacement-use acquisition.
+The existing RowRun separately controls capture and reservation release. No new
+reader Owner, Ledger, cleanup engine or GC/RSS receipt is introduced.
 
 The actual physical counters use original Common SQL/AQL preparation, Account,
 signed Credential grants, SQLite claims, loopback TLS and canonical RowRun.
@@ -164,25 +169,20 @@ physical Credential material is `NotionCredentialMaterialUnavailable`. The
 ordinary factory can be discovered while those independent supplies are absent.
 Private test capacity amounts do not establish normal numerical adequacy.
 
-The factory uses the existing provider-reader path. It installs the original
-response borrow/cleanup observation and reserves on the original Run Ledger
-before the synchronous I/O-free factory. That wrapper obtains the original
-read grant, creates one physical binding and one user-list reader, and forwards
-the same columns, request occurrence, current checks, page charges and RowRun
-admission. Each cursor request receives its own original use id; an earlier
-use cannot be resent. There is no ordinary `readPages` fallback, second parser,
-retry, resolver I/O shortcut or factory-local Ledger.
+The factory selects the existing accounted provider-reader path exclusively,
+without a dummy `readPages` callback. It reserves the original capacity and
+installs response cleanup before synchronous provider setup. The same Host
+reader obtains each original indexed use, owns the physical binding and
+forwards complete rows with their actual charge tickets. Notion contains no
+second read/stop state machine, raw Credential binding, current-check loop,
+retry/resolver shortcut or factory-local Ledger.
 
-The wrapper retains original options, capacity/preparer receiver, child,
-credential binding/material aliases, controller/signal, read/stop Promises and
-handlers, original read failure, close failure, last result and callbacks.
-Those overlap the complete user reader inventory above and the original RowRun
-capture. Closing the transport cannot retire any escaped raw/row/error aliases.
-Close failure retains both duties; it does not replace a prior read failure.
-`observe().cleanupConfirmed` stays false and the same capture/recovery retains
-its reservation until a genuine physical transfer/retirement is supplied. A
-fulfilled Promise, Site close, canonical RowRun close or garbage collection is
-not that acknowledgement.
+Its callback, parser, raw body, error and output representations still require
+complete original parent/failed-child backing. Public limits alone do not fund
+that overlap. Account/current/claim, uncertain-use reconciliation and actual
+normal installation remain obligations of their existing Host/Common/Site
+owners. Physical close never establishes successful capture or changes a
+Credential journal Unknown into a terminal result.
 
 Actual private integration must distinguish metadata loading, SQL/AQL capture,
 Account denial, original journal Unknown/nonresend and preserved cleanup debt.
