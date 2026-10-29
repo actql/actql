@@ -65,7 +65,7 @@ pub fn fragment_pipeline_input(fragment : FragmentPipeline) -> String {
 pub fn fragment_pipeline_output_schema(
   fragment : FragmentPipeline,
 ) -> @schema.Schema {
-  @relation.output_schema(fragment.kernel.checked)
+  kernel_output_schema(fragment.kernel)
 }
 
 ///|

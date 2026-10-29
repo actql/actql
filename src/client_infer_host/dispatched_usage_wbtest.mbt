@@ -50,7 +50,7 @@ test "dispatched usage survives invalid responses cancellation and cleanup" {
     let active = start(
       fixture_prepared(source=two),
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       provider,
       "sha256:" + "1".repeat(64),
@@ -71,7 +71,9 @@ test "dispatched usage survives invalid responses cancellation and cleanup" {
     assert_true(acquire_capture(active) is None)
     let model = active.model.unwrap()
     let before = @model.model_execution_resource_usage(model)
-    assert_eq(before.attempts, 2)
+    // One provider call occurred; the other eligible slot is only reserved.
+    assert_eq(before.attempts, 1)
+    assert_eq(before.reserved_attempts, 1)
     assert_eq(before.transferred_bytes, 0L)
     assert_eq(before.uncertain_transfer_bytes, per_call)
     assert_eq(before.reserved_transfer_bytes, per_call)
@@ -85,6 +87,8 @@ test "dispatched usage survives invalid responses cancellation and cleanup" {
     assert_eq(after.reserved_retention_bytes, 0L)
     assert_eq(after.reserved_execution_bytes, 0L)
     assert_eq(after.held_bytes, 0L)
+    assert_eq(after.attempts, 1)
+    assert_eq(after.reserved_attempts, 0)
     assert_eq(calls.val, 1)
   }
 }

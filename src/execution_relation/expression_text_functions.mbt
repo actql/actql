@@ -251,7 +251,7 @@ fn start_text_function(
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     let operation = @text_bounds.output_operation(
-      @expression_context.text_bound_output(original),
+      @lower.text_bound_output(original),
     )
     if !(if kind == TextNfkc {
         operation is @text_bounds.Nfkc
@@ -266,9 +266,7 @@ fn start_text_function(
   }
   let truncate = if kind == TextUtf8Truncate {
     guard @lower.expression_text_bound(expression) is Some(original) &&
-      @text_bounds.output_operation(
-        @expression_context.text_bound_output(original),
-      )
+      @text_bounds.output_operation(@lower.text_bound_output(original))
       is @text_bounds.Utf8Truncate(_) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
@@ -604,7 +602,7 @@ fn advance_text_function(
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     let (points, bytes) = @text_bounds.input_extent(
-      @text_bounds.output_input(@expression_context.text_bound_output(original)),
+      @text_bounds.output_input(@lower.text_bound_output(original)),
     )
     if state.count.to_int64() >= points ||
       width.to_int64() > bytes - truncate.input_bytes {

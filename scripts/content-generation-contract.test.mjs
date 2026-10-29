@@ -2,14 +2,17 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {gunzipSync} from 'node:zlib';
 import {checkContentGenerationSchema, contentGenerationSchema,
   contentInputArtifactSchema} from './content-generation-contract.mjs';
 
 test('Content migration changes the ordered derive pin only through its exact contract dependencies', () => {
   // Independently fixed current and historical vectors. This test imports no
   // product canonicalizer and never derives expectations from emitted Plans.
-  const body = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'))
-    .execution_contracts['REL.derive.ordered'];
+  // Retain the Content migration's exact reviewed successor; later schema
+  // extensions cannot be undone by replacing only the Content descriptor.
+  const body = JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/native-local-scalar-reviewed-current.json.gz'))).bodies.ordered;
   const canonical = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
     : Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
       : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;

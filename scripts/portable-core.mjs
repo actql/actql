@@ -20,6 +20,11 @@ export const pureExternal = Object.freeze({
 // The portable scalar kernel uses their constants and numeric representations,
 // not the target-selected stdlib math implementation. Keep this explicit review
 // local to that Owner; it grants no environment or generated-runtime authority.
+// These packages own live custody, not portable checked-graph proposals. Reject
+// them even if a future implementation happens to contain no syntactic FFI.
+const hostCustodyPackages = new Set([
+  'physical_resources', 'physical_strategy_host', 'physical_host_dispatch',
+]);
 const numericKernelExternal = Object.freeze({
   'moonbitlang/core/builtin': 'Pinned scalar primitive representations; implicit-runtime and explicit-seed audits remain required.',
   'moonbitlang/core/double': 'Pinned Double constants and representations for the portable scalar kernel.',
@@ -155,7 +160,7 @@ function packageMetadata(source) {
       const imports = [];
       while (!peek('}')) {
         const path = take('string');
-        let alias = path.split('/').at(-1);
+        let alias;
         if (peek('@')) { symbol('@'); alias = take('word'); }
         imports.push({path, alias});
         if (!peek('}')) symbol(',');
@@ -182,8 +187,12 @@ function packageMetadata(source) {
   return {imports: result, targets};
 }
 
+// Dependency inspection keeps the established resolved-alias projection. The
+// materializer separately retains whether the author declared an alias: an
+// invented explicit builtin alias changes strict compiler admission.
 export function packageImports(source) {
-  return packageMetadata(source).imports;
+  return packageMetadata(source).imports.map(({path, alias, scope}) =>
+    ({path, alias: alias ?? path.split('/').at(-1), scope}));
 }
 
 function inspectSource(source, path) {
@@ -236,6 +245,7 @@ export function inspectCore(root, roots = coreRoots) {
   while (pending.length) {
     const name = pending.pop();
     if (packages.has(name)) continue;
+    if (hostCustodyPackages.has(name)) throw new Error(`HostCustodyCoreDependency: ${name}`);
     if (!/^[a-z][a-z_0-9]*$/.test(name) || /^(duckdb_|connectors_|.*_node$|.*_workers$)/.test(name)) {
       throw new Error(`ConcreteCoreDependency: ${name}`);
     }
@@ -305,7 +315,7 @@ export function copyProductionCore(root, destination, roots = coreRoots) {
     const files = readdirSync(source);
     const manifest = 'supported_targets = "+js+wasm+native"\n' +
       (imports.length ? '\nimport {\n' + imports.map(entry =>
-        `  ${JSON.stringify(entry.path)} @${entry.alias},\n`).join('') + '}\n' : '');
+        `  ${JSON.stringify(entry.path)}${entry.alias === undefined ? '' : ` @${entry.alias}`},\n`).join('') + '}\n' : '');
     // Preserve compiler-owned target DATA for every copied production file.
     // Remove only entries for actual test files that this existing copier omits.
     // Unknown filenames stay present so copying cannot hide compiler diagnostics.

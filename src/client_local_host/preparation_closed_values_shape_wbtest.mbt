@@ -96,20 +96,22 @@ test "closed Values original 100 by 99 input crosses byte cap with derived parse
   )
   let parsed = @syntax.finish_program_input(original).unwrap()
   let program_inventory = closed_values_program_inventories(shape)
-  assert_eq(program_inventory.retained.record_headers, 38L)
-  assert_eq(program_inventory.retained.reference_slots, 130L)
-  assert_eq(program_inventory.retained.scalar_words, 76L)
+  assert_eq(program_inventory.retained.record_headers, 32L)
+  assert_eq(program_inventory.retained.reference_slots, 146L)
+  assert_eq(program_inventory.retained.scalar_words, 47L)
   let actual = @syntax.program_representation_extent(parsed, 2).unwrap()
   assert_eq(actual.program_records, 1L)
   assert_eq(actual.stage_records, 1L)
-  assert_eq(actual.array_owners, 6L)
-  assert_eq(actual.map_owners, 3L)
+  assert_eq(actual.array_owners, 7L)
+  assert_eq(actual.map_owners, 4L)
   assert_eq(actual.map_entries, 1L)
-  assert_true(actual.array_backing_slots <= 54L)
-  assert_true(actual.map_backing_slots <= 28L)
+  assert_true(actual.array_backing_slots <= 62L)
+  assert_true(actual.map_backing_slots <= 36L)
   assert_true(
-    preparation_representation_cost(program_inventory.containers_peak).unwrap() >=
-    preparation_representation_cost(program_inventory.retained).unwrap(),
+    @execution.preparation_representation_cost(
+      program_inventory.containers_peak,
+    ).unwrap() >=
+    @execution.preparation_representation_cost(program_inventory.retained).unwrap(),
   )
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(

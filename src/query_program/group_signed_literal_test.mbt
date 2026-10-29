@@ -79,6 +79,31 @@ test "signed literal DISTINCT ORDER reads the independent evaluated output" {
 
 ///|
 test "signed literal comparison never equates different values or invalid atoms" {
+  // Expression tokens normalize signed zero; JSON value admission stays strict.
+  let zero = compile(
+    @query.parse_query(
+      "SELECT x + 0 AS next, COUNT(*) AS n FROM t GROUP BY x + 0",
+      syntax_limits(),
+    ).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  ).unwrap()
+  for atom in ["-0", "-(-0)"] {
+    let actual = compile(
+      @query.parse_query(
+        "SELECT x + " + atom + " AS next, COUNT(*) AS n FROM t GROUP BY x + 0",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(zero), msg=atom)
+    assert_true(
+      @check.check_parsed(actual, check_environment(), None, check_limits())
+      is Checked(_),
+    )
+  }
+
   assert_true(
     compile(
       @query.parse_query(
@@ -90,7 +115,7 @@ test "signed literal comparison never equates different values or invalid atoms"
     )
     is Err(Expression({ issue: @expression.UnknownReference, .. })),
   )
-  for atom in ["-0", "-(-0)", "+9007199254740992"] {
+  for atom in ["+9007199254740992"] {
     assert_true(
       compile(
         @query.parse_query(

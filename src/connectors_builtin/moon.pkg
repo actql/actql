@@ -3,10 +3,10 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/connector_sdk" @connector,
-  "actql/actql/physical_host" @host,
+  "actql/actql/physical_host_dispatch" @host,
   "actql/actql/execution_relation" @execution,
   "actql/actql/connectors/duckdb/driver" @binding3,
   "actql/actql/connectors/local/driver" @binding4,
   "actql/actql/connectors/reference_compute/driver" @binding5,
-  "actql/actql/physical_strategy" @binding6,
+  "actql/actql/physical_strategy_host" @binding6,
 }

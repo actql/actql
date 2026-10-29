@@ -28,11 +28,17 @@ struct ConnectorSourceEvidenceMembers {
 ///|
 fn evidence_member_text(body : @decode.Cursor, name : String) -> String? {
   match @decode.open_object(body) {
-    Ok(object) =>
-      match @decode.required(object, name) {
-        Ok(value) => @decode.text(value).to_option()
-        Err(_) => None
-      }
+    Ok(object) => evidence_object_text(object, name)
+    Err(_) => None
+  }
+}
+
+///|
+// Reuse the original object already admitted at this same immutable boundary.
+// Field presence/kind still use the original decoder; no second field Map.
+fn evidence_object_text(object : @decode.ObjectView, name : String) -> String? {
+  match @decode.required(object, name) {
+    Ok(value) => @decode.text(value).to_option()
     Err(_) => None
   }
 }
@@ -166,6 +172,16 @@ pub fn connector_source_evidence_supports(
 }
 
 ///|
+// The same original closed-shape declaration is used by semantic admission
+// and its constructor inventory; callers do not carry a second field table.
+fn connector_snapshot_member_fields() -> Array[String] {
+  [
+    "source_ref", "source_contract_cid", "source_view_contract_cid", "read_mode",
+    "output_carrier", "carrier_schema_contract_cid", "source_data_policy_cid", "data_classification",
+  ]
+}
+
+///|
 /// Partition Connector snapshots from Local snapshots without interpreting
 /// either as runtime evidence. Catalog correspondence is checked when selecting
 /// the checked Query's source evidence members.
@@ -183,11 +199,7 @@ pub fn connector_source_snapshot_selector(
     return Ok(None)
   }
   let object = match
-    @decode.closed_object(body, [
-      "source_ref", "source_contract_cid", "source_view_contract_cid", "read_mode",
-      "output_carrier", "carrier_schema_contract_cid", "source_data_policy_cid",
-      "data_classification",
-    ]) {
+    @decode.closed_object(body, connector_snapshot_member_fields()) {
     Ok(value) => value
     Err(_) => return Err(InvalidMember)
   }
@@ -206,12 +218,12 @@ pub fn connector_source_snapshot_selector(
     }
     fields.push(cid)
   }
-  guard evidence_member_text(body, "data_classification")
+  guard evidence_object_text(object, "data_classification")
     is Some(classification) else {
     return Err(InvalidMember)
   }
-  if evidence_member_text(body, "output_carrier") != Some("relation") ||
-    evidence_member_text(body, "read_mode") != Some("snapshot") ||
+  if evidence_object_text(object, "output_carrier") != Some("relation") ||
+    evidence_object_text(object, "read_mode") != Some("snapshot") ||
     !["public", "internal", "confidential", "restricted", "unknown"].contains(
       classification,
     ) {

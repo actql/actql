@@ -2,6 +2,7 @@
 package "actql/actql/capacity_derivation"
 
 import {
+  "actql/actql/decode_shape",
   "moonbitlang/core/debug",
 }
 
@@ -11,6 +12,8 @@ pub fn check(Array[Node], Limits) -> Result[CheckedArithmetic, Issue]
 pub fn count(CheckedArithmetic) -> Int
 
 pub fn edge_count(CheckedArithmetic) -> Int
+
+pub fn empty_linked_arithmetic_construction_inventory() -> @decode_shape.CollectionConstructionInventory
 
 pub fn leaf_at(CheckedArithmetic, Int) -> Int?
 

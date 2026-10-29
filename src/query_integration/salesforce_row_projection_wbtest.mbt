@@ -259,59 +259,89 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     )
     is Err(UnexpectedPrefilter),
   )
-  // A field whose current type has no exact declared contract is refused
-  // before any query, even though its name is declared: a read plan and the
-  // declaration admit the same types, so no plan of it exists. A Number
-  // (`double`) without a described precision up to 15 is one.
-  let listing = @salesforce_catalog.project_resource_listing(
-    @utf8.encode("{\"sobjects\":[{\"name\":\"r\",\"queryable\":true}]}"),
-    {
-      max_bytes: 1000,
-      max_nodes: 100,
-      max_depth: 10,
-      max_resources: 10,
-      max_selected: 10,
-      max_name_units: 100,
-    },
-  ).unwrap()
-  let sync = @salesforce_catalog.begin_catalog_sync(listing)
-  let description = "{\"name\":\"r\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"double\",\"precision\":16,\"scale\":2,\"nillable\":false,\"filterable\":true}]}"
-  @salesforce_catalog.catalog_sync_describe(
-    sync,
-    "r",
-    @utf8.encode(description),
-    {
-      max_bytes: 1000,
-      max_nodes: 100,
-      max_depth: 10,
-      max_fields: 10,
-      max_name_units: 100,
-    },
-  ).unwrap()
-  @salesforce_catalog.finish_catalog_sync(sync).unwrap()
-  let binding = salesforce_row_binding()
-  let observation = @salesforce_catalog.prepare_catalog_observation(
-    sync,
-    binding,
-    "sha256:" + "c".repeat(64),
-    [Some("sha256:" + "d".repeat(64))],
-    [
-      Some(
-        @salesforce_catalog.catalog_response_sha256(@utf8.encode(description)),
-      ),
-    ],
-    4096,
-  ).unwrap()
-  assert_true(
-    @salesforce_catalog.prepare_read_projection(
+  // Described Number(p,s) uses the existing exact Decimal Contract, not the
+  // former <=15 binary64 boundary. Preserve Number16 as an exact positive;
+  // metadata beyond the supported precision38 remains a read-plan refusal.
+  for precision in [16, 39] {
+    let listing = @salesforce_catalog.project_resource_listing(
+      @utf8.encode("{\"sobjects\":[{\"name\":\"r\",\"queryable\":true}]}"),
+      {
+        max_bytes: 1000,
+        max_nodes: 100,
+        max_depth: 10,
+        max_resources: 10,
+        max_selected: 10,
+        max_name_units: 100,
+      },
+    ).unwrap()
+    let sync = @salesforce_catalog.begin_catalog_sync(listing)
+    let description = "{\"name\":\"r\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"double\",\"precision\":" +
+      precision.to_string() +
+      ",\"scale\":2,\"nillable\":false,\"filterable\":true}]}"
+    @salesforce_catalog.catalog_sync_describe(
+      sync,
+      "r",
+      @utf8.encode(description),
+      {
+        max_bytes: 1000,
+        max_nodes: 100,
+        max_depth: 10,
+        max_fields: 10,
+        max_name_units: 100,
+      },
+    ).unwrap()
+    @salesforce_catalog.finish_catalog_sync(sync).unwrap()
+    let binding = salesforce_row_binding()
+    let observation = @salesforce_catalog.prepare_catalog_observation(
+      sync,
+      binding,
+      "sha256:" + "c".repeat(64),
+      [Some("sha256:" + "d".repeat(64))],
+      [
+        Some(
+          @salesforce_catalog.catalog_response_sha256(@utf8.encode(description)),
+        ),
+      ],
+      4096,
+    ).unwrap()
+    let result = @salesforce_catalog.prepare_read_projection(
       observation,
       binding,
       "r",
       ["id"],
       100,
     )
-    is Err(UnsupportedReadType("id")),
-  )
+    if precision == 16 {
+      let projection = result.unwrap()
+      assert_eq(
+        @salesforce_catalog.read_projection_soql(projection),
+        "SELECT id FROM r",
+      )
+      let page = @salesforce_catalog.project_query_page(
+        @utf8.encode(
+          "{\"totalSize\":1,\"done\":true,\"records\":[{\"id\":12345678901234.56}]}",
+        ),
+        projection,
+        "v62.0",
+        {
+          max_bytes: 4096,
+          max_nodes: 100,
+          max_depth: 10,
+          max_rows: 4,
+          max_locator_units: 128,
+        },
+      ).unwrap()
+      guard @salesforce_catalog.query_page_cell(page, 0, 0)
+        is Some({ value: @admitted.Decimal(decimal), .. }) else {
+        fail("described Number16 must retain its exact Decimal domain")
+      }
+      assert_eq(decimal.coefficient, "1234567890123456")
+      assert_eq(decimal.precision, 16)
+      assert_eq(decimal.scale, 2)
+    } else {
+      assert_true(result is Err(UnsupportedReadType("id")))
+    }
+  }
 }
 
 ///|

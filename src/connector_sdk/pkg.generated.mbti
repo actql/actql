@@ -69,7 +69,7 @@ pub fn[T] choose_managed_fixed_compute_candidate(CapabilityRegistry, ManagedFixe
 
 pub fn close_capability_registry(CapabilityRegistry) -> Unit
 
-pub fn execute_synchronous_compute(SynchronousCompute) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]
+pub fn execute_synchronous_compute(SynchronousCompute, enter? : () -> Bool) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]
 
 pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
 

@@ -138,9 +138,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   let store = @publication_store.open_store(
     library, root, store_authority, 65536L, 8L, 131072L,
   ).unwrap()
-  let (row_limits, limits) = @local.client_local_values_publication_limits(
-    prepared, 65536,
-  ).unwrap()
+  let (row_limits, limits) = work.publication_limits(65536).unwrap()
   let retention = @publication.seal_publication_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
@@ -357,16 +355,38 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     journal.retained_submission(reference).unwrap().unwrap().revision,
     committed_names_submission,
   )
-  let observed = host
-    .observe_publication_run_state(
+  let observed = match
+    host.observe_publication_run_state(
       publisher,
       pending,
       "2026-10-15T00:00:02.000Z",
       limits.max_result_workspace_entries,
       16,
       1000,
-    )
-    .unwrap()
+    ) {
+    Ok(value) => value
+    Err(Candidate(ValidationLimit)) =>
+      fail("original terminal candidate validation workspace exhausted")
+    Err(Candidate(InvalidLimits)) =>
+      fail("original terminal candidate rejected invalid limits")
+    Err(Candidate(Publication(Commit(issue)))) =>
+      fail("original terminal candidate commit: " + @debug.to_string(issue))
+    Err(Candidate(State(issue))) =>
+      fail("original terminal candidate state: " + @debug.to_string(issue))
+    Err(Candidate(Publication(AccessDenied))) =>
+      fail("original terminal candidate publication authorization denied")
+    Err(Candidate(Publication(Store(_)))) =>
+      fail("original terminal candidate Store refusal")
+    Err(Candidate(Unavailable)) =>
+      fail("original terminal candidate unavailable")
+    Err(AuthorizationDenied) =>
+      fail("original terminal Host authorization denied")
+    Err(ForeignOriginal) => fail("original terminal Host foreign original")
+    Err(OriginalUnavailable) =>
+      fail("original terminal Host original unavailable")
+    Err(Journal(_)) => fail("original terminal Host Journal refusal")
+    Err(_) => fail("original terminal candidate unavailable at typed Host")
+  }
   assert_eq(
     observed.definition_cid(),
     @publication.publication_contract_identity(definition),
@@ -678,6 +698,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   candidate.release().unwrap()
   assert_true(work.close())
+  assert_true(work.publication_limits(65536) is None)
   // A new controlled observation must read the actual Store again. Closing
   // that original afterwards makes retained DATA unavailable; the cache must
   // not bypass actual lifetime or revive the failed operation.

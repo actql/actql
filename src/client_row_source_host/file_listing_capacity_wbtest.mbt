@@ -80,10 +80,13 @@ test "listing overlap exact fit and either one short use the same Source reserva
     if shortage == 0 {
       let reservation = reserved.unwrap()
       let usage = @resources.ledger_usage(ledger)
-      assert_eq(usage.attempts, 1)
+      assert_eq(usage.attempts, 0)
+      assert_eq(usage.reserved_attempts, 1)
       assert_eq(usage.reserved_retention_bytes, 18L)
       assert_eq(usage.reserved_execution_bytes, 27L)
       @resources.settle_reservation(ledger, reservation).unwrap()
+      assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+      assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
     } else {
       assert_true(
         if shortage == 1 {

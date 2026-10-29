@@ -7,7 +7,7 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/mock/acquisition" @mock,
   "actql/actql/physical_resources" @resources,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
@@ -30,5 +30,5 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/numeric_reduction" @numeric,
-  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_host_dispatch" @host_driver,
 }

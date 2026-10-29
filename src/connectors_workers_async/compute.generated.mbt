@@ -60,6 +60,45 @@ struct ConfiguredComputeModules[E] {
 }
 
 ///|
+/// Assemble the same already-bound modules without configuring them again.
+/// Original driver, Run and registry bindings are checked before exposure.
+pub fn[E] assemble_configured_compute_modules(
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+  max_entries : Int,
+  installation_issue : (@connector.CapabilityInstallationIssue) -> E,
+  with_reference_compute? : (
+    @binding3.NumericComputeContribution,
+    (@binding4.RunIssue) -> E,
+    (@binding4.RunIssue) -> E,
+  )? = None,
+) -> Result[ConfiguredComputeModules[E], E] {
+  if with_reference_compute is Some((installed, dispatch_issue, _)) {
+    match
+      @binding3.validate_numeric_contribution_binding(
+        installed, driver, registry,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(dispatch_issue(issue))
+    }
+  }
+  let contributions = match
+    assemble_compute_contributions(
+      registry,
+      max_entries,
+      with_reference_compute~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(installation_issue(issue))
+  }
+  Ok({
+    driver,
+    installed_reference_compute: with_reference_compute,
+    contributions,
+  })
+}
+
+///|
 /// Validate the complete registration subset before invoking any connector factory.
 /// Configuration is synchronous and cannot authorize provider I/O or task start.
 pub fn[E] configure_compute_modules(
@@ -96,16 +135,13 @@ pub fn[E] configure_compute_modules(
         Err(issue) => return Err(dispatch_issue(issue))
       }
   }
-  let contributions = match
-    assemble_compute_contributions(
-      registry,
-      max_entries,
-      with_reference_compute=installed_reference_compute,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(installation_issue(issue))
-  }
-  Ok({ driver, installed_reference_compute, contributions, })
+  assemble_configured_compute_modules(
+    driver,
+    registry,
+    max_entries,
+    installation_issue,
+    with_reference_compute=installed_reference_compute,
+  )
 }
 
 ///|

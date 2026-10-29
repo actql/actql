@@ -4,7 +4,7 @@ package "actql/actql/remote_site_completion"
 import {
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_typing",
   "actql/actql/remote_site_protocol",
 }
@@ -12,7 +12,7 @@ import {
 // Values
 pub fn[P, T] bind_remote_managed_completion_attempt(RemoteManagedCompletionPort[P, T], @execution_relation.ManagedExecutionAttempt) -> Bool
 
-pub fn[P, T] bind_remote_managed_completion_task(RemoteManagedCompletionPort[P, T], @physical_strategy.CapturedDAG, @physical_strategy.TaskExecution) -> Bool
+pub fn[P, T] bind_remote_managed_completion_task(RemoteManagedCompletionPort[P, T], @physical_strategy_host.CapturedDAG, @physical_strategy_host.TaskExecution) -> Bool
 
 pub fn[P, T] cancel_remote_managed_completion_port(RemoteManagedCompletionPort[P, T]) -> Bool
 
@@ -22,7 +22,7 @@ pub fn[P, T] finish_remote_managed_completion(RemoteManagedCompletionPort[P, T],
 
 pub fn finish_remote_managed_output_verifier(@execution_relation.ManagedVerifiedOutputPort[RemoteManagedOutputProof], RemoteManagedOutputProof) -> Result[@execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedVerifiedOutputIssue]
 
-pub fn[P, T] finish_remote_managed_task_completion(RemoteManagedCompletionPort[P, T], @physical_strategy.CapturedDAG, @physical_strategy.TaskExecution, RemoteManagedCompletionProof[P], managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[@execution_relation.ManagedCompletedOutput[T], RemoteManagedTaskCompletionIssue]
+pub fn[P, T] finish_remote_managed_task_completion(RemoteManagedCompletionPort[P, T], @physical_strategy_host.CapturedDAG, @physical_strategy_host.TaskExecution, RemoteManagedCompletionProof[P], managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[@execution_relation.ManagedCompletedOutput[T], RemoteManagedTaskCompletionIssue]
 
 pub fn[P, T] prepare_remote_managed_completion_port(@execution_relation.ManagedOutputValues, @remote_site_protocol.DispatchRequest, RemoteManagedOutputExpectation, @execution_relation.ManagedExecutionProfile, @execution_relation.CompletionPreparation, @pipeline_typing.Target, Int, Int, (P, String, String, String, Int64) -> (T, () -> Bool)?, inputs? : Array[@execution_relation.ProducerRead], managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]], obligations? : @execution_relation.ManagedObligations, identity_issuer? : @execution_relation.ManagedIdentityIssuer[T], attempt? : @execution_relation.ManagedExecutionAttempt) -> Result[RemoteManagedCompletionPort[P, T], RemoteManagedCompletionIssue]
 
@@ -65,7 +65,7 @@ pub(all) struct RemoteManagedOutputProof {
 pub(all) enum RemoteManagedTaskCompletionIssue {
   Remote(RemoteManagedCompletionIssue)
   Allocation(@physical_resources.LedgerIssue)
-  Task(@physical_strategy.RunIssue)
+  Task(@physical_strategy_host.RunIssue)
 }
 
 // Type aliases

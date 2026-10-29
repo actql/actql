@@ -5,7 +5,7 @@
 fn LocalCommandPreparationOriginal::prepare_business_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  requirements : @local_values.ClientLocalSourceFreeRequirements,
+  requirements : @local_values.ClientLocalRequirements,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&

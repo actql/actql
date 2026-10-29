@@ -45,7 +45,6 @@ fn stored_compute_original_run(
 }
 
 ///|
-#export_name("actql_compute_reserve")
 pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(attempt) is Some(original) &&
@@ -89,7 +88,6 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
 }
 
 ///|
-#export_name("actql_compute_configure")
 pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.computes.get(handle) is Some(record) &&
@@ -198,7 +196,6 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_compute_configured")
 pub fn native_compute_configured(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.computes.get(handle) is Some(record) else {
@@ -220,7 +217,6 @@ pub fn native_compute_configured(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_compute_close")
 pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.computes.get(handle) is Some(record) else {

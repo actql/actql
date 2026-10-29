@@ -4,6 +4,7 @@ pub struct Declaration {
   parameter_type : @contract.ParameterType
   metadata : @decode.Cursor?
   priv source : @decode.Cursor
+  priv syntax : @contract.ParameterSyntax
   priv default_cursor : @decode.Cursor?
   priv default_value : @value.CheckedValue?
 }

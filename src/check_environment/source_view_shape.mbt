@@ -260,8 +260,30 @@ pub fn check_source_view_shapes(
   if limits.max_work < 0 || limits.max_views < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
+  read_source_view_shapes(values, limits, { left: limits.max_work, })
+}
+
+///|
+/// Same original interpreter/budget, including partial typed failure.
+pub fn observe_source_view_shapes(
+  values : ProtocolValueContracts,
+  limits : SourceViewShapeLimits,
+) -> (Result[SourceViewShapes, SourceViewShapeIssue], Int) {
+  if limits.max_work < 0 || limits.max_views < 0 {
+    return (Err({ kind: InvalidLimits, source: None, }), 0)
+  }
+  let budget = ViewShapeBudget::{ left: limits.max_work, }
+  let result = read_source_view_shapes(values, limits, budget)
+  (result, limits.max_work - budget.left)
+}
+
+///|
+fn read_source_view_shapes(
+  values : ProtocolValueContracts,
+  limits : SourceViewShapeLimits,
+  budget : ViewShapeBudget,
+) -> Result[SourceViewShapes, SourceViewShapeIssue] {
   let views = []
-  let budget = { left: limits.max_work, }
   let rule = source_view_shape_rule()
   try {
     for catalog in values.policies.references.contents.entries {

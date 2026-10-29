@@ -144,20 +144,20 @@ test "checked task projection rejects limits before copying references" {
   for task in [-1, 0, 4] {
     assert_true(
       @strategy.prepare_checked_task_reference(graph, task, 10, 100)
-      is Err(@strategy.InvalidTask),
+      is Err(@strategy.CheckedTaskReferenceIssue::InvalidTask),
     )
   }
   assert_true(
     @strategy.prepare_checked_task_reference(graph, 1, -1, 100)
-    is Err(@strategy.InvalidLimits),
+    is Err(@strategy.CheckedTaskReferenceIssue::InvalidLimits),
   )
   assert_true(
     @strategy.prepare_checked_task_reference(graph, 1, 10, 0)
-    is Err(@strategy.WorkLimit),
+    is Err(@strategy.CheckedTaskReferenceIssue::WorkLimit),
   )
   assert_true(
     @strategy.prepare_checked_task_reference(graph, 1, 0, 100)
-    is Err(@strategy.ReferenceLimit),
+    is Err(@strategy.CheckedTaskReferenceIssue::ReferenceLimit),
   )
   assert_eq(@strategy.next_captured_task(run), Some(1))
   @mock.close_mock_query_issuer(issuer)

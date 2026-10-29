@@ -18,7 +18,8 @@ test "synchronous preparation rejection releases capacity without publishing exe
     @duckdb_driver.duckdb_compute_failure(issue) is Some(ForeignPreparation),
   )
   let after = @resources.ledger_usage(ledger)
-  assert_eq(after.attempts, before.attempts + 1)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.reserved_attempts, before.reserved_attempts)
   assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
   assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
   assert_eq(after.transferred_bytes, before.transferred_bytes)
@@ -85,6 +86,7 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_false(@strategy.captured_task_completed(run, 1))
   @resources.settle_reservation(ledger, reserved).unwrap()
+  let after_external_settlement = @resources.ledger_usage(ledger)
   for (transfer, execution) in [(0L, 1L), (1L, 0L), (-1L, 1L)] {
     assert_true(
       captured_graph_duckdb_try_start(
@@ -97,8 +99,13 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
       is Err(Physical(InvalidLimits)),
     )
   }
+  assert_eq(@resources.ledger_usage(ledger), after_external_settlement)
   let attempt = captured_graph_duckdb_start(run, 1, transport)
-  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    after_external_settlement.reserved_attempts + 1,
+  )
   assert_true(@resources.ledger_usage(ledger).reserved_retention_bytes > 0L)
   // A fresh reservation is private to this exact attempt, never supplied by the
   // caller. Neither a foreign DAG nor an unrelated attempt can operate on it.
@@ -177,7 +184,11 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   )
   // Starting B must acquire a new reservation, not reuse A's settled capacity.
   let b = captured_graph_duckdb_start(run, 2, { settled: None, })
-  assert_eq(@resources.ledger_usage(ledger).attempts, complete.attempts + 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, complete.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    complete.reserved_attempts + 1,
+  )
   assert_true(
     @duckdb_driver.complete_captured_duckdb_task(run, attempt)
     is Err(ForeignCandidate),

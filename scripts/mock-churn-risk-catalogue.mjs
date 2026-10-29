@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 const inputPath = 'src/client_row_source_host/mock_churn_risk_catalogue.json';
 const moonPath = 'src/client_row_source_host/mock_churn_risk_catalogue.generated.mbt';
-const nodePath = 'adapters/host-node/mock-churn-risk-catalogue.mjs';
+const nodePath = 'adapters/local-node/mock-churn-risk-catalogue.mjs';
 const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed();
 const keys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
 

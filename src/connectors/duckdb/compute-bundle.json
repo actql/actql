@@ -13,6 +13,7 @@
   "configuration": "DuckDBComputeConfiguration",
   "configure": "configure_duckdb_compute",
   "registration": "duckdb_dispatch_registration",
+  "validate_binding": "validate_duckdb_dispatch_binding",
   "contribution": "duckdb_compute_contribution",
   "dispatch_error": {"package": "actql/actql/connectors/duckdb/driver", "type": "DuckDBDispatchIssue"},
   "estimate_error": {"package": "actql/actql/connectors/duckdb/driver", "type": "DuckDBEstimateIssue"}

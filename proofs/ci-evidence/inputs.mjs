@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {packageConfigurationReviewFor} from './package-configurations.mjs';
+import {packageConfigurationReviewFor, reviewedNestedFixture} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
@@ -201,7 +201,12 @@ export function packageSourceInputs({tree, packages, target}) {
     }
     for (const path of descendants.get(directory) ?? []) {
       const first = `${directory}/${path.slice(directory.length + 1).split('/')[0]}`;
-      if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }
+      if (!tree.entries.has(`${first}/moon.pkg`)) {
+        add(path);
+        if (tree.entries.get(path)?.kind !== 'blob' || !reviewedNestedFixture({
+          path, digest: hash(tree.read(path)), target, toolchainDigest,
+        })) unresolved.add(`nested package input requires review: ${path}`);
+      }
     }
   }
   while (pending.length) {

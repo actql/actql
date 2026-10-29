@@ -1,4 +1,9 @@
 ///|
+fn host_setup_test_site(max_operations : Int) -> @site.ExecutionSite {
+  @site.create_site("test", 1, "runtime", max_operations, 1, 150L, 40L).unwrap()
+}
+
+///|
 fn ordinary_holder_scope(
   current : () -> Bool,
 ) -> HolderEffectHostSetupScope raise {
@@ -16,9 +21,6 @@ fn ordinary_holder_scope(
 test "ordinary holder acquires bounded platform input without a mapped arena profile" {
   let scope = ordinary_holder_scope(() => true)
   let before = @site.site_status(scope.site)
-  assert_true(scope.profile is None)
-  assert_true(scope.read_domain is None)
-  assert_true(scope.caller_operation is None)
   assert_eq(holder_effect_host_scope_read_ceiling(scope), 128)
   assert_true(holder_effect_host_read_scope_current(scope))
   assert_true(
@@ -31,14 +33,12 @@ test "ordinary holder acquires bounded platform input without a mapped arena pro
   assert_eq(@site.site_status(scope.site), before)
   assert_true(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
-  assert_true(scope.read_domain is None)
-  assert_true(scope.holding is None)
 }
 
 ///|
 fn ordinary_holder_file(
   label : String,
-) -> (String, @filesystem.Root, @filesystem.Writer) raise {
+) -> (String, @filesystem.Root, @filesystem.Writer) {
   let parent = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let root = @filesystem.open_root(parent).unwrap()
   root.create_directory(label).unwrap() |> ignore
@@ -68,7 +68,6 @@ test "ordinary holder real bounded read keeps original failure cleanup and does 
   ignore(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   assert_true(scope.pending is None)
-  assert_true(scope.read_domain is None)
   assert_true(read_holder_effect_host_text(scope, path, "value", 5L) is None)
   if scope.cleanup is Some(cleanup) {
     assert_true(@site.release_site_cleanup(cleanup))
@@ -112,4 +111,78 @@ test "ordinary holder rejects invalid managed limits before opening platform inp
   let limits = holder_effect_host_ordinary_limits(2000000L, 1024L).unwrap()
   assert_eq(limits.read_ceiling, 1000000)
   assert_eq(limits.catalog_read_ceiling, 1024L)
+}
+
+///|
+test "setup binding retains the exact selection and rechecks each current verifier" {
+  let site = host_setup_test_site(2)
+  let calls = [0, 0]
+  let runtime_current = Ref(true)
+  let current = holder_effect_host_setup_binding(
+    site,
+    "test",
+    1,
+    "runtime",
+    () => {
+      calls[0] += 1
+      true
+    },
+    () => {
+      calls[1] += 1
+      runtime_current.val
+    },
+  )
+  assert_true(current())
+  runtime_current.val = false
+  assert_false(current())
+  assert_eq(calls, [2, 2])
+  @site.revoke_site(site)
+  assert_false(current())
+  assert_eq(calls, [3, 2])
+}
+
+///|
+test "foreign setup key generation or runtime refuses before runtime verification" {
+  let site = host_setup_test_site(2)
+  let calls = [0]
+  for
+    (key, generation, runtime) in [
+      ("foreign", 1, "runtime"),
+      ("test", 2, "runtime"),
+      ("test", 1, "foreign"),
+    ] {
+    let current = holder_effect_host_setup_binding(
+      site,
+      key,
+      generation,
+      runtime,
+      () => true,
+      () => {
+        calls[0] += 1
+        true
+      },
+    )
+    assert_false(current())
+  }
+  assert_eq(calls[0], 0)
+}
+
+///|
+test "lost current slot prevents the setup Site and runtime continuation" {
+  let site = host_setup_test_site(2)
+  let calls = [0]
+  let current = holder_effect_host_setup_binding(
+    site,
+    "test",
+    1,
+    "runtime",
+    () => false,
+    () => {
+      calls[0] += 1
+      true
+    },
+  )
+  assert_false(current())
+  assert_eq(calls[0], 0)
+  assert_eq(@site.site_status(site)[2], 0L)
 }

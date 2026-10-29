@@ -22,15 +22,17 @@ pub(all) struct ClosedValuesContextScaffoldLayout {
 /// have at most one item; eight slots cover append, copy and fixed construction.
 pub fn closed_values_context_scaffold_layout() -> ClosedValuesContextScaffoldLayout {
   {
-    // Named records81; Arrays67 each wrapper/backing+old backing3;
+    // Named records81 plus original registration/Context inputs2 and their
+    // returned Ok carriers2 (12R5W), original binding input/Ok2 (6R4W);
+    // Arrays67 wrapper/backing+old backing3;
     // possible Some carriers13; eight scratch Maps each record/backing +
     // one Entry/two Some carriers (empty Maps use less).
-    record_headers: 81L + 3L * 67L + 13L + 8L * 5L,
-    reference_slots: 249L + 9L * 67L + 13L + 8L * 7L,
+    record_headers: 81L + 4L + 2L + 3L * 67L + 13L + 8L * 5L,
+    reference_slots: 249L + 12L + 6L + 9L * 67L + 13L + 8L * 7L,
     // Reserve both scalar/reference backing alternatives conservatively;
     // reconciliation uses actual typed slots, never bills both as actual owners.
-    scalar_words: 214L + 10L * 67L + 13L + 8L * 18L,
-    record_instances: 81,
+    scalar_words: 214L + 5L + 4L + 10L * 67L + 13L + 8L * 18L,
+    record_instances: 84,
     array_owners_upper: 67,
   }
 }

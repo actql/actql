@@ -142,30 +142,6 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
 }
 
 ///|
-// The Record-only extraction returns before this admission begins. Matching
-// Native ARC must verify retirement of Record/Checkpoint/definition/scratch.
-// Admit every body/root/dependency before applying the deferred identity result.
-// Missing wire preserves identity refusal before MissingDependency.
-fn select_run_policy_wire(
-  wire : String?,
-  comparison : RunPolicyRequestComparison,
-  selected_policy_cid : String,
-) -> Result[
-  @publication.CapturedEffectDependencyBody,
-  NativeClientRunJournalIssue,
-] {
-  let bodies = match wire {
-    Some(original) =>
-      match read_run_policy_originals(original) {
-        Ok(value) => Some(value)
-        Err(_) => return Err(CustodyLost)
-      }
-    None => None
-  }
-  select_admitted_run_policy(bodies, comparison, selected_policy_cid)
-}
-
-///|
 fn select_admitted_run_policy(
   bodies : Array[@publication.CapturedEffectDependencyBody]?,
   comparison : RunPolicyRequestComparison,

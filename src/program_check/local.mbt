@@ -11,9 +11,7 @@ pub suberror LocalConstructionFailure {
 }
 
 ///|
-// Internal construction result only. Complete semantic-role selection and
-// execution-binding coverage must precede the future CheckedProgram seal.
-fn construct_local(
+fn construct_local_after_declarations(
   program : @syntax.Program,
   supplied : @decode.Cursor?,
   environment : SourceEnvironment,
@@ -22,17 +20,20 @@ fn construct_local(
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
   budget : IdentityBudget,
+  declaration_work : Int,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
   conversion_out? : Array[ProofConversion]? = None,
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
-  effect_headers? : @syntax.EffectHeaders? = None,
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
   source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+  environment_start? : EnvironmentAdmissionStart? = None,
+  source_context? : @context.SourceViewContextInput? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -40,16 +41,6 @@ fn construct_local(
   @context.CoreContractInventory,
   Array[BuiltUnit],
 ) raise LocalConstructionFailure {
-  if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
-    raise InvalidLimits
-  }
-  let declaration_work = audit_declarations(
-    program,
-    budget.work,
-    effect_headers~,
-  ) catch {
-    e => raise Source(e)
-  }
   let work_limit = budget.work - declaration_work
   let admission = IdentityBudget::{
     work: work_limit,
@@ -59,9 +50,13 @@ fn construct_local(
   }
   let wire = environment.wire
   let (catalog, references) = try {
-    match source_catalog {
-      Some(prepared) => reuse_source_catalog(prepared, wire, admission)
-      None => prepare_environment(wire, admission)
+    match environment_start {
+      Some(start) => finish_environment_admission(start, admission)
+      None =>
+        match source_catalog {
+          Some(prepared) => reuse_source_catalog(prepared, wire, admission)
+          None => prepare_environment(wire, admission)
+        }
     }
   } catch {
     e => raise Environment(e)
@@ -70,77 +65,58 @@ fn construct_local(
   let work_limit = admission.work
   // Cap every preparatory pass before it allocates, not after a large source
   // preparation has already consumed more than the enclosing work allowance.
-  let limits : SourceLimits = {
-    ..limits,
-    topology: {
-      ..limits.topology,
-      max_work: Int::min(limits.topology.max_work, work_limit),
-    },
-    context: {
-      ..limits.context,
-      stages: {
-        ..limits.context.stages,
-        max_work: Int::min(limits.context.stages.max_work, work_limit),
-      },
-    },
-    requests: {
-      ..limits.requests,
-      max_work: Int::min(limits.requests.max_work, work_limit),
-    },
-    checks: { ..limits.checks, work: Int::min(limits.checks.work, work_limit), },
-    identity: {
-      ..limits.identity,
-      body: {
-        ..limits.identity.body,
-        max_work: Int::min(limits.identity.body.max_work, work_limit),
-      },
-      uses: {
-        ..limits.identity.uses,
-        max_work: Int::min(limits.identity.uses.max_work, work_limit),
-      },
-      references: {
-        ..limits.identity.references,
-        max_work: Int::min(limits.identity.references.max_work, work_limit),
-      },
-      identity: {
-        ..limits.identity.identity,
-        max_work: Int::min(limits.identity.identity.max_work, work_limit),
-        max_hash_bytes: Int::min(
-          limits.identity.identity.max_hash_bytes,
-          admission.bytes,
-        ),
-        max_hash_nodes: Int::min(
-          limits.identity.identity.max_hash_nodes,
-          admission.nodes,
-        ),
-        max_depth: Int::min(limits.identity.identity.max_depth, budget.depth),
-      },
-    },
+  let limits = match environment_start {
+    Some(Registered(_, _, _, selected, _, _)) => selected
+    _ => source_limits_after_catalog(limits, admission)
   }
-  let identity = prepare_catalog_source(
-    program,
-    supplied,
-    catalog,
-    material,
-    locations,
-    expression_profiles,
-    operation_profiles,
-    limits,
-    calendar~,
-    graph~,
-    capacity_inputs~,
-    model_tasks~,
-    derived_capacity_limits=if capacity_inputs is Some(_) {
-      Some({
-        max_bytes: limits.identity.identity.max_hash_bytes,
-        max_nodes: limits.identity.identity.max_hash_nodes,
-        max_depth: limits.identity.identity.max_depth,
-      })
-    } else {
-      None
-    },
-  ) catch {
-    e => raise Source(e)
+  let derived_capacity_limits : @wire.Limits? = if capacity_inputs is Some(_) {
+    Some({
+      max_bytes: limits.identity.identity.max_hash_bytes,
+      max_nodes: limits.identity.identity.max_hash_nodes,
+      max_depth: limits.identity.identity.max_depth,
+    })
+  } else {
+    None
+  }
+  let identity = match environment_start {
+    Some(Registered(_, _, _, _, views, locals)) =>
+      prepare_registered_catalog_source(
+        views,
+        locals,
+        supplied,
+        material,
+        locations,
+        expression_profiles,
+        operation_profiles,
+        limits,
+        calendar~,
+        graph~,
+        capacity_inputs~,
+        model_tasks~,
+        derived_capacity_limits~,
+        source_context~,
+      ) catch {
+        e => raise Source(e)
+      }
+    _ =>
+      prepare_catalog_source(
+        program,
+        supplied,
+        catalog,
+        material,
+        locations,
+        expression_profiles,
+        operation_profiles,
+        limits,
+        calendar~,
+        graph~,
+        source_preparation~,
+        capacity_inputs~,
+        model_tasks~,
+        derived_capacity_limits~,
+      ) catch {
+        e => raise Source(e)
+      }
   }
   let (_, bytes, nodes) = @context.program_identity_usage(identity)
   let (generated_bytes, generated_nodes) = @context.program_identity_capacity_metadata_usage(
@@ -199,4 +175,61 @@ fn construct_local(
 priv struct SourceEnvironment {
   wire : @environment.WireEnvironment
   locations : Array[Array[(Int, Int)]]?
+}
+
+///|
+// The SAME remaining Catalog meter bounds every later preparatory pass.
+// Retained registration and the uninterrupted checker use this one projection.
+fn source_limits_after_catalog(
+  limits : SourceLimits,
+  admission : IdentityBudget,
+) -> SourceLimits {
+  let work_limit = admission.work
+  {
+    ..limits,
+    topology: {
+      ..limits.topology,
+      max_work: Int::min(limits.topology.max_work, work_limit),
+    },
+    context: {
+      ..limits.context,
+      stages: {
+        ..limits.context.stages,
+        max_work: Int::min(limits.context.stages.max_work, work_limit),
+      },
+    },
+    requests: {
+      ..limits.requests,
+      max_work: Int::min(limits.requests.max_work, work_limit),
+    },
+    checks: { ..limits.checks, work: Int::min(limits.checks.work, work_limit), },
+    identity: {
+      ..limits.identity,
+      body: {
+        ..limits.identity.body,
+        max_work: Int::min(limits.identity.body.max_work, work_limit),
+      },
+      uses: {
+        ..limits.identity.uses,
+        max_work: Int::min(limits.identity.uses.max_work, work_limit),
+      },
+      references: {
+        ..limits.identity.references,
+        max_work: Int::min(limits.identity.references.max_work, work_limit),
+      },
+      identity: {
+        ..limits.identity.identity,
+        max_work: Int::min(limits.identity.identity.max_work, work_limit),
+        max_hash_bytes: Int::min(
+          limits.identity.identity.max_hash_bytes,
+          admission.bytes,
+        ),
+        max_hash_nodes: Int::min(
+          limits.identity.identity.max_hash_nodes,
+          admission.nodes,
+        ),
+        max_depth: Int::min(limits.identity.identity.max_depth, admission.depth),
+      },
+    },
+  }
 }

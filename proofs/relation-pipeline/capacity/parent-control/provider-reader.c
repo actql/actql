@@ -24,7 +24,11 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
     seen[seen_count++] = records[i];
     assert(Moonbit_rc_count(Moonbit_object_header(records[i])) >= 0);
     const uint32_t *s = layout(records[i]);
-    assert(s[0] == 8 && s[1] == 4);
+    assert(s[0] == 10 && s[1] == 5);
+    /* The separate Model-bound family tuple is outside these eleven candidates. */
+    assert(s[6] == 16);
+    void *infer_prefix; memcpy(&infer_prefix, (uint8_t *)records[i] + 32, sizeof infer_prefix);
+    assert(infer_prefix == NULL);
     bytes += regular_bytes(records[i]);
     for (int j = 0; j < 4; j++) {
       assert(s[2 + j] == (uint32_t)j * 4);
@@ -79,7 +83,7 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
   }
   struct current_json json = {.used = 0};
   current_add(&json,
-    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
+    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"providerRecordFields\":5,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
     callbacks, arrays, bytes, unclassified, scalar);
   for (int i = 0; i < scalar; i++) {
     current_add(&json, "%s{\"identity\":\"%" PRIxPTR "\",\"codeDelta\":\"%" PRIdPTR "\"}",

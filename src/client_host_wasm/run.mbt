@@ -47,7 +47,6 @@ fn required_text(object : @decode.ObjectView, name : String) -> String? {
 }
 
 ///|
-#export_name("actql_run_install_configuration")
 pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.copies.get(input) is Some((slot, physical)) else {
@@ -119,7 +118,6 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
 ///|
 /// Product assembly uses original current material; no Account/scope/context
 /// or policy CID supplied by Python can stand in for that existing Owner.
-#export_name("actql_run_install_current_configuration")
 pub fn install_current_run_configuration(
   nonce : Int64,
   current : Int,
@@ -216,7 +214,6 @@ fn run_configuration_current(
 ///|
 /// The issued handle precedes compilation. Reservation neither accepts a
 /// Submission nor invokes Source, Compute, Model, Effect or durable storage.
-#export_name("actql_run_reserve")
 pub fn reserve_run(
   nonce : Int64,
   configuration : Int,
@@ -264,7 +261,6 @@ pub fn reserve_run(
 ///|
 /// Compilation/readiness is not durable Run acceptance or physical start.
 /// A interrupted invocation cannot silently recompile under the same handle.
-#export_name("actql_run_prepare")
 pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&
@@ -362,7 +358,6 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Restore the original request and codec-retained Run under current installed
 /// authorization. This does not reserve a durable dispatch or start a task.
-#export_name("actql_run_restore")
 pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&
@@ -439,7 +434,6 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
 
 ///|
 /// Private readiness codes are not public diagnostic classifications.
-#export_name("actql_run_prepared")
 pub fn run_prepared(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
@@ -452,7 +446,6 @@ pub fn run_prepared(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_close")
 pub fn close_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
@@ -470,7 +463,6 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_close_configuration")
 pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_configurations.get(handle) is Some(record) else {

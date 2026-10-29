@@ -114,34 +114,20 @@ test "managed unfinished input keeps reservation across buffer reclamation polls
   )
   assert_true(@execution.managed_completed_output_available(producer))
   assert_eq(local_managed_test_rows(producer_operations), rows)
+  // Successful finalization already retired the admission buffer before the
+  // settled hook released execution scratch. The immutable completed output
+  // remains separately held and readable until its original owner is revoked.
+  assert_eq(released.reserved_execution_bytes, 0L)
+  assert_true(released.held_bytes > 0L)
   producer_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (producer_operations.close)()
-  let producer_pending = @resources.ledger_usage(
-      @strategy.captured_dag_ledger(run),
-    ).reserved_execution_bytes
-  assert_true(producer_pending > 0L)
-  assert_false((producer_operations.cleanup_refresh)())
+  assert_false(@execution.managed_completed_output_available(producer))
   assert_eq(
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
-    producer_pending,
+    0L,
   )
-  // Each of 100 rows owns two reference containers and one row container.
-  // Six column counters and one buffer boundary add seven entries. Cleanup
-  // retires at most 64 entries per pass; it must keep the original owner.
-  let producer_cleanup_polls = (100 * 3 + 7 + 63) / 64
-  let mut producer_cleaned = false
-  for _ in 0..<producer_cleanup_polls {
-    if (producer_operations.cleanup_refresh)() {
-      producer_cleaned = true
-      break
-    }
-    assert_eq(
-      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
-      producer_pending,
-    )
-  }
-  assert_true(producer_cleaned)
+  assert_true((producer_operations.cleanup_refresh)())
   assert_eq((operations.cumulative_provider_work)().unwrap(), work)
   assert_true((producer_operations.cleanup_refresh)())
   for task in 0..<@strategy.graph_task_count(@strategy.captured_dag_graph(run)) {

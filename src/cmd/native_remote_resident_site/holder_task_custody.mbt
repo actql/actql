@@ -11,7 +11,6 @@ priv struct HolderTaskCustody {
   mut executed : @resident_host.ResidentExecuted?
   mut effect_producer : @resident_host.ResidentEffectProducerExecuted?
   mut effect_review : @effect_review.NativeResidentEffectReview?
-  mut effect_catalog_review : HolderEffectCatalogReviewCustody?
   mut effect_review_cleanup : @resident_host.ResidentEffectReviewInputContext?
   mut restoration : @resident_host.ResidentCompletedAttempt?
   mut restoration_cleanup : @runtime.NativeRemoteRuntime?
@@ -41,7 +40,6 @@ fn new_holder_task_custody(
     executed,
     effect_producer,
     effect_review: None,
-    effect_catalog_review: None,
     effect_review_cleanup: None,
     restoration: None,
     restoration_cleanup: None,
@@ -218,13 +216,7 @@ fn close_holder_task(
   }
   // Review owns separate semantic pins and an export. Retiring it must
   // precede its original consumer, receiver and producer Runtime cleanup.
-  if !prepare_holder_catalog_file_cleanup(resources, task) {
-    return false
-  }
   if !close_holder_effect_review(task) {
-    return false
-  }
-  if !detach_holder_catalog_file_custody(resources, task) {
     return false
   }
   if task.handoff is Some((_, handoff)) {

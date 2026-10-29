@@ -1,4 +1,13 @@
 ///|
+/// Preserve the existing Owner's classification. A missing original journal or
+/// credential record is unavailable responsibility, never an unsent proof.
+priv enum HolderCatalogUseObservationIssue {
+  Original(@journal.NativeRemoteJournalIssue)
+  Resource(@effect_resource.NativeCredentialResourceIssue)
+  Changed
+}
+
+///|
 /// Query callbacks only, not a physical Journal, successful GET or cleanup ACK.
 test "Catalog cleanup reobserves the original use after a transient query failure" {
   let queries = Ref(0)
@@ -313,4 +322,75 @@ test "Catalog restoration rechecks original responsibility after the resource re
   )
   assert_true(queried is Err(Original(@journal.StaleSiteBinding)))
   assert_eq(reads.val, 2)
+}
+
+///|
+/// A previous query error is not permanent retirement evidence. Each cleanup
+/// pass can inspect only the same original Journal/Resource use. This result
+/// acknowledges observation only: claimed/unknown is neither successful GET
+/// nor Store/physical cleanup, and no absence permits another read or claim.
+/// The existing Store cleanup ACK retires this query prerequisite only; failed
+/// service handles still require their original close retry. The credential DB
+/// may already be closed when another service handle remains pending.
+fn holder_catalog_cleanup_original_use_observed(
+  catalog_cleanup_confirmed : Bool,
+  read_started : Bool,
+  has_original_use : Bool,
+  has_custody : Bool,
+  has_observation : Bool,
+  query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit],
+) -> Bool {
+  if !catalog_cleanup_confirmed &&
+    read_started &&
+    !has_original_use &&
+    !has_custody &&
+    !has_observation {
+    query() is Ok(Some(_))
+  } else {
+    true
+  }
+}
+
+///|
+/// The original Journal Owner selects a nominal use before and after the
+/// Resource query. This function issues no claim or Provider call and accepts
+/// no use identity from a candidate response or replacement credential DB.
+fn holder_catalog_original_use_query(
+  read_original : () -> Result[
+    @effect_credential.RemoteCredentialUse,
+    @journal.NativeRemoteJournalIssue,
+  ],
+  query_resource : () -> Result[
+    @effect_resource.NativeCredentialUseStatus,
+    @effect_resource.NativeCredentialResourceIssue,
+  ],
+) -> Result[
+  @effect_resource.NativeCredentialUseStatus,
+  HolderCatalogUseObservationIssue,
+] {
+  let original = match read_original() {
+    Ok(value) => value
+    Err(issue) => return Err(Original(issue))
+  }
+  let status = match query_resource() {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  let current = match read_original() {
+    Ok(value) => value
+    Err(issue) => return Err(Original(issue))
+  }
+  let original_cid = @effect_credential.credential_use_cid(original)
+  if @effect_credential.credential_use_cid(current) != original_cid ||
+    status.use_cid != original_cid {
+    return Err(Changed)
+  }
+  Ok(status)
+}
+
+///|
+fn holder_catalog_use_succeeded(
+  original : @effect_resource.NativeCredentialUseStatus,
+) -> Bool {
+  original.outcome == "succeeded" && original.status == Some(200)
 }

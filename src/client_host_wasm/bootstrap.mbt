@@ -12,7 +12,6 @@ priv struct StoredBootstrap {
 }
 
 ///|
-#export_name("actql_bootstrap_reserve")
 pub fn reserve_bootstrap(
   nonce : Int64,
   input : Int,
@@ -64,13 +63,11 @@ pub fn reserve_bootstrap(
 }
 
 ///|
-#export_name("actql_bootstrap_produce")
 pub fn produce_bootstrap(nonce : Int64, handle : Int) -> Int {
   produce_bootstrap_profile(nonce, handle, false)
 }
 
 ///|
-#export_name("actql_bootstrap_produce_sdk")
 pub fn produce_sdk_bootstrap(nonce : Int64, handle : Int) -> Int {
   produce_bootstrap_profile(nonce, handle, true)
 }
@@ -166,7 +163,6 @@ fn produce_bootstrap_profile(nonce : Int64, handle : Int, sdk : Bool) -> Int {
 }
 
 ///|
-#export_name("actql_bootstrap_length")
 pub fn bootstrap_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.bootstraps.get(handle) is Some(record) &&
@@ -181,7 +177,6 @@ pub fn bootstrap_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_bootstrap_close")
 pub fn close_bootstrap(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.bootstraps.get(handle) is Some(record) else {

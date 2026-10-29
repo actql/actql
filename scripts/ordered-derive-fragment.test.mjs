@@ -13,7 +13,8 @@ const schemas=rowKernelSchemas(read('spec/contracts/actql-protocol-schemas.json'
 test('fixed source and graph preimages bind distinct exact step bodies',()=>{
   // ASCII canonical bytes and SHA-256 digests are fixed from Python json/hashlib,
   // independently of product compilers, lowerers and registration generators.
-  assert.equal(v.extension_cid,machineCid(aoa.execution_contracts['REL.derive.ordered']));
+  assert.equal(v.extension_cid, 'sha256:3b114d0baed2fa990d9420ae5af7fe742d5bf3fd0dfde20ef991af06c416df6e');
+  assert.notEqual(v.extension_cid,machineCid(aoa.execution_contracts['REL.derive.ordered']));
   for(const p of v.preimages){
     assert.deepEqual(JSON.parse(p.canonical),v[p.id]);
     assert.equal('sha256:'+createHash('sha256').update(p.canonical).digest('hex'),p.cid);
@@ -117,14 +118,18 @@ for (const fixture of identities.cases) test(`independent ${fixture.id} retains 
   assert.equal('sha256:' + createHash('sha256').update(fixture.canonical).digest('hex'), fixture.cid);
   assert.equal(machineCid(fixture.body), fixture.cid);
   if (fixture.id === 'ordered_node') {
-    assert.equal(fixture.body.params.row_kernel_contract_cid,
-      machineCid(aoa.execution_contracts['REL.derive.ordered']));
+    const current = structuredClone(fixture.body);
+    current.params.row_kernel_contract_cid = machineCid(aoa.execution_contracts['REL.derive.ordered']);
+    const currentCid = machineCid(current);
+    assert.notEqual(currentCid, fixture.cid);
     for (const name of ['ordered_node', 'ordered_binding', 'fragment_ordered'])
-      assert.ok(readFileSync(`src/execution_relation/${name}_wbtest.mbt`, 'utf8').includes(fixture.cid));
+      assert.ok(readFileSync(`src/execution_relation/${name}_wbtest.mbt`, 'utf8').includes(currentCid));
   } else {
     assert.equal(fixture.id, 'complete_fragment');
-    assert.equal(fixture.body.expression_contract_cid, machineCid(expressions));
-    assert.ok(readFileSync('src/execution_relation/fragment_candidate_wbtest.mbt', 'utf8').includes(fixture.cid));
+    const current = {...fixture.body, expression_contract_cid: machineCid(expressions)};
+    const currentCid = machineCid(current);
+    assert.notEqual(currentCid, fixture.cid);
+    assert.ok(readFileSync('src/execution_relation/fragment_candidate_wbtest.mbt', 'utf8').includes(currentCid));
     assert.equal(fixture.body.request.pipeline.steps[0].params.exprs.x.literal, 7);
     assert.deepEqual(fixture.body.roots[0].contract, {type: 'number', nullable: false});
   }

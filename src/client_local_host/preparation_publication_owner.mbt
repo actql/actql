@@ -7,9 +7,6 @@ struct ClientProgramPublication[I] {
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]
-  _observed_base_retained : Int64
-  _observed_snapshot_retained : Int64
-  _observed_snapshot_execution : Int64
   mut run : @strategy.CapturedDAG?
   mut snapshot : ClientProgramSnapshot[I]?
   mut snapshot_starting : Bool
@@ -139,8 +136,8 @@ pub fn[I] reserve_program_publication(
   }
   guard scalar_snapshot_layout(inventory.fields, inventory.names, demand.rows)
     is Some(task) &&
-    preparation_representation_cost(task.retained) is Some(task_r) &&
-    preparation_representation_cost(task.temporary) is Some(task_e) else {
+    @execution.preparation_representation_cost(task.retained) is Some(task_r) &&
+    @execution.preparation_representation_cost(task.temporary) is Some(task_e) else {
     return Err(Policy)
   }
   let mut retained = task_r
@@ -158,8 +155,8 @@ pub fn[I] reserve_program_publication(
         demand.rows,
       )
       is Some(snapshot) &&
-      preparation_representation_cost(snapshot.retained) is Some(r) &&
-      preparation_representation_cost(snapshot.temporary) is Some(e) else {
+      @execution.preparation_representation_cost(snapshot.retained) is Some(r) &&
+      @execution.preparation_representation_cost(snapshot.temporary) is Some(e) else {
       return Err(Policy)
     }
     if r > 9223372036854775807L - retained - 96L {
@@ -197,9 +194,6 @@ pub fn[I] reserve_program_publication(
   let value : ClientProgramPublication[I] = {
     owner,
     holder,
-    _observed_base_retained: controls_retained,
-    _observed_snapshot_retained: retained,
-    _observed_snapshot_execution: total_e,
     capture_started: false,
     capture: None,
     run: Some(captured),

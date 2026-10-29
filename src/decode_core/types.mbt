@@ -44,6 +44,7 @@ struct Cursor {
   tree : Array[OwnedNode]
   index : Int
   usage : AdmissionUsage
+  preparation : AdmissionPreparationData
 }
 
 ///|

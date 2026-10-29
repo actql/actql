@@ -43,13 +43,18 @@ pub fn configure_source_free_effect_local_retained_host(
     sequences.length() == 1 else {
     return None
   }
-  // Derive the same existing Effect/Local envelope from the installed bodies.
-  // These are capacity checks, not physical backing or execution authority.
-  let (values, execution, measurement) = client_local_execution_limits()
-  let max_rows = execution.rows.max_rows
+  // Retain the one existing Effect/Local configuration through its quote and
+  // actual Host construction. This is not physical backing or authority.
+  let max_rows = client_local_default_row_profile()
+  let capacity_plan = client_local_capacity_plan(
+    sequences,
+    max_rows,
+    graph=Some(graph),
+  )
   guard client_local_sequence_capacity(
       sequences,
       1,
+      capacity_plan=Some(capacity_plan),
       retained_inputs=Some([0]),
       max_rows~,
     )
@@ -70,13 +75,10 @@ pub fn configure_source_free_effect_local_retained_host(
   configure_client_local_run(
     run,
     graph,
-    sequences,
+    capacity_plan,
     0,
     1,
-    max_rows,
-    values,
-    execution,
-    measurement,
+    AdmittedRows,
     retained_bytes,
     execution_bytes,
     true,

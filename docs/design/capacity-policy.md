@@ -60,3 +60,61 @@ integer boundaries, duplicate keys, noncanonical encodings and exact byte/node/
 depth limits. The documentation gate compares the schema and the product's
 closed ordered field inventory. Passing these checks does not demonstrate
 Host authorization or runtime enforcement.
+
+## Implementation accounting granularity
+
+The preparation migration must preserve the original Program, Parameters,
+Catalog, CheckedProgram, Plan and Ledger through execution, publication and
+cleanup. A missing handoff must not trigger another parse, check, compilation,
+capacity calculation or independent reservation. Approval, currentness,
+cancellation, Unknown and actual physical retirement remain distinct duties.
+
+Resource accounting has three scopes:
+
+- Physical resources such as Buffers, files, DB sessions, Store bytes,
+  transfers and actual attempts follow their existing reservation, use,
+  retention and release boundaries. Native arenas and Wasm linear-memory
+  allocations must respect their actual physical capacities.
+- Input-proportional JSON, ASTs, Maps, Arrays, strings, Stages, rows, schemas,
+  indexes, workspaces and Results use the existing shared size/count estimators.
+  Retain observations with the original input. Include genuinely simultaneous
+  input, workspace, output and old/new growth storage; take the maximum for
+  sequential scratch that has already retired. Estimation must not rescan or
+  reconstruct the Program, and must not count the same retained storage twice.
+- Fixed internal Records, Some/Result wrappers, closures, getters, tuples,
+  error packets and small FFI argument records belong to a conservative
+  Host/target overhead. Do not add an inventory, receipt, work phase or external
+  current callback merely to count another such object. This overhead is
+  trusted Host implementation policy, not a caller-supplied capacity authority
+  or a new field in the canonical policy admitted above.
+
+Detailed constructor inventories do not require exhaustive modeling of every
+GC/VM wrapper. Existing fixed estimates need not be deleted in bulk: first
+complete ordinary Request-to-CheckedProgram-to-Plan-to-Run adoption and remove
+the replaced legacy paths, then consolidate redundant fixed accounting under
+the existing Host policy owner. Do not turn a supported operation into
+Unsupported merely because a microscopic inventory is absent. Logical byte
+ceilings, including existing Local policy constants, do not establish reserved
+or isolated process RAM. Do not change them without evidence of the actual
+resource need or erroneous refusal.
+
+New resource-management code must address an input-proportional increment, an
+unmanaged physical-use boundary, a broken original/ownership handoff, or an
+observed false refusal or material memory/performance problem. Its review must
+state that problem, why existing shared estimation plus fixed overhead is
+insufficient, and its added runtime/current-callback cost. Greater precision
+for one fixed wrapper alone is not a reason. Keep semantic work finite through
+the existing continuation and receipt; do not reset consumed work, reissue a
+claimed phase per Snapshot, or introduce a separate Ledger per helper.
+
+Connectors describe pagination, response/transfer bounds, meaningful physical
+resources, simultaneous holdings and operation boundaries. Shared Hosts own the
+accounting; connector authors must not derive internal header or scalar-word
+counts or create another resource framework.
+
+Completion requires ordinary supported inputs and operations to execute,
+publish and clean up without legacy fallbacks on one integrated source.
+Representative parse/check/compile/Plan, current, resize and I/O counts must
+show no redundant work; Node, Native and Python latency and peak-memory
+measurements remain separate from logical accounting. Test counts and detailed
+inventories alone do not establish normal package or physical acceptance.

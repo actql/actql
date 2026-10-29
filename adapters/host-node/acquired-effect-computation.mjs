@@ -5,9 +5,7 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan,
   sourceFreeContentEffectPublicationPlan} from './local-values-plan.mjs';
-import {selectAcquiredEffectSources, prepareInstalledAcquiredEffectLedger} from './acquired-effect-sources.mjs';
-import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
-  capturedDuckDBPendingCapacity} from './captured-duckdb-source.mjs';
+import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
@@ -16,12 +14,13 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 
-export async function openAcquiredEffectComputation({moon, owner, acquired,
+export async function openAcquiredEffectComputation({moon, owner, acquired, managedRun,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan}) {
+  const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -178,8 +177,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       originalPreparationRetained = true;
     }
     current();
+    const readPlan = moon.clientProgramInstalledEffectManagedOperationPlan;
+    if (managedRun === undefined || typeof readPlan !== 'function' ||
+        typeof moon.clientProgramInstalledEffectManagedHostOpen !== 'function') {
+      throw new Error('InstalledEffectPlanUnavailable');
+    }
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    const operationPlan = checked(Reflect.apply(readPlan, moon,
+      [managedRun, preparedOriginal, requestOriginal]));
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    current();
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
     if (acquired.queryTimePreparation !== undefined) {
-      if (typeof moon.clientProgramOpenLocalEffectHostAtQueryTime !== 'function' ||
+      if (typeof moon.clientProgramEffectRunQueryTimeMatches !== 'function' ||
           typeof moon.clientProgramEffectRunQueryTimeMatches !== 'function' ||
           moon.clientProgramEffectRunQueryTimeMatches(owner,
             acquired.queryTimePreparation, acquired.requestIdentity) !== true) {
@@ -203,7 +213,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     }
     const selectedSources = selectAcquiredEffectSources({moon,
       preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered,
-      queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity});
+      queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
+      managedPlan: operationPlan});
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
@@ -228,7 +239,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       const preparedSource = await adapter.prepare({
         preparedEffect: acquired.prepared, registry, values, fragment, ordered,
         queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
-        sourceAccess: access, occurrence});
+        sourceAccess: access, occurrence, managedRun});
       current();
       sources.push({adapter, access, preparedSource, occurrence});
     }
@@ -320,34 +331,25 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         },
         retainCompleted: () => inferCapture.retainCompleted()});
     };
-    if (contentFamily !== undefined) {
-      component = prepareInferComponent();
-      // Resolve every registered family on the original Source ledger before
-      // any adapter read; Model opens only when Local binds its completed edge.
-      if (!sourceFree) ledger = contentFamily.prepareLedger(
-        sources[0].adapter.ledgerCapacity(sources[0].preparedSource),
-        component === undefined ? [] : [component.provider]);
-    }
-    if (multiple) {
-      if (sources.some(source => source.adapter.realizationKey !== 'duckdb-acquired')) {
-        ledger = prepareInstalledAcquiredEffectLedger({moon, preparedEffect: acquired.prepared,
-          requestIdentity: acquired.requestIdentity,
-          sources, registry, values, fragment, ordered});
-      } else {
-        const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
-        const pendingSelection = sources.some(value => value.preparedSource.selection === undefined);
-        ledger = (pendingSelection
-          ? moon.clientProgramPrepareMultiCapturedEffectCapacityLedger
-          : moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger)(acquired.prepared,
-          sources.map(value => (pendingSelection ? capturedDuckDBPendingCapacity
-            : capturedDuckDBConfiguration)(value.preparedSource)),
-          capacities.map(value => value.transferBytes),
-          capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
-        if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
+    // The original plan already selected its configuration/Source capacities.
+    // A provider family requiring a different scope cannot acquire a scalar
+    // replacement here. Its full plan must have been admitted before capture.
+    if (contentFamily !== undefined) component = prepareInferComponent();
+    if (!sourceFree) {
+      const capacities = sources.map(source => source.adapter.ledgerCapacity(source.preparedSource));
+      if (capacities.some(value => value?.managedRun !== managedRun) ||
+          typeof moon.clientProgramInstalledEffectManagedRunPrepareLedger !== 'function') {
+        throw new Error('ForeignInstalledEffectManagedRun');
       }
+      ledger = checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(managedRun,
+        acquired.prepared, acquired.requestIdentity, capacities.map(value => value.capacity),
+        capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
+        registry, values, fragment, ordered));
     }
     for (const source of sources) {
       current();
+      const capacity = source.adapter.ledgerCapacity(source.preparedSource);
+      if (capacity?.managedRun !== managedRun) throw new Error('ForeignInstalledEffectManagedRun');
       const acquisition = acquisitionEndHandoff();
       let captured;
       current();
@@ -413,39 +415,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         captureStartedAt, captureCompletedAt}) : undefined;
     if (component === undefined && infer !== undefined) component = prepareInferComponent();
     current();
-    checkedHost = sourceFree && contentFamily !== undefined
-      ? acquired.queryTimePreparation !== undefined
-        ? moon.clientProgramOpenSourceFreeFamilyEffectHostAtQueryTime(owner,
-          acquired.queryTimePreparation, acquired.requestIdentity,
-          registry, values, fragment, ordered,
-          component === undefined ? [contentFamily.provider] : [contentFamily.provider, component.provider])
-        : moon.clientProgramOpenSourceFreeFamilyEffectHost(owner,
-          registry, values, fragment, ordered,
-          component === undefined ? [contentFamily.provider] : [contentFamily.provider, component.provider])
-      : acquired.queryTimePreparation !== undefined
-      ? moon.clientProgramOpenLocalEffectHostAtQueryTime(owner,
-        acquired.queryTimePreparation, acquired.requestIdentity,
-        captures.map(value => value.capture.source()), ledger,
-        registry, values, fragment, ordered,
-        [...(contentFamily === undefined ? [] : [contentFamily.provider]),
-          ...(component === undefined ? [] : [component.provider])])
-      : sourceFree
-      ? moon.clientProgramOpenSourceFreeInferEffectHost(owner,
-        registry, values, fragment, ordered, component.provider)
-      : multiple
-      ? component === undefined ? moon.clientProgramOpenMultiCapturedLocalEffectHost(owner,
-        captures.map(value => value.capture.source()), ledger,
-        registry, values, fragment, ordered) :
-        moon.clientProgramOpenMultiCapturedInferEffectHost(owner,
-          captures.map(value => value.capture.source()), ledger,
-          registry, values, fragment, ordered, component.provider)
-      : contentFamily !== undefined
-      ? moon.clientProgramOpenCapturedFamilyEffectHost(owner,
-        captures[0].capture.source(), ledger, registry, values, fragment, ordered,
-        component === undefined ? [contentFamily.provider] : [contentFamily.provider, component.provider])
-      : moon.clientProgramOpenCapturedLocalEffectHost(owner,
-        captures[0].capture.source(), registry, values, 1n, 0n, 0n, 0n,
-        fragment, ordered);
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    const currentPlan = checked(Reflect.apply(readPlan, moon,
+      [managedRun, preparedOriginal, requestOriginal]));
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    if (currentPlan !== operationPlan) throw new Error('ForeignInstalledEffectManagedRun');
+    checkedHost = checked(moon.clientProgramInstalledEffectManagedHostOpen(managedRun,
+      owner, captures.map(value => value.capture.source())));
     if (checkedHost === undefined) {
       throw new Error('InstalledEffectProgramUnsupported');
     }
@@ -578,5 +554,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       cleanupOwner: custody});
   } finally {
     settled = true;
+  }
+}
+
+// The original acquisition/dispatch boundary keeps the same prepared/request
+// across the bound getter and its existing outer current callback.
+function assertAcquiredEffectOriginal(acquired, prepared, request) {
+  if (acquired.prepared !== prepared || acquired.requestIdentity !== request) {
+    throw Object.assign(new Error('ForeignInstalledEffectManagedRun'),
+      {code: 'ForeignInstalledEffectManagedRun'});
   }
 }

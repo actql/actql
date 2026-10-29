@@ -172,10 +172,6 @@ test "P2 window source retains common invalid body duration and Carrier refusals
       Event(InvalidBody),
     ),
     (
-      "FROM ev |> watermark_events(watermark_ms: @p, policy: 'mark')",
-      Event(Decode(WrongType)),
-    ),
-    (
       "FROM rows |> watermark_events(watermark_ms: 0, policy: 'mark')",
       Event(WrongCarrier(RelationKind)),
     ),
@@ -338,5 +334,68 @@ test "P2 window Parameters keep their declarations and references before binding
       with_carrier_argument(control, operation),
     )
     event_window_common_checked(actual)
+  }
+}
+
+///|
+test "watermark whole numeric Parameter source agrees with its independent machine control" {
+  let actual = with_carrier_program(
+    event_window_source(
+      true,
+      "window_events(kind: 'fixed', size: 10)",
+      watermark=Some("watermark_events(watermark_ms: @p, policy: 'mark')"),
+    ),
+    {
+      ..pair_context(),
+      inputs: [],
+      parameter_declarations: Some(number_parameter_declarations()),
+    },
+  ).unwrap()
+  let control = event_window_control(
+    true,
+    "{\"kind\":\"fixed\",\"size\":10}",
+    watermark=Some("{\"watermark_ms\":{\"$param\":\"p\"},\"policy\":\"mark\"}"),
+    parameters=true,
+  )
+  assert_eq(
+    with_carrier_argument(actual, "watermark_events"),
+    with_carrier_argument(control, "watermark_events"),
+  )
+  event_window_common_checked(actual)
+  event_window_common_checked(control)
+}
+
+///|
+test "watermark whole Parameter support retains undeclared parameter refusal" {
+  let control = event_window_control(
+    true,
+    "{\"kind\":\"fixed\",\"size\":10}",
+    watermark=Some(
+      "{\"watermark_ms\":{\"$param\":\"missing\"},\"policy\":\"mark\"}",
+    ),
+    parameters=true,
+  )
+  let source = @stage_parameters.prepare(control, {
+    max_parameters: 100,
+    max_nodes: 10000,
+    max_depth: 100,
+    max_text_bytes: 100000,
+  }).unwrap()
+  match
+    @stage_results.check_local_program(source, {
+      max_stages: 10,
+      max_steps: 100,
+      max_results: 100,
+      max_work: 1000000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+      max_text_bytes: 100000,
+    }) {
+    Err(Pipeline(stage, issue)) => {
+      assert_eq(stage, 0)
+      assert_true(issue.kind is Event(UnknownParameter("missing")))
+    }
+    _ => fail("whole Parameter support does not invent a declaration")
   }
 }

@@ -100,6 +100,24 @@ fn file_list_object(
 }
 
 ///|
+// Same original interpreter field list; quantity inspection does not own a
+// second schema/allow table or authorize a listing.
+fn file_listing_allowed_fields() -> Array[String] {
+  [
+    "version", "kind", "selectable", "allow_unfiltered_listing", "admitted_scope_contract_cid",
+    "listing_schema_contract_cid", "path_profile_cid", "version_capability", "max_listing_items",
+    "max_examined_items", "max_listing_pages", "max_request_attempts", "max_listing_bytes",
+    "max_listing_duration_ms", "maximum_path_length",
+  ]
+}
+
+///|
+// The two existing file profiles share this closed capability record shape.
+fn file_version_capability_fields() -> Int {
+  2
+}
+
+///|
 fn read_file_list_profile(
   view : Member,
   catalog : Catalog,
@@ -131,12 +149,7 @@ fn read_file_list_profile(
     Some(value) => value
   }
   let profile = file_list_object(source, b)
-  let allowed = [
-    "version", "kind", "selectable", "allow_unfiltered_listing", "admitted_scope_contract_cid",
-    "listing_schema_contract_cid", "path_profile_cid", "version_capability", "max_listing_items",
-    "max_examined_items", "max_listing_pages", "max_request_attempts", "max_listing_bytes",
-    "max_listing_duration_ms", "maximum_path_length",
-  ]
+  let allowed = file_listing_allowed_fields()
   let limits = []
   for i in 0..<@decode.object_length(source).unwrap() {
     let (name, value) = @decode.field_at(source, i).unwrap()
@@ -199,7 +212,7 @@ fn read_file_list_profile(
   }
   let mut nonnull_version = false
   if @decode.lookup(profile, "version_capability") is Some(value) {
-    if @decode.object_length(value) != Some(2) {
+    if @decode.object_length(value) != Some(file_version_capability_fields()) {
       request_fail(InvalidFileListProfile, value)
     }
     let capability = request_object(value, b)

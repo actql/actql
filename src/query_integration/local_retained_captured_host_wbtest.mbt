@@ -82,6 +82,30 @@ test "product captured retained factory preserves exact acquisition and bounded 
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
+  let original = @client_local_host.prepare_captured_local_requirements(
+    prepared,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  assert_true(original.matches(prepared, registry, values, fragment, None))
+  let foreign = retained_captured_client_preparation()
+  assert_false(original.matches(foreign, registry, values, fragment, None))
+  assert_true(original.wasm_publication_limits(foreign) is None)
+  let publication = original.wasm_publication_limits(prepared).unwrap()
+  assert_true(publication.max_rows > 0)
+  assert_eq(publication.values.max_nodes, 10000)
+  assert_true(
+    @client_local_host.prepare_source_free_local_requirements(
+      prepared,
+      registry,
+      values,
+      fragment,
+      None,
+    )
+    is None,
+  )
   let setup = @client_local_host.open_captured_local_retained_host(
     prepared,
     source,
@@ -92,7 +116,23 @@ test "product captured retained factory preserves exact acquisition and bounded 
     0L,
     0L,
     fragment_body=fragment,
+    requirements=Some(original),
   ).unwrap()
+  assert_true(
+    @client_local_host.open_captured_local_retained_host(
+      foreign,
+      source,
+      registry,
+      values,
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body=fragment,
+      requirements=Some(original),
+    )
+    is None,
+  )
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
   )

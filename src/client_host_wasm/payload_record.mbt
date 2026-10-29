@@ -23,7 +23,6 @@ priv struct StoredPayloadRecord {
 }
 
 ///|
-#export_name("actql_payload_record_reserve")
 pub fn reserve_payload_record(
   nonce : Int64,
   request : Int,
@@ -111,7 +110,6 @@ fn payload_record_current(
 }
 
 ///|
-#export_name("actql_payload_record_produce")
 pub fn produce_payload_record(
   nonce : Int64,
   handle : Int,
@@ -155,7 +153,6 @@ pub fn produce_payload_record(
 }
 
 ///|
-#export_name("actql_payload_record_validate")
 pub fn validate_payload_record(
   nonce : Int64,
   handle : Int,
@@ -179,7 +176,6 @@ pub fn validate_payload_record(
 }
 
 ///|
-#export_name("actql_payload_record_begin")
 pub fn begin_payload_record(
   nonce : Int64,
   handle : Int,
@@ -207,7 +203,6 @@ pub fn begin_payload_record(
 ///|
 /// The trusted Host supplies an actual read from the original physical Store.
 /// Input bytes are read synchronously; no cursor or input loan escapes this call.
-#export_name("actql_payload_record_confirm")
 pub fn confirm_payload_record(
   nonce : Int64,
   handle : Int,
@@ -266,7 +261,6 @@ pub fn confirm_payload_record(
 }
 
 ///|
-#export_name("actql_payload_record_length")
 pub fn payload_record_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_records.get(handle) is Some(record) else {
@@ -279,7 +273,6 @@ pub fn payload_record_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_record_close")
 pub fn close_payload_record(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_records.get(handle) is Some(record) else {

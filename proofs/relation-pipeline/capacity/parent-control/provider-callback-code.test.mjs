@@ -80,13 +80,14 @@ test('unrelated C translation-unit symbols do not become provider identity colli
   assert(selected.includes('__M0connectors5local_callback'));
 });
 
-const read = path => readFileSync(new URL(`../../../../${path}`, import.meta.url));
+import {retainedConstructionRead} from './provider-construction-adopted-review.mjs';
+const read = retainedConstructionRead(path => readFileSync(new URL(`../../../../${path}`, import.meta.url)));
 const constructionFacts = () => [{...facts()[0], kind:'provider construction observation',
   providers:11, records:11, arraySlots:11, callbacks:24, defaultArrays:1,
   indexedBytes:1504, unclassifiedCaptures:0}];
 const constructionCode = f => inspectScalarCode(f,symbols,object,linked);
 const point = (f=constructionFacts(),code=constructionCode(f)) =>
-  inspectProviderConstructionPoint(f,code,read,'native');
+  inspectProviderConstructionPoint(f,code,read,'native',{retained:true});
 
 test('independent code evidence closes only the same finite constructor point',()=>{
   const result=point();

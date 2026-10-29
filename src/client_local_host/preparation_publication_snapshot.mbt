@@ -7,22 +7,6 @@ struct ClientProgramSnapshot[I] {
 }
 
 ///|
-/// Per original Result: wrapper(2 refs), issuer Some and publication-slot Some.
-/// Distinct from the final canonical snapshot, whose layout owns row payloads.
-let publication_snapshot_wrapper_units : PreparationRepresentationUnits = {
-  record_headers: 3L,
-  reference_slots: 4L,
-  scalar_words: 2L,
-  owned_utf16_units: 0L,
-  owned_wire_bytes: 0L,
-}
-
-///|
-let _publication_snapshot_wrapper_retained : Int64 = preparation_representation_cost(
-  publication_snapshot_wrapper_units,
-).unwrap()
-
-///|
 fn[I] program_snapshot_slot_matches(value : ClientProgramSnapshot[I]) -> Bool {
   match value.publication.snapshot {
     Some(original) => physical_equal(original, value)

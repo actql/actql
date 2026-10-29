@@ -422,10 +422,14 @@ test "standard native access delivers and reauthorizes after restart" {
     is Some(library_path) else {
     return
   }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(parent_path) else {
     return
   }
   let token = "native-access-" + @env.now().to_string()
+  let parent = @filesystem.open_root(parent_path).unwrap()
+  parent.create_directory(token).unwrap() |> ignore
+  parent.close().unwrap()
+  let root = parent_path + "/" + token
   let store_authority = native_access_cid(token + "-store-authority")
   let library = @sqlite.load_library(library_path).unwrap()
   let store = @store.open_store(

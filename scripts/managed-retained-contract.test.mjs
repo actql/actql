@@ -73,7 +73,29 @@ test('managed profile pins quantities without weakening old evidence wire', () =
       assert.equal(machineCid(actual),dependency.cid,`${name}: current dependency ${key}`);
       originalWire.dependencies[key].cid=historical.dependencies[key].cid;
     }
-    assert.deepEqual(originalWire,historical,`${name}: only declared dependency identities advanced`);
+    if (name === 'actql-query-acquisition' || name === 'actql-query-two-receipt') {
+      // The adopted query-time owner extension is not part of the retained
+      // pre-query-time wire. Verify its exact closed addition before comparing
+      // every remaining historical field; never delete arbitrary differences.
+      const ownerSchemas = name === 'actql-query-acquisition'
+        ? ['requirement', 'completed_observation'] : ['completed_observation'];
+      for (const key of ownerSchemas) {
+        const owner = originalWire.schemas[key].properties.owner;
+        assert.deepEqual(owner.properties.run_definition_cid,
+          {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'});
+        assert.equal(owner.required.includes('run_definition_cid'), false);
+        assert.equal(Object.hasOwn(historical.schemas[key].properties.owner.properties,
+          'run_definition_cid'), false);
+        delete owner.properties.run_definition_cid;
+      }
+    }
+    if (name === 'actql-query-acquisition') {
+      assert.equal(originalWire.semantics.query_time_owner,
+        'declared_query_time_dependency_requires_original_admitted_run_definition_cid_in_requirement_and_completed_observation_owner_with_same_nominal_context_and_saved_run_no_resample_no_grant');
+      assert.equal(Object.hasOwn(historical.semantics, 'query_time_owner'), false);
+      delete originalWire.semantics.query_time_owner;
+    }
+    assert.deepEqual(originalWire,historical,`${name}: only declared dependencies and the explicit query-time owner extension advanced`);
     assert.notEqual(machineCid(current),expected);
   }
 });

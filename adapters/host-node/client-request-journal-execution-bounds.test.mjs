@@ -140,6 +140,8 @@ test('exact statement reuse preserves retained limits and rejects oversized oper
     assert.equal(port.database.prepare('SELECT ? AS n'), first);
     assert.equal(first.get(4).n, 4, 'completed calls create no lifetime issuance debt');
     assert.equal(executions, 4);
+    assert.throws(() => first.get(4, 5), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(executions, 4, 'excess parameter count refuses before the original native get');
     assert.throws(() => first.get('界'.repeat(6)), {code: 'ClientRequestJournalSqlUnavailable'});
     assert.equal(executions, 4, 'oversized operands refuse before the original native get');
     assert.equal(first.get(5).n, 5);
@@ -502,5 +504,16 @@ test('selected preparation current callback cannot reenter the same Journal befo
     } finally { journal.close(); }
     assert.equal(state.database.isOpen, false);
   });
+  scratch.passed();
+});
+
+// Completed native calls are not a retained resource; obsolete call ceilings
+// cannot silently revive a different admission contract.
+test('obsolete statement call ceilings refuse before filesystem acquisition', async () => {
+  const {scratch, directory} = await fixture();
+  assert.throws(() => openClientRequestJournal(directory,
+    options({...execution, maxStatementCalls: 1000})),
+    {code: 'InvalidClientRequestJournalConfiguration'});
+  assert.equal(existsSync(directory), false);
   scratch.passed();
 });

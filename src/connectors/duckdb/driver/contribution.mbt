@@ -68,3 +68,15 @@ fn duckdb_dispatch_exclusions(
   }
   Some(excluded)
 }
+
+///|
+pub fn validate_duckdb_dispatch_binding(
+  installed : DuckDBDispatchModule,
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+) -> Result[Unit, DuckDBDispatchIssue] {
+  @host.validate_dispatch_channel_binding(installed.channel, driver, registry).map_err(_ => {
+      ForeignSelection
+    },
+  )
+}

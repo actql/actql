@@ -36,6 +36,15 @@ pub fn check_original_resources_mutable(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  check_original_resources_mutable_current(ledger)
+}
+
+///|
+// Only the same synchronous owner may use this after its original current
+// callback. No external callback, mutation or await belongs between the two.
+fn check_original_resources_mutable_current(
+  ledger : Ledger,
+) -> Result[Unit, LedgerIssue] {
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
     Err(ResourceParked)
   } else {

@@ -784,22 +784,6 @@ fn NativeClientRunJournal::retained_with_issuance(
 }
 
 ///|
-// No Record/Checkpoint/definition escapes this boundary. Hold only the original
-// wire and a deferred identity refusal before the work's full Policy admission.
-// Policy admission precedes identity refusal. Relevant application reentry or
-// target mutation invalidates operation facts before a new row is selected.
-fn extract_run_policy_wire(
-  row : @sqlite.NativeJournalValue,
-  requested : @host.ClientRequestIdentity,
-) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
-  let record = match read_run_record_in_mode(row, DeferPublicationWire) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  extract_admitted_run_policy_wire(record, requested)
-}
-
-///|
 fn extract_admitted_run_policy_wire(
   record : NativeClientRunRecord,
   requested : @host.ClientRequestIdentity,

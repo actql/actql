@@ -6,12 +6,20 @@ an advanced physical `readPages` driver; callers select exactly one. No dummy
 legacy callback is required. Core reserves the same provider capacity and
 binds response cleanup before calling the factory's synchronous `prepare`.
 
-The trusted installer supplies `{capacity, site, operation, maxResponses,
-maxResponseBytes, maxSecretBytes, preparePageReader}`. These are the original
-Site, operation and finite existing limits, not an author-issued grant or new
-Ledger. The Site provides its original `credential`, `callResource` and
-`referenceCurrent`. The RowRun supplies original `verifyRead`, indexed
-`authorizationFor`, `chargePage` and `consumePage` callbacks.
+The normal installer calls the SAME service as
+`createSourceReader({installation, implementation, site, operation,
+preparePageReader})`. The implementation and Site must be the originals selected
+by that service for the SAME installation. The implementation supplies response,
+secret and request bounds; provider options never issue a capacity or grant.
+The Host binds the exact original read authorization forwarded by the Source to
+that nominal Site, then obtains each indexed use from the original RowRun.
+
+An internal explicit-port component may use the same owner's raw-Site constructor
+with `{capacity, site, operation, maxResponses, maxResponseBytes, maxSecretBytes,
+preparePageReader}`. This supplies no normal installation association or funding.
+The existing advanced `createReader` or `readPages` alternative retains its
+nominal Site and complete protocol under this SAME owner. It is exclusive with
+the standard callbacks; it is not a fallback for a missing standard capacity.
 
 `preparePageReader({resource, columns, requestWire})` is synchronous and
 I/O-free. It returns original receiver-bound methods:
@@ -61,6 +69,12 @@ no read, retry or new authority.
 `retry` retries only that cleanup, never a send or grant. Existing RowRun
 cleanup invokes this same retry on a subsequent close. The original failure
 remains primary if physical close also fails.
+
+The factory's own `retire` requests stop on its SAME active handles and refuses
+completion until all readers have joined and retired. Source close calls this
+original method before closing its Site. Pending physical or callback custody
+therefore keeps that same Source close pending; no equal or copied factory can
+acknowledge it.
 
 This internal SPI does not certify a normal installer, complete capacity
 supplier or matched runtime. Provider migrations must remove their replaced

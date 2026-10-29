@@ -6,18 +6,99 @@ import {
 }
 
 // Values
+pub fn add_collection_construction_extents(CollectionConstructionExtent, CollectionConstructionExtent) -> CollectionConstructionExtent?
+
 pub fn admit_key(KeyAdmission, String) -> Bool
+
+pub fn ascii_lower_construction_extent(Int) -> AsciiLowerConstructionExtent?
 
 pub fn check_object_keys(Array[String], Array[String], Array[String]) -> Result[Unit, ObjectKeyIssue]
 
+pub fn collection_construction_extent(CollectionConstructionInventory) -> CollectionConstructionExtent?
+
+pub fn collection_construction_quotation_extent() -> CollectionConstructionExtent
+
+pub fn compose_collection_construction_extents(Array[CollectionConstructionExtent]) -> CollectionConstructionExtent?
+
+pub fn compose_collection_construction_inventories(Array[CollectionConstructionInventory]) -> CollectionConstructionInventory?
+
+pub fn int_work_observation_construction_extent() -> CollectionConstructionExtent
+
+pub fn int_work_result_pair_construction_extent() -> CollectionConstructionExtent
+
 pub fn key_admission() -> KeyAdmission
+
+pub fn key_admission_construction_extent(Int, Int) -> KeyAdmissionConstructionExtent?
+
+pub fn map_construction_extent(Int64, Int64) -> MapConstructionExtent?
+
+pub fn map_retained_extent(Int64, Int64, Int64) -> CollectionConstructionExtent?
+
+pub fn object_key_construction_counts(Int, Int, Int) -> ObjectKeyConstructionCounts?
+
+pub fn reference_array_push_construction_extent(Int, Int) -> CollectionConstructionExtent?
+
+pub fn reference_array_retained_extent(Int64, Int64) -> CollectionConstructionExtent?
+
+pub fn reference_map_iterator_construction_extent() -> CollectionConstructionExtent
+
+pub fn reference_map_iterator_next_construction_extent() -> CollectionConstructionExtent
+
+pub fn reference_map_iterator_retained_extent() -> CollectionConstructionExtent
+
+pub fn scale_collection_construction_extent(CollectionConstructionExtent, Int64) -> CollectionConstructionExtent?
 
 pub fn unknown_key_indices(Array[String], Array[String]) -> Array[Int]
 
 // Errors
 
 // Types and methods
+pub(all) struct AsciiLowerConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  max_output_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CollectionConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CollectionConstructionInventory {
+  records : Int64
+  record_references : Int64
+  record_words : Int64
+  reference_arrays : Int64
+  reference_items : Int64
+  scalar_arrays : Int64
+  scalar_items : Int64
+  maps : Int64
+  map_entries : Int64
+} derive(Eq, @debug.Debug)
+
 type KeyAdmission
+
+pub(all) struct KeyAdmissionConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MapConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectKeyConstructionCounts {
+  maps : Int
+  map_entries : Int64
+  pair_arrays : Int
+  pairs : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ObjectKeyIssue {
   MissingKey(String)

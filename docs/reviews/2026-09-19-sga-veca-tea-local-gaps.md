@@ -858,10 +858,10 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 68 |
 | Typed pre-execution refusals (not execution success) | 0 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 66 |
-| Full route work/workspace assurance | 66 |
-| Path-scoped work/workspace assurance | 120 |
-| Selected-only assurance | 2 |
+| Four-role lifecycle assurance | 68 |
+| Full route work/workspace assurance | 68 |
+| Path-scoped work/workspace assurance | 122 |
+| Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -3542,8 +3542,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `managed` | 30/39 |
 | `standard_host` | 27/39 |
 | `consumer_lifetime` | 27/39 |
-| `resources` | 35/39 |
-| `cancellation` | 35/39 |
+| `resources` | 39/39 |
+| `cancellation` | 39/39 |
 | `publication` | 27/39 |
 | `three_targets` | 20/39 |
 | complete operations | 19/39 |
@@ -7203,3 +7203,25 @@ remain separate synchronous boundaries. Scalar checks, normalization,
 allocation latency, blocking APIs, Effectful asynchronous commit, all-target,
 packed/HTTPS and hosted required CI remain unverified by this unit. Historical
 issuance-inventory gaps above are not claims about this new continuation.
+
+## 2026-10-25: unselected Reach and Shortest Host-driver cancellation
+
+The direct owned-input traversal entrypoint now has its own conformance evidence,
+separate from the selected public Program cases. The existing conformance preparer
+binds the original completed Relation input, asserts an unselected two-step
+GeneratedSequence, and installs the unchanged Graph provider. Eight isolated
+one-column nodes require exactly `8 * (1 + 1 + 1) + 2 * 1 + 3 = 29` constructor
+control-work units. The actual Local Host driver receives positive traversal work
+only after that cumulative bound; a delivered timer cancellation distinguishes
+request from confirmed stop, prevents completion publication, preserves the
+original input and confirms repeated cleanup without resuming execution.
+Shortest also receives independently declared occurrence-bound search and output
+ceilings (64 possible endpoint pairs and eight zero-hop output rows).
+
+The three focused Linux Node cases include the existing Subgraph control and the
+two new traversal cases. This proves the internal Host-driver resource lifecycle,
+not that public planning selects a fused route, public same-request/restart or
+snapshot behavior, or a complete CI run. Both operations retain their partial
+public-acceptance classification and the selected public lifecycle evidence stays
+separate. The validator rejects borrowing that selected role for the direct path,
+removing the exact owner, or cancelling at constructor work rather than after it.

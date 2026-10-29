@@ -37,7 +37,6 @@ fn allocation_physical_revision(wire : String) -> Int64? {
 }
 
 ///|
-#export_name("actql_payload_allocation_reserve")
 pub fn reserve_payload_allocation(
   nonce : Int64,
   parent : Int,
@@ -96,7 +95,6 @@ pub fn reserve_payload_allocation(
 }
 
 ///|
-#export_name("actql_payload_allocation_produce")
 pub fn produce_payload_allocation(
   nonce : Int64,
   handle : Int,
@@ -209,7 +207,6 @@ pub fn produce_payload_allocation(
 }
 
 ///|
-#export_name("actql_payload_allocation_validate")
 pub fn validate_payload_allocation(
   nonce : Int64,
   handle : Int,
@@ -236,7 +233,6 @@ pub fn validate_payload_allocation(
 }
 
 ///|
-#export_name("actql_payload_allocation_begin")
 pub fn begin_payload_allocation(
   nonce : Int64,
   handle : Int,
@@ -255,7 +251,6 @@ pub fn begin_payload_allocation(
 }
 
 ///|
-#export_name("actql_payload_allocation_confirm")
 pub fn confirm_payload_allocation(
   nonce : Int64,
   handle : Int,
@@ -321,7 +316,6 @@ pub fn confirm_payload_allocation(
 }
 
 ///|
-#export_name("actql_payload_allocation_length")
 pub fn payload_allocation_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_allocations.get(handle) is Some(child) else {
@@ -334,7 +328,6 @@ pub fn payload_allocation_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_allocation_close")
 pub fn close_payload_allocation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_allocations.get(handle) is Some(child) else {

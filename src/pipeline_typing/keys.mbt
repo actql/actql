@@ -103,10 +103,18 @@ fn sync_keys(
           literal_result(
             b,
             step.source,
-            @evidence.transfer_literal_domains(previous_literals, op, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }),
+            match step.filter_refinement {
+              Some(proof) =>
+                @evidence.refined_filter_literals(previous_literals, proof, {
+                  max_work: b.work,
+                  max_name_bytes: b.text,
+                })
+              None =>
+                @evidence.transfer_literal_domains(previous_literals, op, {
+                  max_work: b.work,
+                  max_name_bytes: b.text,
+                })
+            },
           ),
         )
       Append(right~, checked~) =>
@@ -350,10 +358,18 @@ fn sync_keys(
           key_result(
             b,
             step.source,
-            @evidence.advance_keys(previous, op, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }),
+            match step.filter_refinement {
+              Some(proof) =>
+                @evidence.refined_filter_keys(previous, proof, {
+                  max_work: b.work,
+                  max_name_bytes: b.text,
+                })
+              None =>
+                @evidence.advance_keys(previous, op, {
+                  max_work: b.work,
+                  max_name_bytes: b.text,
+                })
+            },
           ),
         )
       _ => None

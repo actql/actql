@@ -2,6 +2,7 @@
 package "actql/actql/local_source_ref"
 
 import {
+  "actql/actql/decode_shape",
   "moonbitlang/core/debug",
 }
 
@@ -11,6 +12,12 @@ pub fn create(String, String, max_bytes~ : Int) -> Result[Reference, Issue]
 pub fn input_name(Reference) -> String
 
 pub fn read(String, max_bytes~ : Int) -> Result[Reference, Issue]
+
+pub fn reference_parts_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn reference_read_construction_inventory(Int) -> ReferenceReadConstructionInventory?
+
+pub fn reference_read_inventory_quotation_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn stage_name(Reference) -> String
 
@@ -27,6 +34,13 @@ pub(all) enum Issue {
 } derive(Eq, @debug.Debug)
 
 type Reference
+
+pub(all) struct ReferenceReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

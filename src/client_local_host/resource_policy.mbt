@@ -66,16 +66,6 @@ pub fn client_local_materialized_row_ceiling(
 }
 
 ///|
-fn _client_local_dispatch_planning_work() -> Int {
-  local_materialization_policy.dispatch_planning_work
-}
-
-///|
-fn _client_local_relation_wire_bytes() -> Int {
-  local_materialization_policy.relation_wire_bytes
-}
-
-///|
 /// Initial counters for a selected ordinary materializing-Local preparation.
 /// Every graph task/edge insertion pays original graph work before allocation;
 /// final Compute requirements are a narrowing of this same original ledger.

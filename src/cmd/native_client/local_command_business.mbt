@@ -34,14 +34,18 @@ priv struct LocalCommandBusinessOriginal {
   mut store_root_failure : @local_filesystem.NativeRootOpenFailure?
   mut store_root_operation : @local_sqlite.NativeStoreOperationOriginal?
   mut publication_publisher : @local_host.NativeLocalPublisherBinding?
-  mut publication_service : @local_publication.NativeRunPublicationService?
+  // Keep the actual service alias until the same publication cleanup ACK.
+  // It is lifetime custody, not a value read or a replacement authority.
+  mut _retained_publication_service : @local_publication.NativeRunPublicationService?
   mut publication_results : Array[
     @local_publication.NativeCapturedResultPublicationContext,
   ]?
   mut publication_pending : @local_publication.NativePreparedCapturedRunPublication?
   mut publication_failure : @local_host.NativeClientValuesPublicationIssue?
-  mut publication_commit_failure : @local_publication.NativeRunPublicationIssue?
-  mut publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
+  // Preserve original managed failure receipts across retries until cleanup
+  // confirms their domains can retire; an unread payload is not an ACK.
+  mut _retained_publication_commit_failure : @local_publication.NativeRunPublicationIssue?
+  mut _retained_publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
   mut publication_attempted : Bool
   mut publication_result : @local_publication.NativeRunPublicationResult?
   mut run_receipt_original : @local_host.NativeLocalObservedRunState?
@@ -340,7 +344,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
   prepared : @run_host.PreparedClientProgram,
   installed_contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
-  requirements : @local_values.ClientLocalSourceFreeRequirements,
+  requirements : @local_values.ClientLocalRequirements,
 ) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
   if self.closing || self.closed || self.primary is Some(_) {
     return Err(CommandUnavailable)

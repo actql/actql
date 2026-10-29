@@ -1,7 +1,6 @@
 ///|
 /// Reserve the original source-free Run/start/configuration and input loan.
 /// No Native Source, substitute capture, new Ledger or task activation is issued.
-#export_name("actql_compute_reserve_source_free")
 pub fn reserve_source_free_compute(
   nonce : Int64,
   run : Int,
@@ -51,7 +50,6 @@ pub fn reserve_source_free_compute(
 ///|
 /// The physical Host chooses an installed current configuration independently
 /// of the original start facts. A completed invocation cannot be rebound.
-#export_name("actql_compute_configure_source_free")
 pub fn configure_source_free_compute_current(
   nonce : Int64,
   handle : Int,

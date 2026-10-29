@@ -7,8 +7,8 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
-  "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_example",
+  "actql/actql/physical_strategy_host",
   "actql/actql/physical_task_manifest",
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/filesystem",
@@ -148,7 +148,7 @@ pub(all) struct NativeRemoteApplicationRunFiles {
 pub(all) enum NativeRemoteApplicationRunIssue {
   InvalidConfiguration
   Ledger(@physical_resources.LedgerIssue)
-  Capture(@physical_strategy.RunIssue)
+  Capture(@physical_strategy_host.RunIssue)
   Strategy(@host_native.NativeStandardStrategyRunIssue)
 }
 

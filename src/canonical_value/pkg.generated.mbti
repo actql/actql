@@ -14,6 +14,10 @@ pub fn compare_utf16_fragment(String, String, Int, Int) -> (Int?, Int, Int)
 
 pub fn nfc_lf_construction_extent(Int) -> NormalizationConstructionExtent?
 
+pub fn nfc_lf_construction_scratch_extent(Int) -> NormalizationConstructionExtent?
+
+pub fn nfc_lf_retained_output_units(Int64) -> Int64?
+
 pub fn normalization_count(NormalizationCursor) -> Int
 
 pub fn normalization_scalar(NormalizationCursor, Int) -> Char?

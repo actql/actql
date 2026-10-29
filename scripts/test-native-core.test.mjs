@@ -8,6 +8,11 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
+// This file is selected by the canonical CI lint job. Keep the Native fixture
+// and compiler/linker regressions on that existing execution path.
+import './native-private-host-fixture.test.mjs';
+import './native-sqlite-link-driver.test.mjs';
+import './native-signature-linux-declarations.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -93,6 +98,7 @@ function fixture(t) {
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
+    'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
@@ -160,6 +166,9 @@ if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
 }
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+assert.equal(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY,
+  join(root, 'missing-crypto-library'));
+assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY), false);
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
   'Core must not activate unrelated shared Store fixtures');
 assert.equal(process.env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');

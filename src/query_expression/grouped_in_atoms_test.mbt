@@ -27,7 +27,11 @@ test "grouped signed numeric IN atoms preserve values without expanding expressi
 
 ///|
 test "grouped atoms retain numeric and work limits" {
-  for text in ["x IN (-(0))", "x IN ((9007199254740992))", "x IN (-(1e99999))"] {
+  assert_eq(
+    emit("x IN (-(0))"),
+    "{\"in\":[{\"field\":\"x\"},{\"literal\":[0]}]}",
+  )
+  for text in ["x IN ((9007199254740992))", "x IN (-(1e99999))"] {
     assert_true(
       lower(fixture(text), _ => Some("x"), limits())
       is Err({ issue: InvalidNumber, .. }),

@@ -88,7 +88,9 @@ test "saved interruption cleanup spends normal entry but retains original loans 
   assert_eq(@buffers.buffer_pool_usage(pool).allocated, before.allocated)
   assert_eq(@buffers.buffer_pool_usage(pool).capacity, before.capacity)
   assert_eq(@buffers.buffer_pool_usage(pool).closing, before.closing)
-  assert_eq(reserve(1901L, 40, 1, 1L), -5)
+  // This asserts the real shared admission boundary, not a physical Host call.
+  // The exported wrapper must return this refusal before installing cleanup.
+  assert_eq(reserve_input_admission(value, 40), -5)
   assert_eq(close_publication_commit_export(1901L, 20), -9)
   @buffers.return_buffer_borrow(pool, held).unwrap()
   assert_eq(close_publication_commit_export(1901L, 20), -9)

@@ -15,8 +15,9 @@ pub(all) struct HashWriterConstructionInventory {
 /// Conservative constructor peak for both ordered and unordered object modes.
 /// Each key insertion consumes a value node; hence at most max_nodes retained
 /// Map entries, with at most max_depth simultaneously live frame Maps. Dynamic
-/// append backing overlap is bounded by 12+3n; Map doubling overlap by 12d+6n.
-/// Frames, entries and option carriers are counted separately from backing.
+/// append backing overlap is bounded by 12+3n. Map growth, entries and their
+/// linked/bucket option carriers come from the shared collection owner.
+/// Frame/ordered-key carriers remain separate from that Map inventory.
 /// Fixed VM frames and opaque allocator bookkeeping are not represented here.
 pub fn hash_writer_construction_inventory(
   max_nodes : Int,
@@ -35,29 +36,22 @@ pub fn hash_writer_live_key_inventory(
   max_depth : Int,
 ) -> HashWriterConstructionInventory? {
   guard max_live_keys >= 0 && max_depth >= 0 else { return None }
-  let n = max_live_keys.to_int64()
-  let d = max_depth.to_int64()
-  // Writer + HashOutput + Hasher; four dynamic arrays (frames/state/words/
-  // block), allowing one old backing each. Frame records and ordered-key Some
-  // carriers; Map control/backings; Entry and two linked/bucket Some carriers.
-  let owner_headers = 3L + 4L * 3L + 2L * d + 3L * d + 3L * n
-  let owner_refs = 6L +
-    4L +
-    (12L + 3L * d) +
-    2L * d +
-    2L * d +
-    (12L * d + 6L * n) +
-    4L * n
-  // State/words numeric backing and byte block: charge byte slots as scalar
-  // words conservatively, never as references. Array wrapper length/capacity.
-  let owner_words = 13L +
-    8L +
-    (12L + 3L * 8L) +
-    (12L + 3L * 64L) * 2L +
-    2L * d +
-    5L * d +
-    6L * n +
-    (12L * d + 6L * n) // Empty bucket None tags are scalar storage too.
+  let frames = writer_frame_construction_extent(max_live_keys, max_depth)
+  // HashOutput1H1R1W + Hasher1H3R3W, with its original state8/words64/
+  // block64 arrays. Shared collection construction owns their growth backing.
+  // The byte block keeps its existing conservative scalar-word classification.
+  let sink = @shape.collection_construction_extent({
+    records: 2L,
+    record_references: 4L,
+    record_words: 4L,
+    reference_arrays: 0L,
+    reference_items: 0L,
+    scalar_arrays: 3L,
+    scalar_items: 8L + 64L + 64L,
+    maps: 0L,
+    map_entries: 0L,
+  }).unwrap()
+  let owner = @shape.add_collection_construction_extents(frames, sink).unwrap()
   // SHA finish: length Bytes8; growing output Array32 + old backing; digest
   // Bytes32; hex builder and its backing, old/new String64 and digits16.
   // String/ordered-key resumable cursors, two one-character escape strings,
@@ -76,9 +70,9 @@ pub fn hash_writer_live_key_inventory(
   // Int inputs bound every product well below Int64.MAX; no unchecked
   // caller-sized Int64 multiplication or cumulative lifetime budget exists.
   Some({
-    record_headers: owner_headers + finish_headers + iterator_headers,
-    reference_slots: owner_refs + finish_refs + iterator_refs,
-    scalar_words: owner_words + finish_words + iterator_words,
+    record_headers: owner.record_headers + finish_headers + iterator_headers,
+    reference_slots: owner.reference_slots + finish_refs + iterator_refs,
+    scalar_words: owner.scalar_words + finish_words + iterator_words,
     owned_utf16_units: finish_utf16,
     owned_wire_bytes: finish_wire,
   })

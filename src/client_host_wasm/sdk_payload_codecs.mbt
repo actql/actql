@@ -71,7 +71,6 @@ fn original_sdk_payload_codecs(
 /// The Host supplies one fresh physical clock snapshot under its same-Store
 /// read frame. No payload opens, source re-execution, sink confirmation or
 /// Store/Run ACK occurs. Caller workspace is funded before first preparation.
-#export_name("actql_publication_commit_export_prepare_sdk_payload_codecs")
 pub fn prepare_publication_sdk_payload_codecs(
   nonce : Int64,
   handle : Int,

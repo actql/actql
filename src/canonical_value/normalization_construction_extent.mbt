@@ -60,6 +60,37 @@ pub fn nfc_lf_construction_extent(
     reference_slots: array_refs + text_refs + control_refs,
     scalar_words: array_words + text_words + control_words,
     owned_utf16_units: text_units,
-    max_output_utf16_units: 8L * u,
+    max_output_utf16_units: nfc_lf_retained_output_units(u).unwrap(),
+  })
+}
+
+///|
+/// Aggregate returned text uses the SAME canonical output expansion rule as a
+/// single normalization. This is a bound on new returned backing, not a second
+/// copy of the borrowed original input or physical allocation evidence.
+pub fn nfc_lf_retained_output_units(input_utf16_units : Int64) -> Int64? {
+  @counts.checked_nonnegative_add_product(
+    0L, input_utf16_units, nfc_output_utf16_expansion,
+  )
+}
+
+///|
+let nfc_output_utf16_expansion : Int64 = 8L
+
+///|
+/// A caller retaining this same returned output separately removes exactly
+/// that output envelope from the constructor peak. All other intermediate
+/// Strings, arrays and controls remain here. The output bound is still exposed
+/// for correspondence; it is not additional scratch storage.
+pub fn nfc_lf_construction_scratch_extent(
+  max_input_utf16_units : Int,
+) -> NormalizationConstructionExtent? {
+  guard nfc_lf_construction_extent(max_input_utf16_units) is Some(value) else {
+    return None
+  }
+  Some({
+    ..value,
+    record_headers: value.record_headers - 1L,
+    owned_utf16_units: value.owned_utf16_units - value.max_output_utf16_units,
   })
 }

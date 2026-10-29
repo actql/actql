@@ -71,7 +71,7 @@ test "Events input names use independent fragment work and workspace limits" {
   // A 513-unit clock takes nine fragments: eight extra input-binding polls.
   // Append scans its hash, schema match, required hash/match and wire name:
   // five passes add 5*8 polls. The short-name primitive baselines are
-  // watermark 53, fixed window 53, dedupe 59 and session 90.
+  // watermark 53, fixed window 53, dedupe 59 and session 92 (including two label polls).
   // Workspace adds one persistent position to the prior append peaks.
   let clock = String::make(513, 'a')
   let producer = name_matching_producer(clock)
@@ -81,7 +81,7 @@ test "Events input names use independent fragment work and workspace limits" {
       (0, 101, 81),
       (1, 101, 80),
       (2, 107, 71),
-      (3, 138, 91),
+      (3, 140, 93),
     ] {
     for quantum in [1, 7, 256] {
       for

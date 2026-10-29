@@ -11,7 +11,7 @@ fn advance_normalization_function(
   guard @lower.expression_text_bound(expression) is Some(original) else {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }
-  let output = @expression_context.text_bound_output(original)
+  let output = @lower.text_bound_output(original)
   if state.normalization_phase == 0 {
     if state.position == state.input.length() {
       state.normalization_phase = 1

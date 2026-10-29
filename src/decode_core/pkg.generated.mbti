@@ -2,12 +2,17 @@
 package "actql/actql/decode_core"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admission_construction_inventory(Int, Int, Int, Int, Int) -> AdmissionConstructionInventory?
+
+pub fn admission_preparation_data(Cursor) -> AdmissionPreparationData
+
 pub fn admission_usage(Cursor) -> AdmissionUsage
 
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
@@ -26,9 +31,17 @@ pub fn cancel_admission(Admission) -> Unit
 
 pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
 
+pub fn closed_object_construction_extent(Cursor, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn closed_object_field_construction_extent(Int?, Int, Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn cursor_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]
+
+pub fn cursor_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn cursor_span(Cursor) -> @source_span.Span
 
@@ -44,9 +57,19 @@ pub fn field_at(Cursor, Int) -> (String, Cursor)?
 
 pub fn finite_number(Cursor) -> Result[Double, Issue]
 
+pub fn indexed_child_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn indexed_field_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn int32(Cursor) -> Result[Int, Issue]
 
 pub fn is_null(Cursor) -> Bool
+
+pub fn is_text(Cursor) -> Bool
+
+pub fn issue_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn issue_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn lookup(ObjectView, String) -> Cursor?
 
@@ -54,7 +77,23 @@ pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?
 
+pub fn object_view_map_geometry(ObjectView) -> (Int, Int)
+
+pub fn object_view_retained_extent(ObjectView) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn observe_cursor_path_depth(Cursor) -> (Int, Int64)
+
+pub fn observe_subtree_construction_geometry(Cursor) -> SubtreeConstructionGeometry
+
+pub fn observe_subtree_geometry(Cursor, Array[String]) -> SubtreeGeometry
+
+pub fn observe_subtree_size(Cursor) -> (Int, Int64)
+
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
+
+pub fn open_object_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn require_non_null_cursor(Cursor) -> Result[Cursor, Issue]
 
 pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
@@ -73,6 +112,19 @@ pub fn view(Cursor) -> ValueView
 // Types and methods
 type Admission
 
+pub(all) struct AdmissionConstructionInventory {
+  indexed : AdmissionConstructionUnits
+  keys : AdmissionConstructionUnits
+  ancestry : AdmissionConstructionUnits
+  controls : AdmissionConstructionUnits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AdmissionConstructionUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) enum AdmissionControlIssue {
   InvalidQuantum
   Terminal
@@ -83,6 +135,13 @@ pub enum AdmissionPoll {
   AdmissionComplete(Cursor, work~ : Int)
   AdmissionFailed(Issue, work~ : Int)
 }
+
+pub(all) struct AdmissionPreparationData {
+  fields : Int
+  texts : Int
+  max_key_utf16 : Int
+  total_utf16 : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) struct AdmissionUsage {
   nodes : Int
@@ -126,6 +185,32 @@ pub(all) enum Presence[T] {
   ExplicitNull
   Present(T)
 }
+
+pub(all) struct SubtreeConstructionGeometry {
+  nodes : Int
+  arrays : Int
+  array_items : Int
+  objects : Int
+  fields : Int
+  texts : Int
+  max_object_fields : Int
+  max_key_utf16 : Int
+  max_text_utf16 : Int
+  total_utf16 : Int64
+  work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SubtreeGeometry {
+  nodes : Int
+  objects : Int
+  arrays : Int
+  fields : Int
+  max_fields : Int
+  max_array_items : Int
+  max_selected_text_units : Int
+  outer_depth : Int
+  work : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ValueView {
   NullValue

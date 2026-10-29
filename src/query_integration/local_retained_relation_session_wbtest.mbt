@@ -48,7 +48,7 @@ fn run_registered_relation_session_chain(
     managed_providers=[family],
   ).unwrap()
   let provider = @local_connector.local_module_managed_provider(
-    implementation, generated,
+    implementation, 0, generated,
   )
   assert_true(provider is Some(_))
   assert_true(
@@ -76,7 +76,7 @@ fn run_registered_relation_session_chain(
     1,
   ).unwrap()
   assert_true(
-    @local_connector.local_module_managed_provider(without_family, generated)
+    @local_connector.local_module_managed_provider(without_family, 0, generated)
     is None,
   )
   assert_false(

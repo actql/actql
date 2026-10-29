@@ -7,7 +7,7 @@ fn compilation_artifact_retained_layout(
   plan_bytes : Int,
   fragment_bytes : Int,
   output_contract_bytes : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if plan_bytes < 0 || fragment_bytes < 0 || output_contract_bytes < 0 {
     return None
   }
@@ -16,7 +16,7 @@ fn compilation_artifact_retained_layout(
   // Some wrapper. Three output Strings and three distinct71-unit CID Strings.
   // The initial owner-slot reference is funded by initial_control_units, not
   // repeated here. Metadata independently owns fact-manifest/template/contract.
-  let value : PreparationRepresentationUnits = {
+  let value : @execution.PreparationRepresentationUnits = {
     record_headers: 14L,
     reference_slots: 29L,
     scalar_words: 7L,
@@ -26,14 +26,16 @@ fn compilation_artifact_retained_layout(
     213L,
     owned_wire_bytes: 0L,
   }
-  guard preparation_representation_cost(value) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(value) is Some(_) else {
+    return None
+  }
   Some(value)
 }
 
 ///|
 /// Named compiler-local packets beside separately priced trees/writers. These
 /// immutable parts are passed within one invocation, never globally cached.
-fn compilation_parts_control_layout() -> PreparationRepresentationUnits {
+fn compilation_parts_control_layout() -> @execution.PreparationRepresentationUnits {
   {
     // AoAIdentity, AoAParts, PlanGraph, ExecutionMaterial, ExecutablePlanParts,
     // ReadOriginals and its Some, ExecutablePlanBody:8records. Four graph
@@ -51,12 +53,12 @@ fn compilation_parts_control_layout() -> PreparationRepresentationUnits {
 /// value_contract::emit_checked for a flat nonnullable Number Object. Root
 /// members4 and active Number members2 coexist; FieldsAt is lazy, so this is
 /// independent of row/field count. Number-only schema emission is smaller.
-fn compilation_number_contract_emitter_layout() -> PreparationRepresentationUnits? {
+fn compilation_number_contract_emitter_layout() -> @execution.PreparationRepresentationUnits? {
   // CheckedEmission; pending Array+old backing; two members Arrays+old
   // backings; eight pending variants and current pop Some; six member tuples
   // and six payload Emissions; active key/text Option wrappers. Pending bound
   // follows End/Members/FieldsAt/Value/Key progression, not max_frames=Intmax.
-  let packet : PreparationRepresentationUnits = {
+  let packet : @execution.PreparationRepresentationUnits = {
     record_headers: 33L,
     reference_slots: 80L,
     scalar_words: 40L,
@@ -64,7 +66,7 @@ fn compilation_number_contract_emitter_layout() -> PreparationRepresentationUnit
     owned_wire_bytes: 0L,
   }
   guard closed_values_sort_scratch_layout(4) is Some(sort) else { return None }
-  closed_values_sum_layouts([packet, sort])
+  @execution.compose_preparation_representation([packet, sort])
 }
 
 ///|
@@ -75,19 +77,21 @@ fn compilation_number_contract_emitter_layout() -> PreparationRepresentationUnit
 /// key/text cursors are separately included in the shared writer recipe.
 fn compilation_canonical_emitter_layout(
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if depth < 0 {
     return None
   }
   let d = depth.to_int64() + 1L
-  let packet : PreparationRepresentationUnits = {
+  let packet : @execution.PreparationRepresentationUnits = {
     record_headers: 4L + 2L * d,
     reference_slots: 14L + 5L * d,
     scalar_words: 3L + 2L * d,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard preparation_representation_cost(packet) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(packet) is Some(_) else {
+    return None
+  }
   Some(packet)
 }
 
@@ -104,7 +108,7 @@ fn compilation_writer_ancestry_layout(
   count : Int,
   material_count : Int,
   bytes : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if nodes < 0 || depth < 0 || largest_object < 0 {
     return None
   }
@@ -118,7 +122,7 @@ fn compilation_writer_ancestry_layout(
   guard @encode.hash_writer_live_key_inventory(keys.to_int(), depth) is Some(w) else {
     return None
   }
-  let base : PreparationRepresentationUnits = {
+  let base : @execution.PreparationRepresentationUnits = {
     record_headers: w.record_headers,
     reference_slots: w.reference_slots,
     scalar_words: w.scalar_words,
@@ -130,12 +134,12 @@ fn compilation_writer_ancestry_layout(
     return None
   }
   let m = material_count.to_int64()
-  let material : PreparationRepresentationUnits = {
+  let material : @execution.PreparationRepresentationUnits = {
     record_headers: 4L * m,
     reference_slots: 2L * m,
     scalar_words: m,
     owned_utf16_units: 2L * m * bytes.to_int64(),
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([repeated, material])
+  @execution.compose_preparation_representation([repeated, material])
 }
