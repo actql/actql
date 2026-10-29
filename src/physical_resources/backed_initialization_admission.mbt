@@ -199,14 +199,10 @@ pub fn[I] cleanup_backed_initialization_admission(
   }
   if frame.ledger is Some(ledger) {
     let usage = ledger_usage(ledger)
-    if usage.uncertain_transfer_bytes != 0L ||
-      usage.reserved_transfer_bytes != 0L ||
-      usage.held_bytes != 0L ||
-      usage.reserved_retention_bytes != 0L ||
-      usage.reserved_execution_bytes != 0L ||
-      ledger.delegated_planning != 0 ||
-      ledger.delegated_attempts != 0 ||
-      ledger.delegated_holdings != 0 {
+    // Reuse the existing logical-quiescence predicate: zero-sized original
+    // reservations, attempts, holdings and delegations still require retirement.
+    // The separate physical ACK below cannot settle any of those identities.
+    if usage.uncertain_transfer_bytes != 0L || !continuation_quiescent(ledger) {
       return Err(Unavailable)
     }
     if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
