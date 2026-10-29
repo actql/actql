@@ -21,10 +21,7 @@ pub fn[I] continue_request_effect_preparation(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  match clear_request_parameter_source(owner) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  clear_request_parameter_source(owner)
   if owner.program_json is Some(source) {
     match clear_program_json_preparation(source) {
       Err(issue) => return Err(ProgramJson(issue))
@@ -234,6 +231,7 @@ pub fn[I] begin_request_effect_managed_run(
       owner.program_data = None
       owner.program_plan_quote = None
       owner.native_parameters = None
+      owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
       owner.submitted_intent = None

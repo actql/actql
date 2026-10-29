@@ -76,6 +76,21 @@ pub fn[I, T] prepare_request_native_computation(
     Err(issue) => return Err(Preparation(ProgramJson(issue)))
     Ok(_) => ()
   }
+  finish_request_original_computation(
+    owner, input, environment, publication, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+fn[I] finish_request_original_computation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   // Project the SAME installed publication once. Require reuse of its Catalog;
   // no changed-limit fallback can silently construct another one at check.
   let (update, store, command, catalog) = match

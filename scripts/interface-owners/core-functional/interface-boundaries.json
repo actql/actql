@@ -25226,7 +25226,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "aff3d8da040f109728076b452c2e4e4f8b2265e6be0e659d424cedd22349799d",
+      "sha256": "c9b3a7b967202f102c7b572d4671f06669fcc28b9c4c061e2c072ee91ee3098c",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25812,7 +25812,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "05e98bf8ca1076b43a35f8d6e009056a2be3fb52546ac26bf1f8062457a05fc4",
+      "sha256": "181d71b015d8ed0cf7e73f86285520ef367a82a073df648087e0b1046b09a0c7",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -26097,7 +26097,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d72e7fc16f9cbe210865838065a736a55eea1ce18c025c345272b5ebf555048a",
+      "sha256": "0a562e0f5aecc2e7131845910744b2d8c78b483764067977505d4cd9219e0e5b",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27799,7 +27799,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a58f89b55902cf96c3e8388c70e3d8a6b38e72cb9b39f4f6bf76c3ba8ce6e979",
+      "sha256": "2cc325bc844484f0be7679f43381fa200fcfa1e8902df7088c1150aed88c1e4b",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -27934,7 +27934,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "dfca6a1db001e1c4f71e78cd0775d6d5748b918a6df10cc5b710cd03c4345593",
+      "sha256": "d6642ee41567c5e27404b6f9dfee8ace97854a653cd57f883030f210c7c80e53",
       "role": "common-semantics",
       "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
       "exports": [],
@@ -27942,6 +27942,10 @@
         {
           "name": "[I,T]prepare_request_native_computation",
           "declaration": "[ I , T ] prepare_request_native_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]finish_request_original_computation",
+          "declaration": "[ I ] finish_request_original_computation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]request_preparation_parameters_original",
@@ -28028,6 +28032,86 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal generic Native Request prepares"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]finish_request_original_computation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Query driver retains native SQL"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"Query input controls one short"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"native Query terminal projects original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
               }
             ]
           }
@@ -28158,7 +28242,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3d3835eda7123f46df1688ac9b7ab3091c146565279225b592ea6d2d683a3173",
+      "sha256": "406423800e18b7f90439efd48eec10d08b650d2a9fa36d03cfd2bf4b523ea8d3",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28436,7 +28520,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "99b80cac17e911e05aa759f2528b6d928bb9841c4775c75267ab58f0abbf2267",
+      "sha256": "1a9185dd20394a461ae92a9d2eef8d1ed72a85628353812cdcd64ab92db48c0b",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -28556,26 +28640,33 @@
     {
       "module": "src/client_local_host/preparation_request_parameters.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ad9c0d43b0d635fe65b8763176313605aa2db9e32754cf91cfa7513c2e1b711",
+      "sha256": "04824a20446d43a07c928f483c30d0e23b7b2ef4699c260fae34184619ebb542",
       "role": "common-semantics",
       "owner": "Existing Request and Parameter declaration/Source owners",
       "exports": [],
       "operations": [
         {
           "name": "[I]clear_request_parameter_source",
-          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Unit"
         },
         {
-          "name": "[I]prepare_request_parameter_source_owned",
-          "declaration": "[ I ] prepare_request_parameter_source_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , checking : @ checked . CheckLimits , ) - > Result [ @ stages . Source , ClientRequestPreparationIssue ]"
+          "name": "[I]construct_request_parameter_check_owned",
+          "declaration": "[ I ] construct_request_parameter_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , checking : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , effect_limits : @ publication_host . ClientEffectComputationLimits ? , work : @ resources . PreparationPhaseWorkContinuation64 , spent : Ref [ Int64 ] , returned : Ref [ Bool ] , ) - > Result [ ClientProgramCheckPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_parameter_check_owned",
+          "declaration": "[ I ] prepare_request_parameter_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , source_preparation : @ stages . Source ? , effect_limits : @ publication_host . ClientEffectComputationLimits ? , ) - > Result [ ClientProgramCheckPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "request_parameter_source_bytes",
+          "declaration": "request_parameter_source_bytes ( program : @ syntax . Program , geometry : @ decode . SubtreeConstructionGeometry ? , ) - > Int64 ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "[I]clear_request_parameter_source",
-            "[I]prepare_request_parameter_source_owned"
+            "[I]clear_request_parameter_source"
           ],
           "exports": [],
           "attributes": {
@@ -28641,6 +28732,80 @@
               {
                 "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
                 "anchor": "test \"Request-owned Parameters retain default"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]construct_request_parameter_check_owned",
+            "[I]prepare_request_parameter_check_owned",
+            "request_parameter_source_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
               }
             ]
           }
@@ -33140,6 +33305,778 @@
         }
       ],
       "referenceQualification": "Native input-bound assembly/caller source and original ownership only. Physical component cases, whole Source funding and normal/runtime acceptance remain separate and unexecuted."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_capture_body.mbt",
+      "sha256": "a98f1361d2bfbb1366fca3b5534a39c4ff03da51fd3dd492186790504ef43761",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_request_capture_managed_run",
+          "declaration": "[ I ] begin_request_capture_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]complete_request_capture_preparation",
+          "declaration": "[ I ] complete_request_capture_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation and published query/declaration owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary distribution and current-callback consolidation remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_capture_managed_run",
+            "[I]complete_request_capture_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Query driver retains native SQL"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"Query input controls one short"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"native Query terminal projects original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_source_publication/prepared_environment.mbt",
+      "sha256": "e72e6091626d74e579ab6be1ea428fb3364fbe84d360f08327a72db9f8dbe998",
+      "exports": [],
+      "operations": [
+        {
+          "name": "lower_prepared_published_parsed_query",
+          "declaration": "lower_prepared_published_parsed_query ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , query : @ query_syntax . Query , declarations : String ? , public_primary ? : Bool"
+        },
+        {
+          "name": "lower_prepared_published_query",
+          "declaration": "lower_prepared_published_query ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , document : String , format : @ source_frontend . Format , declarations : String ? , public_primary ? : Bool"
+        },
+        {
+          "name": "lower_prepared_query_in_context",
+          "declaration": "lower_prepared_query_in_context ( prepared : PreparedPublishedQueryEnvironment , query : @ query_syntax . Query , context : @ query_program . Context , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , PreparedPublicationIssue , ]"
+        },
+        {
+          "name": "lower_prepared_query_with_declarations",
+          "declaration": "lower_prepared_query_with_declarations ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , query : @ query_syntax . Query , declarations : @ parameter_binding . Declarations ? , public_primary ? : Bool"
+        },
+        {
+          "name": "prepare_published_query_environment",
+          "declaration": "prepare_published_query_environment ( environment : @ program_check . CheckEnvironment , publication : String , ) - > Result [ PreparedPublishedQueryEnvironment , PublicationIssue ]"
+        },
+        {
+          "name": "prepare_published_query_environment_with_reader",
+          "declaration": "prepare_published_query_environment_with_reader ( environment : @ program_check . CheckEnvironment , publication : String , read : ( String ) - > @ decode . Cursor raise PublicationStop , ) - > Result [ PreparedPublishedQueryEnvironment , PublicationIssue ]"
+        },
+        {
+          "name": "prepare_published_query_environment_with_readers",
+          "declaration": "prepare_published_query_environment_with_readers ( environment : @ program_check . CheckEnvironment , publication : String , read : ( String ) - > @ decode . Cursor raise PublicationStop , read_catalog : ( @ program_check . CheckEnvironment , @ program_check . SourceCatalogLimits , @ check_environment . Limits ? , ) - > Result [ @ program_check . PreparedSourceCatalog , @ program_check . EnvironmentFailure , ] , ) - > Result [ PreparedPublishedQueryEnvironment , PublicationIssue ]"
+        },
+        {
+          "name": "prepared_published_effect_parts",
+          "declaration": "prepared_published_effect_parts ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Result [ ( @ query_program . UpdateTargetPublication ? , @ query_program . StoreTargetPublication ? , @ query_program . CommandTargetPublication ? , @ program_check . PreparedSourceCatalog , ) , PreparedPublicationIssue , ]"
+        },
+        {
+          "name": "prepared_published_query_catalog",
+          "declaration": "prepared_published_query_catalog ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Result [ @ program_check . PreparedSourceCatalog , PreparedPublicationIssue ]"
+        },
+        {
+          "name": "prepared_published_query_context",
+          "declaration": "prepared_published_query_context ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , ) - > Result [ @ query_program . Context , PreparedPublicationIssue ]"
+        },
+        {
+          "name": "prepared_published_query_environment_matches",
+          "declaration": "prepared_published_query_environment_matches ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Bool"
+        },
+        {
+          "name": "prepared_published_query_environment_publication_matches",
+          "declaration": "prepared_published_query_environment_publication_matches ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , publication : String , ) - > Bool"
+        },
+        {
+          "name": "prepared_published_required_catalog",
+          "declaration": "prepared_published_required_catalog ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Result [ @ program_check . PreparedSourceCatalog , PreparedPublicationIssue ]"
+        },
+        {
+          "name": "publication_admission_catalog",
+          "declaration": "publication_admission_catalog ( admission : PublicationEnvironmentAdmission , ) - > @ program_check . PreparedSourceCatalog raise PublicationStop"
+        },
+        {
+          "name": "publication_admission_contents",
+          "declaration": "publication_admission_contents ( admission : PublicationEnvironmentAdmission , ) - > @ check_environment . CatalogContents raise PublicationStop"
+        },
+        {
+          "name": "publication_admission_mappings",
+          "declaration": "publication_admission_mappings ( admission : PublicationEnvironmentAdmission , ) - > @ check_environment . MappingContractShapes raise PublicationStop"
+        },
+        {
+          "name": "publication_read_catalog",
+          "declaration": "publication_read_catalog ( environment : @ program_check . CheckEnvironment , limits : @ program_check . SourceCatalogLimits , contents_limits : @ check_environment . Limits ? , ) - > Result [ @ program_check . PreparedSourceCatalog , @ program_check . EnvironmentFailure , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation and published query/declaration owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary distribution and current-callback consolidation remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "lower_prepared_published_parsed_query",
+            "lower_prepared_published_query",
+            "lower_prepared_query_in_context",
+            "lower_prepared_query_with_declarations",
+            "prepare_published_query_environment",
+            "prepare_published_query_environment_with_reader",
+            "prepare_published_query_environment_with_readers",
+            "prepared_published_effect_parts",
+            "prepared_published_query_catalog",
+            "prepared_published_query_context",
+            "prepared_published_query_environment_matches",
+            "prepared_published_query_environment_publication_matches",
+            "prepared_published_required_catalog",
+            "publication_admission_catalog",
+            "publication_admission_contents",
+            "publication_admission_mappings",
+            "publication_read_catalog"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Query driver retains native SQL"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"Query input controls one short"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"native Query terminal projects original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_source_publication/publication.mbt",
+      "sha256": "188536423c529464e97d67a0aa814595343e345bba7eeb90eefce46b9b7f4421",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_query_declarations",
+          "declaration": "[ T ] admit_captured_query_declarations ( input : T , reader : @ source . JsonDataReader [ T ] , ) - > Result [ ( @ decode . Cursor , @ parameter_binding . Declarations ) , PublicationIssue ]"
+        },
+        {
+          "name": "bind_published_query_context",
+          "declaration": "bind_published_query_context ( environment : @ program_check . CheckEnvironment , publication : String , declarations : String ? , ) - > Result [ @ query_program . Context , PublicationIssue ]"
+        },
+        {
+          "name": "bind_published_query_parts",
+          "declaration": "bind_published_query_parts ( environment : @ program_check . CheckEnvironment , publication : String , declarations : String ? , ) - > Result [ ( @ query_program . Context , Array [ @ query_program . TableWriteBinding ] , @ query_program . UpdateTargetPublication ? , @ query_program . StoreTargetPublication ? , @ query_program . CommandTargetPublication ? , ) , PublicationIssue , ]"
+        },
+        {
+          "name": "bind_published_query_parts_with_catalog",
+          "declaration": "bind_published_query_parts_with_catalog ( environment : @ program_check . CheckEnvironment , publication : String , declarations : String ? , ) - > Result [ ( @ query_program . Context , Array [ @ query_program . TableWriteBinding ] , @ query_program . UpdateTargetPublication ? , @ query_program . StoreTargetPublication ? , @ query_program . CommandTargetPublication ? , @ program_check . PreparedSourceCatalog , ) , PublicationIssue , ]"
+        },
+        {
+          "name": "bind_published_query_parts_with_reader",
+          "declaration": "bind_published_query_parts_with_reader ( environment : @ program_check . CheckEnvironment , publication : String , declarations : String ? , read : ( String ) - > @ decode . Cursor raise PublicationStop , admission ? : PublicationEnvironmentAdmission ?"
+        },
+        {
+          "name": "client_source_context",
+          "declaration": "client_source_context ( environment : @ program_check . CheckEnvironment , publication : String , declarations : String ? , ) - > @ query_program . Context raise PublicationStop"
+        },
+        {
+          "name": "client_source_context_from_root",
+          "declaration": "client_source_context_from_root ( environment : @ program_check . CheckEnvironment , root : @ decode . Cursor , declarations : String ? , admission ? : PublicationEnvironmentAdmission ?"
+        },
+        {
+          "name": "client_source_declarations",
+          "declaration": "client_source_declarations ( declarations : String ? , ) - > @ parameter_binding . Declarations ? raise PublicationStop"
+        },
+        {
+          "name": "read_publication_data",
+          "declaration": "read_publication_data ( wire : String , ) - > Result [ @ decode . Cursor , PublicationIssue ]"
+        },
+        {
+          "name": "read_source_parameter_declarations",
+          "declaration": "read_source_parameter_declarations ( cursor : @ decode . Cursor , ) - > Result [ @ parameter_binding . Declarations , @ parameter_binding . Issue ]"
+        },
+        {
+          "name": "source_publication_closed",
+          "declaration": "source_publication_closed ( root : @ decode . Cursor , ) - > Unit raise PublicationStop"
+        },
+        {
+          "name": "source_publication_contract",
+          "declaration": "source_publication_contract ( registry : Map [ String , @ decode . Cursor ] , reference : @ decode . Cursor , kind : String , ) - > @ decode . Cursor raise PublicationStop"
+        },
+        {
+          "name": "source_publication_cursor",
+          "declaration": "source_publication_cursor ( wire : String , ) - > @ decode . Cursor raise PublicationStop"
+        },
+        {
+          "name": "source_publication_field",
+          "declaration": "source_publication_field ( value : @ decode . Cursor , name : String , ) - > @ decode . Cursor raise PublicationStop"
+        },
+        {
+          "name": "source_publication_input_limits",
+          "declaration": "source_publication_input_limits ( ) - > ( @ source . ParseLimits , @ decode . Limits , )"
+        },
+        {
+          "name": "source_publication_members",
+          "declaration": "source_publication_members ( environment : @ check_environment . WireEnvironment , section : @ check_environment . Section , key : String , ) - > Map [ String , @ decode . Cursor ] raise PublicationStop"
+        },
+        {
+          "name": "source_publication_text",
+          "declaration": "source_publication_text ( value : @ decode . Cursor , name : String , ) - > String raise PublicationStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation and published query/declaration owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary distribution and current-callback consolidation remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_query_declarations",
+            "bind_published_query_context",
+            "bind_published_query_parts",
+            "bind_published_query_parts_with_catalog",
+            "bind_published_query_parts_with_reader",
+            "client_source_context",
+            "client_source_context_from_root",
+            "client_source_declarations",
+            "read_publication_data",
+            "read_source_parameter_declarations",
+            "source_publication_closed",
+            "source_publication_contract",
+            "source_publication_cursor",
+            "source_publication_field",
+            "source_publication_input_limits",
+            "source_publication_members",
+            "source_publication_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Query driver retains native SQL"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"Query input controls one short"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"native Query terminal projects original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_query.mbt",
+      "sha256": "89cf795a48332321669ea094159fb0b7292695d6f1e31c7ece5dcfbc31d16e96",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_native_query_computation",
+          "declaration": "[ I , T ] prepare_request_native_query_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_query_input",
+          "declaration": "[ I , T ] prepare_request_native_query_input ( owner : ClientRequestPreparation [ I ] , input : I , reader : @ source . JsonDataReader [ T ] , supplied : T ? , declarations : T ? , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I,T]prepare_request_native_source_computation",
+          "declaration": "[ I , T ] prepare_request_native_source_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation and published query/declaration owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary distribution and current-callback consolidation remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_native_query_computation",
+            "[I,T]prepare_request_native_query_input",
+            "[I,T]prepare_request_native_source_computation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Query driver retains native SQL"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"Query input controls one short"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"native Query terminal projects original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_parameter_source_layout.mbt",
+      "sha256": "464d605785f6583a11d9e92dfe5278834cb92332612471cd591f0a38852ea585",
+      "exports": [],
+      "operations": [
+        {
+          "name": "parameter_source_binding_construction_bytes",
+          "declaration": "parameter_source_binding_construction_bytes ( ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "parameter_source_binding_construction_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_program_check_domain.mbt",
+      "sha256": "d339071e3ef8165c1c0a5f8230bbaa78443ee8abb80aba0f8246bce346aabef3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]begin_effect_program_check_preparation",
+          "declaration": "[ I , P ] begin_effect_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I,P]begin_program_check_preparation",
+          "declaration": "[ I , P ] begin_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I,P]clear_program_check_preparation",
+          "declaration": "[ I , P ] clear_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]current_program_check_preparation",
+          "declaration": "[ I , P ] current_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]new_program_check_preparation",
+          "declaration": "[ I , P ] new_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , source_preparation : @ stages . Source ? , base_retained : Int64 , base_execution : Int64 , ) - > ClientProgramCheckPreparation [ I , P ]"
+        },
+        {
+          "name": "[I,P]transfer_program_check_input",
+          "declaration": "[ I , P ] transfer_program_check_input ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]begin_effect_program_check_preparation",
+            "[I,P]begin_program_check_preparation",
+            "[I,P]clear_program_check_preparation",
+            "[I,P]current_program_check_preparation",
+            "[I,P]new_program_check_preparation",
+            "[I,P]transfer_program_check_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

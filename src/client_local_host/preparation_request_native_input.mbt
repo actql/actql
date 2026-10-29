@@ -73,6 +73,7 @@ pub fn[I, T] prepare_request_native_program_input(
   ClientRequestPreparationIssue,
 ] {
   guard owner.phase == Open &&
+    !owner.native_parameters_ready &&
     request_intent_input_ready(owner) &&
     owner.program_json is None else {
     return Err(WrongPhase)

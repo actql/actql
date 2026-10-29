@@ -42,16 +42,17 @@ fn request_check_fixture() -> (
     client_local_resource_policy(),
   ).unwrap()
   let source = request_check_source(parent, input)
-  // These cases isolate the later Check entry debit/current boundary. The
-  // distinct normal-entry cases exercise this original Parameter phase too.
-  parent.phase = Selecting
-  prepare_request_parameter_source_owned(
-    parent,
-    input,
-    source.program.unwrap(),
-    @publication_host.client_standard_program_preparation_limits().checking,
-  ).unwrap()
-  |> ignore
+  // Explicit already-backed Source isolates the Check holder's fixed debit.
+  // The distinct normal-entry cases exercise the combined Parameter phase.
+  let checking = @publication_host.client_standard_program_preparation_limits().checking.compilation
+  parent.parameter_source = Some(
+    @stages.prepare(source.program.unwrap(), {
+      max_parameters: checking.structure.parameters,
+      max_nodes: checking.traversal.nodes,
+      max_depth: checking.traversal.depth,
+      max_text_bytes: checking.traversal.text_bytes,
+    }).unwrap(),
+  )
   parent.phase = ProgramJson
   (parent, source, input)
 }
@@ -251,14 +252,15 @@ test "request Check parent fences reentry and retains Program before the later c
   ).unwrap()
   selected.val = Some(parent)
   let source = request_check_source(parent, input)
-  parent.phase = Selecting
-  prepare_request_parameter_source_owned(
-    parent,
-    input,
-    source.program.unwrap(),
-    @publication_host.client_standard_program_preparation_limits().checking,
-  ).unwrap()
-  |> ignore
+  let checking = @publication_host.client_standard_program_preparation_limits().checking.compilation
+  parent.parameter_source = Some(
+    @stages.prepare(source.program.unwrap(), {
+      max_parameters: checking.structure.parameters,
+      max_nodes: checking.traversal.nodes,
+      max_depth: checking.traversal.depth,
+      max_text_bytes: checking.traversal.text_bytes,
+    }).unwrap(),
+  )
   parent.phase = ProgramJson
   armed.val = true
   let child = prepare_request_program_check_preparation(

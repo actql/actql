@@ -330,6 +330,13 @@ pub fn client_program_request_preparation_issue_code(
   result : Result[String, @client_local_host.ClientRequestTerminalIssue],
 ) -> String? {
   let issue : ClientProgramBridgeIssue = match result {
+    Err(QuerySyntax(Frontend(issue)))
+    | Err(QueryLowering(Publication(Frontend(issue))))
+    | Err(Publication(Frontend(issue))) =>
+      return Some(client_source_preparation_issue_code(Frontend(issue)))
+    Err(QueryLowering(Publication(Publication(Declarations))))
+    | Err(Publication(Publication(Declarations))) =>
+      return Some(client_source_preparation_issue_code(Declarations))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
     Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
