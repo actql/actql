@@ -101,7 +101,20 @@ target workspace uses the already selected policy bound. Every repeated
 selection must keep all original Calendar limits, including the separate CA
 configuration ceiling. No field/default is added to the public profile, and
 `maxCaBytes` is not reused as secret/JSON capacity. This projects demand only;
-actual constructor/read/failure overlap still requires the SAME Request parent.
+actual constructor/read/failure overlap still requires its original parent.
+
+Installation material uses the existing Resource body tuple of the actual
+initialized Source aggregate and its prepared Environment. The initial owner
+must reserve construction before completing that body, retain it across
+Requests, and wait for Source and physical-child retirement before release.
+Requests borrow and return the same material; they do not reload Sources or
+reuse a completed Request parent as installation capacity.
+`borrowed_installed_source_environment` reads that same Environment only when
+the existing body borrow is live and its Source aggregate is the exact original.
+Equal manifests, copied aggregates and serialized identities cannot substitute
+for that association. Existing borrows can identify their metadata during
+retirement; the Resource owner separately refuses new sibling borrows. This
+pure accessor adds no reservation, current decision, authority or cleanup ACK.
 
 The existing connector-installation author declarations select exactly one
 managed factory or advanced `readPages` callback. They expose the actual
@@ -135,6 +148,14 @@ construction or replace the original parent's constructor/failure overlap.
 Native callback Promises stay in the existing pending-callback inventory before
 their public `then` property is observed. The original getter error remains the
 read failure; only actual native settlement can release that callback borrow.
+
+An advanced constructor must still return its reader synchronously. A returned
+native Promise is refused, but the same Host joins its original computation and
+retains the actual late child before observing its cleanup methods. Stop requested
+while construction is pending reaches that same child once it arrives; its
+actual stop settlement and retirement remain required before release. A public
+`then` getter failure stays primary, and rejection never fabricates a child.
+No refused asynchronous constructor starts a read or causes another construction.
 
 A standard page callback describes a bodyless GET. A factory may also capture an
 explicit positive own-data `maxRequestBytes` and describe a POST with its original

@@ -57,6 +57,7 @@ import {
 
 options(
   targets: {
+    "installed_source_material_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_finish_js_wbtest.mbt": [ "js" ],
     "preparation_program_compile_js_wbtest.mbt": [ "js" ],

@@ -148,6 +148,8 @@ pub fn[I] borrow_request_effect_preparation(ClientRequestPreparation[I]) -> Resu
 
 pub fn[I] borrow_request_program_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
+pub fn[S] borrowed_installed_source_environment(@physical_resources.PreparationBodyBorrow[(S, @client_source_publication.PreparedPublishedQueryEnvironment)], S) -> Result[@client_source_publication.PreparedPublishedQueryEnvironment, @physical_resources.PreparationCapacityIssue]
+
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
 pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool

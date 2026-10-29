@@ -83631,7 +83631,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "9b477f33a023406221f0ba0b944a9f1b929cd04d3ae03142b8d45729aa83c7bd",
+      "sha256": "818a28fa413ddd0913bf114f20fd225979424d92d9e1c57287c96c14219584eb",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -83716,6 +83716,25 @@
           "parameters": [
             "input"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
+          "parameters": [],
           "async": false
         },
         {
@@ -83856,6 +83875,9 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#3",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#4",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#5",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#6",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
@@ -83999,6 +84021,22 @@
               {
                 "path": "adapters/host-node/installed-managed-http-reader.test.mjs",
                 "anchor": "test('managed POST ceiling refuses"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('native advanced constructor retains"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('refused constructors join"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('rejected native constructor preserves"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('rejected generic constructor releases"
               }
             ]
           }

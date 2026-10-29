@@ -26087,6 +26087,96 @@
         }
       ],
       "referenceQualification": "Same existing Local Parameter limits/key policy and captured input through the original Request binder/compiler/Plan. Not ordinary Host initialization, public acceptance or physical backing."
+    },
+    {
+      "module": "src/client_local_host/installed_source_material.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "7c8970ad78c706806eadff590217c64a9a60b1e105c70bd34622b0a3653956d6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[S]borrowed_installed_source_environment",
+          "declaration": "[ S ] borrowed_installed_source_environment ( holder : @ resources . PreparationBodyBorrow [ ( S , @ source_publication . PreparedPublishedQueryEnvironment ) , ] , source_original : S , ) - > Result [ @ source_publication . PreparedPublishedQueryEnvironment , @ resources . PreparationCapacityIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation body and installed Source material owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[S]borrowed_installed_source_environment"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "/// Read the same prepared Environment from the existing Resource body"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "pub fn[S] borrowed_installed_source_environment("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "if !physical_equal(original, source_original) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Installation material uses the existing Resource body tuple"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/preparation_capacity.mbt",
+                "anchor": "pub fn[P] borrow_preparation_body_sibling("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "return Err(@resources.BorrowReturned)"
+              },
+              {
+                "path": "src/client_local_host/installed_source_material.mbt",
+                "anchor": "return Err(@resources.ForeignOriginal)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/preparation_capacity.mbt",
+                "anchor": "pub fn[I, P] retire_preparation_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/preparation_capacity.mbt",
+                "anchor": "pub fn[P] return_preparation_body_borrow("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Requests borrow and return the same material; they do not reload Sources"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_material_js_wbtest.mbt",
+                "anchor": "test \"Source material keeps the same initialized aggregate Environment and debit across Request borrows\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Pure original aggregate/Environment correspondence under the existing Resource borrow/retirement model. Actual pre-loader carrier, construction recipe, Host caller and normal physical backing remain separate requirements."
     }
   ]
 }

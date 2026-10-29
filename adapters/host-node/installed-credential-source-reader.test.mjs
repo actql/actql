@@ -197,3 +197,116 @@ test('same standard reader preserves its original cancellation reason after deli
   assert.equal(sends,1);assert.equal(consumed,1);assert.equal(closed,1);
   assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);
 });
+
+
+test('native advanced constructor retains its actual late child through original stop settlement', async t => {
+  // Actual shared Host owner; Site/grant/child and stop acknowledgements are
+  // explicit component ports, not physical transport or normal funding.
+  const construction = deferred(), entered = deferred(), stop = deferred(), stopEntered = deferred();
+  const getterFailure = new Error('same native constructor then getter');
+  const cancellation = new Error('same pending constructor cancellation');
+  let thenReads = 0, childReads = 0, childStops = 0, childRetires = 0;
+  let childStopped = false, childStopSettled = false, bindingCloses = 0, childStopPromise;
+  Object.defineProperty(construction.promise, 'then', {get() {
+    thenReads++; throw getterFailure;
+  }});
+  const child = Object.freeze({read() {childReads++;assert.fail('invalid async constructor never starts its child');},
+    requestStop(reason) {
+      assert.equal(this, child);assert.equal(reason, cancellation);childStops++;
+      childStopPromise = stop.promise.then(() => {childStopped = true;childStopSettled = true;});
+      stopEntered.resolve();return childStopPromise;
+    }, retire() {
+      assert.equal(this, child);childRetires++;
+      return childStopped && childStopSettled;
+    }, observe() {assert.equal(this, child);return {cleanupConfirmed:childStopped && childStopSettled};}});
+  t.after(() => {construction.resolve(child);stop.resolve();});
+  const raw = {}, credential = {}, site = Object.freeze({});
+  const originalSite = Object.freeze({site,callResource() {assert.fail('no physical call');},
+    referenceCurrent:()=>true,authorizationPurpose(value) {assert.equal(value,raw);return {kind:'read'};},
+    bindRunAcquisition(value) {assert.equal(value,raw);return Object.freeze({credential,
+      close() {bindingCloses++;return 'closed';}});}});
+  const factory = createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},
+    maxResponses:1,createReader() {entered.resolve();return construction.promise;}});
+  const reader = factory.prepare({originalAuthorization:raw,verifyRead() {},authorizationFor() {return {};}});
+  const outcome = reader.read().then(() => assert.fail('invalid constructor cannot succeed'),cause=>cause);
+  await entered.promise;
+  reader.requestStop(cancellation);
+  let retired;
+  assert.doesNotThrow(() => {retired = factory.retire();});
+  assert.equal(retired,false);assert.equal(reader.observe().cleanupConfirmed,false);
+  construction.resolve(child);
+  await stopEntered.promise;
+  assert.equal(childStops,1);assert.equal(childReads,0);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  assert.equal(factory.retire(),false);
+  stop.resolve();await childStopPromise;
+  assert.equal(await outcome,getterFailure);
+  assert.equal(thenReads,1);assert.equal(childStops,1);assert.equal(childReads,0);
+  assert.equal(reader.observe().cleanupConfirmed,true);
+  assert.equal(factory.retire(),true);
+  assert.equal(bindingCloses,1);assert.equal(childRetires,1);
+});
+
+function asynchronousConstructorFixture(construct) {
+  const raw = {}, entered = deferred();let reads = 0, stops = 0, retired = false, bindingCloses = 0;
+  const child = Object.freeze({read() {reads++;assert.fail('refused constructor must not start child');},
+    requestStop() {assert.equal(this,child);stops++;},
+    retire() {assert.equal(this,child);retired = stops === 1;return retired;},
+    observe() {assert.equal(this,child);return {cleanupConfirmed:retired};}});
+  const originalSite = Object.freeze({site:{},callResource() {assert.fail('no physical transport');},
+    referenceCurrent:()=>true,authorizationPurpose(value) {assert.equal(value,raw);return {kind:'read'};},
+    bindRunAcquisition(value) {assert.equal(value,raw);return Object.freeze({credential:{},
+      close() {bindingCloses++;return 'closed';}});}});
+  const factory = createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},maxResponses:1,
+    createReader() {entered.resolve();return construct(child);}});
+  const reader = factory.prepare({originalAuthorization:raw,verifyRead() {},authorizationFor() {return {};}});
+  return {child,reader,factory,entered:entered.promise,inspect:()=>({reads,stops,retired,bindingCloses})};
+}
+
+test('refused constructors join hidden native and generic late children without another read',async()=>{
+  for (const native of [true,false]) {
+    const gate = deferred();
+    if (native) Object.defineProperty(gate.promise,'then',{value:undefined});
+    const f = asynchronousConstructorFixture(()=>native ? gate.promise : Object.freeze({then(resolve,reject) {
+      return Reflect.apply(Promise.prototype.then,gate.promise,[resolve,reject]);
+    }}));
+    const outcome = f.reader.read().then(()=>assert.fail('async constructor cannot succeed'),cause=>cause);
+    await f.entered;
+    f.reader.requestStop(new Error('same original stop'));
+    assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    gate.resolve(f.child);
+    assert.equal((await outcome).code,'InstalledSourceReaderConstructorNotSynchronous');
+    assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+    assert.deepEqual(f.inspect(),{reads:0,stops:1,retired:true,bindingCloses:1});
+  }
+});
+
+test('rejected native constructor preserves the first original failure without inventing a child',async()=>{
+  for (const throwingGetter of [false,true]) {
+    const gate = Promise.withResolvers(),rejection = new Error('same constructor rejection');
+    const observation = new Error('same first then observation');
+    if (throwingGetter) Object.defineProperty(gate.promise,'then',{get() {throw observation;}});
+    const f = asynchronousConstructorFixture(()=>gate.promise);
+    const outcome = f.reader.read().then(()=>assert.fail('rejected constructor cannot succeed'),cause=>cause);
+    await f.entered;
+    assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    gate.reject(rejection);
+    assert.equal(await outcome,throwingGetter ? observation : rejection);
+    assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+    assert.deepEqual(f.inspect(),{reads:0,stops:0,retired:false,bindingCloses:1});
+  }
+});
+
+test('rejected generic constructor releases no unresolved placeholder as a physical child',async()=>{
+  const gate = Promise.withResolvers(),rejection = new Error('same generic constructor rejection');
+  const f = asynchronousConstructorFixture(()=>Object.freeze({then(resolve,reject) {
+    return Reflect.apply(Promise.prototype.then,gate.promise,[resolve,reject]);
+  }}));
+  const outcome = f.reader.read().then(()=>assert.fail('rejected constructor cannot succeed'),cause=>cause);
+  await f.entered;
+  assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  gate.reject(rejection);
+  assert.equal(await outcome,rejection);
+  assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+  assert.deepEqual(f.inspect(),{reads:0,stops:0,retired:false,bindingCloses:1});
+});
