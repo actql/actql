@@ -564,6 +564,25 @@ export function effectReviewCheckpointBindingFacts(binding, allowed, definition)
   return binding;
 }
 
+/** Original authoring/Preview binding through the same Common Checkpoint owner.
+ * This historical DATA is not current permission or an outcome/Store ACK. */
+export function effectReviewCheckpointPreview(binding, allowed, definition,
+  storedWire, previewWire, limits) {
+  effectReviewCheckpointBindingFacts(binding, allowed, definition);
+  if (typeof storedWire !== 'string' || typeof previewWire !== 'string') {
+    throw new TypeError('InvalidRunHostCheckpointPreviewInput');
+  }
+  const {original} = effectCheckpointBindings.get(binding);
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const value = checked(owner.clientValuesHostAdmitEffectCheckpointPreview(original,
+    requireHandle(effectAllowedRuns, allowed).value, requireHandle(definitions, definition),
+    storedWire, previewWire, maxWireBytes, maxNodes, maxDepth),
+  'RunHostEffectCheckpointPreviewRejected');
+  return handle(effectPreviewIdentities, {value,
+    memberCount: owner.clientValuesHostEffectPreviewMemberCount(value)},
+  'effect-preview-identity');
+}
+
 /** Same original plus actual stored bytes, through the existing waiting writer.
  * Physical read/revision/current gates remain with the restoration operation. */
 export function effectReviewCheckpointWaitingState(binding, allowed, definition,
