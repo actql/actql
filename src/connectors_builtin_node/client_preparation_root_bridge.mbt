@@ -874,3 +874,40 @@ pub fn client_program_request_preparation_accounting(
 ) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
   @client_local_host.request_preparation_accounting(owner)
 }
+
+///|
+/// SAME SDK native Source/Parameters, original Request and installed context.
+/// Fixed own-DATA extraction observes no application getter or source I/O.
+#export_name("clientProgramPrepareRequestSourceComputation")
+pub fn client_program_prepare_request_source_computation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  captured : NativeJsonValue,
+  parameters : NativeJsonValue,
+  environment : @program_check.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_source_computation(
+    parent,
+    input,
+    captured,
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+    supplied=if native_json_parameter_is_absent(parameters) {
+      None
+    } else {
+      Some(parameters)
+    },
+  ).map(kind => {
+    match kind {
+      @client_local_host.Pure => "effect_free"
+      @client_local_host.Effect => "effectful"
+    }
+  })
+}

@@ -106,8 +106,6 @@ pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> R
 
 pub fn[I, P] begin_parameter_binding_preparation(@physical_resources.PreparationCapacity[I, P], I, @parameter_binding.Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[ClientParameterBindingPreparation[I, P], ClientParameterBindingPreparationIssue]
 
-pub fn[I, P] begin_parameter_declaration_preflight(@physical_resources.PreparationCapacity[I, P], I, @decode_core.Cursor?, @parameter_binding.DeclarationLimits) -> Result[ClientParameterDeclarationPreflight[I, P], ClientParameterDeclarationPreflightIssue]
-
 pub fn[I] begin_preparation_owned_installed_capture_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedCapturePlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_preparation_owned_installed_effect_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -187,8 +185,6 @@ pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
 
 pub fn[I, P] clear_parameter_binding_preparation(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
-
-pub fn[I, P] clear_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] clear_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -464,12 +460,6 @@ pub fn[I, P] parameter_binding_preparation_outcome(ClientParameterBindingPrepara
 
 pub fn[I, P] parameter_binding_source_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
 
-pub fn parameter_declaration_preflight_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
-
-pub fn[I, P] parameter_declaration_preflight_outcome(ClientParameterDeclarationPreflight[I, P]) -> (Result[@parameter_binding.DeclarationReadInput, @parameter_binding.Issue], Int, Int)?
-
-pub fn[I, P] parameter_declaration_source_outcome(ClientParameterDeclarationPreflight[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
-
 pub fn[I] parse_closed_values_document(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
@@ -582,18 +572,6 @@ pub fn[I, P] prepare_parameter_binding_source(ClientParameterBindingPreparation[
 
 pub fn[I, P] prepare_parameter_binding_value(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
-pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] prepare_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] prepare_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] prepare_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P], @stage_syntax.Program) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] prepare_parameter_declaration_type(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] prepare_parameter_declaration_value(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
 pub fn prepare_program_capture(ClientProgramPublication, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue]
 
 pub fn prepare_program_chain_validation(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
@@ -650,6 +628,10 @@ pub fn[I, T] prepare_request_native_computation(ClientRequestPreparation[I], I, 
 
 pub fn[I, T] prepare_request_native_program_input(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @stage_syntax.Limits, supplied? : T?) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
+pub fn[I, T] prepare_request_native_query_computation(ClientRequestPreparation[I], I, String, @source_frontend.Format, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?, declarations? : T?) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
+
+pub fn[I, T] prepare_request_native_source_computation(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
+
 pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
@@ -701,14 +683,6 @@ pub fn[I, P] reconcile_parameter_binding_inventory(ClientParameterBindingPrepara
 pub fn[I, P] reconcile_parameter_binding_source(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] reconcile_parameter_bindings(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
-
-pub fn[I, P] reconcile_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] reconcile_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] reconcile_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
-
-pub fn[I, P] reconcile_parameter_declarations(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] reconcile_program_check_carriers(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -931,6 +905,8 @@ pub suberror ClientRequestTerminalIssue {
   Preparation(ClientRequestPreparationIssue)
   CheckOutcome(@program_check.CheckOutcome)
   Publication(@client_source_publication.PreparedPublicationIssue)
+  QuerySyntax(ClientRequestQuerySyntaxIssue)
+  QueryLowering(ClientRequestQueryLoweringIssue)
 }
 
 // Types and methods
@@ -1142,15 +1118,6 @@ pub(all) enum ClientParameterBindingPreparationIssue {
   Overflow
 } derive(Eq, @debug.Debug)
 
-type ClientParameterDeclarationPreflight[I, P]
-
-pub(all) enum ClientParameterDeclarationPreflightIssue {
-  Capacity(@physical_resources.PreparationCapacityIssue)
-  Work(@physical_resources.PreparationWorkIssue)
-  WrongPhase
-  Overflow
-} derive(Eq, @debug.Debug)
-
 pub(all) struct ClientPreparationCapacityRefusal {
   phase : String
   dimension : String
@@ -1219,7 +1186,6 @@ pub(all) enum ClientRequestPreparationIssue {
   Parameters(@client_local_preparation.LocalProgramInputIssue)
   Intent(@run_publication_host.ClientSubmittedIntentIssue)
   Work(@physical_resources.PreparationWorkIssue)
-  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)
 } derive(@debug.Debug)

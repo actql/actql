@@ -2249,24 +2249,33 @@ connector-supplied H/R/W inventory is an adoption requirement.
 
 ### Request-owned Parameter Source
 
-The normal Request check entry selects the existing Parameter declaration and
-Source continuation when its caller has not already supplied that original.
-The Request retains this same continuation before fallible construction and
-uses its own capacity for declaration preflight, types, defaults and the final
-Source. An external test or frontend does not have to construct it first.
+The normal Request check entry constructs missing Parameter declarations and
+Source in one semantic phase under its original capacity. It observes the
+original immutable parameter subtree once for node/text dimensions, then folds
+its types/default output and synchronous workspace plus the actual Stage copy
+and root-field Map through the existing common value-node, decoded-text and
+cursor-root allowances. Original indexed input remains borrowed; fixed reader,
+Result and quote controls use the existing Check Host baseline. This logical
+allowance is not measured RAM or a new physical allocator.
 
-A completed Source on that same Request and Program is immutable retained DATA.
-Reusing it checks its original declaration controller and references without
-another reader, work receipt or current callback. Typed declaration/default and
-Source errors remain their original variants; they do not become a generic
-phase failure or successful absence. Reentry is fenced while the Request selects
-this continuation, and a refused grow keeps its original partial duty attached.
+The Request adds that variable backing and the fixed Check holder to one grow.
+The same named work continuation records the metadata work, returns across the
+original grow/current callback, then resumes for the original declaration read
+and Source construction. Capacity failure retains consumed metadata work; no
+receipt is reset or regranted. The Selecting fence prevents reentrant adoption
+or retirement. No external callback occurs between the admitted grow and these
+synchronous constructors, so per-header, per-type, per-value and reconciliation
+current checks are unnecessary. The old fine-grained declaration controller and
+its public exports are removed; effective supplied-value binding is separate.
 
-The actual checker receives this same Source and supplied-value cursor.
-Compilation retains the semantic output before the Request clears the domain's
-local aliases and continues its capacity to Pure or Effect. Failed preparation
-clears the same domain before the existing Request retirement; clearing these
-aliases neither settles capacity nor acknowledges physical cleanup.
+The same existing declaration reader preserves typed first refusals and finite
+node/depth/text limits. Source construction consumes that completed original
+reader, never a copied semantic result. The checker receives that Source and
+original supplied-value cursor. Compilation retains its semantic output before
+Request aliases clear and the same capacity continues to Pure or Effect.
+Clearing immutable aliases neither settles capacity, refunds work nor reports
+physical cleanup. Independently supplied prepared Sources retain their existing
+full correspondence and admission boundaries.
 
 ### Effect inventory on the same parsed input
 
@@ -2706,6 +2715,35 @@ request and prepared aliases only behind the original Core retirement fence.
 The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
+
+### Normal SQL and AQL Request continuation
+
+SQL and Pipe Source inputs retain the same SDK snapshot and Request as native
+Programs. Fixed own-DATA header reads select the existing frontend; native
+Parameters are admitted before query-local declarations under one shared
+input-proportional quote. The publication owner supplies its existing JSON,
+index and declaration limits. Native declaration admission retains its original
+Cursor and typed Declarations; the lowerer consumes those facts without a JS
+serialization or another declaration-document parse. No policy limit becomes
+physical backing, and fixed small header/Result carriers remain Host baseline.
+
+The same original parsed Query enters the retained publication lowerer once.
+Its Program and interpreted Catalog owners continue to the existing shared
+checker/compiler tail. A required-reuse Catalog wrapper is matched by the
+existing interpreted-owner identity and is itself forwarded to the checker;
+an equal CID or separately admitted Catalog does not satisfy that binding. The
+wrapper's no-fallback condition must survive, rather than being discarded after
+an outer reference comparison. Subsequent reads of completed semantic DATA
+perform no parser, lowerer or native input admission.
+
+Native declaration/index aliases remain owned through compilation and are cut
+at the same Program, capture or Effect Run adoption and failed-input cleanup.
+The actual Plan/Host consumer still owns its branch, currentness, physical
+resources and retirement. A valid Source format routed to a continuation which
+does not implement it is an internal correspondence failure; it cannot be
+projected as evidence that the authored input was invalid. The SQL/Pipe entry
+alone does not qualify the other Source document controllers or ordinary
+installed/backend execution.
 
 ### Original Request accounting observations
 

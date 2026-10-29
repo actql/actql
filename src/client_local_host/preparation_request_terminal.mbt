@@ -36,6 +36,8 @@ pub suberror ClientRequestTerminalIssue {
   Preparation(ClientRequestPreparationIssue)
   CheckOutcome(@checked.CheckOutcome)
   Publication(@source_publication.PreparedPublicationIssue)
+  QuerySyntax(ClientRequestQuerySyntaxIssue)
+  QueryLowering(ClientRequestQueryLoweringIssue)
 }
 
 ///|
