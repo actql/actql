@@ -63,3 +63,142 @@ pub fn client_program_borrowed_installed_source_environment(
     holder, source_original,
   )
 }
+
+///|
+#export_name("clientProgramInstalledSourceConstructionCapacity")
+pub fn client_program_installed_source_construction_capacity(
+  retained_nodes : Int64,
+  retained_text_bytes : Int64,
+  retained_wire_bytes : Int64,
+  workspace_nodes : Int64,
+  workspace_text_bytes : Int64,
+  workspace_wire_bytes : Int64,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match @client_local_host.installed_source_construction_capacity(
+    retained_nodes,
+    retained_text_bytes,
+    retained_wire_bytes,
+    workspace_nodes,
+    workspace_text_bytes,
+    workspace_wire_bytes,
+  ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramReserveInstalledSourceConstruction")
+pub fn client_program_reserve_installed_source_construction(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  quote : @execution.ExecutionCapacity,
+) -> Result[Unit, @resources.PreparationCapacityIssue] {
+  @client_local_host.reserve_installed_source_construction(owner, input, quote)
+}
+
+///|
+#export_name("clientProgramReconcileInstalledSourceConstruction")
+pub fn client_program_reconcile_installed_source_construction(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  quote : @execution.ExecutionCapacity,
+) -> Result[Unit, @resources.PreparationCapacityIssue] {
+  @client_local_host.reconcile_installed_source_construction(owner, input, quote)
+}
+
+///|
+#export_name("clientProgramCompleteInstalledSourceMaterial")
+pub fn client_program_complete_installed_source_material(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  source_original : ClientLocalPreparationInputOriginal,
+  environment : @source_publication.PreparedPublishedQueryEnvironment,
+  quote : @execution.ExecutionCapacity,
+) -> Result[Unit, @resources.PreparationCapacityIssue] {
+  @client_local_host.complete_installed_source_material(
+    owner, input, source_original, environment, quote,
+  )
+}
+
+///|
+#export_name("clientProgramBorrowInstalledSourceMaterial")
+pub fn client_program_borrow_installed_source_material(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+) -> Result[
+  @resources.PreparationBodyBorrow[
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+  @resources.PreparationCapacityIssue,
+] {
+  @resources.borrow_preparation_body(owner)
+}
+
+///|
+#export_name("clientProgramReturnInstalledSourceMaterial")
+pub fn client_program_return_installed_source_material(
+  holder : @resources.PreparationBodyBorrow[
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @resources.return_preparation_body_borrow(holder)
+}
+
+///|
+#export_name("clientProgramRetireInstalledSourceMaterial")
+pub fn client_program_retire_installed_source_material(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    (
+      ClientLocalPreparationInputOriginal,
+      @source_publication.PreparedPublishedQueryEnvironment,
+    ),
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @client_local_host.retire_installed_source_material(owner, input)
+}
+
+///|
+/// Failure before typed continuation still owns this original Unit token.
+/// A Continued token refuses here; this cannot abort the Source successor.
+#export_name("clientProgramAbortUncontinuedSourceMaterial")
+pub fn client_program_abort_uncontinued_source_material(
+  owner : @resources.PreparationCapacity[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @resources.abort_preparation_capacity_after_cleanup(owner, input)
+}

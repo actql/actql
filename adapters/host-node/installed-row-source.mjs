@@ -38,6 +38,8 @@ import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
+  closeInstalledSourceConstruction} from './installed-host-services.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -1043,13 +1045,17 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
-  declared, environmentWire, connectorId, connectorRegistration,
+  declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
+  if (sourceInitialization !== undefined) {
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment);
+    if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
+  }
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -2213,7 +2219,7 @@ export async function createInstalledRowSource({moon, declaration,
     }
   }
 
-  return Object.freeze({
+  const installedSource = Object.freeze({
     realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
@@ -2280,9 +2286,20 @@ export async function createInstalledRowSource({moon, declaration,
           Reflect.apply(originalReader.retire, originalReader.receiver, []) !== true) {
         fail('InstalledSourceReaderCleanupPending');
       }
-      return site.close();
+      const observed = site.close();
+      if (sourceInitialization === undefined) return observed;
+      // Only the existing Site's completed physical cleanup releases this
+      // constructor's aliases; the request to stop is not its acknowledgement.
+      return Promise.resolve(observed).then(value => {
+        closeInstalledSourceConstruction(sourceInitialization, installedSource);
+        return value;
+      });
     },
   });
+  if (sourceInitialization !== undefined) {
+    retainInstalledSourceConstruction(sourceInitialization, installedSource, declaration, declared, environment);
+  }
+  return installedSource;
 }
 
 

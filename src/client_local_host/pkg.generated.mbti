@@ -312,6 +312,8 @@ pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publicati
 
 pub fn[I] complete_closed_values_body(ClientClosedValuesPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientClosedValuesPreparationIssue]
 
+pub fn[I, S] complete_installed_source_material(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, S, @client_source_publication.PreparedPublishedQueryEnvironment, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
+
 pub fn[I] complete_request_capture_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedCapturePlan) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_effect_preparation(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientRequestPreparationIssue]
@@ -417,6 +419,8 @@ pub fn installed_provider_row_capture_capacity_matches(ClientInstalledCaptureCap
 pub fn installed_record_effect_profile() -> Array[Int]
 
 pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
+
+pub fn installed_source_construction_capacity(Int64, Int64, Int64, Int64, Int64, Int64) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_source_reader_policy() -> Array[Int]
 
@@ -684,6 +688,8 @@ pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
 
+pub fn[I, S] reconcile_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
+
 pub fn[I, P] reconcile_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] reconcile_parameter_binding_source(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
@@ -754,6 +760,8 @@ pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(I
 
 pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
+pub fn[I, S] reserve_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
+
 pub fn[I] reserve_program_publication(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[ClientProgramPublication[I], ClientClosedValuesPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
@@ -771,6 +779,8 @@ pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture,
 pub fn retire_installed_keyed_source_read(ClientInstalledKeyedSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn retire_installed_managed_run(ClientInstalledManagedRun) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn[I, S] retire_installed_source_material(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
 pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
