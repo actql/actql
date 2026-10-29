@@ -169,10 +169,14 @@ export function installNodeClientProgramPreparation({moon, environment,
       }
       return prepared;
     } catch (error) {
-      if (error !== null && (typeof error === 'object' || typeof error === 'function')) {
-        fundedFailures.add(error);
-      }
-      throw error;
+      // A foreign constructor can throw any JS value. Keep that exact cause
+      // in this attempt's failure carrier so even undefined/null cannot fall
+      // through to a second public check or old preparation path.
+      const failure = error !== null && (typeof error === 'object' || typeof error === 'function')
+        ? error : Object.assign(new Error('ClientProgramPreparationFailure', {cause: error}),
+          {code: 'ClientProgramPreparationFailure'});
+      fundedFailures.add(failure);
+      throw failure;
     }
   };
   const prepare = (request, selectedEnvironment = environment) => {

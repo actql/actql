@@ -73,6 +73,7 @@ options(
     "preparation_request_parameters_js_wbtest.mbt": [ "js" ],
     "preparation_request_intent_js_wbtest.mbt": [ "js" ],
     "preparation_request_plan_input_js_wbtest.mbt": [ "js" ],
+    "preparation_request_native_computation_js_wbtest.mbt": [ "js" ],
     "preparation_managed_publication_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],

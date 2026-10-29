@@ -2643,3 +2643,49 @@ That same quoted/failed phase cannot be bypassed by expanding the snapshot or
 selecting a Native, JSON, query or legacy input driver. Only the original intent
 may complete; successful finish then admits the original next input phase.
 This is an internal phase fence, not caller-supplied acceptance evidence.
+
+
+## Selected native Request driver
+
+The generic Native Program caller uses its original detached snapshot, Request
+receipt and Environment. The fixed Common entry selects its immutable standard
+syntax/check/compiler configuration and drives the existing Source index,
+Program, Parameter declaration/Source, checker and compiler continuations. It
+does not serialize the snapshot again or construct another preparation parent.
+Every selected phase keeps its original typed failure and complete overlap on
+the same reservation. The installed publication supplies its original required
+Catalog and Effect target publications; the terminal forwards those exact
+originals when the selected compiler needs them.
+
+The branch returned by this entry is immutable compiler DATA. It is selected
+from the retained Program inventory, never by an application mode or permission
+flag. The actual Plan/module constructor and its borrowed body are separate.
+A declined constructor keeps the first exact failure; another read of that
+same preparation does not invoke its checker, compiler or module factory again.
+Reentry cannot take a provisional body or retire a live constructor. An original
+foreign throw can be any JavaScript value, including undefined: a separate
+attempt flag preserves that first occurrence. The SDK retains a primitive cause
+in its attempt-local failure carrier rather than repeating public checking; that
+carrier certifies no known refusal, authority or cleanup. General
+captured, Effect and backend material constructors still require their actual
+checked inventories and physical Host handoffs. This semantic driver cannot
+substitute a source-free Plan, numeric-only emission recipe or an empty Host
+evidence array for those dependencies.
+
+Supplied Parameters retain the exact admitted Cursor through compilation and
+normal preparation metadata. Reading that DATA invokes no parser, serializer,
+checker or external current observer. The same Run handoff cuts the parent's
+heavy aliases; the active handler/Run owns any still-live native metadata under
+its original reservation. Each actual serializer/material consumer must retain
+and release its own original dependency; Cursor presence is not a durable wire
+or an admission to restore a Run.
+
+SDK producer completion is distinct from Run and borrower retirement. A live
+original Run keeps its same Resource current callback after its producer has
+finished. The callback still checks the original receipt/state and installed
+Host; public producer methods and Core phase guards prevent a new preparation
+from using a finished original. Retirement cuts the snapshot, Parameter cursor,
+request and prepared aliases only behind the original Core retirement fence.
+The existing registry retirement callback is mandatory before returning a
+selected holder. A missing callback, pending handler or uncertain cleanup keeps
+the same holder and debit; logical completion never acknowledges physical stop.

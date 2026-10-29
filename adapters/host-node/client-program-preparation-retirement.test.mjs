@@ -105,3 +105,14 @@ test('selected result must retain the exact Environment and cannot admit a forei
    await assert.rejects(prepare(request()),{code:'ClientProgramPreparationFailure'});
  }
 });
+
+test('selected funded primitive failure keeps its exact cause without a public recheck',async()=>{
+ for(const cause of [undefined,null,0,'original-foreign-failure']) {
+  let checks=0,entries=0;
+  const {prepare}=fixture({check(){checks++;throw new Error('MustNotRecheck');},
+   getFundedPreparation(){entries++;throw cause;}});
+  await assert.rejects(prepare({kind:'program',input:{},parameters:null}),error=>
+   error.code==='ClientProgramPreparationFailure'&&Object.hasOwn(error,'cause')&&error.cause===cause);
+  assert.equal(entries,1);assert.equal(checks,0);
+ }
+});

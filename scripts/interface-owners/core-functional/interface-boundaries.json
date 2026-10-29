@@ -27170,14 +27170,14 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a81c3417daf6188f6227feceacd2f4b045dc6308dd0fcbb1f3c267b1580846cd",
+      "sha256": "a58f89b55902cf96c3e8388c70e3d8a6b38e72cb9b39f4f6bf76c3ba8ce6e979",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
       "operations": [
         {
           "name": "[I]finish_request_computation_preparation",
-          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , update_targets ? : @ update_targets . UpdateTargetPublication ?"
         },
         {
           "name": "[I]prepare_request_computation_check_preparation",
@@ -27197,54 +27197,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -27255,12 +27291,120 @@
               {
                 "path": "src/client_local_host/preparation_request_terminal_js_wbtest.mbt",
                 "anchor": "test \"normal Request terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Same-original checking/compilation/Plan controls; normal all-entry activation and ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_computation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dfca6a1db001e1c4f71e78cd0775d6d5748b918a6df10cc5b710cd03c4345593",
+      "role": "common-semantics",
+      "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_native_computation",
+          "declaration": "[ I , T ] prepare_request_native_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]request_preparation_parameters_original",
+          "declaration": "[ I ] request_preparation_parameters_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ decode . Cursor ? , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_prepared_computation_kind",
+          "declaration": "[ I ] request_prepared_computation_kind ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ClientRequestComputationKind , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_native_computation",
+            "[I]request_preparation_parameters_original",
+            "[I]request_prepared_computation_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Native driver keeps original supplied"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal generic Native Request prepares"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual Native Core flow and real Node manager with explicit Common ports, plus API types; no matching normal artifact or generic backend/Source/Effect completion."
     },
     {
       "module": "src/client_local_host/preparation_publication_snapshot.mbt",
