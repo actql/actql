@@ -355,3 +355,39 @@ test('provider fixtures retire their original factories before closing dependent
     }
   }
 });
+
+test('provider fixture cleanup preserves dependent owners while the original factory remains pending',async()=>{
+  for(const family of ['notion','calendar']){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const fixture=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.find(node=>
+      node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name===
+        (family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    let release;
+    const pending=new Promise(resolve=>{release=resolve;}),closed=[];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader:()=>pending});
+    const reader=factory.prepare({resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}});
+    try{
+      await assert.rejects(reader.read(),{code:'InstalledSourcePageCallbackNotSynchronous'});
+      reader.requestStop();assert.equal(factory.retire(),false);
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,[reader],[factory],
+        {close(){closed.push('row');},usage:()=>({})},{close(){closed.push('journal');}},
+        {close(done){done();}},{diagnostic(){}},'/UNOPENED/fixture',()=>[0n,0n,0n,0n]);
+      await assert.rejects(cleanup(),AggregateError);
+      assert.deepEqual(closed,[],'pending original child cannot permit dependent close');
+      assert.equal(reader.observe().cleanupConfirmed,false);
+    }finally{
+      release({fetchPage(){assert.fail('no request');},decodePage(){assert.fail('no projection');}});
+      await pending;await new Promise(resolve=>setImmediate(resolve));
+      reader.requestStop();assert.equal(factory.retire(),true);
+    }
+  }
+});
