@@ -126,9 +126,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (publicationOnly) fail('InstalledEffectPublicationSourceUnavailable');
       if (nodeTypes.isProxy(options ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
-      const readerField = Object.hasOwn(fields, 'readPages') ? 'readPages' : 'createReader';
-      if (Reflect.ownKeys(fields).length !== 4 ||
-          ['installation', 'implementation', 'site', readerField].some(name =>
+      const standard = Object.hasOwn(fields, 'preparePageReader');
+      const readerField = standard ? 'preparePageReader'
+        : Object.hasOwn(fields, 'readPages') ? 'readPages' : 'createReader';
+      if (Reflect.ownKeys(fields).length !== (standard ? 5 : 4) ||
+          ['installation', 'implementation', 'site', readerField, ...(standard ? ['operation'] : [])].some(name =>
             !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, implementation = sourceImplementations.get(installation);
       if (implementation === undefined || implementation.value !== fields.implementation.value ||
@@ -137,7 +139,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
       return createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
-        maxResponses: implementation.value.limits.maxPages});
+        maxResponses: implementation.value.limits.maxPages,
+        ...(standard ? {operation: fields.operation.value,
+          maxResponseBytes: implementation.value.limits.maxResponseBytes,
+          maxSecretBytes: implementation.value.limits.maxSecretBytes} : {})});
     },
     openRowSite(options) {
       current();

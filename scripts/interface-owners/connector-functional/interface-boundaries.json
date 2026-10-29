@@ -7576,7 +7576,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "953c7f35126ac4af012ea0761f64ff70b5c83d69c0f81106d1da2fd3bd30ada5",
+      "sha256": "ebb9a19d74547dbc7e530431c6491d6f1c0efc3e01c65afcd4ed37e0ac5c0490",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -8319,6 +8319,7 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
             "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
@@ -8332,6 +8333,7 @@
             "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
             "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/invalidReaderField",
             "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
@@ -9701,7 +9703,7 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#12"
+            "createInstalledRowSource/init:close/init:close"
           ],
           "exports": [],
           "attributes": {
@@ -10000,7 +10002,7 @@
           }
         }
       ],
-      "sha256": "12c05c0bdc6c5a4f9b42f7fe34d42e3ee90bcbb5be7be6dc6fa274df8225df1b",
+      "sha256": "1db6305c5b4307bc07aa299299089db1ef5ca1b3783cc64f317124f8d8c11bb9",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10137,6 +10139,14 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
           "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
+          "parameters": [
             "rows",
             "charge"
           ],
@@ -10169,11 +10179,6 @@
           "parameters": [
             "sourceRef"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#12",
-          "parameters": [],
           "async": false
         },
         {
@@ -10251,6 +10256,11 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
           "parameters": [
             "keyedAcquisition",
@@ -10274,6 +10284,13 @@
           "name": "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/invalidReaderField",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
