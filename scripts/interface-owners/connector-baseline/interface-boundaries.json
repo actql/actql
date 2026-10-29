@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0df88e913c7f745deea7fc03c50bd976d6141346544fa332a29a9f80225dea62",
+      "sha256": "405d24fa907d0004ac28b624dfc785da67b0a901d1de8218e3293914ec5a967a",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5865,6 +5865,14 @@
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
           "parameters": [
             "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+          "parameters": [
+            "request",
             "authorization",
             "credential",
             "callResource",
@@ -5873,7 +5881,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
           "parameters": [
             "request",
             "observation",
@@ -5954,7 +5962,8 @@
             "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
             "sameKeys/sameKeys",
             "text/text",
-            "loadInstalledGitHubEffect/init:request/init:request"
+            "loadInstalledGitHubEffect/init:request/init:request",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4"
           ],
           "exports": [
             "INSTALLED_GITHUB_EFFECT_VERSION",
@@ -6042,6 +6051,10 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "Effect Site uses the same Host factory and provider binding"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "GitHub standard declaration forwards original logical request and late stamp DATA"
               }
             ]
           }
