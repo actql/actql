@@ -1305,3 +1305,22 @@ binary64, nullable Date pairs, Text/domain refusal, equal foreign originals,
 row advancement and pin/export retirement after an awaited consumer. Those
 component checks do not prove installed target issuance, approved writes,
 recovery, live Provider I/O or normal resource funding.
+
+### Shared page projection boundary
+
+The exact-page request and checked response can be supplied as standard shared
+Reader callbacks through `prepareNotionPageReadPages`. The callbacks retain the
+original page coordinate, bounded provider methods and limits, and keep the
+reviewed Notion API version. A single decoded observation contains the original
+typed page and its bounded metadata wire; it is not a new logical row, Source
+observation, Credential or permission. The consumer must keep that DATA together
+with its actual response and original response charge.
+
+The existing point-reader API uses the same target and response projection.
+Its current/error and raw-response obligations remain unchanged. Migrating its
+parent property/database consumers additionally requires the actual shared
+read-child binding and complete retained/construction/failed-child backing;
+projection callbacks alone do not supply those obligations or enable a normal
+installed Source. The shared Reader owns stop, callback custody and physical
+cleanup when it is used; no second provider lifecycle is introduced by these
+callbacks.

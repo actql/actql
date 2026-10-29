@@ -2050,11 +2050,12 @@
     },
     {
       "module": "adapters/connectors/notion/site/page-read.mjs",
-      "sha256": "2635fce8b7a24223059c68850647f04287017ffc42bb009eaf02421e9e100e53",
+      "sha256": "78b742293a74babe62823e26da65c083ce91c3469390373c107903f754cdf347",
       "exports": [
         "NOTION_PAGE_READ_OPERATION",
         "NotionPageReadFailure",
-        "createNotionPageReader"
+        "createNotionPageReader",
+        "prepareNotionPageReadPages"
       ],
       "operations": [
         {
@@ -2108,6 +2109,14 @@
           "name": "originalReader",
           "parameters": [
             "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "pagePath",
+          "parameters": [
+            "pageId",
+            "limits"
           ],
           "async": false
         },
@@ -2169,6 +2178,68 @@
           "async": false
         },
         {
+          "name": "prepareNotionPageReadPages",
+          "parameters": [
+            "moon",
+            "pageId",
+            "limits",
+            "applySynchronousProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/init:decodePage/init:decodePage",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/init:fetchPage/init:fetchPage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/prepareNotionPageReadPages",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/prepareNotionPageReadPages#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/prepareNotionPageReadPages#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPageReadPages/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectPage",
+          "parameters": [
+            "response",
+            "pageId",
+            "b",
+            "provider",
+            "receiver",
+            "apply"
+          ],
+          "async": false
+        },
+        {
           "name": "readPage",
           "parameters": [
             "state"
@@ -2203,14 +2274,15 @@
         {
           "operations": [
             "<module>",
+            "NotionPageReadFailure/constructor:constructor/constructor:constructor",
             "count/count",
             "createNotionPageReader",
             "createNotionPageReader/handle/init:observe/init:observe",
             "createNotionPageReader/handle/init:read/init:read",
             "createNotionPageReader/handle/init:requestStop/init:requestStop",
             "fail/fail",
-            "NotionPageReadFailure/constructor:constructor/constructor:constructor",
             "originalReader",
+            "pagePath",
             "positive/positive",
             "prepare",
             "prepare/prepare",
@@ -2218,6 +2290,14 @@
             "prepare/prepare#3",
             "prepare/prepare#4",
             "prepare/provider/provider",
+            "prepareNotionPageReadPages",
+            "prepareNotionPageReadPages/init:decodePage/init:decodePage",
+            "prepareNotionPageReadPages/init:fetchPage/init:fetchPage",
+            "prepareNotionPageReadPages/prepareNotionPageReadPages",
+            "prepareNotionPageReadPages/prepareNotionPageReadPages#2",
+            "prepareNotionPageReadPages/prepareNotionPageReadPages#3",
+            "prepareNotionPageReadPages/provider/provider",
+            "projectPage",
             "readPage",
             "readPage/readPage",
             "readPage/verify/verify"
@@ -2225,7 +2305,8 @@
           "exports": [
             "NOTION_PAGE_READ_OPERATION",
             "NotionPageReadFailure",
-            "createNotionPageReader"
+            "createNotionPageReader",
+            "prepareNotionPageReadPages"
           ],
           "attributes": {
             "responsibility": [
@@ -2236,6 +2317,10 @@
               {
                 "path": "src/connectors/notion/catalog/page_observation.mbt",
                 "anchor": "pub fn project_notion_page("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Shared page projection boundary"
               }
             ],
             "inputsOutputs": [
@@ -2338,6 +2423,10 @@
               {
                 "path": "src/connectors/notion/catalog/page_observation_wbtest.mbt",
                 "anchor": "test \"Notion page metadata projection keeps original parent tags version and bounded output\""
+              },
+              {
+                "path": "adapters/host-node/installed-managed-provider-projection.actual.test.mjs",
+                "anchor": "real Notion page projection uses the shared owner and preserves exact original page metadata"
               }
             ]
           }
