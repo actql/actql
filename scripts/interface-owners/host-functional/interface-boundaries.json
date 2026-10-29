@@ -83621,7 +83621,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "d8b6213d6dcace98871f0fbc168007e9ae707f0aa0df26c1b5c05eb73838d857",
+      "sha256": "818a28fa413ddd0913bf114f20fd225979424d92d9e1c57287c96c14219584eb",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -84023,6 +84023,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('rejected native constructor preserves"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('rejected generic constructor releases"
               }
             ]
           }
