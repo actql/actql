@@ -81733,7 +81733,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "c4a304ae484591e5ab6dfc16bb525f1cdf9126e8a78c3066d282bf1521fc9bc3",
+      "sha256": "ba33606ee31b71f90940044e4941643642103c9beb74dc03625e1895ed21752d",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
@@ -81741,7 +81741,9 @@
         "bindClosedValuesSnapshot",
         "checkedPreparation",
         "cleanupClosedValuesInput",
+        "closeHostInitializationPreparation",
         "closedValuesPreparationAvailable",
+        "openHostInitializationPreparation",
         "openRequestPreparation"
       ],
       "operations": [
@@ -81813,6 +81815,13 @@
           "async": false
         },
         {
+          "name": "closeHostInitializationPreparation",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "commonInt/commonInt",
           "parameters": [
             "value"
@@ -81830,9 +81839,10 @@
           "async": false
         },
         {
-          "name": "openRequestPreparation",
+          "name": "openHostInitializationPreparation",
           "parameters": [
             "state",
+            "moon",
             "input",
             "assertCurrent",
             "childrenPending"
@@ -81840,16 +81850,37 @@
           "async": false
         },
         {
-          "name": "openRequestPreparation/openRequestPreparation",
+          "name": "openPreparationAdmission",
+          "parameters": [
+            "state",
+            "moon",
+            "input",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparationAdmission/openPreparationAdmission",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "openRequestPreparation/openRequestPreparation#2",
+          "name": "openPreparationAdmission/openPreparationAdmission#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRequestPreparation",
+          "parameters": [
+            "state",
+            "input",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -81898,8 +81929,11 @@
             "phaseAdapter/phaseAdapter",
             "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
             "openRequestPreparation",
-            "openRequestPreparation/openRequestPreparation",
-            "openRequestPreparation/openRequestPreparation#2"
+            "closeHostInitializationPreparation",
+            "openHostInitializationPreparation",
+            "openPreparationAdmission",
+            "openPreparationAdmission/openPreparationAdmission",
+            "openPreparationAdmission/openPreparationAdmission#2"
           ],
           "exports": [
             "beginClosedValuesInput",
@@ -81908,7 +81942,9 @@
             "checkedPreparation",
             "cleanupClosedValuesInput",
             "closedValuesPreparationAvailable",
-            "openRequestPreparation"
+            "openRequestPreparation",
+            "closeHostInitializationPreparation",
+            "openHostInitializationPreparation"
           ],
           "attributes": {
             "responsibility": [

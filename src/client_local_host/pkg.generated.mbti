@@ -82,6 +82,8 @@ pub fn[I] begin_closed_values_text_check(ClientClosedValuesPreparation[I], Int) 
 
 pub fn[I, P] begin_effect_program_check_preparation(@physical_resources.PreparationCapacity[I, P], I, @stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, P], ClientProgramCheckPreparationIssue]
 
+pub fn[I] begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
+
 pub fn begin_installed_effect_managed_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_effect_managed_source_read(ClientInstalledManagedRun, @client_row_source_host.RowDeclaration, Int) -> Result[(ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, ClientInstalledCaptureCapacity), ClientInstalledManagedRunIssue]
@@ -285,6 +287,8 @@ pub fn client_wasm_result_export_profile() -> @run_publication_host.PublicationO
 pub fn close_accounted_client_source_capture(ClientAccountedSourceCapture, quantum? : Int) -> Bool
 
 pub fn close_client_source_capture(ClientSourceCapture) -> Bool
+
+pub fn[I] close_host_initialization_preparation(ClientHostInitializationPreparation[I]) -> Result[Unit, ClientHostInitializationIssue]
 
 pub fn[I] closed_values_compilation_original(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientValuesCompilation?
 
@@ -842,6 +846,8 @@ pub fn[I] start_program_capture(ClientProgramCapture[I]) -> Result[ClientProgram
 
 pub fn[I] start_program_validation(ClientProgramValidation[I]) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I] take_host_initialization_preparation_capacity(ClientHostInitializationPreparation[I]) -> Result[(I, @physical_resources.PreparationCapacity[I, Unit]), ClientHostInitializationIssue]
+
 pub fn[I, P] take_program_check_input(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckInput, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] take_program_check_preparation_outcome(ClientProgramCheckPreparation[I, P]) -> Result[(@program_check.CheckOutcome, Bool), ClientProgramCheckPreparationIssue]
@@ -950,6 +956,16 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 type ClientDuckDBAcquisitionSelection
 
 type ClientDuckDBCaptureCapacity
+
+pub(all) enum ClientHostInitializationIssue {
+  ForeignOriginal
+  WrongPhase
+  Policy
+  Initial(@physical_resources.ImportedChildLedgerIssue)
+  Capacity(@physical_resources.PreparationCapacityIssue)
+} derive(@debug.Debug)
+
+type ClientHostInitializationPreparation[I]
 
 type ClientInferInputExecution
 

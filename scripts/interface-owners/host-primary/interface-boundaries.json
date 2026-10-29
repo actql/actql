@@ -4987,7 +4987,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "897f08d44e9df99f13f1e87a2ed412cd90187c7d5b797e3b5cb108eec00c9b74",
+      "sha256": "96608e3b6f471fddff9a471a94cf362cff45af6ea8b51567bdf25cc0f864acc5",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5202,6 +5202,23 @@
             "request",
             "environment"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -8228,7 +8245,10 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -8974,7 +8994,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9387,7 +9407,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -12396,7 +12416,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -13944,7 +13964,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -14050,7 +14070,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }

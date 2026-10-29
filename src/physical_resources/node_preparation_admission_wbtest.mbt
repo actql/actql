@@ -569,3 +569,42 @@ test "zero-byte isolation retains an actual delegated child until settlement wit
     assert_eq(ledger_usage(ledger).live_delegations, 0)
   }
 }
+
+///|
+test "node preparation adopted body carries publication without recovering its input" {
+  let input = [1]
+  let body = [2]
+  let initial = prepare_node_preparation_original(
+    preparation_adoption_child(),
+    input,
+    () => Ok(()),
+  )
+  let ledger = start_node_preparation_admission(initial).unwrap()
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+    ledger,
+    input,
+    40L,
+    60L,
+    max_borrowers=2,
+  ).unwrap()
+  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  let token = capacity.reservation.reservation
+  let (run, same, retirement, holder) = adopt_node_preparation_admission(
+    initial, input, capacity, body,
+  ).unwrap()
+  assert_true(initial.admission is None)
+  reserve_preparation_publication_phase(holder, body, 50L, 20L).unwrap()
+  assert_true(physical_equal(same, ledger))
+  assert_true(physical_equal(capacity.reservation.reservation, token))
+  assert_eq(ledger_usage(ledger).live_reservations, 1)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 50L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 20L)
+  assert_false(retire_transferred_preparation(retirement).unwrap())
+  assert_false(return_preparation_body_borrow(holder).unwrap())
+  release_node_preparation_holder(run).unwrap() |> ignore
+  assert_true(retire_transferred_preparation(retirement).unwrap())
+  cleanup_node_managed_run_admission(run).unwrap()
+  assert_eq(ledger_usage(ledger).live_reservations, 0)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

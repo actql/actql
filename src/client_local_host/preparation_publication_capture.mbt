@@ -52,7 +52,6 @@ pub fn[I] prepare_program_capture(
 ) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue] {
   let owner = value.owner
   guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) &&
     owner.publication_definition is Some(original_definition) &&
     physical_equal(original_definition, definition) &&
     owner.publication_invocation is Some(original_invocation) &&
@@ -88,14 +87,13 @@ pub fn[I] prepare_program_capture(
   }
   let array_retained = owner.retained_quote + arrays
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       array_retained,
       owner.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => owner.retained_quote = array_retained
   }
   guard publication_original_body(value) is Some(_) else {
@@ -164,19 +162,17 @@ pub fn[I] start_program_capture(
     return Err(ForeignOriginal)
   }
   let owner = value.owner
-  guard owner.input is Some(input) &&
-    publication_original_body(value) is Some(prepared) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       owner.retained_quote,
       owner.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   guard publication_original_body(value) is Some(_) &&

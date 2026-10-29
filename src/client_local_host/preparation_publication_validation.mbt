@@ -101,8 +101,7 @@ fn[I] grow_program_validation(
   }
   let capture = value.capture
   let owner = capture.publication.owner
-  guard owner.input is Some(input) &&
-    publication_original_body(capture.publication) is Some(prepared) else {
+  guard publication_original_body(capture.publication) is Some(prepared) else {
     return Err(Owner(ForeignOriginal))
   }
   let target = Int64::max(capture.validation_retained, retained)
@@ -115,14 +114,13 @@ fn[I] grow_program_validation(
   let total = owner.retained_quote + delta
   let peak = Int64::max(owner.execution_quote, execution)
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      capture.publication.holder,
       prepared,
       total,
       peak,
     ) {
-    Err(issue) => return Err(Owner(Capacity(issue)))
+    Err(issue) => return Err(Owner(issue))
     Ok(_) => {
       owner.retained_quote = total
       owner.execution_quote = peak
