@@ -224,13 +224,14 @@ async function initializationFixture(family) {
   const cap=family[0].toUpperCase()+family.slice(1);
   const load=Function(...Object.keys(ports),declarations+`\nreturn loadInstalled${cap}Source;`)(...Object.values(ports));
   const provider=Object.fromEntries((family==='notion'
-    ?['notionUserListSchemaWire','notionUserListRelationFactsWire']
+    ?['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
+      'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList']
     :['calendarListSchemaWire','calendarListRelationFactsWire','calendarListColumnNames',
       'calendarListRowsWire','calendarListMetadataJson','calendarProjectCalendarList'])
     .map(name=>[name,()=>name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port']));
   const moon={clientProgramRowSourceRestoreRelationDeclaration:()=>ok({}),
     clientProgramRowSourceDeclarationJson:()=>JSON.stringify({views:[{fields:['id']}]})};
-  return {failure,closed:()=>closed,factory:()=>factory,configurationReads:()=>configurationReads,
+  return {failure,siteProfile,closed:()=>closed,factory:()=>factory,configurationReads:()=>configurationReads,
     load:(overrides={})=>load(profile,{root:'/UNOPENED/root',principalId:'fixture',moon,providerMoon:provider,
       readerCapacity:{},runtimeBundleCid:'explicit runtime port',baseEnvironmentWire:'{}',
       resolveSecret(){assert.fail('no secret resolution');},configurationReader:{
@@ -261,5 +262,40 @@ test('both installed loaders refuse missing Reader inputs before any configurati
       (missing==='readerCapacity'?'ReaderCapacityUnavailable':'CredentialMaterialUnavailable')});
     assert.equal(f.configurationReads(),0,'no configuration read before required Reader inputs');
     assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
+  }
+});
+
+test('both installed loaders retain the original provider methods and receiver before configuration awaits',async()=>{
+  for(const family of ['notion','calendar']){
+    const f=await initializationFixture(family);
+    const names=family==='notion'
+      ?['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
+        'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList']
+      :['calendarListSchemaWire','calendarListRelationFactsWire','calendarListColumnNames',
+        'calendarListRowsWire','calendarListMetadataJson','calendarProjectCalendarList'];
+    const provider={},reads=new Map(),calls=[];
+    let replaced=false,readsBeforeAwait,failure;
+    for(const name of names)Object.defineProperty(provider,name,{get(){
+      reads.set(name,(reads.get(name)??0)+1);
+      if(replaced)return()=>assert.fail('replacement provider after configuration await');
+      return function(){
+        assert.equal(this,provider);calls.push(name);
+        return name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port';
+      };
+    }});
+    try{
+      await assert.rejects(f.load({providerMoon:provider,configurationReader:{async readJson(){
+        readsBeforeAwait=new Map(reads);await Promise.resolve();replaced=true;return f.siteProfile;
+      },readText(){assert.fail('no CA read');}}}),error=>{
+        failure=error;return error.primaryFailure===f.failure;
+      });
+      assert.deepEqual(readsBeforeAwait,new Map(names.map(name=>[name,1])));
+      assert.deepEqual(reads,readsBeforeAwait,'no provider reread after configuration await');
+      assert.deepEqual(calls,names.slice(0,2));
+      assert.equal(f.closed(),1);
+      assert.equal(failure.cleanupPending,false);
+    }finally{
+      f.factory()?.retire();await failure?.cleanupHandle?.retry();
+    }
   }
 });
