@@ -80,7 +80,7 @@ test('Calendar free busy response substitution and whole-row bounds refuse befor
     if(kind==='calendar'){body.calendars.other=body.calendars.private;delete body.calendars.private;}
     if(kind==='window')body.timeMax='2026-10-19T00:00:00Z';
     if(kind==='rowlimit')options={limits:{...f.options.limits,maxRows:1}};
-    if(kind==='precision')body.calendars.private.busy[0].start='2026-10-17T02:00:00.0001Z';
+    if(kind==='precision')body.calendars.private.busy[0].start='2026-10-17T02:00:00.0000000001Z';
     f.state.pages=[JSON.stringify(body)];
     await assert.rejects(f.read(options),error=>error.observations.length===1);
     assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
