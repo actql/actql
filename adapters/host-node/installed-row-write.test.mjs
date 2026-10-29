@@ -620,3 +620,9 @@ test('standard stamped capture refuses a missing original resource owner', () =>
   assert.throws(() => bind({}, [f.member]), {code: 'InstalledEffectResourcesUnavailable'});
   assert.deepEqual(f.counts(), {mappings: 1, finalizations: 0, getters: 0});
 });
+
+test('standard stamped finalizer cannot add a post-Preview query component', async () => {
+  const fixture = stampedFixture({finalize: ({request, requestTag}) => ({...request,
+    body: '{}', requestCid: boundaryCid, requestTag, query: [['unexpected', '1']]})});
+  await assert.rejects(fixture.finalize(), {code: 'InvalidInstalledRowWrite'});
+});
