@@ -23,6 +23,7 @@ export function installedSourceFixtureLifetime(t) {
       if (initialization.services !== undefined) {
         assert.equal(retireInstalledSourceInitialization(initialization.services), true);
       }
+      initialization.childrenPending = false;
       closeHostInitializationPreparation(initialization.state);
       initialization.active = false;
     }
@@ -32,14 +33,17 @@ export function installedSourceFixtureLifetime(t) {
     open({root, moon, installation, runtimeBundleCid, baseEnvironmentWire}) {
       assert.equal(initialization, undefined);
       // Retain before the actual fallible Resource/admission constructor.
-      initialization = {state: {}, active: true};
+      initialization = {state: {}, active: true, childrenPending: false};
       const current = () => {assert.equal(initialization.active, true);};
       const input = Object.freeze({root, original: 'installed Source component'});
       const parent = openHostInitializationPreparation(initialization.state, moon,
-        input, current, () => sources.some(source => source.cleanupPending?.() === true));
+        input, current, () => initialization.childrenPending);
       const services = createInstalledHostServices({root, principalId: 'operator', moon,
         assertCurrent: current, initialPreparation: parent});
       initialization.services = services;
+      // The SAME service's acknowledged retirement, rather than an optional
+      // provider status field, is what clears this original child duty.
+      initialization.childrenPending = true;
       retainInstalledHostServiceInstallation(services, installation, runtimeBundleCid);
       const configurationReader = installedSourceConfigurationReader(services);
       return Object.freeze({installation, installationServices: services, configurationReader,
