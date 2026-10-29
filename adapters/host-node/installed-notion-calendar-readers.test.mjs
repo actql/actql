@@ -239,7 +239,7 @@ async function initializationFixture(family,{failConstruction=true}={}) {
   const sourceInitialization={prepareDeclaration(views,expected){
     assert.equal(this,sourceInitialization);assert.equal(views.length,1);assert.equal(expected,undefined);
     serviceCalls.push('prepareDeclaration');return Object.freeze({declaration,declared,environment});
-  };
+  }};
   const implementation=Object.freeze({runAcquisitionLimits:Object.freeze({maxBindings:1,maxSecretBytes:10})});
   const failure=new Error('same original Source constructor failure');
   const site={credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no send');},
