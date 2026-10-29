@@ -223,7 +223,9 @@ pub fn[I] prepare_request_program_module_body(
     @local.ManagedProvider,
   ],
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
-  if owner.program_body_attempted {
+  if owner.program_body_attempted ||
+    owner.program_artifact_work is Some(_) ||
+    owner.program_artifact_work_issue is Some(_) {
     return Err(Preparation(WrongPhase))
   }
   if owner.phase != ProgramPlanReserved {
@@ -342,36 +344,59 @@ pub fn[I] prepare_request_program_module_body(
         }
         Ok(_) => ()
       }
-      let artifact : @publication_host.ClientRunCompilation = if geometry.tasks {
-        match
-          @publication_host.issue_prepared_client_task_compilation(
-            prepared,
-            manifests,
-            sequence,
-            limits.max_facts,
-            limits.max_witnesses,
-            limits.max_wire_bytes,
-            limits.max_nodes,
-            limits.max_depth,
-          ) {
-          Err(issue) => return Err(TaskCompilation(issue))
-          Ok(value) => @publication_host.Tasks(value)
-        }
+      // The original hash and text writers each visit at most the quoted
+      // complete Plan value nodes. This bounds only this known dimension;
+      // string, parser, contract and other compiler work is not inferred here.
+      let work = match
+        @resources.begin_preparation_phase_work64(
+          capacity,
+          input,
+          @resources.ExecutionPlan,
+          2L * geometry.executable_plan.1.to_int64(),
+        ) {
+        Err(issue) => return Err(Preparation(Work(issue)))
+        Ok(value) => value
+      }
+      owner.program_artifact_work = Some(work)
+      let attempted : Result[
+        @publication_host.ClientRunCompilation,
+        ClientRequestProgramPlanIssue,
+      ] = if geometry.tasks {
+        @publication_host.observe_prepared_client_task_plan_encoding(
+          prepared,
+          manifests,
+          sequence,
+          limits.max_facts,
+          limits.max_witnesses,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          nodes_out=owner.program_artifact_plan_encoding_nodes,
+        )
+        .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+        .map_err(issue => TaskCompilation(issue))
       } else {
-        match
-          @publication_host.issue_prepared_client_values_compilation(
-            prepared,
-            manifests,
-            sequence,
-            limits.max_facts,
-            limits.max_witnesses,
-            limits.max_wire_bytes,
-            limits.max_nodes,
-            limits.max_depth,
-          ) {
-          Err(issue) => return Err(ValuesCompilation(issue))
-          Ok(value) => @publication_host.Values(value)
-        }
+        @publication_host.observe_prepared_client_values_plan_encoding(
+          prepared,
+          manifests,
+          sequence,
+          limits.max_facts,
+          limits.max_witnesses,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          nodes_out=owner.program_artifact_plan_encoding_nodes,
+        )
+        .map(value => @publication_host.ClientRunCompilation::Values(value))
+        .map_err(issue => ValuesCompilation(issue))
+      }
+      match finish_request_program_artifact_work(owner) {
+        Err(issue) => return Err(Preparation(issue))
+        Ok(_) => ()
+      }
+      let artifact = match attempted {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
       }
       plan.compilation = Some(artifact)
       owner.phase = ProgramPlanReserved
@@ -387,8 +412,59 @@ pub fn[I] prepare_request_program_module_body(
       }
       completed.map_err(issue => Preparation(issue))
     },
-    () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+    () => {
+      // This SAME scope runs after synchronous foreign unwind as well. The
+      // original output cell was retained before entry; no replay is needed
+      // to close its existing work receipt or preserve an observed prefix.
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
   )
+}
+
+///|
+// Work closure is separate from physical/body retirement. The observed
+// per-invocation count remains in its original cell after receipt completion,
+// body transfer and cleanup; it never becomes current occupancy or a refill.
+fn[I] finish_request_program_artifact_work(
+  owner : ClientRequestPreparation[I],
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  if owner.program_artifact_work is Some(work) {
+    if !owner.program_artifact_work_charged {
+      // A declined finish keeps the original receipt, but must not spend
+      // this already returned constructor's observation a second time.
+      owner.program_artifact_work_charged = true
+      match
+        @resources.spend_preparation_phase_work64(
+          work,
+          owner.program_artifact_plan_encoding_nodes.val,
+        ) {
+        Err(issue) => owner.program_artifact_work_issue = Some(issue)
+        Ok(_) => ()
+      }
+    }
+    match @resources.finish_preparation_phase_work64(work) {
+      Err(issue) => {
+        owner.program_artifact_work_issue = Some(issue)
+        return Err(Work(issue))
+      }
+      Ok(spent) => {
+        owner.program_artifact_work_spent = spent
+        owner.program_artifact_work = None
+      }
+    }
+    if owner.program_artifact_work_issue is None &&
+      owner.program_artifact_work_spent !=
+      owner.program_artifact_plan_encoding_nodes.val {
+      owner.program_artifact_work_issue = Some(@resources.InvalidWork)
+    }
+    if owner.program_artifact_work_issue is Some(issue) {
+      return Err(Work(issue))
+    }
+  }
+  Ok(())
 }
 
 ///|

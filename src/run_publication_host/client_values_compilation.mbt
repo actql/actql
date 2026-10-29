@@ -84,10 +84,65 @@ pub fn issue_prepared_client_values_compilation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue] {
+  issue_prepared_client_values_compilation_owned(
+    value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// Run the original compiler once and overwrite this invocation's private
+/// output with final Executable Plan hash/text VALUE-NODE debits. The output
+/// remains observable on typed failure or synchronous unwind; it is not a
+/// Resource grant, original-binding proof, byte count or full compiler work.
+pub fn observe_prepared_client_values_plan_encoding(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  nodes_out~ : Ref[Int64],
+) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue] {
+  nodes_out.val = 0L
+  issue_prepared_client_values_compilation_owned(
+    value,
+    manifests,
+    sequence_limits,
+    max_facts,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    plan_encoding_nodes_out=Some(nodes_out),
+  )
+}
+
+///|
+fn issue_prepared_client_values_compilation_owned(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  plan_encoding_nodes_out? : Ref[Int64]? = None,
+) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue] {
   let parts = match
     issue_prepared_client_values_executable_plan_parts(
-      value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
-      max_nodes, max_depth,
+      value,
+      manifests,
+      sequence_limits,
+      max_facts,
+      max_witnesses,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      plan_encoding_nodes_out~,
     ) {
     Ok(parts) => parts
     Err(issue) => return Err(Plan(issue))

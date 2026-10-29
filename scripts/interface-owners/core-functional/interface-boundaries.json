@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25186,7 +25186,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "05be6d27788e1e3205e5187bafd8c37ae2f89baedaf5da549e339f1276674dc7",
+      "sha256": "64b6375d1394b7cd671d12e9fdcf8df55487bb2a6928c6aba043404721e100f2",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27965,7 +27965,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "508056c4efd354c4f7c8f0e2a0eac0a5cdfc2e3523e1128c22be1a61056d4362",
+      "sha256": "63e853ef9566279d392a8ec24be734343b1dad081f5fbe5b21e0fe7c706caafd",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -27993,6 +27993,10 @@
         {
           "name": "[I]continue_request_program_preparation",
           "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_program_artifact_work",
+          "declaration": "[ I ] finish_request_program_artifact_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_program_module_body",
@@ -28125,6 +28129,110 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]finish_request_program_artifact_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
               }
             ]
           }
@@ -28349,7 +28457,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
-      "sha256": "598d1b44737d6c432d0d567d592ea810825337af438d2bff86e7f4506e3ecdc6",
+      "sha256": "225f2d0b79307f8e397af9629495a93643e1aaa9b8c1e18517d450b6ea757598",
       "exports": [],
       "operations": [
         {
@@ -28754,6 +28862,1565 @@
         }
       ],
       "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_task_compilation.mbt",
+      "sha256": "2ded2c212e641a37a9594dfad193d1b9b94803938ded99aa61990256711c0ec6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_task_compilation_compiled_plan",
+          "declaration": "client_task_compilation_compiled_plan ( value : ClientTaskCompilation , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_task_compilation_graph_original",
+          "declaration": "client_task_compilation_graph_original ( owner : PreparedClientProgram , plan : ClientTaskExecutablePlan , graph : ClientTaskPlanGraph , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , original ? : ClientExecutablePlanReadOriginals ?"
+        },
+        {
+          "name": "client_task_compilation_infer",
+          "declaration": "client_task_compilation_infer ( value : ClientTaskCompilation , ) - > ClientInferPlanGraph ?"
+        },
+        {
+          "name": "client_task_compilation_infers",
+          "declaration": "client_task_compilation_infers ( value : ClientTaskCompilation , ) - > Array [ ClientInferPlanGraph ]"
+        },
+        {
+          "name": "client_task_compilation_plan",
+          "declaration": "client_task_compilation_plan ( value : ClientTaskCompilation , ) - > ClientTaskExecutablePlan"
+        },
+        {
+          "name": "client_task_compilation_result_names",
+          "declaration": "client_task_compilation_result_names ( value : ClientTaskCompilation , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_task_compilation_serialization",
+          "declaration": "client_task_compilation_serialization ( value : ClientTaskCompilation , ) - > ClientSerializationPlanGraph ?"
+        },
+        {
+          "name": "client_task_compilation_template",
+          "declaration": "client_task_compilation_template ( value : ClientTaskCompilation , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_task_plan_target_selections_cid",
+          "declaration": "client_task_plan_target_selections_cid ( plan : ClientTaskExecutablePlan , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , original ? : ClientExecutablePlanReadOriginals ?"
+        },
+        {
+          "name": "finish_client_task_compilation",
+          "declaration": "finish_client_task_compilation ( value : PreparedClientProgram , plan : ClientTaskExecutablePlan , template : @ publication . RunEvidenceValue , graph : ClientTaskPlanGraph , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer ? : ClientInferPlanGraph ?"
+        },
+        {
+          "name": "issue_prepared_client_task_compilation",
+          "declaration": "issue_prepared_client_task_compilation ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskCompilation , ClientTaskCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_compilation_owned",
+          "declaration": "issue_prepared_client_task_compilation_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepared_client_task_plan_encoding",
+          "declaration": "observe_prepared_client_task_plan_encoding ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , nodes_out ~ : Ref [ Int64 ] , ) - > Result [ ClientTaskCompilation , ClientTaskCompilationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_task_compilation_compiled_plan",
+            "client_task_compilation_graph_original",
+            "client_task_compilation_infer",
+            "client_task_compilation_infers",
+            "client_task_compilation_plan",
+            "client_task_compilation_result_names",
+            "client_task_compilation_serialization",
+            "client_task_compilation_template",
+            "client_task_plan_target_selections_cid",
+            "finish_client_task_compilation",
+            "issue_prepared_client_task_compilation",
+            "issue_prepared_client_task_compilation_owned",
+            "observe_prepared_client_task_plan_encoding"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_values_compilation.mbt",
+      "sha256": "54ab5d0775a3cfe6e83b3588d23e346b5b40c375e973cae7d00538c75bf51cb4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_prepared_client_values_compilation",
+          "declaration": "admit_prepared_client_values_compilation ( value : PreparedClientProgram , saved_plan_wire : String , saved_fact_manifest_wire : String , saved_template_wire : String , saved_compiled_plan_wire : String , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationAdmissionIssue ]"
+        },
+        {
+          "name": "client_values_compilation_compiled_plan",
+          "declaration": "client_values_compilation_compiled_plan ( value : ClientValuesCompilation , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_values_compilation_output_contract_cid",
+          "declaration": "client_values_compilation_output_contract_cid ( value : ClientValuesCompilation , ) - > String"
+        },
+        {
+          "name": "client_values_compilation_plan",
+          "declaration": "client_values_compilation_plan ( value : ClientValuesCompilation , ) - > ClientValuesExecutablePlan"
+        },
+        {
+          "name": "client_values_compilation_plan_node_id",
+          "declaration": "client_values_compilation_plan_node_id ( value : ClientValuesCompilation , ) - > String"
+        },
+        {
+          "name": "client_values_compilation_result_names",
+          "declaration": "client_values_compilation_result_names ( value : ClientValuesCompilation , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_values_compilation_template",
+          "declaration": "client_values_compilation_template ( value : ClientValuesCompilation , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "issue_client_values_compilation_with_parts",
+          "declaration": "issue_client_values_compilation_with_parts ( value : PreparedClientProgram , parts : ClientValuesExecutablePlanParts , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_compilation",
+          "declaration": "issue_prepared_client_values_compilation ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_compilation_owned",
+          "declaration": "issue_prepared_client_values_compilation_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepared_client_values_plan_encoding",
+          "declaration": "observe_prepared_client_values_plan_encoding ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , nodes_out ~ : Ref [ Int64 ] , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_prepared_client_values_compilation",
+            "client_values_compilation_compiled_plan",
+            "client_values_compilation_output_contract_cid",
+            "client_values_compilation_plan",
+            "client_values_compilation_plan_node_id",
+            "client_values_compilation_result_names",
+            "client_values_compilation_template",
+            "issue_client_values_compilation_with_parts",
+            "issue_prepared_client_values_compilation",
+            "issue_prepared_client_values_compilation_owned",
+            "observe_prepared_client_values_plan_encoding"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_values_executable_plan.mbt",
+      "sha256": "10d24f563e73fc340bd63bbb0f4ec54f5a49ea9a954f5c9d32b12b959794c6a3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T,C]emit_client_executable_plan_body",
+          "declaration": "[ T , C ] emit_client_executable_plan_body ( writer : @ encode . Writer , parts : ClientExecutablePlanBody [ T , C ] , cid : C ? , emit_value : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "[T]client_plan_emit_array",
+          "declaration": "[ T ] client_plan_emit_array ( writer : @ encode . Writer , values : Array [ T ] , emit_value : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "admit_prepared_client_values_executable_plan",
+          "declaration": "admit_prepared_client_values_executable_plan ( value : PreparedClientProgram , saved_wire : String , saved_fact_manifest_wire : String , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesExecutablePlan , ClientValuesExecutablePlanAdmissionIssue , ]"
+        },
+        {
+          "name": "client_executable_plan_original_limits_fit",
+          "declaration": "client_executable_plan_original_limits_fit ( original : ClientExecutablePlanReadOriginals , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Bool"
+        },
+        {
+          "name": "client_plan_parse_array",
+          "declaration": "client_plan_parse_array ( bodies : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Array [ @ canonical . CanonicalValue ] ?"
+        },
+        {
+          "name": "client_task_executable_plan_cid",
+          "declaration": "client_task_executable_plan_cid ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_task_executable_plan_fact_manifest_wire",
+          "declaration": "client_task_executable_plan_fact_manifest_wire ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_task_executable_plan_wire",
+          "declaration": "client_task_executable_plan_wire ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_cid",
+          "declaration": "client_values_executable_plan_cid ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_fact_manifest_cid",
+          "declaration": "client_values_executable_plan_fact_manifest_cid ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_fact_manifest_wire",
+          "declaration": "client_values_executable_plan_fact_manifest_wire ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_wire",
+          "declaration": "client_values_executable_plan_wire ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "finish_client_executable_plan_body",
+          "declaration": "finish_client_executable_plan_body ( parts : ClientExecutablePlanBody [ @ canonical . CanonicalValue , String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "issue_prepared_client_executable_plan_with_parts",
+          "declaration": "issue_prepared_client_executable_plan_with_parts ( value : PreparedClientProgram , graph_wire : String , transformations : Array [ ClientResultTransformation ] , material : ClientExecutionMaterial , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_plans ~ : Array [ ClientResultPlanIdentity ] , required_profiles ? : Array [ ( String , String ) ]"
+        },
+        {
+          "name": "issue_prepared_client_task_executable_plan",
+          "declaration": "issue_prepared_client_task_executable_plan ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskExecutablePlan , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_plan_parts",
+          "declaration": "issue_prepared_client_task_plan_parts ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "issue_prepared_client_values_executable_plan",
+          "declaration": "issue_prepared_client_values_executable_plan ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesExecutablePlan , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_executable_plan_parts",
+          "declaration": "issue_prepared_client_values_executable_plan_parts ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T,C]emit_client_executable_plan_body",
+            "[T]client_plan_emit_array",
+            "admit_prepared_client_values_executable_plan",
+            "client_executable_plan_original_limits_fit",
+            "client_plan_parse_array",
+            "client_task_executable_plan_cid",
+            "client_task_executable_plan_fact_manifest_wire",
+            "client_task_executable_plan_wire",
+            "client_values_executable_plan_cid",
+            "client_values_executable_plan_fact_manifest_cid",
+            "client_values_executable_plan_fact_manifest_wire",
+            "client_values_executable_plan_wire",
+            "finish_client_executable_plan_body",
+            "issue_prepared_client_executable_plan_with_parts",
+            "issue_prepared_client_task_executable_plan",
+            "issue_prepared_client_task_plan_parts",
+            "issue_prepared_client_values_executable_plan",
+            "issue_prepared_client_values_executable_plan_parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_plan_encoding_observation.mbt",
+      "sha256": "f067a1cb157314922401b14b0c9b97d9ae410a506f69743f60759c8e77ebbcea",
+      "exports": [],
+      "operations": [
+        {
+          "name": "retain_client_plan_encoding_nodes",
+          "declaration": "retain_client_plan_encoding_nodes ( output : Ref [ Int64 ] ? , writer : @ encode . Writer , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "retain_client_plan_encoding_nodes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_program.mbt",
+      "sha256": "ab007f14f6a9127a469d88b6cd540071e1ddffe0a8a078d19c0702ecc7e0ef71",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]emit_client_task_pipeline_body",
+          "declaration": "[ T ] emit_client_task_pipeline_body ( input : ClientTaskPipelineInput , projected : Bool , steps : T , emit_steps : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , writer : @ encode . Writer , ) - > Result [ Unit , ClientTaskPipelineIssue ] raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "admit_prepared_client_run_publication",
+          "declaration": "admit_prepared_client_run_publication ( value : PreparedClientProgram , template : @ publication . RunEvidenceValue , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , compiled_plan : @ publication . PublicationContract , ) - > Result [ @ publication . RunPublicationAdmission , @ publication . RunPublicationAdmissionIssue , ]"
+        },
+        {
+          "name": "admit_prepared_client_values_aoa_identity",
+          "declaration": "admit_prepared_client_values_aoa_identity ( value : PreparedClientProgram , task : Int , saved_wire : String , claimed_cid : String , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , ClientValuesAoAAdmissionIssue ]"
+        },
+        {
+          "name": "client_full_sequence_limits_match",
+          "declaration": "client_full_sequence_limits_match ( first : @ lower . SequenceLimits , second : @ lower . SequenceLimits , ) - > Bool"
+        },
+        {
+          "name": "client_program_acquisition_prefix",
+          "declaration": "client_program_acquisition_prefix ( program : @ checked . CheckedProgram ) - > Int"
+        },
+        {
+          "name": "client_task_output_step",
+          "declaration": "client_task_output_step ( graph : @ strategy . CheckedDAG , task : Int , count : Int , ) - > Int ?"
+        },
+        {
+          "name": "client_task_output_target",
+          "declaration": "client_task_output_target ( graph : @ strategy . CheckedDAG , task : Int , ) - > @ pipeline . Target ?"
+        },
+        {
+          "name": "client_task_pipeline_emission",
+          "declaration": "client_task_pipeline_emission ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepare ? : ( @ lower . PreparedSequence , Int , Int , @ execution . RegistryLimits ) - > ClientSequenceEmission raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "client_task_target_port",
+          "declaration": "client_task_target_port ( prepared : @ lower . Prepared , target : @ pipeline . Target , ) - > String ?"
+        },
+        {
+          "name": "client_values_aoa_identity_cid",
+          "declaration": "client_values_aoa_identity_cid ( value : ClientValuesAoAIdentity , ) - > String"
+        },
+        {
+          "name": "client_values_aoa_identity_wire",
+          "declaration": "client_values_aoa_identity_wire ( value : ClientValuesAoAIdentity , ) - > String"
+        },
+        {
+          "name": "compile_effect_free_checked_client_program",
+          "declaration": "compile_effect_free_checked_client_program ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "construct_client_task_pipeline",
+          "declaration": "construct_client_task_pipeline ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskPipelineConstruction , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "construct_client_task_pipeline_prefix",
+          "declaration": "construct_client_task_pipeline_prefix ( owner : @ lower . BoundPrepared , end_step : Int , output : String , selected : Int ? , prefix_end : Int ? , acquisition_prefix : Bool , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer_boundary ? : Int ?"
+        },
+        {
+          "name": "construct_prepared_client_task_pipeline",
+          "declaration": "construct_prepared_client_task_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskPipelineConstruction , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "emit_client_task_pipeline_initial_steps",
+          "declaration": "emit_client_task_pipeline_initial_steps ( input : ( ClientTaskPipelineInput , Int , Int , Int ) , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_task_pipeline_input_body",
+          "declaration": "emit_client_task_pipeline_input_body ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_task_pipeline_measurement",
+          "declaration": "emit_client_task_pipeline_measurement ( measurement : ( Int , Int , Int ) , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_task_pipeline_projected_steps",
+          "declaration": "emit_client_task_pipeline_projected_steps ( input : ClientTaskPipelineProjection , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_values_pipeline_graph",
+          "declaration": "emit_client_values_pipeline_graph ( graph : @ strategy . CheckedDAG , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , preparation ? : PreparedClientProgram ?"
+        },
+        {
+          "name": "emit_client_values_pipeline_into",
+          "declaration": "emit_client_values_pipeline_into ( graph : @ strategy . CheckedDAG , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , writer : @ encode . Writer , preparation ? : PreparedClientProgram ?"
+        },
+        {
+          "name": "emit_prepared_client_program_definition",
+          "declaration": "emit_prepared_client_program_definition ( value : PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientIdentityMaterialIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_program_semantics",
+          "declaration": "emit_prepared_client_program_semantics ( value : PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientIdentityMaterialIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_publication_limit",
+          "declaration": "emit_prepared_client_publication_limit ( value : PreparedClientProgram , unit : Int , index : Int , scope : ClientPublicationLimitScope , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientPublicationLimitIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_semantic_program",
+          "declaration": "emit_prepared_client_semantic_program ( value : PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientIdentityMaterialIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_stage_semantics",
+          "declaration": "emit_prepared_client_stage_semantics ( value : PreparedClientProgram , stage : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientIdentityMaterialIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_task_aoa_steps",
+          "declaration": "emit_prepared_client_task_aoa_steps ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientTaskAoAStepsIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_task_pipeline",
+          "declaration": "emit_prepared_client_task_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_values_pipeline",
+          "declaration": "emit_prepared_client_values_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientValuesPipelineIssue ]"
+        },
+        {
+          "name": "emit_prepared_client_values_unit_source",
+          "declaration": "emit_prepared_client_values_unit_source ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientValuesUnitSourceIssue ]"
+        },
+        {
+          "name": "finish_client_values_aoa_identity",
+          "declaration": "finish_client_values_aoa_identity ( wire : String , body : @ canonical . CanonicalValue , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , emit ? : ( @ canonical . CanonicalValue , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "issue_client_values_aoa_identity_graph",
+          "declaration": "issue_client_values_aoa_identity_graph ( graph : @ strategy . CheckedDAG , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , preparation ? : PreparedClientProgram ?"
+        },
+        {
+          "name": "issue_client_values_aoa_parts_graph",
+          "declaration": "issue_client_values_aoa_parts_graph ( graph : @ strategy . CheckedDAG , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , preparation ? : PreparedClientProgram ?"
+        },
+        {
+          "name": "issue_prepared_client_result_schema",
+          "declaration": "issue_prepared_client_result_schema ( value : PreparedClientProgram , result : Int , limits : @ execution . RelationSchemaIdentityLimits , ) - > Result [ @ execution . RelationSchemaIdentity , ClientTaskOutputSchemaIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_output_schema",
+          "declaration": "issue_prepared_client_task_output_schema ( value : PreparedClientProgram , task : Int , sequence_limits : @ lower . SequenceLimits , schema_limits : @ execution . RelationSchemaIdentityLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ execution . RelationSchemaIdentity , ClientTaskOutputSchemaIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_aoa_identity",
+          "declaration": "issue_prepared_client_values_aoa_identity ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesAoAIdentity , ClientValuesAoAIdentityIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_output_schema",
+          "declaration": "issue_prepared_client_values_output_schema ( value : PreparedClientProgram , task : Int , sequence_limits : @ lower . SequenceLimits , schema_limits : @ execution . RelationSchemaIdentityLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ execution . RelationSchemaIdentity , ClientValuesOutputSchemaIssue ]"
+        },
+        {
+          "name": "measure_client_task_pipeline_input",
+          "declaration": "measure_client_task_pipeline_input ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "measure_client_values_pipeline_graph",
+          "declaration": "measure_client_values_pipeline_graph ( graph : @ strategy . CheckedDAG , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , preparation ? : PreparedClientProgram ?"
+        },
+        {
+          "name": "measure_prepared_client_task_pipeline_construction",
+          "declaration": "measure_prepared_client_task_pipeline_construction ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( ( Int , Int , Int ) , ( Int , Int , Int ) ) , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_task_pipeline_input",
+          "declaration": "measure_prepared_client_task_pipeline_input ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_values_pipeline",
+          "declaration": "measure_prepared_client_values_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientValuesPipelineIssue ]"
+        },
+        {
+          "name": "observe_prepare_checked_effect_free_client_program",
+          "declaration": "observe_prepare_checked_effect_free_client_program ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , ) - > ( Result [ PreparedClientProgram , ClientProgramPreparationIssue ] , Int64 )"
+        },
+        {
+          "name": "open_prepared_captured_client_run",
+          "declaration": "open_prepared_captured_client_run ( value : PreparedClientProgram , source : @ query . CapturedInputSource , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_source_free_client_run",
+          "declaration": "open_prepared_source_free_client_run ( value : PreparedClientProgram , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "prepare_checked_effect_free_client_program",
+          "declaration": "prepare_checked_effect_free_client_program ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , ) - > Result [ PreparedClientProgram , ClientProgramPreparationIssue ]"
+        },
+        {
+          "name": "prepare_checked_effect_free_client_program_owned",
+          "declaration": "prepare_checked_effect_free_client_program_owned ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "prepare_client_stage_owners",
+          "declaration": "prepare_client_stage_owners ( checked : @ checked . CheckedProgram , limits : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "prepare_client_task_pipeline_input",
+          "declaration": "prepare_client_task_pipeline_input ( owner : @ lower . BoundPrepared , end_step : Int , output : String , selected : Int ? , prefix_end : Int ? , acquisition_prefix : Bool , limits : @ lower . SequenceLimits , infer_boundary ? : Int ?"
+        },
+        {
+          "name": "prepare_client_task_sequence",
+          "declaration": "prepare_client_task_sequence ( value : PreparedClientProgram , task : Int , contracts : @ execution . RegisteredRelationContracts , contexts : Array [ @ execution . FragmentRuntimeContext ] , limits : @ lower . SequenceLimits , max_work : Int , max_entries : Int , prepared_sequence ? : @ lower . PreparedSequence ?"
+        },
+        {
+          "name": "prepare_client_task_sequence_graph",
+          "declaration": "prepare_client_task_sequence_graph ( graph : @ strategy . CheckedDAG , task : Int , contracts : @ execution . RegisteredRelationContracts , contexts : Array [ @ execution . FragmentRuntimeContext ] , limits : @ lower . SequenceLimits , max_work : Int , max_entries : Int , prepared_sequence ? : @ lower . PreparedSequence ?"
+        },
+        {
+          "name": "prepare_effect_free_client_program",
+          "declaration": "prepare_effect_free_client_program ( document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , limits : ClientProgramPreparationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "prepare_parsed_effect_free_client_program",
+          "declaration": "prepare_parsed_effect_free_client_program ( parsed : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , limits : ClientProgramPreparationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "prepare_prepared_client_full_sequence",
+          "declaration": "prepare_prepared_client_full_sequence ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , ) - > Result [ @ lower . PreparedSequence , ClientValuesPipelineIssue ]"
+        },
+        {
+          "name": "prepare_prepared_client_task_pipeline_input",
+          "declaration": "prepare_prepared_client_task_pipeline_input ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , ) - > Result [ ClientTaskPipelineInput , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "prepared_client_check_environment_cid",
+          "declaration": "prepared_client_check_environment_cid ( value : PreparedClientProgram , ) - > String"
+        },
+        {
+          "name": "prepared_client_full_sequence",
+          "declaration": "prepared_client_full_sequence ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , prepare ? : ( @ lower . BoundPrepared , @ lower . SequenceLimits ) - > Result [ @ lower . PreparedSequence , @ lower . SequenceIssue , ]"
+        },
+        {
+          "name": "prepared_client_graph",
+          "declaration": "prepared_client_graph ( value : PreparedClientProgram , ) - > @ strategy . CheckedDAG"
+        },
+        {
+          "name": "prepared_client_identity",
+          "declaration": "prepared_client_identity ( value : PreparedClientProgram , ) - > ClientProgramIdentity"
+        },
+        {
+          "name": "prepared_client_program_semantics_cid",
+          "declaration": "prepared_client_program_semantics_cid ( value : PreparedClientProgram , ) - > String"
+        },
+        {
+          "name": "prepared_client_requires_task_compilation",
+          "declaration": "prepared_client_requires_task_compilation ( value : PreparedClientProgram , ) - > Bool"
+        },
+        {
+          "name": "prepared_client_result_count",
+          "declaration": "prepared_client_result_count ( value : PreparedClientProgram ) - > Int"
+        },
+        {
+          "name": "prepared_client_result_name",
+          "declaration": "prepared_client_result_name ( value : PreparedClientProgram , index : Int , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_uses_graph_carrier",
+          "declaration": "prepared_client_uses_graph_carrier ( value : PreparedClientProgram , ) - > Bool"
+        },
+        {
+          "name": "prepared_client_values_max_rows",
+          "declaration": "prepared_client_values_max_rows ( value : PreparedClientProgram ) - > Int"
+        },
+        {
+          "name": "prepared_client_values_sequence_limits",
+          "declaration": "prepared_client_values_sequence_limits ( value : PreparedClientProgram , ) - > @ lower . SequenceLimits"
+        },
+        {
+          "name": "retain_client_task_pipeline_input",
+          "declaration": "retain_client_task_pipeline_input ( original : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , prepared : Result [ ClientTaskPipelineInput , ClientTaskPipelineIssue ] , ) - > Result [ ClientTaskPipelineInput , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "with_prepared_client_values_row_limit",
+          "declaration": "with_prepared_client_values_row_limit ( value : PreparedClientProgram , max_rows : Int , ) - > PreparedClientProgram ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]emit_client_task_pipeline_body",
+            "admit_prepared_client_run_publication",
+            "admit_prepared_client_values_aoa_identity",
+            "client_full_sequence_limits_match",
+            "client_program_acquisition_prefix",
+            "client_task_output_step",
+            "client_task_output_target",
+            "client_task_pipeline_emission",
+            "client_task_target_port",
+            "client_values_aoa_identity_cid",
+            "client_values_aoa_identity_wire",
+            "compile_effect_free_checked_client_program",
+            "construct_client_task_pipeline",
+            "construct_client_task_pipeline_prefix",
+            "construct_prepared_client_task_pipeline",
+            "emit_client_task_pipeline_initial_steps",
+            "emit_client_task_pipeline_input_body",
+            "emit_client_task_pipeline_measurement",
+            "emit_client_task_pipeline_projected_steps",
+            "emit_client_values_pipeline_graph",
+            "emit_client_values_pipeline_into",
+            "emit_prepared_client_program_definition",
+            "emit_prepared_client_program_semantics",
+            "emit_prepared_client_publication_limit",
+            "emit_prepared_client_semantic_program",
+            "emit_prepared_client_stage_semantics",
+            "emit_prepared_client_task_aoa_steps",
+            "emit_prepared_client_task_pipeline",
+            "emit_prepared_client_values_pipeline",
+            "emit_prepared_client_values_unit_source",
+            "finish_client_values_aoa_identity",
+            "issue_client_values_aoa_identity_graph",
+            "issue_client_values_aoa_parts_graph",
+            "issue_prepared_client_result_schema",
+            "issue_prepared_client_task_output_schema",
+            "issue_prepared_client_values_aoa_identity",
+            "issue_prepared_client_values_output_schema",
+            "measure_client_task_pipeline_input",
+            "measure_client_values_pipeline_graph",
+            "measure_prepared_client_task_pipeline_construction",
+            "measure_prepared_client_task_pipeline_input",
+            "measure_prepared_client_values_pipeline",
+            "observe_prepare_checked_effect_free_client_program",
+            "open_prepared_captured_client_run",
+            "open_prepared_source_free_client_run",
+            "prepare_checked_effect_free_client_program",
+            "prepare_checked_effect_free_client_program_owned",
+            "prepare_client_stage_owners",
+            "prepare_client_task_pipeline_input",
+            "prepare_client_task_sequence",
+            "prepare_client_task_sequence_graph",
+            "prepare_effect_free_client_program",
+            "prepare_parsed_effect_free_client_program",
+            "prepare_prepared_client_full_sequence",
+            "prepare_prepared_client_task_pipeline_input",
+            "prepared_client_check_environment_cid",
+            "prepared_client_full_sequence",
+            "prepared_client_graph",
+            "prepared_client_identity",
+            "prepared_client_program_semantics_cid",
+            "prepared_client_requires_task_compilation",
+            "prepared_client_result_count",
+            "prepared_client_result_name",
+            "prepared_client_uses_graph_carrier",
+            "prepared_client_values_max_rows",
+            "prepared_client_values_sequence_limits",
+            "retain_client_task_pipeline_input",
+            "with_prepared_client_values_row_limit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_serialization.mbt",
+      "sha256": "b8c13dbc0857f41dff9c6e39a05082a8549c223e86b6b36584d7e5f2dfc76a5e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_client_serialization_completed_input",
+          "declaration": "bind_client_serialization_completed_input ( barrier : @ lower . PreparedSerialization , input : @ execution . CompletedOutput , encoder : @ publication . ContentByteEncoder , ) - > Result [ ClientSerializationInput , ClientSerializationInputIssue ]"
+        },
+        {
+          "name": "client_graph_serialization_occurrences",
+          "declaration": "client_graph_serialization_occurrences ( graph : @ strategy . CheckedDAG , ) - > Array [ ( Int , Int ) ]"
+        },
+        {
+          "name": "client_serialization_input_rows",
+          "declaration": "client_serialization_input_rows ( value : ClientSerializationInput ) - > Int"
+        },
+        {
+          "name": "issue_prepared_client_serialization_prefix_fragment",
+          "declaration": "issue_prepared_client_serialization_prefix_fragment ( owner : PreparedClientProgram , task : Int , step : Int , max_preparation_work : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientSerializationPrefixIssue ]"
+        },
+        {
+          "name": "prepare_client_effect_serialization",
+          "declaration": "prepare_client_effect_serialization ( owner : PreparedClientEffectComputation , task : Int , step : Int , max_work ~ : Int , ) - > Result [ @ lower . PreparedSerialization , ClientSerializationPreparationIssue ]"
+        },
+        {
+          "name": "prepare_client_graph_serialization",
+          "declaration": "prepare_client_graph_serialization ( graph : @ strategy . CheckedDAG , task : Int , step : Int , max_work ~ : Int , ) - > Result [ @ lower . PreparedSerialization , ClientSerializationPreparationIssue ]"
+        },
+        {
+          "name": "prepare_client_serialization",
+          "declaration": "prepare_client_serialization ( owner : PreparedClientProgram , task : Int , step : Int , max_work ~ : Int , ) - > Result [ @ lower . PreparedSerialization , ClientSerializationPreparationIssue ]"
+        },
+        {
+          "name": "prepared_client_effect_serialization_occurrences",
+          "declaration": "prepared_client_effect_serialization_occurrences ( owner : PreparedClientEffectComputation , ) - > Array [ ( Int , Int ) ]"
+        },
+        {
+          "name": "prepared_client_serialization_occurrences",
+          "declaration": "prepared_client_serialization_occurrences ( owner : PreparedClientProgram , ) - > Array [ ( Int , Int ) ]"
+        },
+        {
+          "name": "start_client_serialization_completed_row",
+          "declaration": "start_client_serialization_completed_row ( barrier : @ lower . PreparedSerialization , input : @ execution . CompletedOutput , row : Int , encoder : @ publication . ContentByteEncoder , ) - > Result [ Unit , ClientSerializationInputIssue ]"
+        },
+        {
+          "name": "start_client_serialization_encoder",
+          "declaration": "start_client_serialization_encoder ( barrier : @ lower . PreparedSerialization , max_rows ~ : Int , max_bytes ~ : Int , max_value_nodes ~ : Int , max_value_depth ~ : Int , max_frames ~ : Int , ) - > Result [ @ publication . ContentByteEncoder , @ publication . ContentSerializationIssue , ]"
+        },
+        {
+          "name": "start_client_serialization_input_row",
+          "declaration": "start_client_serialization_input_row ( value : ClientSerializationInput , row : Int , ) - > Result [ Unit , ClientSerializationInputIssue ]"
+        },
+        {
+          "name": "validate_client_serialization_completed_input",
+          "declaration": "validate_client_serialization_completed_input ( barrier : @ lower . PreparedSerialization , input : @ execution . CompletedOutput , encoder : @ publication . ContentByteEncoder , ) - > Result [ Int , ClientSerializationInputIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_client_serialization_completed_input",
+            "client_graph_serialization_occurrences",
+            "client_serialization_input_rows",
+            "issue_prepared_client_serialization_prefix_fragment",
+            "prepare_client_effect_serialization",
+            "prepare_client_graph_serialization",
+            "prepare_client_serialization",
+            "prepared_client_effect_serialization_occurrences",
+            "prepared_client_serialization_occurrences",
+            "start_client_serialization_completed_row",
+            "start_client_serialization_encoder",
+            "start_client_serialization_input_row",
+            "validate_client_serialization_completed_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_task_fragment.mbt",
+      "sha256": "bbef2ef9fe98dff7a3d2c7508d1e0501aee988b994ecfee0d5eb71129c93a8bd",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P,C]emit_client_task_fragment_body",
+          "declaration": "[ P , C ] emit_client_task_fragment_body ( owner : @ lower . BoundPrepared , selected : Int ? , node_id : String , output_port : String , pipeline : P , logical_cid : C , output_contract_cid : C , emit_pipeline : ( P , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , input_contract : ( @ carrier . Carrier , Int , Int , Int ) - > C ? , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , writer : @ encode . Writer , ) - > Result [ Unit , ClientTaskFragmentIssue ] raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "admit_prepared_client_task_fragment",
+          "declaration": "admit_prepared_client_task_fragment ( value : PreparedClientProgram , task : Int , saved_wire : String , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentAdmissionIssue ]"
+        },
+        {
+          "name": "client_task_carrier_contract",
+          "declaration": "client_task_carrier_contract ( carrier : @ carrier . Carrier , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > ( String , String ) ?"
+        },
+        {
+          "name": "client_task_carrier_kind",
+          "declaration": "client_task_carrier_kind ( sort : String ) - > @ carrier . Kind ?"
+        },
+        {
+          "name": "client_task_carrier_sort",
+          "declaration": "client_task_carrier_sort ( carrier : @ carrier . Carrier ) - > String"
+        },
+        {
+          "name": "client_task_fragment_logical_cid",
+          "declaration": "client_task_fragment_logical_cid ( value : ClientTaskFragmentNode , ) - > String"
+        },
+        {
+          "name": "client_task_fragment_node_id",
+          "declaration": "client_task_fragment_node_id ( value : ClientTaskFragmentNode ) - > String"
+        },
+        {
+          "name": "client_task_fragment_output_contract_cid",
+          "declaration": "client_task_fragment_output_contract_cid ( value : ClientTaskFragmentNode , ) - > String"
+        },
+        {
+          "name": "client_task_fragment_output_port",
+          "declaration": "client_task_fragment_output_port ( value : ClientTaskFragmentNode , ) - > String"
+        },
+        {
+          "name": "client_task_fragment_wire",
+          "declaration": "client_task_fragment_wire ( value : ClientTaskFragmentNode ) - > String"
+        },
+        {
+          "name": "client_task_input_contract_cid",
+          "declaration": "client_task_input_contract_cid ( carrier : @ carrier . Carrier , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > String ?"
+        },
+        {
+          "name": "client_task_input_contract_measurement",
+          "declaration": "client_task_input_contract_measurement ( _carrier : @ carrier . Carrier , _max_wire_bytes : Int , _max_nodes : Int , _max_depth : Int , ) - > Unit ?"
+        },
+        {
+          "name": "client_task_record_role",
+          "declaration": "client_task_record_role ( name : @ schema . FieldName ) - > String ?"
+        },
+        {
+          "name": "emit_client_task_record_carrier_body",
+          "declaration": "emit_client_task_record_carrier_body ( carrier : @ carrier . Carrier , row : @ contract . Contract , writer : @ encode . Writer , ) - > Bool raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "issue_client_compute_prefix_fragment_for_owner",
+          "declaration": "issue_client_compute_prefix_fragment_for_owner ( owner : @ lower . BoundPrepared , prefix_end : Int , output_step : Int , node_id : String , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "issue_client_infer_compute_fragment",
+          "declaration": "issue_client_infer_compute_fragment ( owner : @ lower . BoundPrepared , task : Int , infer_step : Int , step : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , serialization_boundary ? : Int ?"
+        },
+        {
+          "name": "issue_client_infer_prefix_fragment_for_owner",
+          "declaration": "issue_client_infer_prefix_fragment_for_owner ( owner : @ lower . BoundPrepared , task : Int , infer_step : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "issue_client_serialized_compute_fragment",
+          "declaration": "issue_client_serialized_compute_fragment ( component : ClientSerializationPlanGraph , terminal : Int , step : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "issue_client_serialized_infer_compute_fragment",
+          "declaration": "issue_client_serialized_infer_compute_fragment ( component : ClientSerializationPlanGraph , infer_step : Int , step : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "issue_client_task_fragment_body",
+          "declaration": "issue_client_task_fragment_body ( owner : @ lower . BoundPrepared , target : @ pipeline . Target , selected : Int ? , node_id : String , construction : ClientTaskPipelineConstruction , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , serialization_input ? : @ lower . PreparedSerialization ?"
+        },
+        {
+          "name": "issue_client_task_record_contract",
+          "declaration": "issue_client_task_record_contract ( carrier : @ carrier . Carrier , row : @ contract . Contract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > ( String , String ) ?"
+        },
+        {
+          "name": "issue_prepared_client_infer_prefix_fragment",
+          "declaration": "issue_prepared_client_infer_prefix_fragment ( value : PreparedClientProgram , task : Int , infer_step : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_fragment",
+          "declaration": "issue_prepared_client_task_fragment ( value : PreparedClientProgram , task : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentNode , ClientTaskFragmentIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_task_fragment_construction",
+          "declaration": "measure_prepared_client_task_fragment_construction ( value : PreparedClientProgram , task : Int , sequence_limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskFragmentConstruction , ClientTaskFragmentIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C]emit_client_task_fragment_body",
+            "admit_prepared_client_task_fragment",
+            "client_task_carrier_contract",
+            "client_task_carrier_kind",
+            "client_task_carrier_sort",
+            "client_task_fragment_logical_cid",
+            "client_task_fragment_node_id",
+            "client_task_fragment_output_contract_cid",
+            "client_task_fragment_output_port",
+            "client_task_fragment_wire",
+            "client_task_input_contract_cid",
+            "client_task_input_contract_measurement",
+            "client_task_record_role",
+            "emit_client_task_record_carrier_body",
+            "issue_client_compute_prefix_fragment_for_owner",
+            "issue_client_infer_compute_fragment",
+            "issue_client_infer_prefix_fragment_for_owner",
+            "issue_client_serialized_compute_fragment",
+            "issue_client_serialized_infer_compute_fragment",
+            "issue_client_task_fragment_body",
+            "issue_client_task_record_contract",
+            "issue_prepared_client_infer_prefix_fragment",
+            "issue_prepared_client_task_fragment",
+            "measure_prepared_client_task_fragment_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original canonical Task pipeline construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
+                "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
+                "anchor": "test \"original Effect compilation retains Content and Model"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
     }
   ]
 }

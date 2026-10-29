@@ -180,6 +180,7 @@ fn issue_prepared_client_values_executable_plan_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  plan_encoding_nodes_out? : Ref[Int64]? = None,
 ) -> Result[ClientValuesExecutablePlanParts, ClientValuesExecutablePlanIssue] {
   if max_facts <= 0 ||
     max_witnesses <= 0 ||
@@ -226,6 +227,7 @@ fn issue_prepared_client_values_executable_plan_parts(
     max_nodes,
     max_depth,
     result_plans=graph.result_plans,
+    plan_encoding_nodes_out~,
   ).map(plan => {
     // This Values result has no task-reader continuation. Do not retain its
     // temporary parsed trees in a standalone Plan or completed compilation.
@@ -272,6 +274,7 @@ fn issue_prepared_client_task_plan_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  plan_encoding_nodes_out? : Ref[Int64]? = None,
 ) -> Result[
   (ClientTaskExecutablePlan, @publication.RunEvidenceValue, ClientTaskPlanGraph),
   ClientValuesExecutablePlanIssue,
@@ -325,6 +328,7 @@ fn issue_prepared_client_task_plan_parts(
     max_nodes,
     max_depth,
     result_plans=graph.result_plans,
+    plan_encoding_nodes_out~,
   ).map(plan => ({ plan, }, template, graph))
 }
 
@@ -402,14 +406,17 @@ fn finish_client_executable_plan_body(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  plan_encoding_nodes_out? : Ref[Int64]? = None,
 ) -> (String, String) raise @encode.EncodeFailure {
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
+  defer retain_client_plan_encoding_nodes(plan_encoding_nodes_out, hash)
   emit_client_executable_plan_body(hash, parts, None, @canonical.emit_value, (
     value,
     writer,
   ) => @encode.string_value(writer, value))
   let cid = "sha256:" + @encode.finish_hash(hash)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+  defer retain_client_plan_encoding_nodes(plan_encoding_nodes_out, writer)
   emit_client_executable_plan_body(
     writer,
     parts,
@@ -433,6 +440,7 @@ fn issue_prepared_client_executable_plan_with_parts(
   max_depth : Int,
   result_plans~ : Array[ClientResultPlanIdentity],
   required_profiles? : Array[(String, String)] = [],
+  plan_encoding_nodes_out? : Ref[Int64]? = None,
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
   let facts = match
     issue_prepared_client_publication_plan_facts(
@@ -515,6 +523,7 @@ fn issue_prepared_client_executable_plan_with_parts(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      plan_encoding_nodes_out~,
     )
     Ok({
       wire,
