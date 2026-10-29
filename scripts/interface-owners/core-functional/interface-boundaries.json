@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "05be6d27788e1e3205e5187bafd8c37ae2f89baedaf5da549e339f1276674dc7",
+      "sha256": "64b6375d1394b7cd671d12e9fdcf8df55487bb2a6928c6aba043404721e100f2",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27610,7 +27610,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "508056c4efd354c4f7c8f0e2a0eac0a5cdfc2e3523e1128c22be1a61056d4362",
+      "sha256": "63e853ef9566279d392a8ec24be734343b1dad081f5fbe5b21e0fe7c706caafd",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -27638,6 +27638,10 @@
         {
           "name": "[I]continue_request_program_preparation",
           "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_program_artifact_work",
+          "declaration": "[ I ] finish_request_program_artifact_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_program_module_body",
@@ -27770,6 +27774,110 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]finish_request_program_artifact_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
               }
             ]
           }
@@ -28399,6 +28507,689 @@
         }
       ],
       "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_task_compilation.mbt",
+      "sha256": "2ded2c212e641a37a9594dfad193d1b9b94803938ded99aa61990256711c0ec6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_task_compilation_compiled_plan",
+          "declaration": "client_task_compilation_compiled_plan ( value : ClientTaskCompilation , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_task_compilation_graph_original",
+          "declaration": "client_task_compilation_graph_original ( owner : PreparedClientProgram , plan : ClientTaskExecutablePlan , graph : ClientTaskPlanGraph , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , original ? : ClientExecutablePlanReadOriginals ?"
+        },
+        {
+          "name": "client_task_compilation_infer",
+          "declaration": "client_task_compilation_infer ( value : ClientTaskCompilation , ) - > ClientInferPlanGraph ?"
+        },
+        {
+          "name": "client_task_compilation_infers",
+          "declaration": "client_task_compilation_infers ( value : ClientTaskCompilation , ) - > Array [ ClientInferPlanGraph ]"
+        },
+        {
+          "name": "client_task_compilation_plan",
+          "declaration": "client_task_compilation_plan ( value : ClientTaskCompilation , ) - > ClientTaskExecutablePlan"
+        },
+        {
+          "name": "client_task_compilation_result_names",
+          "declaration": "client_task_compilation_result_names ( value : ClientTaskCompilation , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_task_compilation_serialization",
+          "declaration": "client_task_compilation_serialization ( value : ClientTaskCompilation , ) - > ClientSerializationPlanGraph ?"
+        },
+        {
+          "name": "client_task_compilation_template",
+          "declaration": "client_task_compilation_template ( value : ClientTaskCompilation , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_task_plan_target_selections_cid",
+          "declaration": "client_task_plan_target_selections_cid ( plan : ClientTaskExecutablePlan , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , original ? : ClientExecutablePlanReadOriginals ?"
+        },
+        {
+          "name": "finish_client_task_compilation",
+          "declaration": "finish_client_task_compilation ( value : PreparedClientProgram , plan : ClientTaskExecutablePlan , template : @ publication . RunEvidenceValue , graph : ClientTaskPlanGraph , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer ? : ClientInferPlanGraph ?"
+        },
+        {
+          "name": "issue_prepared_client_task_compilation",
+          "declaration": "issue_prepared_client_task_compilation ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskCompilation , ClientTaskCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_compilation_owned",
+          "declaration": "issue_prepared_client_task_compilation_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepared_client_task_plan_encoding",
+          "declaration": "observe_prepared_client_task_plan_encoding ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , nodes_out ~ : Ref [ Int64 ] , ) - > Result [ ClientTaskCompilation , ClientTaskCompilationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_task_compilation_compiled_plan",
+            "client_task_compilation_graph_original",
+            "client_task_compilation_infer",
+            "client_task_compilation_infers",
+            "client_task_compilation_plan",
+            "client_task_compilation_result_names",
+            "client_task_compilation_serialization",
+            "client_task_compilation_template",
+            "client_task_plan_target_selections_cid",
+            "finish_client_task_compilation",
+            "issue_prepared_client_task_compilation",
+            "issue_prepared_client_task_compilation_owned",
+            "observe_prepared_client_task_plan_encoding"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_values_compilation.mbt",
+      "sha256": "54ab5d0775a3cfe6e83b3588d23e346b5b40c375e973cae7d00538c75bf51cb4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_prepared_client_values_compilation",
+          "declaration": "admit_prepared_client_values_compilation ( value : PreparedClientProgram , saved_plan_wire : String , saved_fact_manifest_wire : String , saved_template_wire : String , saved_compiled_plan_wire : String , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationAdmissionIssue ]"
+        },
+        {
+          "name": "client_values_compilation_compiled_plan",
+          "declaration": "client_values_compilation_compiled_plan ( value : ClientValuesCompilation , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_values_compilation_output_contract_cid",
+          "declaration": "client_values_compilation_output_contract_cid ( value : ClientValuesCompilation , ) - > String"
+        },
+        {
+          "name": "client_values_compilation_plan",
+          "declaration": "client_values_compilation_plan ( value : ClientValuesCompilation , ) - > ClientValuesExecutablePlan"
+        },
+        {
+          "name": "client_values_compilation_plan_node_id",
+          "declaration": "client_values_compilation_plan_node_id ( value : ClientValuesCompilation , ) - > String"
+        },
+        {
+          "name": "client_values_compilation_result_names",
+          "declaration": "client_values_compilation_result_names ( value : ClientValuesCompilation , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_values_compilation_template",
+          "declaration": "client_values_compilation_template ( value : ClientValuesCompilation , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "issue_client_values_compilation_with_parts",
+          "declaration": "issue_client_values_compilation_with_parts ( value : PreparedClientProgram , parts : ClientValuesExecutablePlanParts , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_compilation",
+          "declaration": "issue_prepared_client_values_compilation ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_compilation_owned",
+          "declaration": "issue_prepared_client_values_compilation_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepared_client_values_plan_encoding",
+          "declaration": "observe_prepared_client_values_plan_encoding ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , nodes_out ~ : Ref [ Int64 ] , ) - > Result [ ClientValuesCompilation , ClientValuesCompilationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_prepared_client_values_compilation",
+            "client_values_compilation_compiled_plan",
+            "client_values_compilation_output_contract_cid",
+            "client_values_compilation_plan",
+            "client_values_compilation_plan_node_id",
+            "client_values_compilation_result_names",
+            "client_values_compilation_template",
+            "issue_client_values_compilation_with_parts",
+            "issue_prepared_client_values_compilation",
+            "issue_prepared_client_values_compilation_owned",
+            "observe_prepared_client_values_plan_encoding"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_values_executable_plan.mbt",
+      "sha256": "10d24f563e73fc340bd63bbb0f4ec54f5a49ea9a954f5c9d32b12b959794c6a3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T,C]emit_client_executable_plan_body",
+          "declaration": "[ T , C ] emit_client_executable_plan_body ( writer : @ encode . Writer , parts : ClientExecutablePlanBody [ T , C ] , cid : C ? , emit_value : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "[T]client_plan_emit_array",
+          "declaration": "[ T ] client_plan_emit_array ( writer : @ encode . Writer , values : Array [ T ] , emit_value : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "admit_prepared_client_values_executable_plan",
+          "declaration": "admit_prepared_client_values_executable_plan ( value : PreparedClientProgram , saved_wire : String , saved_fact_manifest_wire : String , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesExecutablePlan , ClientValuesExecutablePlanAdmissionIssue , ]"
+        },
+        {
+          "name": "client_executable_plan_original_limits_fit",
+          "declaration": "client_executable_plan_original_limits_fit ( original : ClientExecutablePlanReadOriginals , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Bool"
+        },
+        {
+          "name": "client_plan_parse_array",
+          "declaration": "client_plan_parse_array ( bodies : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Array [ @ canonical . CanonicalValue ] ?"
+        },
+        {
+          "name": "client_task_executable_plan_cid",
+          "declaration": "client_task_executable_plan_cid ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_task_executable_plan_fact_manifest_wire",
+          "declaration": "client_task_executable_plan_fact_manifest_wire ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_task_executable_plan_wire",
+          "declaration": "client_task_executable_plan_wire ( value : ClientTaskExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_cid",
+          "declaration": "client_values_executable_plan_cid ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_fact_manifest_cid",
+          "declaration": "client_values_executable_plan_fact_manifest_cid ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_fact_manifest_wire",
+          "declaration": "client_values_executable_plan_fact_manifest_wire ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "client_values_executable_plan_wire",
+          "declaration": "client_values_executable_plan_wire ( value : ClientValuesExecutablePlan , ) - > String"
+        },
+        {
+          "name": "finish_client_executable_plan_body",
+          "declaration": "finish_client_executable_plan_body ( parts : ClientExecutablePlanBody [ @ canonical . CanonicalValue , String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "issue_prepared_client_executable_plan_with_parts",
+          "declaration": "issue_prepared_client_executable_plan_with_parts ( value : PreparedClientProgram , graph_wire : String , transformations : Array [ ClientResultTransformation ] , material : ClientExecutionMaterial , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_plans ~ : Array [ ClientResultPlanIdentity ] , required_profiles ? : Array [ ( String , String ) ]"
+        },
+        {
+          "name": "issue_prepared_client_task_executable_plan",
+          "declaration": "issue_prepared_client_task_executable_plan ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskExecutablePlan , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_task_plan_parts",
+          "declaration": "issue_prepared_client_task_plan_parts ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "issue_prepared_client_values_executable_plan",
+          "declaration": "issue_prepared_client_values_executable_plan ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientValuesExecutablePlan , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_values_executable_plan_parts",
+          "declaration": "issue_prepared_client_values_executable_plan_parts ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , plan_encoding_nodes_out ? : Ref [ Int64 ] ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T,C]emit_client_executable_plan_body",
+            "[T]client_plan_emit_array",
+            "admit_prepared_client_values_executable_plan",
+            "client_executable_plan_original_limits_fit",
+            "client_plan_parse_array",
+            "client_task_executable_plan_cid",
+            "client_task_executable_plan_fact_manifest_wire",
+            "client_task_executable_plan_wire",
+            "client_values_executable_plan_cid",
+            "client_values_executable_plan_fact_manifest_cid",
+            "client_values_executable_plan_fact_manifest_wire",
+            "client_values_executable_plan_wire",
+            "finish_client_executable_plan_body",
+            "issue_prepared_client_executable_plan_with_parts",
+            "issue_prepared_client_task_executable_plan",
+            "issue_prepared_client_task_plan_parts",
+            "issue_prepared_client_values_executable_plan",
+            "issue_prepared_client_values_executable_plan_parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_plan_encoding_observation.mbt",
+      "sha256": "f067a1cb157314922401b14b0c9b97d9ae410a506f69743f60759c8e77ebbcea",
+      "exports": [],
+      "operations": [
+        {
+          "name": "retain_client_plan_encoding_nodes",
+          "declaration": "retain_client_plan_encoding_nodes ( output : Ref [ Int64 ] ? , writer : @ encode . Writer , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "retain_client_plan_encoding_nodes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Final Plan encoding work on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
+                "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original final Plan writer node debits on the same Request; not full compiler work or installed runtime acceptance"
     }
   ]
 }

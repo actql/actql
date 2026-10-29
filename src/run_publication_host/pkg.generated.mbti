@@ -35,6 +35,7 @@ import {
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -1673,6 +1674,10 @@ pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) ->
 pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> (Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64)
 
 pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
+
+pub fn observe_prepared_client_task_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
+
+pub fn observe_prepared_client_values_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue]
 
 pub fn open_client_keyed_lookup_dag(PreparedClientProgram, ClientKeyedLookupInput, @physical_resources.Ledger) -> Result[@physical_strategy_host.CapturedDAG, ClientKeyedRequestIssue]
 

@@ -2815,6 +2815,38 @@ an external current callback. These geometry quantities are not consumed-work
 counts: compiler-work observation and the independent Source/Effect/Content/
 Model constructor boundaries retain their own obligations.
 
+### Final Plan encoding work on the original Request
+
+The final Executable Plan hash and text writers expose their original charged
+value-node cells, including after a typed encoding refusal. Observation reads
+those cells after each original writer scope unwinds. It neither repeats an
+emitter nor parses a completed wire to infer the work. The per-invocation output
+is internal DATA, not a Resource allowance, Prepared/Plan binding proof,
+completion observation or public Node input.
+
+The original Request starts its existing ExecutionPlan work phase only after
+the constructor peak has been reserved. Its known value-node bound is twice
+the quoted Plan nodes because the original algorithm has two writer passes.
+Consumed units come from the actual debit observation; the configured codec
+maximum and the construction estimate are not substituted for consumption.
+The same capacity, input and work receipt remain selected throughout.
+
+The Request retains the output cell before compiler entry and spends/closes
+that original receipt before making a body ready. Its existing synchronous
+unwind scope also closes an outstanding receipt after the compiler returns or
+throws. A declined finish retains the receipt without charging the returned
+observation again. Abort can finish that same receipt after constructor unwind;
+it cannot manufacture another receipt or infer physical stop. The raw observed
+count and the Resource receipt's returned consumption remain distinct DATA and
+are retained after body transfer and cleanup. Reclaiming this phase is refused.
+
+An output-byte refusal can occur after every value node has been charged.
+Equal node counts therefore do not imply equal completion. This phase records
+only final Plan encoding value nodes: character handling, Source parsing,
+canonical admission, contracts, other encoders and the rest of compilation
+retain their separate work obligations. These quantities are not CPU or elapsed
+time, nor evidence of complete compiler-work accounting.
+
 ### Compiler construction measurements
 
 A compiler construction quote composes the original serializer's UTF-8 byte,

@@ -370,6 +370,136 @@ test "artifact reservation derives from original constructor bodies rather than 
 }
 
 ///|
+test "actual Request compilation records original final Plan encoding node debits without a replay" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let counter = parent.program_artifact_plan_encoding_nodes
+  let factory_calls = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      factory_calls.val += 1
+      []
+    },
+  ).unwrap()
+  let plan = parent.program_source_free.unwrap()
+  let wire = match plan.compilation.unwrap() {
+    @publication_host.Values(original) =>
+      @publication_host.client_values_executable_plan_wire(
+        @publication_host.client_values_compilation_plan(original),
+      )
+    @publication_host.Tasks(original) =>
+      @publication_host.client_task_executable_plan_wire(
+        @publication_host.client_task_compilation_plan(original),
+      )
+    _ => abort("original pure compiler required")
+  }
+  // Independent Source parser oracle: the final wire has one self-CID value
+  // absent from its hash preimage. Both original writer traversals visit all
+  // other values. This test-side read never runs in the product constructor.
+  let actual = @source.parse_json_bytes_measured(@utf8.encode(wire), {
+    max_input_bytes: 1000000,
+    max_nodes: 100000,
+    max_depth: 100,
+  }).unwrap()
+  let expected = 2L * actual.usage.nodes.to_int64() - 1L
+  assert_eq(counter.val, expected)
+  assert_eq(parent.program_artifact_work_spent, expected)
+  assert_true(parent.program_artifact_work is None)
+  assert_true(parent.program_artifact_work_issue is None)
+  assert_eq(factory_calls.val, 1)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "original-plan-work",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  installed_managed_run_compilation_original(run, prepared).unwrap() |> ignore
+  assert_eq(counter.val, expected)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(counter.val, expected)
+  assert_eq(parent.program_artifact_work_spent, expected)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request final Plan encoding refusal preserves its original spent phase without a refill" {
+  // A separate completed component determines the exact unchanged codec
+  // closing-byte boundary. It retires before the fresh refused Request below.
+  let (baseline, baseline_input, _) = request_program_body_fixture()
+  prepare_request_program_module_body(
+    baseline,
+    baseline_input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let wire = match baseline.program_source_free.unwrap().compilation.unwrap() {
+    @publication_host.Values(original) =>
+      @publication_host.client_values_executable_plan_wire(
+        @publication_host.client_values_compilation_plan(original),
+      )
+    @publication_host.Tasks(original) =>
+      @publication_host.client_task_executable_plan_wire(
+        @publication_host.client_task_compilation_plan(original),
+      )
+    _ => abort("original pure compilation required")
+  }
+  let expected = baseline.program_artifact_work_spent
+  assert_true(expected > 0L)
+  abort_request_preparation_after_cleanup(baseline).unwrap()
+  assert_eq(@resources.ledger_usage(baseline.ledger).live_reservations, 0)
+  let (parent, input, _) = request_program_body_fixture()
+  let limits = {
+    ..@publication_host.client_standard_pure_compilation_limits(),
+    max_wire_bytes: @utf8.encode(wire).length() - 1,
+  }
+  let calls = Ref(0)
+  let failed = prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=limits,
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      []
+    },
+  )
+  assert_true(failed is Err(TaskCompilation(Plan(Encoding))))
+  assert_eq(calls.val, 1)
+  assert_true(parent.phase == ProgramBodyFailed)
+  assert_true(parent.program_source_free.unwrap().compilation is None)
+  assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
+  assert_eq(parent.program_artifact_plan_encoding_nodes.val, expected)
+  assert_eq(parent.program_artifact_work_spent, expected)
+  assert_true(parent.program_artifact_work is None)
+  assert_true(parent.program_artifact_work_issue is None)
+  assert_true(
+    @resources.begin_preparation_phase_work64(
+      parent.program_capacity.unwrap(),
+      input,
+      @resources.ExecutionPlan,
+      1L,
+    )
+    is Err(AlreadyClaimed),
+  )
+  finish_request_program_artifact_work(parent).unwrap()
+  assert_eq(parent.program_artifact_work_spent, expected)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(parent.program_artifact_plan_encoding_nodes.val, expected)
+  assert_eq(parent.program_artifact_work_spent, expected)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 test "Request module constructor retains same checked output and actual Plan before the first body borrow" {
   let (parent, input, prepared) = request_program_body_fixture()
   let original = parent.program_capacity.unwrap()

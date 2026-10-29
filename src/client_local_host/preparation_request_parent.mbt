@@ -73,6 +73,11 @@ struct ClientRequestPreparation[I] {
   mut program_plan_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
+  mut program_artifact_work : @resources.PreparationPhaseWork64?
+  mut program_artifact_work_charged : Bool
+  mut program_artifact_work_spent : Int64
+  program_artifact_plan_encoding_nodes : Ref[Int64]
+  mut program_artifact_work_issue : @resources.PreparationWorkIssue?
   mut program_artifact_inputs : (
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -297,6 +302,11 @@ pub fn[I] begin_request_preparation(
     program_plan_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
+    program_artifact_work: None,
+    program_artifact_work_charged: false,
+    program_artifact_work_spent: 0L,
+    program_artifact_plan_encoding_nodes: Ref(0L),
+    program_artifact_work_issue: None,
     program_artifact_inputs: None,
     program_source_free: None,
     program_captured: None,
@@ -677,6 +687,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
         owner.intent_work = None
       }
     }
+  }
+  match finish_request_program_artifact_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   owner.submitted_intent = None
   owner.intent_base = None
