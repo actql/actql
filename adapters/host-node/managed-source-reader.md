@@ -30,6 +30,15 @@ I/O-free. It returns original receiver-bound methods:
 - Optional `onError(cause)` returns the provider's error wrapper with that SAME
   cause. It performs no retry, physical cleanup or credential work.
 
+The trusted facade may capture the second private argument to
+`preparePageReader(input, applySynchronousProjection)`. It invokes a nested pure
+transform as `applySynchronousProjection(fn, receiver, args)` through this SAME
+reader's callback custody. The invoker works only inside a synchronous
+Host-owned callback frame; escaped or after-await calls refuse before invoking
+the function. An author transform receives only its declared DATA arguments,
+never this invoker. Returned Promises remain refused and joined by the same
+pending-callback handling; the facade supplies no second pending inventory.
+
 The callbacks receive no credential, authorization, raw transport, current
 callback, charge callback or stop handle. The Host snapshots each request,
 checks the original grant/scope, rechecks current, performs one scoped call,

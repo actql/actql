@@ -300,3 +300,32 @@ for (const callback of ['prepare', 'fetch', 'error']) {
     assert.equal(reader.observe().pendingCallbacks,0);
   });
 }
+
+test('private projection invoker uses the original receiver only within a Host callback frame', async () => {
+  let invoke, projections = 0;
+  const receiver = Object.freeze({original:'projection receiver'});
+  const response = Object.freeze({accepted:true,statusCode:200,body:new Uint8Array([91,93])});
+  const site = {credential:{},referenceCurrent() {return true;},callResource() {return response;}};
+  const factory = createReader({capacity:{},site,operation:'fixture:read',
+    maxResponses:1,maxResponseBytes:32,maxSecretBytes:32,
+    preparePageReader(input, project) {
+      assert.deepEqual(Object.keys(input).sort(),['columns','requestWire','resource']);
+      invoke=project;
+      return {fetchPage() {return project(function() {
+        assert.strictEqual(this,receiver);projections++;return {method:'GET',path:'/rows'};
+      },receiver,[]);},decodePage(original) {return project(function(actual) {
+        assert.strictEqual(this,receiver);assert.strictEqual(actual,response);projections++;
+        return {rows:[],done:true};
+      },receiver,[original]);}};
+    }});
+  const reader=factory.prepare({columns:[],resource:'records',verifyRead() {},
+    authorizationFor() {return {grant:{},useId:'use',
+      scope:{operation:'fixture:read',resourceOrigin:'https://fixture.invalid'}};},
+    chargePage() {return {};},consumePage() {}});
+  const escaped=()=>invoke(()=>{assert.fail('escaped callback invoked');},receiver,[]);
+  assert.throws(escaped,{code:'ForeignInstalledSourceProjection'});
+  await assert.rejects(Promise.resolve().then(escaped),{code:'ForeignInstalledSourceProjection'});
+  await reader.read();reader.requestStop();
+  assert.equal(projections,2);assert.equal(reader.observe().cleanupConfirmed,true);
+  assert.throws(escaped,{code:'ForeignInstalledSourceProjection'});
+});
