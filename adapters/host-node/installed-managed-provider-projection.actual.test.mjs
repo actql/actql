@@ -123,3 +123,28 @@ test('real Calendar projections keep remaining rows and validate unselected capt
     assert.deepEqual(malformed.delivered,[]);
   } finally {malformed.close();}
 });
+
+test('real Notion projection keeps remaining-page bounds without reading beyond an incomplete cap',async() => {
+  const batch=(values,next)=>({object:'list',type:'user',user:{},results:values,
+    has_more:next!==null,next_cursor:next});
+  const f=open('notion',[batch([user('one','first')],cursor),
+    batch([user('two','second'),user('three','third')],cursor+' next'),
+    batch([user('four','fourth')],null)]);
+  try{
+    assert.deepEqual(await f.reader.read(),{pages:3,rowCount:4});
+    assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('page_size')),['2','2','1']);
+    assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('start_cursor')),[null,cursor,cursor+' next']);
+    assert.deepEqual(f.delivered,[{id:'one',name:'first'},{id:'two',name:'second'},
+      {id:'three',name:'third'},{id:'four',name:'fourth'}]);
+    assert.equal(f.charged.length,3);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  }finally{f.close();}
+  const capped=open('notion',[batch([user('one','first'),user('two','second')],cursor),
+    batch([user('three','third'),user('four','fourth')],cursor+' next'),
+    batch([user('five','not requested')],null)]);
+  try{
+    await assert.rejects(capped.reader.read(),error=>error.cause?.code==='NotionUserListRowLimit');
+    assert.equal(capped.requests.length,2);assert.equal(capped.charged.length,2);
+    assert.equal(capped.reader.observe().phase,'failed');
+    assert.equal(capped.reader.observe().cleanupConfirmed,false);
+  }finally{capped.close();}
+});
