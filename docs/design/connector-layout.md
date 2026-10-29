@@ -480,7 +480,9 @@ It retains the unchanged logical rows and finalized request separately. The
 finalizer preserves prior carrier fields, returns the actual final provider CID
 and exact tag DATA, and completes before capture serialization or durable claim
 construction. An invalid asynchronous return stays joined to the capture await
-through settlement, then refuses. An unstamped write retains its original path.
+through settlement, then refuses. A native Promise remains joined through its
+intrinsic settlement even when its own `then` lookup fails; that lookup failure
+remains the original error. An unstamped write retains its original path.
 Cold restore compares saved tag DATA with the recovered original keys and
 original CREATE payload, without invoking either mapper or finalizer again.
 

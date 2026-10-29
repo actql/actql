@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "4172925322bfc253d667f386c7f1ec446f2f88d0bb8072eeecdcb1d06480a84a",
+      "sha256": "6d21a3f8a9e17f2ac4cd10422e6956af251a4022f6e4d80ea03066050e877079",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5921,6 +5921,23 @@
         },
         {
           "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize#2",
           "parameters": [
             "resolve",
             "reject"
@@ -7886,6 +7903,9 @@
             "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
             "deriveInstalledRowWrite/init:finalize/init:finalize",
             "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize#2",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize#2",
             "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
             "deriveInstalledRowWrite/init:project/init:project",
             "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
@@ -7989,6 +8009,10 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "standard stamped capture joins an invalid async finalizer"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "late stamped capture retains the same native Promise before a throwing then getter can finish it"
               }
             ]
           }
