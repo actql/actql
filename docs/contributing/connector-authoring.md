@@ -14,17 +14,13 @@ the Core decides when its work is complete.
 
 ## Declarative REST Source route
 
-This section describes the target declarative route; it is not an executable
-recipe for the public `0d2d07b47dfefafc175ac115ad237fb252c72660` checkout. That
-checkout lacks `scripts/connector.mjs`, `scripts/connector-authoring.mjs` and
-`scripts/fixtures/external-rest/normal-case.test.mjs`. It also lacks the REST
-facade export, shared Host service and managed reader, and its installed
-Source loader does not forward the required original initialization context.
-Both the authoring toolkit and matching normal runtime are prerequisites.
-The commands and application snippet below are proposed usage for a source
-and distribution that actually supply both; do not copy them into the named
-public checkout expecting them to run. Source projection alone does not
-establish ordinary acceptance.
+The repository provides a build-time toolkit to scaffold, project and check a
+declarative Source package. It uses the existing manifest and installation
+generators and does not execute or install a Source. A matching normal
+framework distribution must separately provide the REST facade, common Host
+service, managed reader and original initialization backing. The application
+example below requires those runtime services; generated metadata alone does
+not provide them. Source projection does not establish ordinary acceptance.
 
 For a fixed HTTPS GET API with finite JSON pages, the declarative route keeps
 connector-specific work to one definition and, only when necessary, one pure
@@ -94,9 +90,7 @@ reserializing them.
 
 ### Scaffold, build and install
 
-After selecting a source that contains the authoring scripts **and** a
-matching normal distribution with the required facade, Host services and
-original initialization backing, the proposed author sequence is:
+From a checkout with the authoring toolkit, scaffold and project the package:
 
 ```sh
 node scripts/connector.mjs init /absolute/acme-author acme
