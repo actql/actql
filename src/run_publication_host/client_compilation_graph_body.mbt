@@ -54,3 +54,15 @@ fn[C] emit_client_compilation_data_edge(
   emit_result_plan_ref(writer, to_node, to_port)
   @encode.end_object(writer)
 }
+
+///|
+// Original pure compiler coordinate labels. Both the real constructor and
+// its pre-entry storage observation use these exact immutable DATA values.
+fn client_compilation_task_node_id(task : Int) -> String {
+  "task_" + task.to_string()
+}
+
+///|
+fn client_compilation_result_node_id(result : Int) -> String {
+  "result_" + result.to_string()
+}

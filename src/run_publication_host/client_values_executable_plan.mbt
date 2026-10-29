@@ -182,11 +182,9 @@ fn issue_prepared_client_values_executable_plan_parts(
   max_depth : Int,
   plan_encoding_nodes_out? : Ref[Int64]? = None,
 ) -> Result[ClientValuesExecutablePlanParts, ClientValuesExecutablePlanIssue] {
-  if max_facts <= 0 ||
-    max_witnesses <= 0 ||
-    max_wire_bytes <= 0 ||
-    max_nodes <= 0 ||
-    max_depth <= 0 {
+  if !client_pure_compilation_limits_valid(
+      max_facts, max_witnesses, max_wire_bytes, max_nodes, max_depth,
+    ) {
     return Err(InvalidLimits)
   }
   let (graph, fragment, aoa) = match
@@ -279,11 +277,9 @@ fn issue_prepared_client_task_plan_parts(
   (ClientTaskExecutablePlan, @publication.RunEvidenceValue, ClientTaskPlanGraph),
   ClientValuesExecutablePlanIssue,
 ] {
-  if max_facts <= 0 ||
-    max_witnesses <= 0 ||
-    max_wire_bytes <= 0 ||
-    max_nodes <= 0 ||
-    max_depth <= 0 {
+  if !client_pure_compilation_limits_valid(
+      max_facts, max_witnesses, max_wire_bytes, max_nodes, max_depth,
+    ) {
     return Err(InvalidLimits)
   }
   let graph = match

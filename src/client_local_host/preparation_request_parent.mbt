@@ -71,6 +71,7 @@ struct ClientRequestPreparation[I] {
   mut effect_plan : ClientInstalledEffectManagedPlan?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
+  mut program_measurement_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
   mut program_artifact_work : @resources.PreparationPhaseWork64?
@@ -300,6 +301,7 @@ pub fn[I] begin_request_preparation(
     effect_plan: None,
     program_data: None,
     program_plan_quote: None,
+    program_measurement_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
     program_artifact_work: None,

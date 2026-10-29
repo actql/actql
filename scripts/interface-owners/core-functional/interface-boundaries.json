@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -16272,7 +16272,7 @@
     },
     {
       "module": "packages/coordinator-core/index.mjs",
-      "sha256": "9c5b867af45297b71a23f392b30fbb97daa13ee29c38ceceacb8436d94e9f9c8",
+      "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
       "exports": [
         "acceptedSiteOutput",
@@ -16337,6 +16337,8 @@
         "payloadRecordOpaqueGeneration",
         "payloadRecordOpaqueOwnership",
         "payloadRequestCid",
+        "payloadRequestFacts",
+        "payloadRequestFromDurable",
         "payloadRequestFromOutput",
         "payloadRequestMaxBytes",
         "payloadTransitionDurableJson",
@@ -17038,6 +17040,34 @@
           "async": false
         },
         {
+          "name": "payloadRequestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "payloadTransitionDurableJson/payloadTransitionDurableJson",
           "parameters": [
             "transition"
@@ -17487,6 +17517,10 @@
             "payloadRecordDurableJson/payloadRecordDurableJson",
             "payloadRecordOpaqueGeneration/payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership/payloadRecordOpaqueOwnership",
+            "payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts#2",
+            "payloadRequestFacts/payloadRequestFacts#3",
             "payloadTransitionDurableJson/payloadTransitionDurableJson",
             "pollCancelJson/pollCancelJson",
             "pollDispatchJson/pollDispatchJson",
@@ -17597,6 +17631,8 @@
             "payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership",
             "payloadRequestCid",
+            "payloadRequestFacts",
+            "payloadRequestFromDurable",
             "payloadRequestFromOutput",
             "payloadRequestMaxBytes",
             "payloadTransitionDurableJson",
@@ -17775,6 +17811,10 @@
               {
                 "path": "packages/coordinator-core/holder-terminal.test.mjs",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
+              },
+              {
+                "path": "packages/coordinator-core/payload.test.mjs",
+                "anchor": "test('durable payload request projects its complete original tuple without changing pending state'"
               }
             ]
           }
@@ -25186,7 +25226,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "64b6375d1394b7cd671d12e9fdcf8df55487bb2a6928c6aba043404721e100f2",
+      "sha256": "052fd7b7e4f1a4db39ec62f5fc7ce25703e645457c30b4a9b4574cff7a2a27db",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -28042,7 +28082,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "63e853ef9566279d392a8ec24be734343b1dad081f5fbe5b21e0fe7c706caafd",
+      "sha256": "3d3835eda7123f46df1688ac9b7ab3091c146565279225b592ea6d2d683a3173",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28665,7 +28705,7 @@
     },
     {
       "module": "src/run_publication_host/client_compilation_graph_body.mbt",
-      "sha256": "d1c4c07bc7666a2f2c00dbea8bb3d01a8f9f8e980002f485b181060c57cce15e",
+      "sha256": "37c9a9580895b14289dcfaf7e7ab8e4126e8de3aab96ed704c8265f348566e12",
       "exports": [],
       "operations": [
         {
@@ -28675,6 +28715,14 @@
         {
           "name": "[E]emit_client_compilation_graph",
           "declaration": "[ E ] emit_client_compilation_graph ( writer : @ encode . Writer , edges : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , nodes : ( @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , roots : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , ) - > Result [ Unit , E ] raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "client_compilation_result_node_id",
+          "declaration": "client_compilation_result_node_id ( result : Int ) - > String"
+        },
+        {
+          "name": "client_compilation_task_node_id",
+          "declaration": "client_compilation_task_node_id ( task : Int ) - > String"
         }
       ],
       "responsibilityFacet": "primary",
@@ -28790,13 +28838,134 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_compilation_result_node_id",
+            "client_compilation_task_node_id"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "8d5931a90062020468a1ce16ad6741a952eac3c904dfdc50d574cf382370c591",
+      "sha256": "632cf5596842da0a638a37c75d392c7b5e62c2d61578df68557ae3fb5a83aa49",
       "exports": [],
       "operations": [
         {
@@ -29296,7 +29465,7 @@
     },
     {
       "module": "src/run_publication_host/client_values_executable_plan.mbt",
-      "sha256": "10d24f563e73fc340bd63bbb0f4ec54f5a49ea9a954f5c9d32b12b959794c6a3",
+      "sha256": "8df131876b234e9f0ca7a7cd605b0ca547326c39db9d71fd86f6a13f2471a8af",
       "exports": [],
       "operations": [
         {
@@ -29625,7 +29794,7 @@
     },
     {
       "module": "src/run_publication_host/client_program.mbt",
-      "sha256": "ab007f14f6a9127a469d88b6cd540071e1ddffe0a8a078d19c0702ecc7e0ef71",
+      "sha256": "090c87f5eca0cdc2d25aefc68a62a4df66b9dd352454fd0748b03f9066034734",
       "exports": [],
       "operations": [
         {
@@ -30264,7 +30433,7 @@
     },
     {
       "module": "src/run_publication_host/client_task_fragment.mbt",
-      "sha256": "bbef2ef9fe98dff7a3d2c7508d1e0501aee988b994ecfee0d5eb71129c93a8bd",
+      "sha256": "c625db375a1203d3fcca5ea81257b0c3a7554067790d7f544023728de834dbda",
       "exports": [],
       "operations": [
         {
@@ -30286,6 +30455,10 @@
         {
           "name": "client_task_carrier_sort",
           "declaration": "client_task_carrier_sort ( carrier : @ carrier . Carrier ) - > String"
+        },
+        {
+          "name": "client_task_fragment_input_count",
+          "declaration": "client_task_fragment_input_count ( owner : @ lower . BoundPrepared , selected : Int ? , ) - > Int"
         },
         {
           "name": "client_task_fragment_logical_cid",
@@ -30495,9 +30668,1711 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_task_fragment_input_count"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_result_graph_construction.mbt",
+      "sha256": "1d0c08faa876032f9b4127b4863a7a5cdb842085f781f155db71489bf84db8e6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "measure_prepared_client_result_graph_construction",
+          "declaration": "measure_prepared_client_result_graph_construction ( value : PreparedClientProgram , result : Int , producer_node : String , producer_port : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientResultGraphConstruction , ClientResultPlanPartsIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "measure_prepared_client_result_graph_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_result_plan_parts.mbt",
+      "sha256": "0b1815c82f0df6a5405df1967492408b507d9b97513ce442f5a7abb329d70bd3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[C]emit_client_result_projection_edge",
+          "declaration": "[ C ] emit_client_result_projection_edge ( writer : @ encode . Writer , producer_contract : C , producer_node : String , producer_port : String , node_id : String , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "[P,C]emit_client_result_projection_node",
+          "declaration": "[ P , C ] emit_client_result_projection_node ( writer : @ encode . Writer , producer_contract : C , logical_cid : C , node_id : String , output : String , row_contract_cid : C , pipeline : P , emit_pipeline : ( P , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_requested_result_root",
+          "declaration": "emit_client_requested_result_root ( writer : @ encode . Writer , result_name : String , node_id : String , output : String , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_result_projection_pipeline",
+          "declaration": "emit_client_result_projection_pipeline ( writer : @ encode . Writer , port : @ results . ResultPort , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_result_plan_ref",
+          "declaration": "emit_result_plan_ref ( writer : @ encode . Writer , node : String , port : String , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "issue_client_result_plan_parts",
+          "declaration": "issue_client_result_plan_parts ( owner : PreparedClientProgram , result : Int , producer_node : String , producer_port : String , producer_contract : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer_output ? : ( ClientInferOccurrence , Int ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[C]emit_client_result_projection_edge",
+            "[P,C]emit_client_result_projection_node",
+            "emit_client_requested_result_root",
+            "emit_client_result_projection_pipeline",
+            "emit_result_plan_ref",
+            "issue_client_result_plan_parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_pure_measurement_storage.mbt",
+      "sha256": "6130b55ee0457e991e6cf248b55455428cd19554a0a144defb3fcaf0a4798a0c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_pure_compilation_limits_valid",
+          "declaration": "client_pure_compilation_limits_valid ( max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Bool"
+        },
+        {
+          "name": "client_pure_measurement_storage_owned",
+          "declaration": "client_pure_measurement_storage_owned ( value : PreparedClientProgram , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "prepared_client_pure_measurement_storage",
+          "declaration": "prepared_client_pure_measurement_storage ( value : PreparedClientProgram , limits : ClientPureCompilationLimits , ) - > Result [ @ execution . PreparationRepresentationUnits , ClientValuesExecutablePlanIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_pure_compilation_limits_valid",
+            "client_pure_measurement_storage_owned",
+            "prepared_client_pure_measurement_storage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_effect_program.mbt",
+      "sha256": "19b595a140aaadb8fa40406895adef73cfe3716d4cc6d299880aa71f6c423fa2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_prepared_client_effect_run_publication",
+          "declaration": "admit_prepared_client_effect_run_publication ( value : PreparedClientEffectComputation , template : @ publication . RunEvidenceValue , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , compiled_plan : @ publication . PublicationContract , ) - > Result [ @ publication . RunPublicationAdmission , @ publication . RunPublicationAdmissionIssue , ]"
+        },
+        {
+          "name": "bind_prepared_client_effect_run",
+          "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "client_effect_program_view",
+          "declaration": "client_effect_program_view ( value : PreparedClientEffectComputation , ) - > PreparedClientProgram"
+        },
+        {
+          "name": "compile_static_client_effect_computation",
+          "declaration": "compile_static_client_effect_computation ( candidate : @ checked . EffectProgramStaticCandidate , environment : @ environment . WireEnvironment , limits : ClientProgramPreparationLimits , max_mapping_work : Int , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "observe_prepare_checked_client_effect_computation",
+          "declaration": "observe_prepare_checked_client_effect_computation ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "open_prepared_accounted_captured_client_effect_run",
+          "declaration": "open_prepared_accounted_captured_client_effect_run ( value : PreparedClientEffectRun , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_captured_client_effect_run",
+          "declaration": "open_prepared_captured_client_effect_run ( value : PreparedClientEffectRun , source : @ query . CapturedInputSource , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_multi_captured_client_effect_run",
+          "declaration": "open_prepared_multi_captured_client_effect_run ( value : PreparedClientEffectRun , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "open_prepared_source_free_client_effect_run",
+          "declaration": "open_prepared_source_free_client_effect_run ( value : PreparedClientEffectRun , limits : @ resources . LedgerLimits , ) - > Result [ @ strategy . CapturedEffectRunDAG , ClientRunOpenIssue ]"
+        },
+        {
+          "name": "prepare_checked_client_effect_computation",
+          "declaration": "prepare_checked_client_effect_computation ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_checked_client_effect_computation_owned",
+          "declaration": "prepare_checked_client_effect_computation_owned ( computation : @ checked . EffectComputationCandidate , limits : ClientEffectComputationLimits , update_targets : @ update_targets . UpdateTargetPublication ? , store_targets : @ update_targets . StoreTargetPublication ? , command_targets : @ update_targets . CommandTargetPublication ? , lowering_work_out ? : Ref [ Int64 ] ?"
+        },
+        {
+          "name": "prepare_client_effect_computation",
+          "declaration": "prepare_client_effect_computation ( document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_client_effect_task_sequence",
+          "declaration": "prepare_client_effect_task_sequence ( value : PreparedClientEffectComputation , task : Int , contracts : @ execution . RegisteredRelationContracts , contexts : Array [ @ execution . FragmentRuntimeContext ] , limits : @ lower . SequenceLimits , max_work : Int , max_entries : Int , prepared_sequence ? : @ lower . PreparedSequence ?"
+        },
+        {
+          "name": "prepare_parsed_client_effect_computation",
+          "declaration": "prepare_parsed_client_effect_computation ( parsed : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : ClientEffectComputationLimits , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepare_static_client_effect_computation",
+          "declaration": "prepare_static_client_effect_computation ( candidate : @ checked . EffectProgramStaticCandidate , limits : ClientProgramPreparationLimits , max_mapping_work : Int , update_targets ? : @ update_targets . UpdateTargetPublication ?"
+        },
+        {
+          "name": "prepared_client_effect_command_target_publication",
+          "declaration": "prepared_client_effect_command_target_publication ( value : PreparedClientEffectComputation , ) - > @ update_targets . CommandTargetPublication ?"
+        },
+        {
+          "name": "prepared_client_effect_computation_candidate",
+          "declaration": "prepared_client_effect_computation_candidate ( value : PreparedClientEffectComputation , ) - > @ checked . EffectProgramStaticCandidate"
+        },
+        {
+          "name": "prepared_client_effect_computation_definition_cid",
+          "declaration": "prepared_client_effect_computation_definition_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_environment_cid",
+          "declaration": "prepared_client_effect_computation_environment_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_graph",
+          "declaration": "prepared_client_effect_computation_graph ( value : PreparedClientEffectComputation , ) - > @ strategy . CheckedEffectComputationDAG"
+        },
+        {
+          "name": "prepared_client_effect_computation_semantics_cid",
+          "declaration": "prepared_client_effect_computation_semantics_cid ( value : PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "prepared_client_effect_computation_source",
+          "declaration": "prepared_client_effect_computation_source ( value : PreparedClientEffectComputation , ) - > @ syntax . Program"
+        },
+        {
+          "name": "prepared_client_effect_identity",
+          "declaration": "prepared_client_effect_identity ( value : PreparedClientEffectComputation , ) - > ClientProgramIdentity"
+        },
+        {
+          "name": "prepared_client_effect_publication_data_policy_cid",
+          "declaration": "prepared_client_effect_publication_data_policy_cid ( value : PreparedClientEffectComputation , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_effect_result_count",
+          "declaration": "prepared_client_effect_result_count ( value : PreparedClientEffectComputation , ) - > Int"
+        },
+        {
+          "name": "prepared_client_effect_result_name",
+          "declaration": "prepared_client_effect_result_name ( value : PreparedClientEffectComputation , index : Int , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_effect_run_computation",
+          "declaration": "prepared_client_effect_run_computation ( value : PreparedClientEffectRun , ) - > PreparedClientEffectComputation"
+        },
+        {
+          "name": "prepared_client_effect_run_graph",
+          "declaration": "prepared_client_effect_run_graph ( value : PreparedClientEffectRun , ) - > @ strategy . CheckedEffectRunDAG"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_prepared_client_effect_run_publication",
+            "bind_prepared_client_effect_run",
+            "client_effect_program_view",
+            "compile_static_client_effect_computation",
+            "observe_prepare_checked_client_effect_computation",
+            "open_prepared_accounted_captured_client_effect_run",
+            "open_prepared_captured_client_effect_run",
+            "open_prepared_multi_captured_client_effect_run",
+            "open_prepared_source_free_client_effect_run",
+            "prepare_checked_client_effect_computation",
+            "prepare_checked_client_effect_computation_owned",
+            "prepare_client_effect_computation",
+            "prepare_client_effect_task_sequence",
+            "prepare_parsed_client_effect_computation",
+            "prepare_static_client_effect_computation",
+            "prepared_client_effect_command_target_publication",
+            "prepared_client_effect_computation_candidate",
+            "prepared_client_effect_computation_definition_cid",
+            "prepared_client_effect_computation_environment_cid",
+            "prepared_client_effect_computation_graph",
+            "prepared_client_effect_computation_semantics_cid",
+            "prepared_client_effect_computation_source",
+            "prepared_client_effect_identity",
+            "prepared_client_effect_publication_data_policy_cid",
+            "prepared_client_effect_result_count",
+            "prepared_client_effect_result_name",
+            "prepared_client_effect_run_computation",
+            "prepared_client_effect_run_graph"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_ordered_sequence.mbt",
+      "sha256": "58b8fdb2a0ede99942dc1448738473bee71423bbad448534f4afdabde36d6946",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_compiler_ordered_contract",
+          "declaration": "client_compiler_ordered_contract ( limits : @ execution . RegistryLimits , ) - > @ execution . RegisteredOrderedContract ?"
+        },
+        {
+          "name": "emit_client_sequence_steps",
+          "declaration": "emit_client_sequence_steps ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , out : @ encode . Writer , compiler_contracts ? : ClientCompilerContracts ?"
+        },
+        {
+          "name": "emit_prepared_client_sequence_range",
+          "declaration": "emit_prepared_client_sequence_range ( input : ClientSequenceEmission , first : Int , end : Int , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_prepared_client_sequence_steps",
+          "declaration": "emit_prepared_client_sequence_steps ( input : ClientSequenceEmission , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "prepare_client_sequence_steps",
+          "declaration": "prepare_client_sequence_steps ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , ) - > ClientSequenceEmission raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "prepare_client_sequence_steps_owned",
+          "declaration": "prepare_client_sequence_steps_owned ( sequence : @ lower . PreparedSequence , first : Int , end : Int , physical : @ execution . RegistryLimits , compiler_contracts : ClientCompilerContracts ? , admit ? : ( @ execution . RegistryLimits ) - > @ execution . RegisteredOrderedContract ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_compiler_ordered_contract",
+            "emit_client_sequence_steps",
+            "emit_prepared_client_sequence_range",
+            "emit_prepared_client_sequence_steps",
+            "prepare_client_sequence_steps",
+            "prepare_client_sequence_steps_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_compiler_contract_selection.mbt",
+      "sha256": "e8e62d0d4d160b77fb16570319d5b229c9ec610767ceea5e9c8e8ea956c88eed",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_prepared_client_compiler_contracts",
+          "declaration": "bind_prepared_client_compiler_contracts ( value : PreparedClientProgram , ordered : @ execution . RegisteredOrderedContract ? , ) - > Result [ Unit , ClientTaskPipelineIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_prepared_client_compiler_contracts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed compiler contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request compiler retains its original installed ordered"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"explicit installed ordered absence refuses"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"installed ordered compilation uses the original contract"
+              },
+              {
+                "path": "src/run_publication_host/client_compiler_contract_selection_wbtest.mbt",
+                "anchor": "test \"compiler contract binding preserves original views"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/kernel.mbt",
+      "sha256": "e56fe5c3678830f87402c0744448fd5e741f17306fe9c8bf1b799d98fe4853a8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "kernel_analytic",
+          "declaration": "kernel_analytic ( kernel : PreparedKernel ) - > PreparedAnalytic ?"
+        },
+        {
+          "name": "kernel_body",
+          "declaration": "kernel_body ( kernel : PreparedKernel ) - > KernelBody"
+        },
+        {
+          "name": "kernel_checked",
+          "declaration": "kernel_checked ( kernel : PreparedKernel ) - > @ relation . CheckedOperation"
+        },
+        {
+          "name": "kernel_count_group",
+          "declaration": "kernel_count_group ( kernel : PreparedKernel ) - > PreparedCountGroup ?"
+        },
+        {
+          "name": "kernel_group",
+          "declaration": "kernel_group ( kernel : PreparedKernel ) - > PreparedGroup ?"
+        },
+        {
+          "name": "kernel_has_veca_bindings",
+          "declaration": "kernel_has_veca_bindings ( kernel : PreparedKernel ) - > Bool"
+        },
+        {
+          "name": "kernel_input",
+          "declaration": "kernel_input ( kernel : PreparedKernel ) - > String"
+        },
+        {
+          "name": "kernel_owner",
+          "declaration": "kernel_owner ( kernel : PreparedKernel ) - > BoundPrepared"
+        },
+        {
+          "name": "kernel_pivot",
+          "declaration": "kernel_pivot ( kernel : PreparedKernel ) - > PreparedPivot ?"
+        },
+        {
+          "name": "kernel_step",
+          "declaration": "kernel_step ( kernel : PreparedKernel ) - > Int"
+        },
+        {
+          "name": "kernel_take",
+          "declaration": "kernel_take ( kernel : PreparedKernel ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "kernel_view_entries",
+          "declaration": "kernel_view_entries ( kernel : PreparedKernel ) - > Int"
+        },
+        {
+          "name": "ordered_binding_at",
+          "declaration": "ordered_binding_at ( kernel : PreparedKernel , index : Int , ) - > ( String , Expression ) ?"
+        },
+        {
+          "name": "prepare_kernel",
+          "declaration": "prepare_kernel ( owner : BoundPrepared , step_index : Int , max_bindings ~ : Int , max_name_bytes ~ : Int , limits : ExpressionLimits , ) - > Result [ PreparedKernel , KernelIssue ]"
+        },
+        {
+          "name": "prepare_kernel_measured",
+          "declaration": "prepare_kernel_measured ( owner : BoundPrepared , step_index : Int , max_bindings ~ : Int , max_name_bytes ~ : Int , limits : ExpressionLimits , ) - > Result [ ( PreparedKernel , ExpressionLimits , Int , Int ) , KernelIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "kernel_analytic",
+            "kernel_body",
+            "kernel_checked",
+            "kernel_count_group",
+            "kernel_group",
+            "kernel_has_veca_bindings",
+            "kernel_input",
+            "kernel_owner",
+            "kernel_pivot",
+            "kernel_step",
+            "kernel_take",
+            "kernel_view_entries",
+            "ordered_binding_at",
+            "prepare_kernel",
+            "prepare_kernel_measured"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/ordered_references.mbt",
+      "sha256": "9c298eb750f3d38842e8cb48cc25565ae780da808968152f842814d40f331280",
+      "exports": [],
+      "operations": [
+        {
+          "name": "emit_ordered_references",
+          "declaration": "emit_ordered_references ( index : OrderedReferences , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "ordered_reference_at",
+          "declaration": "ordered_reference_at ( index : OrderedReferences , i : Int , ) - > OrderedReference ?"
+        },
+        {
+          "name": "ordered_reference_count",
+          "declaration": "ordered_reference_count ( index : OrderedReferences ) - > Int"
+        },
+        {
+          "name": "ordered_reference_kernel",
+          "declaration": "ordered_reference_kernel ( index : OrderedReferences ) - > PreparedKernel"
+        },
+        {
+          "name": "prepare_ordered_reference_material",
+          "declaration": "prepare_ordered_reference_material ( kernel : PreparedKernel , bindings : Array [ ( String , Expression ) ] , limits : OrderedReferenceLimits , ) - > Result [ OrderedReferenceMaterial , OrderedReferenceIssue ]"
+        },
+        {
+          "name": "prepare_ordered_references",
+          "declaration": "prepare_ordered_references ( kernel : PreparedKernel , limits : OrderedReferenceLimits , ) - > Result [ OrderedReferences , OrderedReferenceIssue ]"
+        },
+        {
+          "name": "prepare_ordered_references_owned",
+          "declaration": "prepare_ordered_references_owned ( kernel : PreparedKernel , limits : OrderedReferenceLimits , prepare ? : ( PreparedKernel , Array [ ( String , Expression ) ] , OrderedReferenceLimits , ) - > Result [ OrderedReferenceMaterial , OrderedReferenceIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emit_ordered_references",
+            "ordered_reference_at",
+            "ordered_reference_count",
+            "ordered_reference_kernel",
+            "prepare_ordered_reference_material",
+            "prepare_ordered_references",
+            "prepare_ordered_references_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/serialization.mbt",
+      "sha256": "e7744862164634704e36cd1685801fa566a6552d0f3e612b2deaeeea6851ebf0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_serialization",
+          "declaration": "prepare_serialization ( owner : BoundPrepared , step : Int , max_work ~ : Int , ) - > Result [ PreparedSerialization , SerializationPreparationIssue ]"
+        },
+        {
+          "name": "prepare_serialization_sort_kernel",
+          "declaration": "prepare_serialization_sort_kernel ( value : PreparedSerialization , max_bindings ~ : Int , max_name_bytes ~ : Int , max_work ~ : Int , ) - > Result [ PreparedKernel , KernelIssue ]"
+        },
+        {
+          "name": "serialization_author_guards",
+          "declaration": "serialization_author_guards ( value : PreparedSerialization , ) - > ( Int64 ? , Int64 ? )"
+        },
+        {
+          "name": "serialization_checked",
+          "declaration": "serialization_checked ( value : PreparedSerialization , ) - > @ pipeline . CheckedSerialization"
+        },
+        {
+          "name": "serialization_matches_node",
+          "declaration": "serialization_matches_node ( value : PreparedSerialization , node : PreparedNode , ) - > Bool"
+        },
+        {
+          "name": "serialization_order",
+          "declaration": "serialization_order ( value : PreparedSerialization , ) - > @ pipeline . SerializationOrder"
+        },
+        {
+          "name": "serialization_owner",
+          "declaration": "serialization_owner ( value : PreparedSerialization ) - > BoundPrepared"
+        },
+        {
+          "name": "serialization_preparation_work",
+          "declaration": "serialization_preparation_work ( value : PreparedSerialization ) - > Int"
+        },
+        {
+          "name": "serialization_requires_sort",
+          "declaration": "serialization_requires_sort ( value : PreparedSerialization ) - > Bool"
+        },
+        {
+          "name": "serialization_step",
+          "declaration": "serialization_step ( value : PreparedSerialization ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_serialization",
+            "prepare_serialization_sort_kernel",
+            "serialization_author_guards",
+            "serialization_checked",
+            "serialization_matches_node",
+            "serialization_order",
+            "serialization_owner",
+            "serialization_preparation_work",
+            "serialization_requires_sort",
+            "serialization_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",

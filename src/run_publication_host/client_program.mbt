@@ -35,6 +35,7 @@ struct PreparedClientProgram {
   mut local_normalization : ClientLocalNormalization?
   full_sequences : Array[ClientFullSequence]
   task_pipeline_inputs : Array[ClientTaskPipelineRetained]
+  mut compiler_contracts : ClientCompilerContracts?
 }
 
 ///|
@@ -534,6 +535,7 @@ pub fn emit_prepared_client_task_aoa_steps(
       max_body_depth: max_depth,
     },
     writer,
+    compiler_contracts=value.compiler_contracts,
   ) catch {
     _ => return Err(Encoding)
   }
@@ -622,6 +624,7 @@ priv struct ClientTaskPipelineInput {
   first_sequence_step : Int
   sequence_end : Int
   mut emission : ClientTaskPipelineEmission?
+  compiler_contracts : ClientCompilerContracts?
 }
 
 ///|
@@ -646,16 +649,28 @@ fn client_task_pipeline_emission(
     retained.max_depth == max_depth {
     return retained.steps
   }
-  let steps = prepare(
-    input.sequence,
-    input.first_sequence_step,
-    input.sequence_end,
-    {
-      max_body_bytes: max_wire_bytes,
-      max_body_nodes: max_nodes,
-      max_body_depth: max_depth,
-    },
-  )
+  let physical : @execution.RegistryLimits = {
+    max_body_bytes: max_wire_bytes,
+    max_body_nodes: max_nodes,
+    max_body_depth: max_depth,
+  }
+  let steps = match input.compiler_contracts {
+    Some(original) =>
+      prepare_client_sequence_steps_owned(
+        input.sequence,
+        input.first_sequence_step,
+        input.sequence_end,
+        physical,
+        Some(original),
+      )
+    None =>
+      prepare(
+        input.sequence,
+        input.first_sequence_step,
+        input.sequence_end,
+        physical,
+      )
+  }
   // The ordered-reference work and registered contract belong to this exact
   // sequence/range and codec profile, not to another Program or new bounds.
   input.emission = Some({ max_wire_bytes, max_nodes, max_depth, steps, })
@@ -1062,6 +1077,7 @@ fn prepare_client_task_pipeline_input(
     first_sequence_step,
     sequence_end,
     emission: None,
+    compiler_contracts: preparation.bind(pair => pair.0.compiler_contracts),
   })
 }
 
@@ -1491,6 +1507,7 @@ fn emit_client_values_pipeline_into(
         max_body_depth: max_depth,
       },
       writer,
+      compiler_contracts=preparation.bind(value => value.compiler_contracts),
     )
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
@@ -2261,6 +2278,7 @@ fn compile_effect_free_checked_client_program(
         local_normalization: None,
         full_sequences: [],
         task_pipeline_inputs: [],
+        compiler_contracts: None,
         // The default covers authored inlet demand and checked closed outputs.
         // An explicit row-limit view replaces this envelope. The owned capacity
         // plan still independently admits the actual execution resources.

@@ -234,6 +234,10 @@ pub fn coordinator_payload_record_opaque_ownership(@publication_payload.Publicat
 
 pub fn coordinator_payload_request_cid(@publication_payload.PublicationPayloadRequest) -> String
 
+pub fn coordinator_payload_request_facts(@publication_payload.PublicationPayloadRequest) -> Array[String]
+
+pub fn coordinator_payload_request_from_durable(@publication_payload.DurablePublicationPayloadRecord) -> @publication_payload.PublicationPayloadRequest
+
 pub fn coordinator_payload_request_from_output(@remote_site_protocol.DurableCoordinatorOutputRecord) -> @publication_payload.PublicationPayloadRequest
 
 pub fn coordinator_payload_request_max_bytes(@publication_payload.PublicationPayloadRequest) -> Int64

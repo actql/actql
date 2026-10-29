@@ -51,6 +51,18 @@ fn prepare_client_sequence_steps(
   end : Int,
   physical : @execution.RegistryLimits,
 ) -> ClientSequenceEmission raise @encode.EncodeFailure {
+  prepare_client_sequence_steps_owned(sequence, first, end, physical, None)
+}
+
+///|
+fn prepare_client_sequence_steps_owned(
+  sequence : @lower.PreparedSequence,
+  first : Int,
+  end : Int,
+  physical : @execution.RegistryLimits,
+  compiler_contracts : ClientCompilerContracts?,
+  admit? : (@execution.RegistryLimits) -> @execution.RegisteredOrderedContract? = client_compiler_ordered_contract,
+) -> ClientSequenceEmission raise @encode.EncodeFailure {
   if first < 0 || end < first || end > @lower.sequence_count(sequence) {
     raise @encode.InvalidStructure
   }
@@ -62,13 +74,17 @@ fn prepare_client_sequence_steps(
         is Some(bindings) &&
         @lower.bindings_ordered(bindings) => {
         if contract is None {
-          // This is the existing finite registry profile, independent of the
-          // emitted Plan's limits. It grants no physical execution authority.
-          contract = client_compiler_ordered_contract({
-            max_body_bytes: 100000,
-            max_body_nodes: 10000,
-            max_body_depth: 100,
-          })
+          contract = match compiler_contracts {
+            Some(original) => original.ordered
+            None =>
+              // Independent compilers still admit their selected immutable
+              // bodies. Explicit installed absence never selects this path.
+              admit({
+                max_body_bytes: 100000,
+                max_body_nodes: 10000,
+                max_body_depth: 100,
+              })
+          }
         }
         guard contract is Some(selected) &&
           @lower.prepare_ordered_references(kernel, {
@@ -131,9 +147,12 @@ fn emit_client_sequence_steps(
   end : Int,
   physical : @execution.RegistryLimits,
   out : @encode.Writer,
+  compiler_contracts? : ClientCompilerContracts? = None,
 ) -> Unit raise @encode.EncodeFailure {
   emit_prepared_client_sequence_steps(
-    prepare_client_sequence_steps(sequence, first, end, physical),
+    prepare_client_sequence_steps_owned(
+      sequence, first, end, physical, compiler_contracts,
+    ),
     out,
   )
 }

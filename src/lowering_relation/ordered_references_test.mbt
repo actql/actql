@@ -225,3 +225,34 @@ test "wide expression reference traversal uses bounded continuations" {
     },
   )
 }
+
+///|
+test "same original runtime and compiler references retain completed occurrence material" {
+  let kernel = ordered_kernel(
+    ",{\"derive\":[{\"old\":\"id\"},{\"value\":\"old + id\"}]}",
+  )
+  let runtime : @lowering_relation.OrderedReferenceLimits = {
+    max_references: 10000,
+    max_pointer_bytes: 100000,
+    max_work: 10000,
+    max_frames: 100,
+  }
+  let compiler : @lowering_relation.OrderedReferenceLimits = {
+    max_references: 100000,
+    max_pointer_bytes: 1000000,
+    max_work: 1000000,
+    max_frames: 100,
+  }
+  let first = @lowering_relation.prepare_ordered_references(kernel, runtime).unwrap()
+  let second = @lowering_relation.prepare_ordered_references(kernel, compiler).unwrap()
+  assert_eq(@lowering_relation.ordered_reference_count(first), 3)
+  assert_eq(references_wire(first), references_wire(second))
+  for index in 0..<3 {
+    assert_true(
+      physical_equal(
+        @lowering_relation.ordered_reference_at(first, index).unwrap(),
+        @lowering_relation.ordered_reference_at(second, index).unwrap(),
+      ),
+    )
+  }
+}

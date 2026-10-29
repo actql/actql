@@ -38,7 +38,7 @@ pub fn measure_prepared_client_result_graph_construction(
   }
   let ordered = @results.publication_term_count(@results.port_order(port)) != 0
   let output = if ordered { "ordered" } else { "projected" }
-  let node_id = "result_" + result.to_string()
+  let node_id = client_compilation_result_node_id(result)
   try {
     let pipeline_writer = @encode.measuring_writer(
       max_wire_bytes, max_nodes, max_depth,

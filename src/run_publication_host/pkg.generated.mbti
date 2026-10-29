@@ -241,6 +241,8 @@ pub fn bind_client_table_preview(ClientTableInput, @physical_strategy_host.Captu
 
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
+pub fn bind_prepared_client_compiler_contracts(PreparedClientProgram, @execution_relation.RegisteredOrderedContract?) -> Result[Unit, ClientTaskPipelineIssue]
+
 pub fn bind_prepared_client_effect_original_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientEffectIssuedNormalizationMaterials, request? : ClientRequestIdentity?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
@@ -1960,6 +1962,8 @@ pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
 
 pub fn prepared_client_publication_policy_bodies(PreparedClientProgram, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+
+pub fn prepared_client_pure_measurement_storage(PreparedClientProgram, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_requires_query_time(PreparedClientProgram, Int, Int) -> Result[Bool, ClientQueryTimeIssue]
 
