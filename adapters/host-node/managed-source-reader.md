@@ -149,6 +149,14 @@ Native callback Promises stay in the existing pending-callback inventory before
 their public `then` property is observed. The original getter error remains the
 read failure; only actual native settlement can release that callback borrow.
 
+An advanced constructor must still return its reader synchronously. A returned
+native Promise is refused, but the same Host joins its original computation and
+retains the actual late child before observing its cleanup methods. Stop requested
+while construction is pending reaches that same child once it arrives; its
+actual stop settlement and retirement remain required before release. A public
+`then` getter failure stays primary, and rejection never fabricates a child.
+No refused asynchronous constructor starts a read or causes another construction.
+
 A standard page callback describes a bodyless GET. A factory may also capture an
 explicit positive own-data `maxRequestBytes` and describe a POST with its original
 String body. The Host checks UTF-8 bytes and forwards that same bound and body to
