@@ -82970,7 +82970,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d96082d8108c422fb64b3a699752455a7d39ca6215618b814bdd9fdb5f5d3bb",
+      "sha256": "0674806b9e1eb7ca9bf80058b04cd220d3b693d0b506484e855d83081c5339d8",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
