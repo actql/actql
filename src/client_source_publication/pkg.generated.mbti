@@ -6,7 +6,9 @@ import {
   "actql/actql/decode_core",
   "actql/actql/physical_resources",
   "actql/actql/program_check",
+  "actql/actql/program_source_builder",
   "actql/actql/query_program",
+  "actql/actql/query_syntax",
   "actql/actql/source_frontend",
 }
 
@@ -20,6 +22,8 @@ pub fn bind_published_query_parts_with_catalog(@program_check.CheckEnvironment, 
 pub fn[T] enter_installation_preparation_read(InstallationPreparationRead[T], T) -> Result[Unit, @physical_resources.OriginalReadIssue]
 
 pub fn[T] installation_preparation_read_current(InstallationPreparationRead[T], T) -> Bool
+
+pub fn lower_prepared_published_parsed_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), PreparedPublicationIssue]
 
 pub fn lower_prepared_published_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String, @source_frontend.Format, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
 

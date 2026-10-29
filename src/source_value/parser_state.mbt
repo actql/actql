@@ -62,11 +62,26 @@ fn Parser::make(
 // contract is checked. Only these root-anchored payload positions opt out of
 // identifier normalization; nested lookalike syntax cannot open another one.
 fn Parser::normalize_key(self : Parser) -> Bool {
-  if !self.normalize_text {
-    return false
-  }
-  let path = self.path
-  if !self.effect_literal_keys || path.length() < 8 {
+  source_normalizes_key(
+    self.normalize_text,
+    self.effect_literal_keys,
+    self.path,
+  )
+}
+
+///|
+fn source_normalizes_key(
+  normalize_text : Bool,
+  effect_literal_keys : Bool,
+  path : Array[PathSegment],
+) -> Bool {
+  normalize_text && (!effect_literal_keys || program_json_normalizes_key(path))
+}
+
+///|
+// Shared by textual and already captured native Program inputs.
+fn program_json_normalizes_key(path : Array[PathSegment]) -> Bool {
+  if path.length() < 8 {
     return true
   }
   guard path[0] is Key("stages") &&

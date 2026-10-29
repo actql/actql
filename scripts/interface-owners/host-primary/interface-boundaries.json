@@ -4987,7 +4987,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b6029de7341ca5cfb7ceae13819a6886fe21d44a79e9613ec0e60e18b0a66180",
+      "sha256": "897f08d44e9df99f13f1e87a2ed412cd90187c7d5b797e3b5cb108eec00c9b74",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5019,7 +5019,6 @@
         "readLocalContentRunRequirements",
         "readLocalMockModelRunRequirements",
         "readLocalPreparationContext",
-        "readLocalPreparationResourceRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
         "readSourceManagedOriginalInput",
@@ -7816,27 +7815,6 @@
           "name": "readLocalPreparationContext",
           "parameters": [
             "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -11920,15 +11898,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
             "prepareInstalledSequenceContractOriginal",
             "readLocalPreparationContext",
-            "readLocalPreparationResourceRequirements",
-            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
-            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
             "retireSourceManagedInitialPreparation"
           ],
           "exports": [
             "prepareInstalledSequenceContractOriginal",
             "readLocalPreparationContext",
-            "readLocalPreparationResourceRequirements",
             "retireSourceManagedInitialPreparation"
           ],
           "attributes": {

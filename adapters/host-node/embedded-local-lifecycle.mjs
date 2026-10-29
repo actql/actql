@@ -361,11 +361,11 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           if (sealed || opened.closing) throw closing();
           return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options, originalConnection));
         },
-        beforeSourceQuery(format, text, parameters, options) {
+        beforeSourceQuery(format, text, parameters, options, originalConnection) {
           if (sealed || opened.closing) throw closing();
           // Query admission enters the SAME producer/lease lifetime. No
           // second snapshot, receipt, pending owner or physical ACK is made.
-          return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));
+          return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options, originalConnection));
         },
         beforeResultRead(schemaOrOptions, options) {
           if (sealed || opened.closing) throw closing();
@@ -374,6 +374,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         assertResultReadCurrent() {
           if (sealed || opened.closing) throw closing();
           return sourcePreparation.assertResultReadCurrent();
+        },
+        assertSourceSnapshotCurrent(receipt) {
+          if (sealed || opened.closing || !sourceProducers.has(receipt)) throw closing();
+          return sourcePreparation.assertSourceSnapshotCurrent(receipt);
+        },
+        captureSourceSnapshot(receipt, value, snapshot) {
+          if (sealed || opened.closing || !sourceProducers.has(receipt)) throw closing();
+          return sourcePreparation.captureSourceSnapshot(receipt, value, snapshot);
         },
         bindSourceSnapshot(receipt, body) {
           if (sealed || opened.closing) throw closing();
