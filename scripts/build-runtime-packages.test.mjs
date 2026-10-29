@@ -437,6 +437,8 @@ expectedGates['check:remote-site-runtime'][2] = expectedGates['check:remote-site
     'adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/connectors/github/test/github-comment-marker.test.mjs ');
 expectedGates['check:run-host-core'][2] +=
   ' packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs packages/run-host-core/effect-publication.test.mjs packages/run-host-core/effect-publication.runtime.test.mjs';
+expectedGates['check:run-host-core'][2] +=
+  ' packages/run-host-core/review-binding-facts.test.mjs';
 distribution[3] = distribution[3]
   .replace('node --test ',
     'node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs ')

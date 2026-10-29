@@ -100244,7 +100244,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "811930c15c2bfbe42bd4d2ea4d3fd9edfc92a51c073d9b4b59807bdcade58d60",
+      "sha256": "84db110c389c1ac532f4f1850caf58b4a3c9cebe02bc73bb2ac66178b1f4468c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100290,6 +100290,7 @@
         "effectReviewCheckpointPreview",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
+        "effectReviewProjectionBindingFacts",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -101098,6 +101099,20 @@
             "storedWire",
             "updatedAt",
             "declaredResults"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts",
+          "parameters": [
+            "review"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -125439,6 +125454,165 @@
               {
                 "path": "src/run_publication_host/client_effect_checkpoint_reconciliation_wbtest.mbt",
                 "anchor": "test \"original Checkpoint Preview admits the same Run and original authoring data\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "effectReviewProjectionBindingFacts",
+            "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts"
+          ],
+          "exports": [
+            "effectReviewProjectionBindingFacts"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
+                "anchor": "test \"Review binding facts retain the admitted original and isolate returned claims\""
               }
             ]
           }
