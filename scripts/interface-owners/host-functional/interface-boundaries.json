@@ -84941,6 +84941,758 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-rest-source.mjs",
+      "sha256": "d25c8ed352e89fd9c569c4bd1b99624b10d4c159e096ae987efec022dc014a52",
+      "exports": [
+        "createInstalledRestSource"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource",
+          "parameters": [
+            "definition",
+            "decodePage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load",
+          "parameters": [
+            "profile",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRestSource/load/implementation/implementation",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/init:preparePageReader/init:preparePageReader",
+          "parameters": [
+            "input",
+            "applySynchronousProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load#3",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/load#4",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
+          "parameters": [
+            "value",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/pages/pages",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/physicalTarget/physicalTarget",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/physicalTarget/physicalTarget/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/services/services",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/targets/targets",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
+        "./installed-row-source.mjs",
+        "./rest-source-metadata.mjs",
+        "./rest-source-page.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Common row declaration and installed Host Source/ManagedReader Owners; standard REST DATA projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createInstalledRestSource",
+            "createInstalledRestSource/load",
+            "createInstalledRestSource/load/implementation/implementation",
+            "createInstalledRestSource/load/init:preparePageReader/init:preparePageReader",
+            "createInstalledRestSource/load/load",
+            "createInstalledRestSource/load/load#2",
+            "createInstalledRestSource/load/load#3",
+            "createInstalledRestSource/load/load#4",
+            "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
+            "createInstalledRestSource/load/pages/pages",
+            "createInstalledRestSource/load/physicalTarget/physicalTarget",
+            "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
+            "createInstalledRestSource/load/physicalTarget/physicalTarget/view/view",
+            "createInstalledRestSource/load/services/services",
+            "createInstalledRestSource/load/targets/targets",
+            "fail/fail"
+          ],
+          "exports": [
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Declaration and identity"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "export "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Optional projection"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.test.mjs",
+                "anchor": "REST initialization failure must retire its original managed factory before releasing the Site"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Identity includes the complete definition and selected Site."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Installation and lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "through the managed reader's original active-frame invoker."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Failed initialization must pass the same factory as `sourceReader`"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.test.mjs",
+                "anchor": "REST initialization failure must retire its original managed factory before releasing the Site"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "The same RowRun owns acquisition, current checks, read decisions, per-call"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "author page limits must be covered in full and supply no physical credit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Initialization bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Verification scope"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.test.mjs",
+                "anchor": "REST initialization failure must retire its original managed factory before releasing the Site"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/rest-source-metadata.mjs",
+      "sha256": "ac9e2cb8312b39be1364b17e1f3074b04bc419ae590560866d8efb7878a80e1a",
+      "exports": [
+        "REST_SOURCE_SITE_VERSION",
+        "createRestSourceMetadata"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "names",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed/closed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed/closed#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata",
+          "parameters": [
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/checkProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/checkSite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/checkSite/checkSite",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/createRestSourceMetadata",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/identityParts",
+          "parameters": [
+            "profile",
+            "providerProfile",
+            "readJson",
+            "_installation",
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRestSourceMetadata/publish",
+          "parameters": [
+            "profile",
+            "moon",
+            "configurationReader"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRestSourceMetadata/readInputs",
+          "parameters": [
+            "profile",
+            "configurationReader",
+            "readJson"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRestSourceMetadata/readInputs/readInputs",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/readInputs/readInputs#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/readInputs/reads/reads",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/restore",
+          "parameters": [
+            "profile",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRestSourceMetadata/viewsWire/viewsWire",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "hash/hash",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Common row declaration and installed Host Source/ManagedReader Owners; standard REST DATA projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "closed/closed",
+            "closed/closed/closed",
+            "closed/closed/closed#2",
+            "createRestSourceMetadata",
+            "createRestSourceMetadata/checkProfile",
+            "createRestSourceMetadata/checkSite",
+            "createRestSourceMetadata/checkSite/checkSite",
+            "createRestSourceMetadata/createRestSourceMetadata",
+            "createRestSourceMetadata/identityParts",
+            "createRestSourceMetadata/publish",
+            "createRestSourceMetadata/readInputs",
+            "createRestSourceMetadata/readInputs/readInputs",
+            "createRestSourceMetadata/readInputs/readInputs#2",
+            "createRestSourceMetadata/readInputs/reads/reads",
+            "createRestSourceMetadata/restore",
+            "createRestSourceMetadata/viewsWire/viewsWire",
+            "fail/fail",
+            "freeze/freeze",
+            "hash/hash",
+            "text/text"
+          ],
+          "exports": [
+            "REST_SOURCE_SITE_VERSION",
+            "createRestSourceMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Declaration and identity"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "export "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Optional projection"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "REST identity pins fresh real Site and exact strings without opening a credential or provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Identity includes the complete definition and selected Site."
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "const "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Installation and lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "through the managed reader's original active-frame invoker."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Failed initialization must pass the same factory as `sourceReader`"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "REST identity pins fresh real Site and exact strings without opening a credential or provider"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "The same RowRun owns acquisition, current checks, read decisions, per-call"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "author page limits must be covered in full and supply no physical credit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Initialization bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Verification scope"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "REST identity pins fresh real Site and exact strings without opening a credential or provider"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/rest-source-page.mjs",
+      "sha256": "2793ad11417426c17d1ac1cfe8685c677eb193833606105a37fb9d5efe814ac7",
+      "exports": [
+        "restSourcePageReader"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader",
+          "parameters": [
+            "moon",
+            "source",
+            "decodePage"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/checkCursor/checkCursor",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/columns/columns",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/original/original/original",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/preparePageReader",
+          "parameters": [
+            "_input",
+            "applySynchronousProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage",
+          "parameters": [
+            "response",
+            "pageIndex",
+            "rowCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
+          "parameters": [
+            "pageIndex",
+            "rowCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageReader/project/project",
+          "parameters": [
+            "bytes",
+            "itemsPath",
+            "cursorPath",
+            "maxRows"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Common row declaration and installed Host Source/ManagedReader Owners; standard REST DATA projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "restSourcePageReader",
+            "restSourcePageReader/checkCursor/checkCursor",
+            "restSourcePageReader/columns/columns",
+            "restSourcePageReader/original/original",
+            "restSourcePageReader/original/original/original",
+            "restSourcePageReader/preparePageReader",
+            "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage",
+            "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
+            "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
+            "restSourcePageReader/project/project"
+          ],
+          "exports": [
+            "restSourcePageReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Declaration and identity"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "export "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Optional projection"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-owner.integration.test.mjs",
+                "anchor": "managed owner joins the exact nested author transform before retiring its charged response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Identity includes the complete definition and selected Site."
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "const "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Installation and lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "through the managed reader's original active-frame invoker."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "Failed initialization must pass the same factory as `sourceReader`"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-owner.integration.test.mjs",
+                "anchor": "managed owner joins the exact nested author transform before retiring its charged response"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "The same RowRun owns acquisition, current checks, read decisions, per-call"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "author page limits must be covered in full and supply no physical credit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Initialization bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-authoring.md",
+                "anchor": "## Verification scope"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-owner.integration.test.mjs",
+                "anchor": "managed owner joins the exact nested author transform before retiring its charged response"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -84953,10 +85705,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 180,
-    "operations": 4518,
-    "exports": 1082,
-    "explicitContractGroups": 285
+    "modules": 184,
+    "operations": 4584,
+    "exports": 1088,
+    "explicitContractGroups": 291
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
