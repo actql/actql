@@ -39070,7 +39070,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "17020c4484cc2eb014911add1ddbf83925732138bd94d4250a9b3847d2f45a73",
+      "sha256": "b6029de7341ca5cfb7ceae13819a6886fe21d44a79e9613ec0e60e18b0a66180",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61241,7 +61241,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7d6aca5d0115cdac1bbcaecd1e7aacd1cd16409e424029093bc1dc7e0ba57198",
+      "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61504,6 +61504,7 @@
             "runtimeBundleCid",
             "bindingCid",
             "driver",
+            "write",
             "ledgerRoot",
             "installation",
             "continuationBinding",
@@ -62904,6 +62905,234 @@
             "memberIndex",
             "rowIndex",
             "projected"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite",
+          "parameters": [
+            "write",
+            "connectorRegistration"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/bindRequest",
+          "parameters": [
+            "request",
+            "resource",
+            "value",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/data",
+          "parameters": [
+            "value",
+            "key",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeRequestData",
+          "parameters": [
+            "value",
+            "depth",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:project/init:project",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:send/init:send",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "deriveInstalledRowWrite/original/original",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
+          "parameters": [
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers",
+          "parameters": [
+            "durable",
+            "members",
+            "indexes"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/wireCid/wireCid",
+          "parameters": [
+            "wire"
           ],
           "async": false
         },
@@ -66996,6 +67225,124 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/bindRequest",
+            "deriveInstalledRowWrite/cid/cid",
+            "deriveInstalledRowWrite/data",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+            "deriveInstalledRowWrite/fail/fail",
+            "deriveInstalledRowWrite/freezeInput",
+            "deriveInstalledRowWrite/freezeRequestData",
+            "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
+            "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
+            "deriveInstalledRowWrite/init:project/init:project",
+            "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
+            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
+            "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
+            "deriveInstalledRowWrite/init:send/init:send",
+            "deriveInstalledRowWrite/original/original",
+            "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
+            "deriveInstalledRowWrite/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved",
+            "deriveInstalledRowWrite/text/text",
+            "deriveInstalledRowWrite/wireCid/wireCid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Standard CREATE declaration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function deriveInstalledRowWrite(write, connectorRegistration)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "'actql-installed-row-write-request/0.1'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const originals = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRequest(context) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "InvalidInstalledRowWrite"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Advanced conditional"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "actual Row Effect constructor consumes the declaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard request callbacks receive only original provider DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard classification callbacks receive original provider DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard cold recovery uses saved original requests"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard saved request refuses missing, changed, duplicate"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard saved request bounds real JSON material"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -67004,6 +67351,8 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/http-exchange.mjs",
+        "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",

@@ -7,6 +7,9 @@ import test from 'node:test';
 import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
+import {createInstalledHostServices, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
+import {pathToFileURL} from 'node:url';
+import {createHash} from 'node:crypto';
 
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
@@ -41,6 +44,78 @@ async function readerFixture(t, contents, falseClose = false) {
   });
   return {loader, io, path, fd: () => original?.fd};
 }
+
+// Real profile/runtime-byte readers, table selection and Host service registry;
+// no runtime module import, Common, Account/Site creation or grant is supplied.
+async function serviceFixture(t, {onCheck = value => value, onLoad} = {}) {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-service-'));
+  t.after(() => fs.rm(root, {recursive: true, force: true}));
+  const profilePath = join(root, 'profile.json'), runtimePath = join(root, 'runtime-identity.mjs');
+  const version = 'actql-installed-effect-service-fixture/0.1';
+  const runtimeBytes = 'export const fixtureIdentityOnly = true;\n';
+  await fs.writeFile(profilePath, JSON.stringify({version})); await fs.writeFile(runtimePath, runtimeBytes);
+  let calls = 0;
+  const stop = Object.assign(new Error('OriginalInstallerStopBeforeSite'), {code: 'OriginalInstallerStopBeforeSite'});
+  const connectorTable = createInstalledConnectorTable([{name: 'effect_service_fixture',
+    registration: 'effect_service_fixture', revision: 'effect_service_fixture/0.1', effect: {
+      profileVersion: version, load: async () => ({check: onCheck,
+        identityParts() {assert.fail('load must not replay publication');},
+        load(profile, options) {calls++; if (onLoad) onLoad(profile, options); throw stop;},
+      }),
+    }}]);
+  const services = createInstalledHostServices({root, principalId: 'fixture', moon: {}, assertCurrent() {}});
+  const options = {root, principalId: 'fixture', moon: {}, runtimeUrl: pathToFileURL(runtimePath),
+    baseEnvironmentWire: '{}', connectorTable, installationServices: services};
+  return {root, profilePath, runtimePath, runtimeCid: 'sha256:' + createHash('sha256').update(runtimeBytes).digest('hex'),
+    services, options, stop, calls: () => calls};
+}
+
+test('Effect load forwards the same registered Host service before the original installer', async t => {
+  let f;
+  f = await serviceFixture(t, {onLoad(profile, options) {
+    assert.equal(options.installationServices, f.services);
+    assert.equal(options.runtimeBundleCid, f.runtimeCid);
+    assert.ok(Object.isFrozen(options.installation));
+    assert.throws(() => retainInstalledHostServiceInstallation(f.services, options.installation,
+      `sha256:${'f'.repeat(64)}`), {code: 'InstalledHostServiceRuntimeChanged'});
+  }});
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  assert.equal(f.calls(), 1);
+});
+
+test('Effect load pins one original runtime and refuses replacement before installer reentry', async t => {
+  const f = await serviceFixture(t);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  const changed = join(f.root, 'other-runtime-identity.mjs');
+  await fs.writeFile(changed, 'export const fixtureIdentityOnly = false;\n');
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath,
+    {...f.options, runtimeUrl: pathToFileURL(changed)}), {code: 'InstalledHostServiceRuntimeChanged'});
+  assert.equal(f.calls(), 1);
+});
+
+test('Effect load refuses a copied Host service before installer or Site acquisition', async t => {
+  const f = await serviceFixture(t);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath,
+    {...f.options, installationServices: Object.freeze({...f.services})}), {code: 'ForeignInstalledHostServices'});
+  assert.equal(f.calls(), 0);
+});
+
+test('Effect load preserves original profile refusal before runtime or service selection', async t => {
+  const failure = new Error('OriginalProfileRefusal');
+  const f = await serviceFixture(t, {onCheck() {throw failure;}});
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, {...f.options,
+    runtimeUrl: pathToFileURL(join(f.root, 'missing-runtime')), installationServices: {}}), error => error === failure);
+  assert.equal(f.calls(), 0);
+});
+
+test('Effect load keeps the absent-service installer envelope unchanged', async t => {
+  const f = await serviceFixture(t, {onLoad(_profile, options) {
+    assert.equal(Object.hasOwn(options, 'installationServices'), false);
+  }});
+  const {installationServices: _unused, ...options} = f.options;
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), error => error === f.stop);
+  assert.equal(f.calls(), 1);
+});
 
 test('Effect false close remains in same initialization custody without a reread', async t => {
   const f = await readerFixture(t, '{}', true);
