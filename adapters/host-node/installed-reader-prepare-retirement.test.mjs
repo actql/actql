@@ -21,6 +21,37 @@ const createReader=Function('types','ownHttpRequest','ownResponseHeaderNames',
   executable+'\nreturn createInstalledCredentialSourceReader;')(
   types,unused,unused,unused,unused,unused,unused,unused);
 
+test('failed Source preparation retires only its original borrow and leaves a shared-factory peer unstopped',async()=>{
+  const originalSite={bindRunAcquisition:unused,authorizationPurpose:unused,
+    callResource:unused,referenceCurrent(){return true;}};
+  const capacity={},factory=createReader({capacity,originalSite,assertCurrent(){},
+    operation:'fixture:read',maxResponses:1,maxResponseBytes:32,maxSecretBytes:32,
+    preparePageReader(){return {fetchPage:unused,decodePage:unused};}});
+  const peer=factory.prepare({resource:'records',columns:[],verifyRead(){},
+    authorizationFor:unused,chargePage:unused,consumePage:unused});
+  let observed,closed=false;
+  const ok=value=>({$tag:1,_0:value});
+  const moon={clientProgramRowSourceStartProviderAccounted:()=>ok({}),
+    clientProgramRowSourceBorrowResponses:()=>ok({}),
+    clientProgramRowSourceBindResponseCleanup(_borrow,observer){observed=observer;return ok(undefined);},
+    clientProgramRowSourceCloseAccounted(){if(!observed())return {$tag:0,_0:'pending'};closed=true;return ok(undefined);},
+    clientProgramRowSourceCaptureCleanup:()=>ok(true),clientProgramRowSourceCaptureCleanupAdvance:()=>ok(true)};
+  const session=startInstalledRowRun({moon,acquisition:{},nonce:'failed-only',ledger:{},
+    capacity:{provider:capacity,transferBytes:0n,executionBytes:0n}});
+  let peerStopped;
+  try {
+    // Missing authorizationFor is rejected by the original factory before
+    // any request, without cancelling a different prepared acquisition.
+    await assert.rejects(session.readProvider({prepare:factory.prepare,receiver:factory,retire:factory.retire,
+      options:{resource:'records',columns:[],verifyRead(){},chargePage:unused,consumePage:unused}}),
+    {code:'InstalledSourceReaderMethodUnavailable'});
+    const state={};session.closeAfterFailure(state);
+    peerStopped=peer.observe().stopRequested;
+    assert.equal(closed,true,'this original unstarted borrow can retire');
+  } finally {assert.equal(factory.retire(),true);}
+  assert.equal(peerStopped,false,'failed preparation cannot retire another request on the same installation');
+});
+
 test('factory retirement cannot forget an unreturned asynchronous preparation after reentry',async()=>{
   const release=Promise.withResolvers();
   let factory,finished=false;
