@@ -87,3 +87,74 @@ pub fn client_program_row_source_bind_response_cleanup(
 ) -> Result[Unit, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.bind_row_run_response_borrow_cleanup(value, cleanup)
 }
+
+///|
+/// Generic page DATA projected only after the shared Host's response charge.
+#export_name("clientProgramRowSourceProjectJsonPage")
+pub fn client_program_row_source_project_json_page(
+  body : Bytes,
+  items_path : Array[String],
+  cursor_path_enabled : Bool,
+  cursor_path : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+) -> Result[
+  @client_row_source_host.ManagedJsonPage,
+  @client_row_source_host.ManagedJsonPageIssue,
+] {
+  if !cursor_path_enabled && !cursor_path.is_empty() {
+    return Err(@client_row_source_host.InvalidLimits)
+  }
+  @client_row_source_host.project_managed_json_page(
+    body,
+    items_path,
+    if cursor_path_enabled {
+      Some(cursor_path)
+    } else {
+      None
+    },
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_rows,
+    max_cursor_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceJsonPageRowsWire")
+pub fn client_program_row_source_json_page_rows_wire(
+  page : @client_row_source_host.ManagedJsonPage,
+) -> String {
+  @client_row_source_host.managed_json_page_rows_wire(page)
+}
+
+///|
+#export_name("clientProgramRowSourceJsonPageRowCount")
+pub fn client_program_row_source_json_page_row_count(
+  page : @client_row_source_host.ManagedJsonPage,
+) -> Int {
+  @client_row_source_host.managed_json_page_row_count(page)
+}
+
+///|
+#export_name("clientProgramRowSourceJsonPageHasNextCursor")
+pub fn client_program_row_source_json_page_has_next_cursor(
+  page : @client_row_source_host.ManagedJsonPage,
+) -> Bool {
+  @client_row_source_host.managed_json_page_next_cursor(page) is Some(_)
+}
+
+///|
+#export_name("clientProgramRowSourceJsonPageNextCursor")
+pub fn client_program_row_source_json_page_next_cursor(
+  page : @client_row_source_host.ManagedJsonPage,
+) -> Result[String, @client_row_source_host.ManagedJsonPageIssue] {
+  match @client_row_source_host.managed_json_page_next_cursor(page) {
+    Some(cursor) => Ok(cursor)
+    None => Err(@client_row_source_host.CursorShape)
+  }
+}
