@@ -2407,3 +2407,45 @@ authorize the constructor. The existing publication projection still reports
 ForeignOriginal; the Resource operation retains its precise BorrowReturned
 result. Neither a returned token nor an equal body can create replacement
 custody. Original stopping and actual physical cleanup stay separate.
+
+## Host initialization before Source loading
+
+The existing Local connection initialization owns one original initial Resource
+admission before `loadInstalledSources`. This is separate from a Request parent:
+Source installation material survives completed Requests, while each Request
+borrows and returns that same material. Closing a Request does not reload Sources
+or release the installation's backing.
+
+`begin_host_initialization_preparation` starts that actual original admission
+under the selected immutable Local policy. Its empty working capacity has a live
+zero-byte reservation; fixed VM/control wrappers remain in the existing startup
+envelope. Zero is not a quote for Source data, proof of an empty inventory, or a
+physical cleanup acknowledgement. The original Source constructor takes the
+capacity once with `take_host_initialization_preparation_capacity`, then uses the
+existing typed continuation and adds its complete representation quote before
+constructing material. The maximum representable borrower counter is only an
+integer representation fence; it supplies no preallocated slots, work, physical
+attempts, capacity or authority.
+
+The original installation, input and Resource identities remain unchanged. No
+JavaScript Ledger getter, late Environment/sequence context, completed Request,
+profile CID, copied object or caller Boolean can create the initial carrier. The
+actual connection retains the state before fallible Resource construction and
+passes the nominal carrier to its existing installation-services constructor.
+
+The Source owner retains material, concurrent Request borrows, failed children
+and physical cleanup through its existing lifetime. It must retire that same
+reservation, including any typed successor, before
+`close_host_initialization_preparation` closes the original initial admission.
+The initial owner can abort only an unselected empty entrance. After selection,
+its old handle observes settlement and cannot retire a successor or acknowledge
+Source cleanup. Cancellation fences new work without discarding existing
+cleanup custody. No failed or uncertain observation becomes an implicit release.
+
+This boundary does not define the Source recipe or restore its material from a
+sample. The Source owner supplies the actual construction, coexistence,
+borrowing and retirement inventory. Direct original-admission tests cover the
+empty entrance, same-reservation continuation, concurrent borrowers, cancellation,
+foreign/repeated selection and cleanup; the actual Node caller tests separately
+cover retention before construction and the pre-loader connection. Those tests
+do not establish normal installed Source or physical acceptance.

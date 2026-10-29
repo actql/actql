@@ -4987,7 +4987,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "84d01e56ed8513522db944707fcadff7efc3d518c22493a405ce73a18fc9c2fe",
+      "sha256": "7555188bd4b5799f3baf67c712f692cba4fa4c032f5d25d0ad9ced40abad5589",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5202,6 +5202,23 @@
             "request",
             "environment"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -8228,7 +8245,10 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
           ],
           "exports": [
             "connectEmbeddedLocal",

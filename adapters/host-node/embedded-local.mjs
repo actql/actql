@@ -1,5 +1,6 @@
 import {createInstalledHostServices} from './installed-host-services.mjs';
-import {checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
+import {checkedPreparation, openHostInitializationPreparation, closeHostInitializationPreparation}
+  from '../local-node/closed-values-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
@@ -1081,8 +1082,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
   }
   if (modelRuntimeView !== undefined) assertModelRuntime();
+  // Open the original initial Resource before any configured Source load.
+  // This owner survives Requests; Environment/sequence views are constructed
+  // later and cannot stand in for this actual original carrier.
+  const initialPreparation = preparation?.hostInitializationPreparation(moon);
   const installationServices = createInstalledHostServices({root, principalId, moon,
-    assertCurrent: assertProjectRuntime});
+    assertCurrent: assertProjectRuntime, initialPreparation});
   const control = runtimeCore(moon).publicationControl;
   async function releaseLocalSigningRecovery(recovered) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
@@ -5114,6 +5119,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   let hostJournalOpenAttempted = false;
   let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
+  let hostInitialization;
   const record = {};
   function retirePreparationReferences() {
     if (referencesRetired) return;
@@ -5221,6 +5227,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
+    if (hostInitialization !== undefined) {
+      // Source close above must settle the SAME domain/borrow inventory. The
+      // Core carrier refuses a still-live selected token, including zero bytes.
+      closeHostInitializationPreparation(hostInitialization);
+      hostInitialization = record.hostInitialization = undefined;
+    }
     retirePreparationReferences();
     const observed = await Reflect.apply(controlClose, control, []);
     if (observed?.pending === false) {
@@ -5234,6 +5246,26 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    hostInitializationPreparation(runtime) {
+      assertInitialControlHostPreparation(originals);
+      if (runtime !== moon || record.runtime !== runtime) {
+        throw clientOperationError('ForeignInstalledHostPreparation');
+      }
+      if (hostInitialization !== undefined) {
+        if (hostInitialization.parent === undefined) {
+          throw clientOperationError('InstalledHostPreparationChanged');
+        }
+        return hostInitialization.parent;
+      }
+      // Retain before the actual Resource/start/reservation constructors.
+      // Failure keeps this original state for the same initial close duty.
+      hostInitialization = {};
+      record.hostInitialization = hostInitialization;
+      return openHostInitializationPreparation(hostInitialization, runtime,
+        originalInstallation,
+        () => assertInitialControlInstallationCurrent(control, originals),
+        () => sourceManaged !== undefined);
+    },
     retainHostJournalPreparation(root, principalId, journalDirectory) {
       assertInitialControlHostPreparation(originals);
       if (root !== originalInstallation.root || typeof principalId !== 'string' ||

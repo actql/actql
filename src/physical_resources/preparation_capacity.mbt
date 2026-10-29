@@ -23,6 +23,9 @@ fn preparation_capacity_phase_is_working(
 /// One preparation allocation on an already selected original Ledger. This
 /// API cannot create a Ledger, select a Host, or grant a second resource pool.
 /// The fixed supplier must fund this control envelope before constructing it.
+/// An empty working entrance may reserve zero bytes before its first domain
+/// quote. That live original still occupies a reservation and must be retired;
+/// zero bytes never certify absence or physical cleanup.
 struct PreparationCapacity[I, P] {
   ledger : Ledger
   reservation : CapacityReservation
@@ -63,7 +66,7 @@ pub fn[I, P] reserve_preparation_capacity(
   execution_peak : Int64,
   max_borrowers~ : Int,
 ) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue] {
-  if max_borrowers < 1 || retained_peak <= 0L || execution_peak < 0L {
+  if max_borrowers < 1 || retained_peak < 0L || execution_peak < 0L {
     return Err(InvalidExtent)
   }
   reserve_capacity(ledger, retained_peak, execution_peak)
@@ -665,4 +668,14 @@ fn[I, P] preparation_capacity_has_executing_work(
     Some(state) => state.val != Returned
     None => false
   }
+}
+
+///|
+/// Observe the original reservation, including a zero-byte entrance, after a
+/// typed continuation. The old handle cannot retire its successor or supply
+/// a physical acknowledgement; this only fences its initial admission close.
+pub fn[I, P] preparation_capacity_reservation_retired(
+  owner : PreparationCapacity[I, P],
+) -> Bool {
+  !capacity_reservation_open(owner.reservation)
 }

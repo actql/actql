@@ -314,6 +314,8 @@ pub fn[I, P] preparation_capacity_available(PreparationCapacity[I, P], I) -> Res
 
 pub fn[I, P] preparation_capacity_borrow_value(PreparationCapacityBorrow[I, P]) -> P?
 
+pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
+
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstructionInventory

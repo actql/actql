@@ -26019,7 +26019,7 @@
     {
       "module": "src/physical_resources/preparation_capacity.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3486e0db9324e7187c5776ba5a60899b41f2f1e131d0416146de7d352d0d155e",
+      "sha256": "26c6f8273016f79e5eaaa4bcbecae557c71379daa8c1f931dd09a432734b9e9e",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -26067,6 +26067,10 @@
         {
           "name": "[I,P]preparation_capacity_has_executing_work",
           "declaration": "[ I , P ] preparation_capacity_has_executing_work ( owner : PreparationCapacity [ I , P ] , ) - > Bool"
+        },
+        {
+          "name": "[I,P]preparation_capacity_reservation_retired",
+          "declaration": "[ I , P ] preparation_capacity_reservation_retired ( owner : PreparationCapacity [ I , P ] , ) - > Bool"
         },
         {
           "name": "[I,P]preparation_capacity_usage_isolated",
@@ -26158,7 +26162,8 @@
             "[P]preparation_body_usage_isolated",
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
-            "retire_transferred_preparation"
+            "retire_transferred_preparation",
+            "[I,P]preparation_capacity_reservation_retired"
           ],
           "exports": [],
           "attributes": {
@@ -26781,6 +26786,106 @@
         }
       ],
       "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_host_initial.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "83f2d2c30f8082ff57ee5f0fb95f67ddf319c2bd243fc3408faaa3f99bd23de5",
+      "role": "common-semantics",
+      "owner": "Existing Local connection initialization and original Resource preparation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_host_initialization_preparation",
+          "declaration": "[ I ] begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientHostInitializationPreparation [ I ] , ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "[I]close_host_initialization_preparation",
+          "declaration": "[ I ] close_host_initialization_preparation ( owner : ClientHostInitializationPreparation [ I ] , ) - > Result [ Unit , ClientHostInitializationIssue ]"
+        },
+        {
+          "name": "[I]take_host_initialization_preparation_capacity",
+          "declaration": "[ I ] take_host_initialization_preparation_capacity ( owner : ClientHostInitializationPreparation [ I ] , ) - > Result [ ( I , @ resources . PreparationCapacity [ I , Unit ] ) , ClientHostInitializationIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_host_initialization_preparation",
+            "[I]close_host_initialization_preparation",
+            "[I]take_host_initialization_preparation_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/client_local_host/preparation_host_initial_js_wbtest.mbt",
+                "anchor": "test \"Host initial carrier"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual original Node admission and focused caller/typed capacity components only; Source domain/lifetime consumer and ordinary installed acceptance remain separate."
     }
   ]
 }
