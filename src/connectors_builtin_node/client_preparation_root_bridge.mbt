@@ -758,6 +758,69 @@ pub fn client_program_borrow_request_program_plan_input(
 }
 
 ///|
+/// The Host supplies the complete original capture inventory on the same
+/// Request before this constructor. These immutable bounds grant no backing,
+/// read permission or physical-child retirement acknowledgement.
+#export_name("clientProgramInstalledManagedCapturePlanPrepare")
+pub fn client_program_installed_managed_capture_plan_prepare(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  captures : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_capture_plan(
+    prepared,
+    request,
+    captures,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+    query_time~,
+  )
+}
+
+///|
+#export_name("clientProgramCompleteRequestCapturePreparation")
+pub fn client_program_complete_request_capture_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_capture_preparation(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramAdoptRequestCapturePreparation")
+pub fn client_program_adopt_request_capture_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_capture_managed_run(parent, request)
+}
+
+///|
 #export_name("clientProgramBorrowRequestEffectPlanInput")
 pub fn client_program_borrow_request_effect_plan_input(
   parent : @client_local_host.ClientRequestPreparation[

@@ -33324,7 +33324,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "76fb9594637f67a3ee08f44aca8f2219992e72c884a2eebc6f9a4f9ab3b42842",
+      "sha256": "38dc5597fb5800e23c4c5045da26c399de41ee65cf3573fc5513932597514482",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -33332,6 +33332,10 @@
         {
           "name": "client_program_abort_request_preparation",
           "declaration": "client_program_abort_request_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_adopt_request_capture_preparation",
+          "declaration": "client_program_adopt_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_adopt_request_effect_preparation",
@@ -33374,6 +33378,10 @@
           "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
         },
         {
+          "name": "client_program_complete_request_capture_preparation",
+          "declaration": "client_program_complete_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_complete_request_effect_preparation",
           "declaration": "client_program_complete_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -33408,6 +33416,10 @@
         {
           "name": "client_program_finish_request_submitted_intent",
           "declaration": "client_program_finish_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_installed_managed_capture_plan_prepare",
+          "declaration": "client_program_installed_managed_capture_plan_prepare ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_lower_request_published_query",
@@ -33695,6 +33707,80 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_adopt_request_capture_preparation",
+            "client_program_complete_request_capture_preparation",
+            "client_program_installed_managed_capture_plan_prepare"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_capture_plan_wbtest.mbt",
+                "anchor": "test \"actual Request captured Source bridge keeps"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge also accepts original captured Source Plans."
               }
             ]
           }

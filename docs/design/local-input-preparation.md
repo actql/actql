@@ -2380,6 +2380,18 @@ the retained original Row acquisition directly. The acquisition already owns
 its admitted declaration; reading this Plan does not restore a declaration,
 prepare another query or regenerate a sequence.
 
+The Node Request bridge also accepts original captured Source Plans. Its Plan
+constructor forwards the selected nominal capture inventory, ordered transport
+bounds, contracts, output mode and optional query-time original to the existing
+Core constructor and installed provider factory. Completion and Run adoption
+use the existing Request operations, with the same construction-input borrow
+remaining live across the handoff. No new Plan wrapper or second parent is
+issued. Missing, foreign or differently bound capture/query-time inputs are
+typed refusals, never a reason to substitute a default or prepare another
+acquisition. The Host must back the constructor, selected providers, transport
+and failed-child overlap on that same parent before entering this bridge;
+forwarding logical limits does not supply those physical resources.
+
 Ledger binding first checks immutable original references, then crosses the
 existing current callback and post-callback reentry fence once. Host opening
 uses the same retained configuration and accounted captured sources. It never
