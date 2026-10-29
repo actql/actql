@@ -6434,7 +6434,7 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc2d9263f1abdd5a9a99dde1ef4e88c6f20f1b4b6b63c0d09eeb9a118f98e718",
+      "sha256": "eb66b8529b119eda9d8051caf83d06d8fbf3bb91bc7bddfcec7eb969d21c8b61",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
@@ -6442,6 +6442,7 @@
         "GITHUB_COMMENT_STAMP_RECIPE",
         "checkGitHubCommentSubject",
         "finalizeGitHubCommentRequest",
+        "prepareGitHubCommentConfirmation",
         "prepareGitHubCommentLogicalRequest",
         "prepareGitHubCommentRequest",
         "projectGitHubCommentObservation",
@@ -6554,6 +6555,146 @@
           "name": "pairs/pairs/pairs#2",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation",
+          "parameters": [
+            "moon",
+            "request",
+            "repository",
+            "observation",
+            "headers",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/arrayData/arrayData",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/arrayData/arrayData/arrayData",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/failConfirmation/failConfirmation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/headerNames/headerNames",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/headerValues/headerValues",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/init:project/init:project",
+          "parameters": [
+            "readObservation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/observed/observed",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/observed/observed/observed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/own/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/own/own/own#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/pairs/pairs",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmation/readRequest/readRequest",
+          "parameters": [
+            "pair"
           ],
           "async": false
         },
@@ -6827,6 +6968,96 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
                 "anchor": "Comment marker refuses malformed or missing DATA without invoking an encoder or accessor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareGitHubCommentConfirmation",
+            "prepareGitHubCommentConfirmation/arrayData/arrayData",
+            "prepareGitHubCommentConfirmation/arrayData/arrayData/arrayData",
+            "prepareGitHubCommentConfirmation/call/call",
+            "prepareGitHubCommentConfirmation/failConfirmation/failConfirmation",
+            "prepareGitHubCommentConfirmation/headerNames/headerNames",
+            "prepareGitHubCommentConfirmation/headerValues/headerValues",
+            "prepareGitHubCommentConfirmation/init:project/init:project",
+            "prepareGitHubCommentConfirmation/methods/methods",
+            "prepareGitHubCommentConfirmation/observed/observed",
+            "prepareGitHubCommentConfirmation/observed/observed/observed",
+            "prepareGitHubCommentConfirmation/own/own",
+            "prepareGitHubCommentConfirmation/own/own/own",
+            "prepareGitHubCommentConfirmation/own/own/own#2",
+            "prepareGitHubCommentConfirmation/pairs/pairs",
+            "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation",
+            "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation#2",
+            "prepareGitHubCommentConfirmation/prepareGitHubCommentConfirmation#3",
+            "prepareGitHubCommentConfirmation/readRequest/readRequest"
+          ],
+          "exports": [
+            "prepareGitHubCommentConfirmation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Original Comment confirmation data"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "prepareGitHubCommentConfirmation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "original.requestCid !== exactRequestCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "caller retains the SAME saved final request and actual write observation"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider DATA only. The existing Host must fund and perform the same current read under its original Site and retain its actual cleanup; this function starts no I/O."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "A read refusal, absent object or changed input remains uncertain"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous provider operation or physical reader is started. The existing operation holder owns cancellation, physical cleanup and aliases; confirmed DATA is not an ACK."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "max_input_bytes: limits.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "exchangeLimits.maxObservedHeaders"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "githubPrepareCommentConfirmation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/github/test/github-comment-confirmation.test.mjs",
+                "anchor": "Comment confirmation adapter retains exact final request and original semantic receiver"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation_wbtest.mbt",
+                "anchor": "Comment confirmation refuses foreign objects subjects repositories bodies and partial reads"
               }
             ]
           }

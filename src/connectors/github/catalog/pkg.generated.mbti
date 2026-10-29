@@ -24,6 +24,8 @@ pub fn classify_comment_response(Int, HeaderObservation, Bytes, PageLimits, Stri
 
 pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
 
+pub fn comment_confirmation_request(CommentConfirmation) -> String?
+
 pub let comment_subject_query : String
 
 pub fn comment_subject_request(String) -> Result[String, CommentRequestIssue]
@@ -57,6 +59,10 @@ pub fn issues_request(String, Int, String?, IssueFilters) -> Result[String, Grap
 pub let max_comment_characters : Int
 
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
+
+pub fn prepare_comment_confirmation(GraphqlRepository, String, String, String, String, Int, Bool, HeaderObservation, Bytes, PageLimits, PageLimits) -> Result[CommentConfirmation, GraphqlResponseIssue]
+
+pub fn project_comment_confirmation(CommentConfirmation, Int, Bytes) -> Result[(Int64, String), GraphqlResponseIssue]
 
 pub fn project_comment_subject_response(Bytes, PageLimits, String, String, Int64, String) -> Result[CommentSubject, GraphqlResponseIssue]
 
@@ -99,6 +105,10 @@ pub let user_agent : String
 // Errors
 
 // Types and methods
+pub struct CommentConfirmation {
+  // private fields
+}
+
 pub(all) enum CommentOutcome {
   Created(id~ : Int64, node_id~ : String)
   Refused(status~ : Int)
