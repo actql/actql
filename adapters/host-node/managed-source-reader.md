@@ -135,3 +135,10 @@ construction or replace the original parent's constructor/failure overlap.
 Native callback Promises stay in the existing pending-callback inventory before
 their public `then` property is observed. The original getter error remains the
 read failure; only actual native settlement can release that callback borrow.
+
+A standard page callback describes a bodyless GET. A factory may also capture an
+explicit positive own-data `maxRequestBytes` and describe a POST with its original
+String body. The Host checks UTF-8 bytes and forwards that same bound and body to
+the scoped Credential invocation. Other methods remain refused. This rejection
+ceiling supplies no constructor capacity: nominal implementations may select only
+request shapes covered by their actual material and retained-overlap recipe.
