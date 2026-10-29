@@ -246,3 +246,53 @@ test('native advanced constructor retains its actual late child through original
   assert.equal(factory.retire(),true);
   assert.equal(bindingCloses,1);assert.equal(childRetires,1);
 });
+
+function asynchronousConstructorFixture(construct) {
+  const raw = {}, entered = deferred();let reads = 0, stops = 0, retired = false, bindingCloses = 0;
+  const child = Object.freeze({read() {reads++;assert.fail('refused constructor must not start child');},
+    requestStop() {assert.equal(this,child);stops++;},
+    retire() {assert.equal(this,child);retired = stops === 1;return retired;},
+    observe() {assert.equal(this,child);return {cleanupConfirmed:retired};}});
+  const originalSite = Object.freeze({site:{},callResource() {assert.fail('no physical transport');},
+    referenceCurrent:()=>true,authorizationPurpose(value) {assert.equal(value,raw);return {kind:'read'};},
+    bindRunAcquisition(value) {assert.equal(value,raw);return Object.freeze({credential:{},
+      close() {bindingCloses++;return 'closed';}});}});
+  const factory = createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},maxResponses:1,
+    createReader() {entered.resolve();return construct(child);}});
+  const reader = factory.prepare({originalAuthorization:raw,verifyRead() {},authorizationFor() {return {};}});
+  return {child,reader,factory,entered:entered.promise,inspect:()=>({reads,stops,retired,bindingCloses})};
+}
+
+test('refused constructors join hidden native and generic late children without another read',async()=>{
+  for (const native of [true,false]) {
+    const gate = deferred();
+    if (native) Object.defineProperty(gate.promise,'then',{value:undefined});
+    const f = asynchronousConstructorFixture(()=>native ? gate.promise : Object.freeze({then(resolve,reject) {
+      return Reflect.apply(Promise.prototype.then,gate.promise,[resolve,reject]);
+    }}));
+    const outcome = f.reader.read().then(()=>assert.fail('async constructor cannot succeed'),cause=>cause);
+    await f.entered;
+    f.reader.requestStop(new Error('same original stop'));
+    assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    gate.resolve(f.child);
+    assert.equal((await outcome).code,'InstalledSourceReaderConstructorNotSynchronous');
+    assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+    assert.deepEqual(f.inspect(),{reads:0,stops:1,retired:true,bindingCloses:1});
+  }
+});
+
+test('rejected native constructor preserves the first original failure without inventing a child',async()=>{
+  for (const throwingGetter of [false,true]) {
+    const gate = Promise.withResolvers(),rejection = new Error('same constructor rejection');
+    const observation = new Error('same first then observation');
+    if (throwingGetter) Object.defineProperty(gate.promise,'then',{get() {throw observation;}});
+    const f = asynchronousConstructorFixture(()=>gate.promise);
+    const outcome = f.reader.read().then(()=>assert.fail('rejected constructor cannot succeed'),cause=>cause);
+    await f.entered;
+    assert.equal(f.factory.retire(),false);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    gate.reject(rejection);
+    assert.equal(await outcome,throwingGetter ? observation : rejection);
+    assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+    assert.deepEqual(f.inspect(),{reads:0,stops:0,retired:false,bindingCloses:1});
+  }
+});
