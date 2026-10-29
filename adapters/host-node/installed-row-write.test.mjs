@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {parse} from 'acorn';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -257,3 +258,76 @@ test('Sheets normal declaration keeps full logical value, batch target, original
   assert.deepEqual(calls[0], calls[1]);
   assert.equal(calls[0].operations.get(SHEETS_APPEND_OPERATION).path, '/v4/spreadsheets/sheet_original:batchUpdate');
 });
+
+
+// Complete provider Site helper bodies with explicit service/Account/Site ports.
+// These exercise declaration delegation and unchanged legacy arguments, not a
+// real Account, Credential, Common or physical Site admission.
+for (const connector of ['github', 'sheets']) {
+  test(`standard ${connector} Effect Site uses the same Host factory and provider binding`, async () => {
+    const path = connector === 'github' ? '../connectors/github/host/installed-github-source.mjs'
+      : '../connectors/sheets/host/installed-sheets.mjs';
+    const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+    const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(value =>
+      value.type === 'FunctionDeclaration' && value.id.name === 'openSite');
+    assert.ok(node);
+    const originalAuthorization = Object.freeze({context: {contextCid: providerCid}});
+    const originalSite = Object.freeze({}), installation = Object.freeze({responseHeaders: ['etag']});
+    const secret = async () => 'not-acquired-in-this-case';
+    const site = Object.freeze({apiOrigin: origin, owner: 'owner', repo: 'repo',
+      spreadsheetId: 'sheet', columns: [{name: 'name'}], siteKey: 'site', siteGeneration: 1,
+      namespaceId: 'namespace', environment: 'test', credentialAuthorityId: 'authority', credentialKeyId: 'key'});
+    const publication = {catalogCid: providerCid, repository: {id: 42, node_id: 'R_original'}};
+    const targetVersion = 'fixture-target/0.1', binding = Object.freeze({spreadsheet: 'sheet'});
+    const profile = {accountConfigurationWire: 'original-account-wire'};
+    let legacyAccounts = 0, legacySites = 0, calls = 0, delegated;
+    const ports = {registration: connector, revision: connector + '/0.1', TARGET_VERSION: targetVersion,
+      targetVersion, contentCid, canonicalJson, bindingFacts: () => binding,
+      environmentSecret: () => assert.fail('supplied original resolver must be retained'),
+      fail: code => {throw Object.assign(new Error(code), {code});},
+      async installRowSourceAuthorization(options) {
+        legacyAccounts++; assert.equal(options.accountConfiguration, profile.accountConfigurationWire);
+        return originalAuthorization;
+      },
+      async openRowSourceCredentialSite(options) {
+        legacySites++; assert.equal(options.authorization, originalAuthorization);
+        assert.equal(options.resolveSecret, secret); return originalSite;
+      }};
+    const open = Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
+    const options = {root: '/unused-port', principalId: 'principal', moon: {},
+      runtimeBundleCid: providerCid, installation, resolveSecret: secret, publication};
+    const invoke = services => connector === 'github' ? open(profile, site, options, services)
+      : open(profile, site, options, publication, services);
+    const services = {openRowSite(selected) {
+      assert.equal(this, services); calls++; delegated = selected;
+      return {authorization: originalAuthorization, site: originalSite};
+    }};
+    const result = await invoke(services);
+    assert.equal(calls, 1, 'normal Effect must select the original Host Site factory');
+    assert.equal(legacyAccounts, 0); assert.equal(legacySites, 0);
+    assert.equal(result.authorization, originalAuthorization); assert.equal(result.site, originalSite);
+    assert.equal(delegated.installation, installation); assert.equal(delegated.accountConfiguration, profile.accountConfigurationWire);
+    assert.equal(delegated.resolveSecret, secret); assert.equal(delegated.responseHeaders, installation.responseHeaders);
+    assert.ok(Object.isFrozen(delegated.profile)); assert.equal(delegated.profile.resourceOrigin, origin);
+    for (const field of ['root', 'principalId', 'commonMoon', 'runtimeBundleCid', 'assertCurrent']) {
+      assert.equal(Object.hasOwn(delegated, field), false, 'Host owns ' + field);
+    }
+    const target = connector === 'github' ? {version: targetVersion, api_origin: origin,
+      repository_id: 42, repository_node_id: 'R_original', owner: 'owner', repo: 'repo',
+      catalog_cid: providerCid, resource: 'issues', fields: ['id']}
+      : {version: targetVersion, catalog_cid: providerCid, binding, fields: ['name']};
+    const resource = connector === 'github' ? 'issues' : 'rows';
+    assert.equal(delegated.admitsApprovalTarget(target, resource), true);
+    assert.equal(delegated.admitsApprovalTarget({...target, catalog_cid: boundaryCid}, resource), false);
+    if (connector === 'github') assert.equal(delegated.admitsApprovalTarget({...target, repository_id: 43}, resource), false);
+    else assert.equal(delegated.admitsApprovalTarget({...target, fields: ['foreign']}, resource), false);
+    const originalFailure = new Error('original factory failure');
+    await assert.rejects(invoke({openRowSite() {throw originalFailure;}}), error => error === originalFailure);
+    assert.equal(legacyAccounts, 0); assert.equal(legacySites, 0);
+    const legacy = await invoke(undefined);
+    assert.equal(legacy.authorization, originalAuthorization); assert.equal(legacy.site, originalSite);
+    assert.equal(legacyAccounts, 1); assert.equal(legacySites, 1);
+    if (connector === 'sheets') assert.equal(result.bindingCid, legacy.bindingCid);
+    assert.equal(result.connection, legacy.connection);
+  });
+}
