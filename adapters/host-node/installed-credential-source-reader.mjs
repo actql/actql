@@ -277,8 +277,34 @@ export function createInstalledCredentialSourceReader(options) {
               child = Reflect.apply(constructor, undefined, [Object.freeze({...selected,
                 initialAuthorization,credential:acquisition.credential,signal,responseCustody,
                 callResource:input => Reflect.apply(callResource,selectedSite.site,[input])})]);
+              if (types.isPromise(child)) {
+                const pending = child;
+                pendingCallbacks.add(pending);
+                let observationFailure, observationFailed = false, rejection, rejected = false;
+                try {void pending.then;}
+                catch (cause) {observationFailure = cause;observationFailed = true;}
+                // Join the original native computation without its public
+                // then getter. Retain its actual child before any later
+                // method observation; never read or replace that child.
+                await Reflect.apply(Promise.prototype.then, pending, [value => {
+                  child = value;pendingCallbacks.delete(pending);
+                }, cause => {
+                  child = undefined;rejection = cause;rejected = true;
+                  pendingCallbacks.delete(pending);
+                }]);
+                if (child !== undefined) {
+                  try {
+                    childStop = ownMethod(child,'requestStop');
+                    childRetire = ownMethod(child,'retire'); childObserve = ownMethod(child,'observe');
+                  } catch (cause) {throw observationFailed ? observationFailure : cause;}
+                }
+                if (observationFailed) throw observationFailure;
+                if (rejected) throw rejection;
+                fail('InstalledSourceReaderConstructorNotSynchronous');
+              }
               if (typeof child?.then === 'function') {
                 child = await child;
+                childStop = ownMethod(child,'requestStop');
                 childRetire = ownMethod(child,'retire'); childObserve = ownMethod(child,'observe');
                 fail('InstalledSourceReaderConstructorNotSynchronous');
               }
@@ -296,7 +322,16 @@ export function createInstalledCredentialSourceReader(options) {
             throw cause;
           } finally {
             readPending = false;
-            try {if (stopped) cleanup(); else if (!hosted) closeTransport();}
+            try {
+              // Stop may precede settlement of a refused async constructor.
+              // Its SAME late child still needs the original stop operation;
+              // existing stopPending/cleanup owns that acknowledgement.
+              if (stopped && childStop !== undefined && !stopIssued) {
+                const pending = handle.requestStop(signal.reason);
+                if (pending !== undefined) void Promise.resolve(pending).catch(() => {});
+              }
+              if (stopped) cleanup(); else if (!hosted) closeTransport();
+            }
             catch (cause) {transportFailure ??= cause;hadTransportFailure = true;if (primary === undefined) throw cause;}
           }
         },
