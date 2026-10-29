@@ -19,8 +19,8 @@ pub fn effect_review_projection_binding_facts(
     return None
   }
   let claims : Array[String] = []
-  for original in original_claims {
-    guard original is @json.String(claim) else {
+  for index in 0..<@json.array_count(original_claims) {
+    guard @json.array_at(original_claims, index) is Some(@json.String(claim)) else {
       return None
     }
     claims.push(claim)
