@@ -326,7 +326,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "7a8da2fef5c2ae9b8886bd26f2e2f44f7925f225f23bf0abc3db9ac0b2bec06e",
+      "sha256": "ba04df8e75a2e92c2c16eb9265fda77bfa633af5da8b74b572f1b71530fb6f2b",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -445,11 +445,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSlackSource/init:readPages/init:readPages",
-          "parameters": [],
           "async": false
         },
         {
@@ -587,7 +582,6 @@
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget#2",
             "loadInstalledSlackSource/declarationPorts/declarationPorts",
-            "loadInstalledSlackSource/init:readPages/init:readPages",
             "loadInstalledSlackSource/loadInstalledSlackSource",
             "loadInstalledSlackSource/loadInstalledSlackSource/reader/init:prepare/init:prepare",
             "loadInstalledSlackSource/loadInstalledSlackSource/selected/selected",
@@ -810,8 +804,8 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined)"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -1148,8 +1142,8 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined)"
               },
               {
                 "path": "docs/design/slack-user-pages.md",

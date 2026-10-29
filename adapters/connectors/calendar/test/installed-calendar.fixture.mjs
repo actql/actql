@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {createInstalledConnectorTable,installedConnectorForTable} from '../../../host-node/installed-connectors.mjs';
 import {calendarFixture,calendarReadLimits} from './calendar-list.fixture.mjs';
@@ -45,12 +46,14 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
     const preparedProgram=common.clientProgramPreparationReady(outcome);assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
     const[registry,aoa]=await Promise.all([readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8'),
       readFile(new URL('spec/contracts/actql-aoa.json',repo),'utf8').then(JSON.parse)]);
-    const preparation={preparedProgram,registry,values:JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment:JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered:JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+    const values=JSON.stringify(aoa.execution_contracts['REL.values']),
+      fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+    const preparation={preparedProgram,registry:contracts,values,fragment,ordered};
     const preparedSource=await source.prepare(preparation),planned=source.ledgerCapacity(preparedSource);
     const ledger=common.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,planned.capacity,
-      planned.transferBytes,planned.executionBytes,registry,preparation.values,preparation.fragment,preparation.ordered);assert.ok(ledger);
+      planned.transferBytes,planned.executionBytes,preparation.registry,preparation.values,preparation.fragment,preparation.ordered);assert.ok(ledger);
     return{...preparation,preparedSource,ledger};
   };
   t.after(async()=>{for(const source of sources)await source.close();});
