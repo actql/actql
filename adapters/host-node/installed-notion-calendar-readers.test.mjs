@@ -391,3 +391,33 @@ test('provider fixture cleanup preserves dependent owners while the original fac
     }
   }
 });
+
+test('provider fixture cleanup preserves the original RowRun close failure before Journal close',async()=>{
+  for(const family of ['notion','calendar']){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const fixture=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.find(node=>
+      node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name===
+        (family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader:()=>({fetchPage(){assert.fail('no request');},decodePage(){assert.fail('no projection');}})});
+    const reader=factory.prepare({resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}});
+    const original=new Error('same original RowRun close failure');let journalCloses=0;
+    try{
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,[reader],[factory],
+        {close(){throw original;},usage(){assert.fail('no settled usage');}},
+        {close(){journalCloses++;}},{close(done){done();}},{diagnostic(){}},'/UNOPENED/fixture',
+        ()=>assert.fail('no settled Ledger'));
+      await assert.rejects(cleanup(),error=>error instanceof AggregateError&&error.errors.includes(original));
+      assert.equal(journalCloses,0);assert.equal(reader.observe().cleanupConfirmed,true);
+      assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+    }finally{reader.requestStop();assert.equal(factory.retire(),true);}
+  }
+});
