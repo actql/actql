@@ -20,13 +20,6 @@ function method(value, name) {
   }
   return field.value;
 }
-function sync(value) {
-  if (typeof value?.then === 'function') {
-    void Promise.resolve(value).catch(() => {});
-    fail('InstalledSourcePageCallbackNotSynchronous');
-  }
-  return value;
-}
 
 export function createInstalledCredentialSourceReader({capacity, site, operation,
   maxResponses, maxResponseBytes, maxSecretBytes, preparePageReader}) {
@@ -44,12 +37,43 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     const consumePage = method(options, 'consumePage');
     const consumePageWire = options.consumePageWire === undefined ? undefined : method(options, 'consumePageWire');
     const columns = Object.freeze([...options.columns]);
+    const pendingCallbacks = new Set();
+    let callbackDepth = 0;
+    function sync(value) {
+      const then = value?.then;
+      if (typeof then === 'function') {
+        // Capture the SAME returned computation and selected then receiver.
+        // Refusal does not cancel its existing borrow of response/input DATA.
+        const pending = new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
+        pendingCallbacks.add(pending);
+        const settled = () => {
+          pendingCallbacks.delete(pending);
+          if (stopped) {
+            try {cleanup();} catch (cause) {cleanupFailure = cause;}
+          }
+        };
+        void pending.then(settled, settled);
+        fail('InstalledSourcePageCallbackNotSynchronous');
+      }
+      return value;
+    }
+    function callProjection(fn, receiver, args) {
+      callbackDepth++;
+      try {return sync(Reflect.apply(fn, receiver, args));}
+      finally {callbackDepth--;}
+    }
+    const applySynchronousProjection = (fn, receiver, args) => {
+      if (callbackDepth === 0 || typeof fn !== 'function' || !Array.isArray(args) || types.isProxy(args)) {
+        fail('ForeignInstalledSourceProjection');
+      }
+      return callProjection(fn, receiver, args);
+    };
     // Provider construction is synchronous and I/O-free, after the original
     // RowRun reservation and response-cleanup association have been installed.
     let provider, fetchPage, decodePage, onError, setupFailure, setupFailed = false;
     try {
-      provider = sync(preparePageReader(Object.freeze({resource: options.resource,
-        columns, requestWire: options.requestWire})));
+      provider = callProjection(preparePageReader, undefined, [Object.freeze({resource: options.resource,
+        columns, requestWire: options.requestWire}), applySynchronousProjection]);
       fetchPage = method(provider, 'fetchPage'); decodePage = method(provider, 'decodePage');
       const errorField = Object.getOwnPropertyDescriptor(provider, 'onError');
       if (errorField !== undefined) {
@@ -81,7 +105,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     function cleanup() {
       if (retired) return;
       const closed = closeTransport();
-      if (!stopped || readPending || !closed) return;
+      if (!stopped || readPending || pendingCallbacks.size !== 0 || !closed) return;
       // Native close and the joined read, rather than Promise settlement alone,
       // authorize retirement of this reader's original response aliases.
       responses.length = 0;
@@ -108,7 +132,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
             await verify();
             const context = Object.freeze({pageIndex: index, rowCount,
               receivedBodyBytes: responseBytes});
-            const described = sync(Reflect.apply(fetchPage, provider, [context]));
+            const described = callProjection(fetchPage, provider, [context]);
             const request = described === null || typeof described !== 'object' || types.isProxy(described)
               ? undefined : ownHttpRequest(described);
             const responseHeaders = ownResponseHeaderNames(described?.responseHeaders ?? []);
@@ -133,8 +157,8 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
             responseBytes += BigInt(response.body.byteLength);
             const charge = await Reflect.apply(chargePage, options, [response.body]);
             await verify();
-            const page = sync(Reflect.apply(decodePage, provider, [response,
-              Object.freeze({pageIndex: index, rowCount, receivedBodyBytes: responseBytes})]));
+            const page = callProjection(decodePage, provider, [response,
+              Object.freeze({pageIndex: index, rowCount, receivedBodyBytes: responseBytes})]);
             if (page === null || typeof page !== 'object' || typeof page.done !== 'boolean' ||
                 (Object.hasOwn(page, 'rows') === Object.hasOwn(page, 'rowsWire'))) {
               fail('InvalidInstalledSourceDecodedPage');
@@ -153,7 +177,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
           fail('InstalledSourceReaderResponseCountLimit');
         } catch (cause) {
           phase = 'failed'; primary = cause;
-          if (onError !== undefined) throw sync(Reflect.apply(onError, provider, [cause]));
+          if (onError !== undefined) throw callProjection(onError, provider, [cause]);
           throw cause;
         } finally {
           readPending = false;
@@ -175,6 +199,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
       observe() {
         if (this !== handle) fail('ForeignInstalledCredentialSourceReader');
         return Object.freeze({phase, stopRequested: stopped, readPending,
+          pendingCallbacks: pendingCallbacks.size,
           responseCount, receivedBodyBytes: responseBytes,
           transportClosed: binding === undefined || bindingClosed,
           transportFailure: cleanupFailure !== undefined, cleanupConfirmed: retired});
