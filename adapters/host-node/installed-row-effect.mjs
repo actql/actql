@@ -443,6 +443,88 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     if (selected === undefined) fail();
     return selected;
   };
+  // This standard path accepts plain JSON request DATA, not native opaque
+  // provider originals. Existing contract bounds cap the saved capture bytes;
+  // they do not issue capacity, permission or a physical retention receipt.
+  function freezeRequestData(value, depth = 0, state = {nodes: 0, active: new Set()}) {
+    if (++state.nodes > localContractLimits.maxNodes || depth > localContractLimits.maxDepth) fail();
+    if (value === null || typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      if (value.length > localContractLimits.maxWireBytes || Buffer.byteLength(value) > localContractLimits.maxWireBytes) fail();
+      return value;
+    }
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value) || Object.is(value, -0)) fail();
+      return value;
+    }
+    if (typeof value !== 'object' || nodeTypes.isProxy(value) || state.active.has(value) ||
+        Object.getPrototypeOf(value) !== (Array.isArray(value) ? Array.prototype : Object.prototype)) fail();
+    state.active.add(value);
+    const keys = Reflect.ownKeys(value);
+    if (Array.isArray(value) && (keys.length !== value.length + 1 ||
+        keys.some((key, index) => key !== (index === value.length ? 'length' : String(index))))) fail();
+    for (const key of keys) {
+      if (Array.isArray(value) && key === 'length') continue;
+      if (typeof key !== 'string' || key.length > localContractLimits.maxWireBytes) fail();
+      const field = Object.getOwnPropertyDescriptor(value, key);
+      if (!field || !Object.hasOwn(field, 'value') || !field.enumerable) fail();
+      freezeRequestData(field.value, depth + 1, state);
+    }
+    state.active.delete(value);
+    return Object.freeze(value);
+  }
+  function bindRequest(request, resource, value, expectedCid) {
+    if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
+        data(request, 'then', true) !== undefined || originals.has(request)) fail();
+    const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
+    if ((requestOrigin !== undefined && requestOrigin !== origin) ||
+        (requestMethod !== undefined && requestMethod !== method) ||
+        data(request, 'headers', true) !== undefined || data(request, 'path') !== path) fail();
+    const body = data(request, 'body');
+    if (typeof body !== 'string') fail();
+    const exact = ownHttpRequest({method, path,
+      query: data(request, 'query', true), body, headers});
+    if (Buffer.byteLength(exact.body) > maxRequestBytes) fail();
+    const providerCid = data(request, 'requestCid', true);
+    if (providerCid !== undefined && !cid(providerCid)) fail();
+    // Existing typed providers keep their original request identity. Plain
+    // standard HTTP mappings need no separate identity callback.
+    const requestCid = providerCid ?? `sha256:${createHash('sha256').update(JSON.stringify([
+      'actql-installed-row-write-request/0.1', connectorRegistration,
+      resourceKind, boundaryCid, operation, origin, method, exact.target,
+      exact.headers, exact.body])).digest('hex')}`;
+    if (expectedCid !== undefined && expectedCid !== requestCid) fail();
+    freezeRequestData(request);
+    originals.set(request, Object.freeze({resource, value, exact, requestCid}));
+    return Object.freeze({request, requestCid});
+  }
+  const recoveryKind = 'standard_row_write';
+  const recoveryBinding = resource => [connectorRegistration, resourceKind,
+    boundaryCid, operation, origin, method, path, headers, responseHeaders,
+    maxRequestBytes, maxResponseBytes, resource];
+  const wireCid = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
+  function restoreMembers({durable, members}, indexes) {
+    if (!Array.isArray(durable?.connectorRecovery)) fail();
+    return {requests: indexes.map(index => {
+      const member = members[index];
+      if (member?.kind !== 'create' || !text(member.resource)) fail();
+      const saved = durable.connectorRecovery.filter(item => item.memberIndex === index);
+      if (saved.length !== 1 || saved[0].kind !== recoveryKind ||
+          typeof saved[0].wire !== 'string' || Buffer.byteLength(saved[0].wire) > localContractLimits.maxWireBytes ||
+          wireCid(saved[0].wire) !== saved[0].observationCid) fail();
+      const envelope = JSON.parse(saved[0].wire);
+      freezeRequestData(envelope);
+      if (!Array.isArray(envelope) || envelope.length !== 2 ||
+          JSON.stringify(envelope) !== saved[0].wire ||
+          JSON.stringify(envelope[0]) !== JSON.stringify(recoveryBinding(member.resource)) ||
+          !Array.isArray(envelope[1])) fail();
+      return envelope[1].map(row => {
+        if (!Array.isArray(row) || row.length !== 3 || !cid(row[0]) ||
+            row[1] === null || typeof row[1] !== 'object') fail();
+        return bindRequest(row[2], member.resource, row[1], row[0]).request;
+      });
+    })};
+  }
   return Object.freeze({
     kinds: Object.freeze(['create']),
     writeOperation: () => operation,
@@ -453,28 +535,35 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       const resource = context.member.resource;
       const value = freezeInput(context.value);
       const request = Reflect.apply(map, write, [Object.freeze({resource, value})]);
-      if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
-          data(request, 'then', true) !== undefined || originals.has(request)) fail();
-      const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
-      if ((requestOrigin !== undefined && requestOrigin !== origin) ||
-          (requestMethod !== undefined && requestMethod !== method) ||
-          data(request, 'headers', true) !== undefined || data(request, 'path') !== path) fail();
-      const body = data(request, 'body');
-      if (typeof body !== 'string') fail();
-      const exact = ownHttpRequest({method, path,
-        query: data(request, 'query', true), body, headers});
-      if (Buffer.byteLength(exact.body) > maxRequestBytes) fail();
-      const providerCid = data(request, 'requestCid', true);
-      if (providerCid !== undefined && !cid(providerCid)) fail();
-      // Existing typed providers keep their original request identity. Plain
-      // standard HTTP mappings need no separate identity callback.
-      const requestCid = providerCid ?? `sha256:${createHash('sha256').update(JSON.stringify([
-        'actql-installed-row-write-request/0.1', connectorRegistration,
-        resourceKind, boundaryCid, operation, origin, method, exact.target,
-        exact.headers, exact.body])).digest('hex')}`;
-      Object.freeze(request);
-      originals.set(request, Object.freeze({resource, value, exact, requestCid}));
-      return Object.freeze({request, requestCid});
+      return bindRequest(request, resource, value);
+    },
+    requestCid: request => original(request).requestCid,
+    recoveryEntry({member, entries}) {
+      if (member?.kind !== 'create' || !text(member.resource) || !Array.isArray(entries)) fail();
+      const bindingValue = recoveryBinding(member.resource);
+      const selectedRows = entries.map(entry => {
+        const selected = original(entry.request);
+        if (selected.resource !== member.resource || entry.requestCid !== selected.requestCid ||
+            entry.value !== selected.value) fail();
+        return [selected.requestCid, selected.value, entry.request];
+      });
+      freezeRequestData([bindingValue, selectedRows]);
+      const binding = JSON.stringify(bindingValue);
+      let bytes = Buffer.byteLength(binding) + 5;
+      const rows = selectedRows.map(row => {
+        const wire = JSON.stringify(row);
+        bytes += Buffer.byteLength(wire) + 1;
+        if (bytes > localContractLimits.maxWireBytes) fail();
+        return wire;
+      });
+      const wire = `[${binding},[${rows.join(',')}]]`;
+      return Object.freeze({kind: recoveryKind, observationCid: wireCid(wire), wire});
+    },
+    recoverRequests(context) {
+      return restoreMembers(context, context.members.map((_, index) => index));
+    },
+    recoverMemberRequests(context) {
+      return restoreMembers(context, context.memberIndexes);
     },
     requestFacts(request) { return {value: original(request).value}; },
     async send({request, authorization, credential, callResource, signal}) {

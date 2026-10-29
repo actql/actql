@@ -61241,7 +61241,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "873b4c012e9839520aab4c784093f9ad6f54010d7df2060e3001f7c48b514086",
+      "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -62917,6 +62917,16 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/bindRequest",
+          "parameters": [
+            "request",
+            "resource",
+            "value",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/cid/cid",
           "parameters": [
             "value"
@@ -62957,6 +62967,13 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/fail/fail",
           "parameters": [],
           "async": false
@@ -62965,6 +62982,23 @@
           "name": "deriveInstalledRowWrite/freezeInput",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeRequestData",
+          "parameters": [
+            "value",
+            "depth",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
+          "parameters": [
+            "key",
+            "index"
           ],
           "async": false
         },
@@ -62979,6 +63013,50 @@
           "name": "deriveInstalledRowWrite/init:project/init:project",
           "parameters": [
             "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -63008,9 +63086,53 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
+          "parameters": [
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers",
+          "parameters": [
+            "durable",
+            "members",
+            "indexes"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/text/text",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/wireCid/wireCid",
+          "parameters": [
+            "wire"
           ],
           "async": false
         },
@@ -67107,20 +67229,36 @@
         {
           "operations": [
             "deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/bindRequest",
             "deriveInstalledRowWrite/cid/cid",
             "deriveInstalledRowWrite/data",
             "deriveInstalledRowWrite/deriveInstalledRowWrite",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
             "deriveInstalledRowWrite/fail/fail",
             "deriveInstalledRowWrite/freezeInput",
+            "deriveInstalledRowWrite/freezeRequestData",
+            "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
             "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
             "deriveInstalledRowWrite/init:project/init:project",
+            "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
+            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
+            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
             "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
             "deriveInstalledRowWrite/init:send/init:send",
             "deriveInstalledRowWrite/original/original",
-            "deriveInstalledRowWrite/text/text"
+            "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
+            "deriveInstalledRowWrite/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved",
+            "deriveInstalledRowWrite/text/text",
+            "deriveInstalledRowWrite/wireCid/wireCid"
           ],
           "exports": [],
           "attributes": {
@@ -67190,6 +67328,18 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "standard classification callbacks receive original provider DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard cold recovery uses saved original requests"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard saved request refuses missing, changed, duplicate"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard saved request bounds real JSON material"
               }
             ]
           }

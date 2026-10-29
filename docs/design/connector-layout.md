@@ -467,6 +467,18 @@ This shared selection does not replace currentness or resource admission.
 
 ## Standard CREATE declaration
 
+Standard JSON write requests use the existing captured connector-recovery
+record. It retains the complete plain request DATA, logical value and original
+request CID under the existing contract wire/node/depth bounds. Restoration
+selects the original member slot and full transport binding, then restores that
+DATA without invoking the provider request mapping or creating a new tag.
+The existing authenticated capture, approved Preview, claim and currentness
+checks still validate it before use. This does not reconstruct opaque native
+provider objects or authenticate a bare saved record; those require the
+provider's complete existing codec. Missing saved material refuses instead of
+repreparing. The existing capture owner remains responsible for the real saved
+bytes and their same-Run retention; a metadata limit is not a capacity receipt.
+
 The ordinary Effect loader forwards the original Host installation services
 from the embedded owner. Before invoking an installer it retains the exact
 selected installation and runtime association in that same service owner.
