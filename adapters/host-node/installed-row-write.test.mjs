@@ -9,6 +9,7 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -25,9 +26,10 @@ const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
-const deriveInstalledRowWrite = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
+const standardWriteStamp = Symbol('standard-write-stamp-fixture');
+const deriveInstalledRowWrite = Function('standardWriteStamp', 'createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
   'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+  standardWriteStamp, createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
 const providerCid = `sha256:${'a'.repeat(64)}`;
@@ -443,4 +445,74 @@ test('standard saved request bounds real JSON material and refuses opaque or eff
     metadata: 'x'.repeat(localContractLimits.maxWireBytes)})}), 'fixture');
   const value = {name: 'original'}, prepared = driver.prepareRequest({member, value});
   assert.throws(() => driver.recoveryEntry({member, entries: [{...prepared, value}]}), {code: 'InvalidInstalledRowWrite'});
+});
+
+
+function stampedRowClosure(name, ports) {
+  const selected = field => {
+    const values = [];
+    const visit = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id.name === field) values.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    };
+    visit(rowTree); assert.equal(values.length, 1, field);
+    return rowSource.slice(values[0].start, values[0].end);
+  };
+  return Function(...Object.keys(ports), `
+    const sameValue = ${selected('sameValue')};
+    const sameEffectValue = ${selected('sameEffectValue')};
+    const entryOf = ${selected('entryOf')};
+    const requestEntry = ${selected('requestEntry')};
+    return ${selected(name)};`)(...Object.values(ports));
+}
+
+// Real standard adapter and enclosing RSE finalization helper. The original
+// Core key getter/installation owner are explicit ports; no Common admission,
+// grant, physical attempt, Plan backing or normal Host is substituted.
+test('standard post-Preview stamp uses only the original key CID and keeps logical payload stable', async () => {
+  const selectedMember = Object.freeze({kind: 'create', resource: 'records',
+    mapping: {mappingCid: boundaryCid}});
+  const value = {subject_id: 'I_original', body: ''};
+  const key = Object.freeze({}), keyCid = `sha256:${'d'.repeat(64)}`;
+  const createRowIdentity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  let mappings = 0, finalizations = 0, getters = 0;
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin, method: 'POST',
+    path: '/records', subjectId: 'I_original', logicalBody: ''});
+  const write = declaration({request(context) {
+    mappings++; assert.equal(context.value, value);
+    assert.deepEqual(Object.keys(context).sort(), ['resource', 'value']);
+    return logical;
+  }, stamp: {recipe: {separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'},
+    finalize(context) {
+      finalizations++; assert.equal(context.request, logical);
+      assert.deepEqual(Object.keys(context).sort(), ['request', 'requestTag']);
+      assert.equal(context.requestTag, keyCid);
+      return {...logical, requestTag: context.requestTag,
+        body: JSON.stringify({body: '\n\n<!-- actql:effect:' + context.requestTag + ' -->'}),
+        requestCid: boundaryCid};
+    }}});
+  const driver = deriveInstalledRowWrite(write, 'fixture');
+  const prepared = driver.prepareRequest({member: selectedMember, value, createRowIdentity});
+  assert.equal(mappings, 1); assert.equal(finalizations, 0); assert.equal(getters, 0);
+  assert.equal(prepared.request, logical); assert.equal(prepared.requestCid, providerCid);
+  const owner = {owned: driver};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const ownerOf = member => {assert.equal(member, selectedMember); return owner;};
+  const ports = {standardWriteStamp, ownerOf, fail, canonicalValueJson,
+    cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); getters++; return keyCid;}}};
+  const finalizeRequests = stampedRowClosure('finalizeRequests', ports);
+  const sourceEntry = Object.freeze({...prepared, value, target: undefined});
+  const originalEntries = Object.freeze([Object.freeze([sourceEntry])]);
+  const finalized = await finalizeRequests({members: [selectedMember], entries: originalEntries,
+    keys: [[key]], assertCurrent() {}});
+  assert.equal(mappings, 1); assert.equal(finalizations, 1); assert.equal(getters, 1);
+  assert.equal(originalEntries[0][0], sourceEntry); assert.equal(sourceEntry.request, logical);
+  assert.equal(finalized[0][0].value, value); assert.equal(finalized[0][0].requestCid, boundaryCid);
+  assert.equal(finalized[0][0].request.requestTag, keyCid);
+  assert.equal(Object.hasOwn(logical, 'body'), false); assert.equal(Object.hasOwn(logical, 'requestCid'), false);
 });
