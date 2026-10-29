@@ -162,18 +162,13 @@ async function restore(moon, connectorId, expectedCatalogCid) {
 }
 
 async function openSite(checkedProfile, site, {root, principalId, moon,
-  runtimeBundleCid, resolveSecret, publication, installation}) {
+  runtimeBundleCid, resolveSecret, publication, installation}, installationServices) {
   // The authorization tuple names the access target (API host and
   // owner/repo); the stable repository id is pinned by the physical binding
   // an approval covers and by the installation identity.
   const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
-  const authorization = await installRowSourceAuthorization({
-    accountConfiguration: checkedProfile.accountConfigurationWire,
-    principalId, root, connectorRegistration: registration});
-  const credentialSite = await openRowSourceCredentialSite({
-    profile: {...site, resourceOrigin: site.apiOrigin}, principalId,
-    authorization, connection, connectorRegistration: registration,
-    connectorRevision: revision, runtimeBundleCid, commonMoon: moon,
+  const configuration = {
+    profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
     resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
     ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
     admitsApprovalTarget: (binding, resource) => publication !== undefined &&
@@ -183,7 +178,24 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
       binding.repository_node_id === publication.repository.node_id &&
       binding.owner === site.owner && binding.repo === site.repo &&
       binding.catalog_cid === publication.catalogCid &&
-      binding.resource === resource && Array.isArray(binding.fields)});
+      binding.resource === resource && Array.isArray(binding.fields)};
+  if (installationServices !== undefined) {
+    const open = Object.getOwnPropertyDescriptor(installationServices, 'openRowSite');
+    if (!open || !Object.hasOwn(open, 'value') || typeof open.value !== 'function') {
+      fail('InvalidInstalledEffectSiteServices');
+    }
+    const opened = await Reflect.apply(open.value, installationServices, [{
+      installation, accountConfiguration: checkedProfile.accountConfigurationWire,
+      connection, ...configuration}]);
+    return {...opened, connection};
+  }
+  const authorization = await installRowSourceAuthorization({
+    accountConfiguration: checkedProfile.accountConfigurationWire,
+    principalId, root, connectorRegistration: registration});
+  const credentialSite = await openRowSourceCredentialSite({
+    ...configuration, principalId, authorization, connection,
+    connectorRegistration: registration, connectorRevision: revision,
+    runtimeBundleCid, commonMoon: moon});
   return {authorization, site: credentialSite, connection};
 }
 

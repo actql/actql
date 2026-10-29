@@ -158,7 +158,7 @@ function commentOutcome(projected) {
 // repository binding without provider I/O.
 export async function loadInstalledGitHubEffect(profile, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  ledgerRoot, installation}) {
+  ledgerRoot, installation, installationServices}) {
   const checked = checkInstalledGitHubEffectProfile(profile);
   if (!text(baseEnvironmentWire) || !absolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
@@ -171,7 +171,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
   const environment = rowSourceCheckEnvironment(baseEnvironmentWire,
     declared, mappings.map(mapping => mapping.body));
   const opened = await openGitHubSite(checked, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret, publication, installation});
+    moon, runtimeBundleCid, resolveSecret, publication, installation}, installationServices);
   try {
     const repository = Object.freeze({nodeId: publication.repository.node_id,
       databaseId: publication.repository.id,

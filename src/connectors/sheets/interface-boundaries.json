@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "15cbfca5872122ef15e10a45f1cb531b65e53a568b083b20f8d23e070a725598",
+    "sha256": "56786bc484b57fed866a9feb031f1cb69f5a327d1e54f5c7bb91c71d56571f94",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -228,31 +228,32 @@
           "profile",
           "site",
           "options",
-          "publication"
+          "publication",
+          "installationServices"
         ],
         "async": true
       },
       {
-        "name": "openSite/opened/opened",
+        "name": "openSite/configuration/configuration",
         "parameters": [],
         "async": true
       },
       {
-        "name": "openSite/opened/opened/opened",
+        "name": "openSite/configuration/configuration/configuration",
         "parameters": [
           "field"
         ],
         "async": false
       },
       {
-        "name": "openSite/opened/opened/opened/opened",
+        "name": "openSite/configuration/configuration/configuration/configuration",
         "parameters": [
           "column"
         ],
         "async": false
       },
       {
-        "name": "openSite/opened/opened#2",
+        "name": "openSite/configuration/configuration#2",
         "parameters": [
           "binding",
           "resource"
@@ -541,10 +542,10 @@
           "loadInstalledSheetsEffect/loadInstalledSheetsEffect",
           "loadInstalledSheetsSource/loadInstalledSheetsSource",
           "openSite",
-          "openSite/opened/opened",
-          "openSite/opened/opened/opened",
-          "openSite/opened/opened/opened/opened",
-          "openSite/opened/opened#2",
+          "openSite/configuration/configuration",
+          "openSite/configuration/configuration/configuration",
+          "openSite/configuration/configuration/configuration/configuration",
+          "openSite/configuration/configuration#2",
           "publish",
           "publish/init:close/init:close",
           "publishInstalledSheetsEffect/publishInstalledSheetsEffect",
@@ -667,6 +668,10 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            },
+            {
+              "path": "adapters/host-node/installed-row-write.test.mjs",
+              "anchor": "Effect Site uses the same Host factory and provider binding"
             }
           ]
         }

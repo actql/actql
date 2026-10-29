@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "05b0b87da177f5b627fc3b1694a4af4b978e4e6e30368716db4ed30cd22fc945",
+      "sha256": "0df88e913c7f745deea7fc03c50bd976d6141346544fa332a29a9f80225dea62",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5834,7 +5834,8 @@
             "runtimeBundleCid",
             "resolveSecret",
             "ledgerRoot",
-            "installation"
+            "installation",
+            "installationServices"
           ],
           "async": true
         },
@@ -6037,6 +6038,10 @@
               {
                 "path": "adapters/connectors/github/test/github-installed-comment-outcome.test.mjs",
                 "anchor": "installed comment Created remains provider evidence pending actual confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "Effect Site uses the same Host factory and provider binding"
               }
             ]
           }
@@ -6060,7 +6065,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c86e97c44bbf4cbe47992e3e1645402923fdce180c80eb53161573aedbbbda71",
+      "sha256": "87be2b26e67e1f4f6128b2f2e5d7b76b9e03e1a2d23b9bc2dd404eab66c1eb81",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6175,12 +6180,13 @@
             "runtimeBundleCid",
             "resolveSecret",
             "publication",
-            "installation"
+            "installation",
+            "installationServices"
           ],
           "async": true
         },
         {
-          "name": "openSite/credentialSite/credentialSite",
+          "name": "openSite/configuration/configuration",
           "parameters": [
             "binding",
             "resource"
@@ -6273,7 +6279,7 @@
             "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
             "loadInstalledGitHubSource/physicalTarget/physicalTarget",
             "openSite",
-            "openSite/credentialSite/credentialSite",
+            "openSite/configuration/configuration",
             "publishGitHubRepository",
             "publishInstalledGitHubSource",
             "readGitHubPublication",
@@ -6383,6 +6389,10 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "Effect Site uses the same Host factory and provider binding"
               }
             ]
           }

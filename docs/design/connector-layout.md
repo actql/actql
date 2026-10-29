@@ -476,6 +476,14 @@ legacy installer envelope. Existing failed-initialization and adapter cleanup
 remain with their original owners. This installation/Site connection does not
 supply a Run admission, confirmation read, grant or physical operation budget.
 
+Standard GitHub comment and Sheets append installation uses that original
+service's `openRowSite` factory. The provider supplies the unchanged connection,
+immutable Site configuration, secret resolver and published approval-target
+predicate. Host root, principal, runtime, currentness and Account ownership come
+from the existing service. Source, publication and Sheets range installation
+retain their existing paths; an unavailable service retains the legacy opening
+path. Factory refusal propagates without a second Account or Site acquisition.
+
 The existing installed Row Effect accepts either a standard `write` declaration
 or an advanced driver. The internal `deriveInstalledRowWrite` adapter derives
 routine hooks without another execution owner. Provider mapping runs once on
