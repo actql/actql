@@ -563,5 +563,6 @@ existing caller must retain the original final-request/Site association, admit
 and fund the complete constructor and failed-child overlap, perform the actual
 current authorized read, and retain its own cleanup duties. A missing mutation
 reply supplies no point address and remains uncertain; it never authorizes a
-resend. Stored-response recovery checks those same saved originals and does not
-reprepare or remark a mutation.
+resend. Returning no point request leaves the existing write classifier's known
+failure or uncertainty unchanged. Stored-response recovery checks those same
+saved originals and does not reprepare or remark a mutation.
