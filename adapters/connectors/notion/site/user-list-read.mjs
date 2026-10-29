@@ -38,9 +38,11 @@ export function prepareNotionUserListPages({moon, names, limits}, applySynchrono
   const selected = Object.freeze(names.slice()), cursors = new Set(), ids = new Set();
   let cursor;
   return Object.freeze({
-    fetchPage({pageIndex}) {
+    fetchPage({pageIndex, rowCount}) {
       if (pageIndex >= bound.maxPages) fail('NotionUserListPageLimit');
-      const query = [['page_size', String(bound.pageSize)]];
+      const remaining = bound.maxTotalRows - rowCount;
+      if (remaining <= 0) fail('NotionUserListRowLimit');
+      const query = [['page_size', String(Math.min(bound.pageSize, remaining))]];
       if (cursor !== undefined) query.push(['start_cursor', cursor]);
       const path = '/v1/users';
       if (Buffer.byteLength(requestTarget(path, query)) > bound.maxTargetBytes) fail('NotionUserListTargetLimit');

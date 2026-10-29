@@ -110,7 +110,7 @@ test('Notion still refuses duplicate identity cursor target page row and aggrega
     const code={id:'NotionUserListDuplicateUser',cursor:'NotionUserListRepeatedCursor',target:'NotionUserListTargetLimit',
       pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit',bytes:'NotionUserListResponseLimit'}[mode];
     await assert.rejects(f.reader.read(),e=>e.cause?.code===code);
-    assert.equal(f.requests.length,mode==='target'?0:mode==='pages'?1:2);
+    assert.equal(f.requests.length,mode==='target'?0:['pages','rows'].includes(mode)?1:2);
     f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
   }
 });
