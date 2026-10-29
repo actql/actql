@@ -1193,6 +1193,8 @@ pub fn client_program_finish_program_json_preparation(@client_local_host.ClientP
 
 pub fn client_program_finish_request_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
 
+pub fn client_program_finish_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_finish_snapshot(@client_local_host.ClientProgramSnapshot) -> Result[@run_publication.CapturedResultSnapshot, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_finish_validation(@client_local_host.ClientProgramValidation) -> Result[Unit, @client_local_host.ClientProgramValidationIssue]
@@ -2507,6 +2509,8 @@ pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequ
 
 pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool) -> Result[Unit, @client_local_host.ClientRequestProgramPlanIssue]
 
+pub fn client_program_prepare_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue) -> Result[String, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_prepare_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[@client_local_host.ClientRetainedContentOutput, @client_local_host.ClientInferRetainedInputIssue]
 
 pub fn client_program_prepare_run_state_observation(String, String, Int64) -> @run_publication.RunStateObservation raise ClientProgramRunObservationIssue
@@ -2698,6 +2702,8 @@ pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_request_preparation_control(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
+
+pub fn client_program_request_submitted_intent_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> @run_publication_host.ClientSubmittedIntent?
 
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 

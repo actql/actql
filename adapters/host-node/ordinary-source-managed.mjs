@@ -349,12 +349,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     submittedIntentOriginal(request) {
       current();
       const producer = producerForRequest(request);
+      if (producer === undefined) fail('ForeignInstalledSourceProducer');
       const state = producer?.preparation;
       if (state === undefined) return undefined;
-      if (producer.finished || state.phase === undefined || state.adopting) {
+      if (producer.finished || state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
-      const intent = state.context.runtime.clientProgramClosedValuesSubmittedIntentOriginal(state.phase);
+      const moon = state.context.runtime;
+      const intent = state.parent === undefined
+        ? moon.clientProgramClosedValuesSubmittedIntentOriginal(state.phase)
+        : moon.clientProgramRequestSubmittedIntentOriginal(state.parent, producer.receipt);
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
@@ -484,6 +488,20 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     intentCid(receipt, body) {
       current(); const producer = producerFor(receipt);
       if (producer.body !== body || producer.finished) fail('ForeignInstalledSourceProducer');
+      const state = producer.preparation;
+      if (state?.parent !== undefined) {
+        // Fixed shallow DATA projection of the SAME detached snapshot. No
+        // second serializer, native hash operation or no-owner fallback.
+        const value = {kind: body.kind, input: body.input, parameters: body.parameters,
+          ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})};
+        const moon = state.context.runtime;
+        const cid = checked(moon.clientProgramPrepareRequestSubmittedIntent(state.parent, receipt, value));
+        // The original native/canonical/writer stack has returned. Only now
+        // may the same owner reduce its temporary constructor peak.
+        checked(moon.clientProgramFinishRequestSubmittedIntent(state.parent, receipt));
+        return cid;
+      }
       return callbacks.intent(originals, view, body, producer.preparation?.phase);
     },
     finishSourceProducer(receipt, terminal) {

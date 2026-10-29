@@ -997,3 +997,39 @@ pub fn client_program_adopt_request_program_preparation(
 ] {
   @client_local_host.begin_request_program_managed_run(parent, request)
 }
+
+///|
+#export_name("clientProgramPrepareRequestSubmittedIntent")
+pub fn client_program_prepare_request_submitted_intent(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  captured : NativeJsonValue,
+) -> Result[String, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.prepare_request_submitted_intent(
+    parent, input, captured, native_json_reader,
+  )
+}
+
+///|
+#export_name("clientProgramFinishRequestSubmittedIntent")
+pub fn client_program_finish_request_submitted_intent(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.finish_request_submitted_intent(parent, input)
+}
+
+///|
+#export_name("clientProgramRequestSubmittedIntentOriginal")
+pub fn client_program_request_submitted_intent_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> @publication_host.ClientSubmittedIntent? {
+  @client_local_host.request_submitted_intent_original(parent, input)
+}

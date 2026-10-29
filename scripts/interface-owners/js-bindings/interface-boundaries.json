@@ -42258,7 +42258,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -42442,7 +42442,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -42598,7 +42598,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -42754,7 +42754,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -43109,7 +43109,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -43436,7 +43436,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -43624,7 +43624,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -43780,7 +43780,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -44470,7 +44470,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -44818,7 +44818,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -44974,7 +44974,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45130,7 +45130,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45288,7 +45288,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45446,7 +45446,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45603,7 +45603,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45759,7 +45759,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -45915,7 +45915,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -46079,7 +46079,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [

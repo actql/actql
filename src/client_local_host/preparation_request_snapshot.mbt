@@ -32,7 +32,9 @@ pub fn[I] reserve_request_snapshot(
   units : Int64,
   values : Int64,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.phase == Open else { return Err(WrongPhase) }
+  guard owner.phase == Open && owner.intent_base is None else {
+    return Err(WrongPhase)
+  }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
