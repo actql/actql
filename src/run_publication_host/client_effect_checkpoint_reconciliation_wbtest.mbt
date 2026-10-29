@@ -157,6 +157,59 @@ fn checkpoint_reconciliation_project(
 }
 
 ///|
+test "original Checkpoint Preview admits the same Run and original authoring data" {
+  let f = checkpoint_reconciliation_fixture()
+  let preview = admit_client_effect_review_checkpoint_preview(
+    f.checkpoint,
+    f.allowed,
+    f.definition,
+    f.checkpoint.wire,
+    f.preview_wire,
+    checkpoint_reconciliation_limits(),
+  ).unwrap()
+  assert_eq(
+    @publication.effect_preview_semantic_identity(preview),
+    f.checkpoint.checkpoint.required_artifact_cid,
+  )
+  assert_eq(@publication.effect_preview_member_count(preview), 1)
+}
+
+///|
+test "original Checkpoint Preview refuses changed stored bytes and another Run" {
+  let f = checkpoint_reconciliation_fixture()
+  let limits = checkpoint_reconciliation_limits()
+  assert_true(
+    admit_client_effect_review_checkpoint_preview(
+      f.checkpoint,
+      f.allowed,
+      f.definition,
+      f.checkpoint.wire + " ",
+      f.preview_wire,
+      limits,
+    )
+    is Err(Checkpoint(_)),
+  )
+  let other = issue_client_effect_run_definition(
+    f.allowed,
+    "scope",
+    "other-run",
+    "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    admit_client_effect_review_checkpoint_preview(
+      f.checkpoint,
+      f.allowed,
+      other,
+      f.checkpoint.wire,
+      f.preview_wire,
+      limits,
+    )
+    is Err(Binding(ForeignSubject)),
+  )
+}
+
+///|
 test "original Checkpoint reconciliation projects exact admitted Unknown receipts" {
   let f = checkpoint_reconciliation_fixture()
   let wire = checkpoint_reconciliation_project(f).unwrap()

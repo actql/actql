@@ -1190,6 +1190,12 @@ handle, scalar identity or foreign namespace cannot replace it. Its immutable
 member count bounds receipt capture before reading the member array.
 The pure semantic-identity observer supplies the existing Preview CID for the
 original Checkpoint join; it is distinct from a full Store byte digest.
+For an already admitted original Checkpoint, the Run Host's Preview reader
+uses the same Allowed/Definition association and actual stored wire. The
+existing Common owner derives authoring context from its original checked
+Effect source and matches the Preview to that Checkpoint. The caller supplies
+no replacement authoring identity or Effect-free preparation. Reconciliation
+uses this same admission before inspecting its actual invocation and receipts.
 
 Final receipt issuance requires the original Run Definition, computation
 Receipt, captured Run, Preview and complete set/member receipts. Commit
