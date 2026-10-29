@@ -81,6 +81,22 @@ test('actual Calendar response never rounds an unrepresentable timestamp or hide
   assert.throws(() => project(body));
 });
 
+test('actual Calendar complete projection preserves finer UTC instants and the original response', () => {
+  const original = query();
+  assert.equal(rows(project(response(), original)).length, 2);
+  const body = response();
+  body.calendars['a@example.test'].busy = [{
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:00:00.000100001Z',
+  }];
+  const page = project(body, original);
+  assert.deepEqual(rows(page), [{calendar_id: 'a@example.test',
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:00:00.000100001Z'}]);
+  assert.equal(calendar.calendarFreeBusyMatchesQuery(page, original), true);
+  assert.deepEqual(JSON.parse(calendar.calendarFreeBusyMetadataJson(page)), {
+    responseSha256: createHash('sha256').update(JSON.stringify(body)).digest('hex'), rowCount: 1,
+  });
+});
+
 test('actual Calendar bridge enforces independent response rows value and output ceilings', () => {
   for (const [index, value] of [[0, 1], [1, 3], [2, 2], [3, 1], [4, 1], [6, 5], [7, 1]]) {
     const smaller = limits.slice(); smaller[index] = value;
