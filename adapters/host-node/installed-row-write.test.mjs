@@ -8,6 +8,7 @@ import {parse} from 'acorn';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {localContractLimits} from './local-values-plan.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -25,8 +26,8 @@ const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
 const deriveInstalledRowWrite = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
-  'ownResponseHeaderNames', 'invokeScopedCredentialOperation', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation);
+  'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
+  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
 const providerCid = `sha256:${'a'.repeat(64)}`;
@@ -383,4 +384,63 @@ test('standard cold recovery uses saved original requests without calling the pr
   assert.equal(result.entries[0][0].requestCid, prepared.requestCid);
   assert.equal(result.entries[0][0].request.body, prepared.request.body);
   assert.deepEqual(result.entries[0][0].value, value);
+});
+
+test('standard saved request preserves provider CID, full DATA and composed global member selection', () => {
+  const selectedMember = Object.freeze({kind: 'create', resource: 'records', effectId: 'second'});
+  const value = {name: 'é\r\n', nested: {items: [1, null, false]}};
+  const write = declaration({request: () => ({path: '/records', body: '{"name":"é\\r\\n"}',
+    requestCid: providerCid, metadata: {label: 'é\r\n', ordering: ['b', 'a']}})});
+  const fresh = deriveInstalledRowWrite(write, 'fixture');
+  const prepared = fresh.prepareRequest({member: selectedMember, value});
+  const saved = fresh.recoveryEntry({member: selectedMember, entries: [{...prepared, value}]});
+  const cold = deriveInstalledRowWrite({...write, request() {assert.fail('cold must not map or create a tag');}}, 'fixture');
+  const restored = cold.recoverMemberRequests({members: [{kind: 'create', resource: 'unrelated'}, selectedMember],
+    memberIndexes: [1], durable: {connectorRecovery: [{memberIndex: 1, ...saved}]}}).requests[0][0];
+  assert.equal(cold.requestCid(restored), providerCid);
+  assert.equal(restored.body, prepared.request.body);
+  assert.deepEqual(restored.metadata, prepared.request.metadata);
+  assert.deepEqual(cold.requestFacts(restored).value, value);
+  assert.ok(Object.isFrozen(restored.metadata.ordering));
+  assert.throws(() => cold.requestCid({...restored}), {code: 'InvalidInstalledRowWrite'});
+  assert.throws(() => prepared.request.metadata.ordering.push('changed'), TypeError);
+});
+
+test('standard saved request refuses missing, changed, duplicate and foreign binding material', () => {
+  const fresh = deriveInstalledRowWrite(declaration(), 'fixture');
+  const value = {name: 'original'}, prepared = fresh.prepareRequest({member, value});
+  const saved = fresh.recoveryEntry({member, entries: [{...prepared, value}]});
+  const row = {memberIndex: 0, ...saved};
+  const restore = (driver, records, members = [member]) => driver.recoverRequests({members,
+    durable: {connectorRecovery: records}});
+  for (const records of [[], [row, row], [{...row, wire: row.wire + ' '}],
+    [{...row, observationCid: boundaryCid}], [{...row, memberIndex: 1}]]) {
+    assert.throws(() => restore(fresh, records), {code: 'InvalidInstalledRowWrite'});
+  }
+  assert.throws(() => restore(fresh, [row], [{...member, resource: 'foreign'}]), {code: 'InvalidInstalledRowWrite'});
+  for (const write of [declaration({boundaryCid: providerCid}),
+    declaration({http: {...declaration().http, headers: [['accept', 'text/plain']]}}),
+    declaration({http: {...declaration().http, maxResponseBytes: 401}})]) {
+    assert.throws(() => restore(deriveInstalledRowWrite(write, 'fixture'), [row]), {code: 'InvalidInstalledRowWrite'});
+  }
+  assert.throws(() => fresh.recoveryEntry({member, entries: [{...prepared, value: {...value}}]}),
+    {code: 'InvalidInstalledRowWrite'});
+});
+
+test('standard saved request bounds real JSON material and refuses opaque or effectful serialization', () => {
+  let getters = 0;
+  const accessor = Object.defineProperty({}, 'hidden', {enumerable: true, get() {getters++; return 'forbidden';}});
+  const cyclic = {}; cyclic.self = cyclic;
+  const opaque = Object.freeze(Object.create({nominal: true}));
+  const hidden = Object.defineProperty({}, 'hidden', {value: 'not-on-wire'});
+  for (const metadata of [accessor, cyclic, opaque, hidden, {missing: undefined},
+    {toJSON() {getters++; return 'forbidden';}}, [,'hole'], {number: -0}, {number: Infinity}]) {
+    const driver = deriveInstalledRowWrite(declaration({request: () => ({path: '/records', body: '{}', metadata})}), 'fixture');
+    assert.throws(() => driver.prepareRequest({member, value: {name: 'original'}}), {code: 'InvalidInstalledRowWrite'});
+  }
+  assert.equal(getters, 0);
+  const driver = deriveInstalledRowWrite(declaration({request: () => ({path: '/records', body: '{}',
+    metadata: 'x'.repeat(localContractLimits.maxWireBytes)})}), 'fixture');
+  const value = {name: 'original'}, prepared = driver.prepareRequest({member, value});
+  assert.throws(() => driver.recoveryEntry({member, entries: [{...prepared, value}]}), {code: 'InvalidInstalledRowWrite'});
 });
