@@ -2197,7 +2197,7 @@ export async function createInstalledRowSource({moon, declaration,
         }};
       if (originalReader === undefined) await readPages(readerOptions);
       else await session.readProvider({prepare: originalReader.prepare,
-        receiver: originalReader.receiver, retire: originalReader.retire, options: Object.freeze(readerOptions)});
+        receiver: originalReader.receiver, options: Object.freeze(readerOptions)});
       return await complete();
     } catch (error) {
       session.closeAfterFailure(state);
