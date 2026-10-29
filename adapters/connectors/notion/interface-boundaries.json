@@ -1785,7 +1785,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "1e6066d944ffffae62fa55f1718f548cd06bad32d78423a7270ecf38b651de9f",
+      "sha256": "9bf5d91c59d2d435a30f9e0e2437c083397eb075a6e41bc400e86dee6f0089b9",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1887,15 +1887,14 @@
           "name": "loadInstalledNotionSource",
           "parameters": [
             "profile",
-            "root",
-            "principalId",
             "moon",
             "providerMoon",
-            "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "readerCapacity",
-            "configurationReader"
+            "configurationReader",
+            "sourceInitialization",
+            "installationServices",
+            "installation"
           ],
           "async": true
         },
@@ -1915,12 +1914,24 @@
           "async": false
         },
         {
+          "name": "loadInstalledNotionSource/implementation/implementation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
           "parameters": [
             "selected",
             "columns",
             "applySynchronousProjection"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/services/services",
+          "parameters": [],
           "async": false
         },
         {
@@ -1977,13 +1988,14 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/user-list-read.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2009,7 +2021,9 @@
             "loadInstalledNotionSource",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledNotionSource/implementation/implementation",
             "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
+            "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
             "positive/positive",
             "readInputs",
@@ -2056,6 +2070,10 @@
               {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "No new"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The installed Notion users and Calendar-list factories capture this original"
               }
             ],
             "synchronization": [
@@ -2071,7 +2089,7 @@
             "failure": [
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "{sourceReader:providerReader,sourceProfile:site}"
+                "anchor": "{sourceReader:providerReader,sourceProfile:opened?.site}"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
@@ -2091,11 +2109,15 @@
             "resources": [
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes"
+                "anchor": "services('sourceReaderImplementation'"
               },
               {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "component reservation are not that complete numerical supplier."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The installed Notion users and Calendar-list factories capture this original"
               }
             ],
             "extension": [
@@ -2136,6 +2158,18 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "Notion refuses an incomplete provider before configuration or Site construction"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders forward their same original initialization through the complete service quartet"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders capture original initialization and service methods before configuration awaits"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders refuse initializer and service method accessors before configuration I/O"
               }
             ]
           }

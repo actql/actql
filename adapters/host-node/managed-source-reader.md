@@ -196,6 +196,16 @@ so different connections keep their own original origins and valid bounds.
 A changed selection on the same context still refuses. No equal/copied context
 or fabricated table entry can recover another Source's selection.
 
+The installed Notion users and Calendar-list factories capture this original
+declaration method and all four service methods before configuration awaits.
+They retain their provider's closed limits and column list, then pass the
+original declaration, projection and Environment to the shared Source
+constructor. Account/Site intake and Reader creation belong to the service;
+the provider supplies only its existing target description and pure page
+callbacks. A failed constructor returns the same Reader and Site to the
+existing initialization cleanup carrier, in that order. A public numeric
+Reader-capacity object cannot replace the original initialization context.
+
 Native input nodes, decoded text, owned Buffer/wire peaks and complete retained
 prefixes use the existing shared execution-capacity allowances. The recipe
 includes profile projections, declaration/Catalog/manifest assembly, Environment

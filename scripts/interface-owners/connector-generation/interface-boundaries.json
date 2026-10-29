@@ -461,7 +461,7 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "providerReader=createInstalledCredentialSourceReader({capacity:readerCapacity,site,"
+                "anchor": "providerReader=services('createSourceReader',"
               },
               {
                 "path": "docs/design/notion-user-reader.md",
@@ -557,7 +557,7 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "fail('NotionReaderCapacityUnavailable')"
+                "anchor": "fail('NotionSourceInitializationUnavailable')"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
