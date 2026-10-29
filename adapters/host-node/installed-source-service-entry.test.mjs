@@ -198,3 +198,25 @@ test('Calendar original profile selects the same trusted reader implementation w
   assert.throws(()=>f.services.sourceReaderImplementation({...options,limits:{...f.limits,maxRequests:8}}),
     {code:'InstalledSourceReaderSelectionChanged'});
 });
+
+test('Calendar checked normalization refuses excess totals cursor units and malformed originals before quoting',() => {
+  const f=calendarImplementationFixture();let observed=0;
+  const options={installation:f.installation,columnCount:4};
+  for(const limits of [
+    {...f.limits,maxPages:3,maxRequests:2},
+    {...f.limits,perPage:251},
+    {...f.limits,maxRows:f.policy.maxTotalRows+1},
+    {...f.limits,maxResponseBytes:2147483646,maxPages:2147483646,maxRequests:2147483646},
+    {...f.limits,maxCursorUnits:536870912},
+    {...f.limits,maxRowsWireBytes:f.policy.maxRowsWireBytes+1},
+  ]) assert.throws(()=>f.services.sourceReaderImplementation({...options,limits}),
+    {code:'InstalledSourceReaderImplementationBoundsExceeded'});
+  for(const limits of [{...f.limits,get maxCursorUnits() {observed++;return 1;}},
+    {...f.limits,extra:1},Object.fromEntries(Object.entries(f.limits).filter(([name])=>name!=='maxRequests'))]) {
+    assert.throws(()=>f.services.sourceReaderImplementation({...options,limits}),
+      {code:'InvalidInstalledCalendarImplementationLimits'});
+  }
+  assert.throws(()=>f.services.sourceReaderImplementation({...options,limits:new Proxy(f.limits,{ownKeys() {
+    observed++;return [];}})}),{code:'InvalidInstalledSourceReaderSelection'});
+  assert.equal(observed,0);assert.equal(f.observed.length,0);
+});

@@ -84258,7 +84258,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "e502ca6700e8b5488cec548b40e024bdd668f08d1b8e0fa005cfdfe682d4a38a",
+      "sha256": "69ce059bf1e5dd7eb8d092f575b61b5f45e011844dac26ef1abd71f760aabf70",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -84268,6 +84268,28 @@
         "retainInstalledHostServiceInstallation"
       ],
       "operations": [
+        {
+          "name": "calendarImplementationReaderLimits",
+          "parameters": [
+            "supplied",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "calendarImplementationReaderLimits/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
         {
           "name": "captureInstalledSourceServices",
           "parameters": [
@@ -84337,6 +84359,13 @@
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -84461,6 +84490,9 @@
         {
           "operations": [
             "<module>",
+            "calendarImplementationReaderLimits",
+            "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
+            "calendarImplementationReaderLimits/original/original",
             "createInstalledHostServices",
             "createInstalledHostServices/current/current",
             "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader",
@@ -84468,6 +84500,7 @@
             "createInstalledHostServices/services/init:openRowSite/init:openRowSite",
             "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/capacity/capacity",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#2",

@@ -10,6 +10,47 @@ import {types as nodeTypes} from 'node:util';
 const installations = new WeakMap();
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 
+// The Calendar provider keeps its original, mandatory profile grammar. This
+// projects rejection bounds into the SAME selected generic inventory; it
+// neither changes that profile nor reserves or credits any capacity.
+function calendarImplementationReaderLimits(supplied, selected) {
+  if (selected === undefined || selected.metadata !== 0) {
+    fail('InstalledCalendarImplementationProfileUnavailable');
+  }
+  const names = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxPages', 'maxRows',
+    'maxRequests', 'perPage', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
+    'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxDeclarationBytes',
+    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
+  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
+    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
+    supplied[name].value < 1 || supplied[name].value >= 2147483647)) {
+    fail('InvalidInstalledCalendarImplementationLimits');
+  }
+  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
+  const policy = selected.value;
+  const total = BigInt(original.maxResponseBytes) * BigInt(original.maxPages);
+  // Four bytes per original UTF16 unit is a conservative UTF8 ceiling, not
+  // a conversion/normalization of the cursor. Check before Number conversion.
+  const cursor = 4n * BigInt(original.maxCursorUnits);
+  if (original.perPage > 250 || original.maxPages > original.maxRequests ||
+      original.perPage > policy.pageSize || original.maxRows > policy.maxTotalRows ||
+      original.maxDeclarationBytes > policy.maxDeclarationBytes ||
+      original.maxDeclarationNodes > policy.maxDeclarationNodes ||
+      total > BigInt(policy.maxTotalResponseBytes) || cursor > BigInt(policy.maxCursorBytes)) {
+    fail('InstalledSourceReaderImplementationBoundsExceeded');
+  }
+  return Object.freeze({original, limits: Object.freeze({
+    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: Number(total),
+    maxNodes: original.maxNodes, maxDepth: original.maxDepth,
+    maxRows: Math.min(original.perPage, original.maxRows), maxTotalRows: original.maxRows,
+    maxPages: original.maxPages, pageSize: original.perPage, maxCursorBytes: Number(cursor),
+    maxIdentityBytes: original.maxValueTextBytes, maxTargetBytes: policy.maxTargetBytes,
+    maxValueNodes: original.maxValueNodes, maxValueTextBytes: original.maxValueTextBytes,
+    maxRowsWireBytes: original.maxRowsWireBytes, maxRowsWireNodes: original.maxRowsWireNodes,
+    maxRowsWireDepth: original.maxRowsWireDepth, maxSecretBytes: original.maxSecretBytes,
+  })});
+}
+
 // Snapshot only the existing required Source service methods. The connector
 // chooses its own unavailable error and retains its explicit legacy branch.
 // This view issues no service, installation, capacity or cleanup observation.
@@ -89,13 +130,20 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
-      const columns = fields.columnCount.value, supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {});
+      const columns = fields.columnCount.value;
+      const profile = sourceProfiles.get(installation);
+      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits;
+      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'calendar' &&
+          !Object.hasOwn(supplied, 'maxTotalResponseBytes')) {
+        const projected = calendarImplementationReaderLimits(supplied, profile);
+        calendarLimits = projected.original;
+        supplied = Object.getOwnPropertyDescriptors(projected.limits);
+      }
       const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
       if (names.some(name => !Object.hasOwn(supplied[name] ?? {}, 'value') ||
           !Number.isSafeInteger(supplied[name].value) || supplied[name].value < 1 || supplied[name].value > 2147483647)) {
         fail('InvalidInstalledSourceReaderLimits');
       }
-      const profile = sourceProfiles.get(installation);
       if (profile !== undefined && (profile.runtimeBundleCid !== runtimeBundleCid ||
           columns > profile.value.maxColumns || names.some(name => supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
@@ -110,6 +158,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const previous = sourceImplementations.get(installation);
       if (previous !== undefined) {
         if (previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
+            (previous.calendarLimits === undefined) !== (calendarLimits === undefined) ||
+            calendarLimits !== undefined && Object.keys(calendarLimits).some(function calendarSelectionChanged(name) {
+              return previous.calendarLimits[name] !== calendarLimits[name];
+            }) ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
@@ -118,7 +170,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(installation, Object.freeze({runtimeBundleCid, columns, value}));
+      current(); sourceImplementations.set(installation, Object.freeze({runtimeBundleCid, columns, calendarLimits, value}));
       return value;
     },
     createSourceReader(options) {
