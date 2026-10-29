@@ -101,7 +101,8 @@ test('original Checkpoint Preview forwards nominal roots and refuses copied or f
   assert.strictEqual(args[2], bindingCall.args[1]);
   assert.deepEqual(args.slice(3), [storedWire, previewWire, 65536, 4096, 32]);
   assert(Object.isFrozen(preview));
-  assert.equal(owner.effectPreviewIdentityCid(preview), `fixture:preview-semantic:${control.serial}`);
+  const previewSerial = control.serial;
+  assert.equal(owner.effectPreviewIdentityCid(preview), `fixture:preview-semantic:${previewSerial}`);
 
   const contract = kind => owner.admitPublicationContract(kind, 'fixture:' + kind, limits);
   const receiptArgs = [contract('run_definition'), contract('run_receipt'),
@@ -111,7 +112,7 @@ test('original Checkpoint Preview forwards nominal roots and refuses copied or f
     ['one'], limits), /InvalidRunHostEffectReceipts/u);
   assert.equal(control.calls.length, 0, 'The returned Preview retains its two-member inventory');
   owner.issueEffectfulFinalRunReceipt(...receiptArgs, ['one', 'two'], limits);
-  assert.strictEqual(control.calls[0].args[3].fixturePreview, control.serial);
+  assert.strictEqual(control.calls[0].args[3].fixturePreview, previewSerial);
 
   control.calls.length = 0;
   for (const [selected, allowed, definition] of [
