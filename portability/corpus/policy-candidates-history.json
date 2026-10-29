@@ -1,0 +1,2224 @@
+{
+  "description": "Original two independently authored policy-candidate fixture identities before current expression-contract propagation. Complete preimages and all original offer/cost/assignment data are retained; these are historical vectors, not current runtime qualification.",
+  "source_program": {
+    "version": "actql/0.1",
+    "id": "p",
+    "params": {
+      "minimum": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "stages": [
+      {
+        "id": "a",
+        "inputs": {
+          "remote": {
+            "connector": "crm/main",
+            "resource": "r"
+          }
+        },
+        "steps": [
+          {
+            "filter": "id > $minimum",
+            "as": "filtered"
+          },
+          {
+            "select": [
+              "id"
+            ],
+            "as": "captured"
+          }
+        ],
+        "results": {
+          "r": {
+            "from": "captured",
+            "fields": [
+              "id"
+            ]
+          }
+        }
+      },
+      {
+        "id": "compute_a",
+        "inputs": {
+          "x": {
+            "result": {
+              "stage": "a",
+              "result": "r"
+            }
+          }
+        },
+        "steps": [
+          {
+            "filter": "id > 2"
+          },
+          {
+            "select": [
+              "id"
+            ],
+            "as": "out"
+          }
+        ],
+        "results": {
+          "r": {
+            "from": "out",
+            "fields": [
+              "id"
+            ]
+          }
+        }
+      },
+      {
+        "id": "compute_b",
+        "inputs": {
+          "x": {
+            "result": {
+              "stage": "a",
+              "result": "r"
+            }
+          }
+        },
+        "steps": [
+          {
+            "filter": "id > 0"
+          },
+          {
+            "select": [
+              "id"
+            ],
+            "as": "out"
+          }
+        ],
+        "results": {
+          "r": {
+            "from": "out",
+            "fields": [
+              "id"
+            ]
+          }
+        }
+      },
+      {
+        "id": "compute_c",
+        "inputs": {
+          "x": {
+            "result": {
+              "stage": "compute_a",
+              "result": "r"
+            }
+          }
+        },
+        "steps": [
+          {
+            "filter": "id < 9"
+          },
+          {
+            "select": [
+              "id"
+            ],
+            "as": "out"
+          }
+        ],
+        "results": {
+          "r": {
+            "from": "out",
+            "fields": [
+              "id"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "b": {
+        "from": {
+          "stage": "compute_b",
+          "result": "r"
+        }
+      },
+      "c": {
+        "from": {
+          "stage": "compute_c",
+          "result": "r"
+        }
+      }
+    }
+  },
+  "snapshots": [
+    {
+      "source": "b8d02a73532e54f30b3fb50c4544d2cc22064910",
+      "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+      "stage_semantics": [
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+          "parameters": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "minimum",
+              "path": "/steps/0/filter/gt/1",
+              "type": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "remote": {
+                "connector": "crm/main",
+                "resource": "r"
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "$param": "minimum"
+                    }
+                  ]
+                },
+                "as": "filtered"
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "captured"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "captured",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "compute_a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "lt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 9
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "program_semantics": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+        "parameters": {
+          "minimum": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "parameter_references": [
+          {
+            "name": "minimum",
+            "path": "/stages/0/steps/0/filter/gt/1",
+            "type": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        ],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "a",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:3bed84c8446e14cbbff7676440baee8b2b7f9aee35ef0a34c97d0df3c42f8819"
+            },
+            {
+              "id": "compute_a",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:4e5f5b7d75abae8f2f34cc58041f210cf895bb98e5a28225135b2482e897b5aa"
+            },
+            {
+              "id": "compute_b",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:66e279c331cd9c13f61c39eb0b5fc9796594c1dfeee281e3ab132f5b36315f8b"
+            },
+            {
+              "id": "compute_c",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "compute_a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:287711f4a6eda52a8ef53dacb16162cbd69fd620a24ff709edf4b383cbbc43bf"
+            }
+          ],
+          "exports": {
+            "b": {
+              "from": {
+                "stage": "compute_b",
+                "result": "r"
+              }
+            },
+            "c": {
+              "from": {
+                "stage": "compute_c",
+                "result": "r"
+              }
+            }
+          }
+        }
+      },
+      "program_definition": {
+        "version": "actql-program-definition/0.1",
+        "id": "p",
+        "program_semantics_cid": "sha256:5e94b3a7a876d559159f67dd62fe15eacda2d6fc64c8f75999a666f77b713d99"
+      },
+      "program_definition_cid": "sha256:63af34b702f8d1b719cc9492d220c9c6929b2b047cd0e4837d70d1ef9d3a0dfd",
+      "candidate_body": [
+        "actql-policy-candidates/0.1",
+        "sha256:63af34b702f8d1b719cc9492d220c9c6929b2b047cd0e4837d70d1ef9d3a0dfd",
+        0,
+        1,
+        true,
+        [
+          [
+            0,
+            "30",
+            "0",
+            "24000000",
+            "64000000",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            1,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            2,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            3,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            4,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            5,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            6,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            7,
+            "63",
+            "300000",
+            "300",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ]
+        ]
+      ],
+      "candidate_body_cid": "sha256:5b3f6dac6e99538cb6963afd12a73d6e59a0ff67cfd85a17f850bff0cb3fe261"
+    },
+    {
+      "source": "43de8ca411b01d09ca86f9e5ef300fa22f1c9bc2",
+      "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+      "stage_semantics": [
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+          "parameters": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "minimum",
+              "path": "/steps/0/filter/gt/1",
+              "type": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "remote": {
+                "connector": "crm/main",
+                "resource": "r"
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "$param": "minimum"
+                    }
+                  ]
+                },
+                "as": "filtered"
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "captured"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "captured",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "inputs": {
+              "x": {
+                "result": {
+                  "stage": "compute_a",
+                  "result": "r"
+                }
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "lt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "literal": 9
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "r": {
+                "from": "out",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "program_semantics": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+        "parameters": {
+          "minimum": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "parameter_references": [
+          {
+            "name": "minimum",
+            "path": "/stages/0/steps/0/filter/gt/1",
+            "type": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        ],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "a",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:e90387fa00b1f6bcdc520eed5e108414a89b2f1f40ebb9ccfc69ded9971b0ff8"
+            },
+            {
+              "id": "compute_a",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:0b7ee1ee97fb3274be550dca0fa76beaf52ae5be24bb58103c903c8e80049f19"
+            },
+            {
+              "id": "compute_b",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:10a109b5ea162736b949a72cf565510be2f8b571ae3197c54ff1033cb2666fad"
+            },
+            {
+              "id": "compute_c",
+              "after": "completed",
+              "imports": {
+                "x": {
+                  "result": {
+                    "stage": "compute_a",
+                    "result": "r"
+                  }
+                }
+              },
+              "stage_semantics_cid": "sha256:844ace4a047eef5113e8c9567520e2e1a1f267ec5a4263e07c25fe0b141c2060"
+            }
+          ],
+          "exports": {
+            "b": {
+              "from": {
+                "stage": "compute_b",
+                "result": "r"
+              }
+            },
+            "c": {
+              "from": {
+                "stage": "compute_c",
+                "result": "r"
+              }
+            }
+          }
+        }
+      },
+      "program_definition": {
+        "version": "actql-program-definition/0.1",
+        "id": "p",
+        "program_semantics_cid": "sha256:d3895efa41d30a61f7261ae723378d0aa181c6992536896b77b40e9544a59056"
+      },
+      "program_definition_cid": "sha256:45157dc423eb7eed95271b2f1ed9780a86cc2718b3f49386cb7cc58db9b293f2",
+      "candidate_body": [
+        "actql-policy-candidates/0.1",
+        "sha256:45157dc423eb7eed95271b2f1ed9780a86cc2718b3f49386cb7cc58db9b293f2",
+        0,
+        1,
+        true,
+        [
+          [
+            0,
+            "30",
+            "0",
+            "24000000",
+            "64000000",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            1,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            2,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            3,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            4,
+            "41",
+            "100000",
+            "16000100",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            5,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            6,
+            "52",
+            "200000",
+            "8000200",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "local",
+                "10",
+                5,
+                "0",
+                "8000000",
+                "64000000",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "10"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ],
+          [
+            7,
+            "63",
+            "300000",
+            "300",
+            "134217728",
+            [
+              null,
+              [
+                1,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                2,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ],
+              [
+                3,
+                "duckdb",
+                "21",
+                8,
+                "100000",
+                "100",
+                "134217728",
+                "0",
+                [
+                  [
+                    [
+                      0,
+                      2,
+                      3,
+                      5,
+                      6,
+                      7
+                    ],
+                    "1"
+                  ],
+                  [
+                    [
+                      1,
+                      4
+                    ],
+                    "20"
+                  ]
+                ],
+                null
+              ]
+            ]
+          ]
+        ]
+      ],
+      "candidate_body_cid": "sha256:0a3c4757bbdc6c2907b2a0cdb05d80b2b1074bb173d0cf62f331434078542726"
+    }
+  ]
+}

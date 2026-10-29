@@ -121,10 +121,19 @@ test('constructor pins a distinct complete execution contract and exact shared d
   assert.deepEqual(body, current.graphExecution.body);
   assert.equal(canonical(body), current.graphExecution.canonicalPreimage);
   assert.equal(cid(body), current.graphExecution.cid);
-  // The signed64 registry is a retained transition, not the later live registry.
+  // This complete signed64 fixture is a retained original, not the current registry.
   assert.equal(canonical(current.selectedRegistry.body), current.selectedRegistry.canonicalPreimage);
   assert.equal(cid(current.selectedRegistry.body), current.selectedRegistry.cid);
-  assert.deepEqual(registry[operation], current.selectedRegistry.body[operation]);
+  assert.equal(current.selectedRegistry.cid, 'sha256:6030e6f28f5c30c4ad9cb3b159b67bf8ab6ad15cd92cc528418ea3345558ba12');
+  const retained = structuredClone(registry);
+  retained['REL.derive'].execution_extensions.ordered_bindings.cid =
+    current.selectedRegistry.body['REL.derive'].execution_extensions.ordered_bindings.cid;
+  retained['ACTQL.expression_fragment/0.1'].execution_contract.cid =
+    current.selectedRegistry.body['ACTQL.expression_fragment/0.1'].execution_contract.cid;
+  retained['TEA.calendar.series'].execution_contract.cid =
+    current.selectedRegistry.body['TEA.calendar.series'].execution_contract.cid;
+  assert.deepEqual(retained, current.selectedRegistry.body);
+  assert.equal(cid(registry), aoa.pipeline_registry_cid);
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
   assert.equal(cid(prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract),

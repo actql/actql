@@ -471,3 +471,53 @@ test('author guard source mappings preserve scope units and registered laws', ()
   assert.ok(!body.law_ids.includes('actql.expression-fragment.capacity'));
   assert.equal(readFileSync(new URL('../src/pipeline_typing/guard_laws.generated.mbt',import.meta.url),'utf8'),renderGuardLaws(body));
 });
+
+// Complete published body at 06d8d56f7b34d1b82a06b4e7c766b97a14c42562.
+// The adopted 50e98f change added only the two right-join bound rules.
+test('join count history retains the complete pre-right body and only adopted additions', () => {
+  const original = JSON.parse(readFileSync(new URL(
+    './fixtures/bound-join-law-before-right.json', import.meta.url), 'utf8'));
+  assert.equal(machineCid(original),
+    'sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600');
+  const current = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-bound-join-laws.json', import.meta.url), 'utf8'));
+  assert.equal(current.unrefined.right, 'R * max(1, L)');
+  assert.equal(current.unique_refinement.right,
+    'R if the left is unique; otherwise L + R - 1 when only the right is unique; zero input bounds use the unrefined rules');
+  const retained = structuredClone(current);
+  delete retained.unrefined.right;
+  delete retained.unique_refinement.right;
+  assert.deepEqual(retained, original, 'all other original law bodies remain exact');
+  assert.notEqual(machineCid(current), machineCid(original),
+    'the expanded body cannot retain its historical identity');
+});
+
+test('right join count law bounds every small incidence relation and retains zero-input rules', () => {
+  // Enumerate row-occurrence matches independently of a product evaluator.
+  // Right-preserved occurrences contribute one row even without a match.
+  for (let l = 0; l <= 3; l++) for (let r = 0; r <= 3; r++) {
+    let largest = 0, largestLeftUnique = 0, largestRightUnique = 0;
+    for (let mask = 0; mask < 2 ** (l * r); mask++) {
+      const left = Array(l).fill(0), right = Array(r).fill(0);
+      let matches = 0;
+      for (let i = 0; i < l; i++) for (let j = 0; j < r; j++) {
+        if (mask & (1 << (i * r + j))) { left[i]++; right[j]++; matches++; }
+      }
+      const actual = matches + right.filter(n => n === 0).length;
+      largest = Math.max(largest, actual);
+      assert.ok(actual <= r * Math.max(1, l));
+      // Unique left keys allow at most one left match for each right row.
+      if (right.every(n => n <= 1)) {
+        largestLeftUnique = Math.max(largestLeftUnique, actual);
+        assert.ok(actual <= r);
+      }
+      if (left.every(n => n <= 1)) {
+        largestRightUnique = Math.max(largestRightUnique, actual);
+        assert.ok(actual <= (l && r ? l + r - 1 : r * Math.max(1, l)));
+      }
+    }
+    assert.equal(largest, r * Math.max(1, l));
+    assert.equal(largestLeftUnique, r);
+    assert.equal(largestRightUnique, l && r ? l + r - 1 : r * Math.max(1, l));
+  }
+});

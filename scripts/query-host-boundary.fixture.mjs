@@ -13,8 +13,12 @@ function fixture() {
     taskCapacity: () => [0n, 0n], completed: () => completed,
     finished: () => completed, stop() {}, closeOutputs() {},
     output: () => completed ? 1 : undefined,
-    usage: () => ({reservedTransferBytes: 0n, heldBytes: 0n,
-      reservedRetentionBytes: 0n, reservedExecutionBytes: 0n}),
+    usage: () => ({planningWork: 0n, attempts: 0n, reservedAttempts: 0n,
+      holdings: 0n, liveReservations: 0n, liveDelegations: 0n,
+      transferredBytes: 0n, uncertainTransferBytes: 0n,
+      reservedTransferBytes: 0n, heldBytes: 0n,
+      reservedRetentionBytes: 0n, reservedExecutionBytes: 0n,
+      peakRetentionBytes: 0n}),
   };
   return {registration, setup, core, complete() { completed = true; }};
 }
