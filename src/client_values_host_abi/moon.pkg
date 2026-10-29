@@ -4,6 +4,7 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/client_local_preparation" @local,
+  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/run_publication_host" @host,
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/run_publication" @publication,
@@ -17,6 +18,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/query_planning" @planning,
+  "actql/actql/query_program" @query,
   "actql/actql/encode_core" @encode,
   "actql/actql/host_observation" @observation,
   "moonbitlang/core/encoding/utf8",

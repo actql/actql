@@ -5,8 +5,14 @@ pub fn client_values_host_prepare_source_program(
   intent : @host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : String,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment?,
 ) -> Result[@local.LocalSourceComputation, @local.LocalSourceComputationIssue] {
-  @local.prepare_local_source_computation(intent, environment, publication)
+  @local.prepare_local_source_computation(
+    intent,
+    environment,
+    publication,
+    publication_environment~,
+  )
 }
 
 ///|
@@ -17,12 +23,14 @@ pub fn client_values_host_prepare_public_source_program(
   intent : @host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : String,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment?,
 ) -> Result[@local.LocalSourceComputation, @local.LocalSourceComputationIssue] {
   @local.prepare_local_source_computation(
     intent,
     environment,
     publication,
     public_primary=true,
+    publication_environment~,
   )
 }
 
