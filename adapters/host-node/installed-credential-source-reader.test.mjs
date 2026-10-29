@@ -202,18 +202,19 @@ test('same standard reader preserves its original cancellation reason after deli
 test('native advanced constructor retains its actual late child through original stop settlement', async t => {
   // Actual shared Host owner; Site/grant/child and stop acknowledgements are
   // explicit component ports, not physical transport or normal funding.
-  const construction = deferred(), entered = deferred(), stop = deferred();
+  const construction = deferred(), entered = deferred(), stop = deferred(), stopEntered = deferred();
   const getterFailure = new Error('same native constructor then getter');
   const cancellation = new Error('same pending constructor cancellation');
   let thenReads = 0, childReads = 0, childStops = 0, childRetires = 0;
-  let childStopped = false, childStopSettled = false, bindingCloses = 0;
+  let childStopped = false, childStopSettled = false, bindingCloses = 0, childStopPromise;
   Object.defineProperty(construction.promise, 'then', {get() {
     thenReads++; throw getterFailure;
   }});
   const child = Object.freeze({read() {childReads++;assert.fail('invalid async constructor never starts its child');},
     requestStop(reason) {
       assert.equal(this, child);assert.equal(reason, cancellation);childStops++;
-      return stop.promise.then(() => {childStopped = true;childStopSettled = true;});
+      childStopPromise = stop.promise.then(() => {childStopped = true;childStopSettled = true;});
+      stopEntered.resolve();return childStopPromise;
     }, retire() {
       assert.equal(this, child);childRetires++;
       return childStopped && childStopSettled;
@@ -234,11 +235,11 @@ test('native advanced constructor retains its actual late child through original
   assert.doesNotThrow(() => {retired = factory.retire();});
   assert.equal(retired,false);assert.equal(reader.observe().cleanupConfirmed,false);
   construction.resolve(child);
-  for (let index=0;index<8;index++) await Promise.resolve();
+  await stopEntered.promise;
   assert.equal(childStops,1);assert.equal(childReads,0);
   assert.equal(reader.observe().cleanupConfirmed,false);
   assert.equal(factory.retire(),false);
-  stop.resolve();
+  stop.resolve();await childStopPromise;
   assert.equal(await outcome,getterFailure);
   assert.equal(thenReads,1);assert.equal(childStops,1);assert.equal(childReads,0);
   assert.equal(reader.observe().cleanupConfirmed,true);
