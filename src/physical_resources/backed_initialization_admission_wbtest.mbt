@@ -101,3 +101,54 @@ test "backed initialization cannot reuse an already issued Read frame" {
     is Err(AlreadyConsumed),
   )
 }
+
+///|
+test "backed initialization cleanup refuses live zero-sized identities after physical acknowledgement" {
+  for kind in 0..<4 {
+    let (_, access, projection, input) = backed_original_child_fixture()
+    let initial = prepare_backed_initialization_admission(projection, input).unwrap()
+    let frame = backed_initialization_original_frame(initial, input).unwrap()
+    let ledger = start_backed_initialization_admission(initial).unwrap()
+    match kind {
+      0 => reserve_attempt(ledger, 0L, 0L, 0L).unwrap() |> ignore
+      1 => reserve_capacity(ledger, 0L, 0L).unwrap() |> ignore
+      2 =>
+        reserve_execution_delegation(
+          ledger,
+          {
+            planning_work: 0,
+            attempts: 0,
+            holdings: 0,
+            transfer_bytes: 0L,
+            retained_bytes: 0L,
+            execution_bytes: 0L,
+          },
+          0L,
+          0L,
+        ).unwrap()
+        |> ignore
+      _ => {
+        let reservation = reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+        retain_allocation(ledger, reservation, 0L).unwrap() |> ignore
+        settle_reservation(ledger, reservation).unwrap()
+        assert_eq(ledger_usage(ledger).holdings, 1)
+        assert_eq(ledger_usage(ledger).live_reservations, 0)
+      }
+    }
+    let before = ledger_usage(ledger)
+    assert_eq(before.held_bytes, 0L)
+    assert_eq(before.reserved_retention_bytes, 0L)
+    assert_eq(before.reserved_execution_bytes, 0L)
+    stop_imported_child_ledger(frame).unwrap()
+    report_imported_child_ledger(frame).unwrap()
+    // This nominal fixture stands in for physical retirement only. It does
+    // not settle the independent live Core token above or erase its history.
+    retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+    assert_true(
+      cleanup_backed_initialization_admission(initial) is Err(Unavailable),
+    )
+    assert_true(initial.input is Some(_))
+    assert_false(initial.cleaned)
+    assert_eq(ledger_usage(ledger), before)
+  }
+}

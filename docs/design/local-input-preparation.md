@@ -2504,9 +2504,10 @@ retirement and reporting in its existing physical order. The portable body
 does not copy Node's report/stop sequence or manufacture a physical ACK.
 Backed initialization close remains pending until the original physical
 issuer's after-owner-ACK retirement is recorded, outstanding usage is settled
-and unknown report/stop outcomes remain absent. Only then can the shared Host
-close release its input alias. The actual Native initialization constructor,
-its complete representation recipe and the physical retirement observation
+and unknown report/stop outcomes remain absent. Original zero-sized tokens
+must retire too; equal zero byte balances are insufficient. Only then can the
+shared Host close release its input alias. The actual Native initialization
+constructor, its complete representation recipe and the physical retirement observation
 are separate obligations; a nominal carrier supplies none of them by itself.
 
 The original installation, input and Resource identities remain unchanged. No
