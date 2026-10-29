@@ -166,6 +166,12 @@ precision, errors and budgets; `calendar-free-busy-projection.test.mjs` consumes
 the actual compiled bridge. Those tests are not normal installed or live Google
 acceptance and do not establish Calendar event writes or the other profiles.
 
+Normalized interval endpoints retain exact canonical UTC precision. Their order
+uses the existing Timestamp instant comparison, including different fractional
+widths; string length or string ordering cannot establish chronological order.
+Nonzero precision beyond nanoseconds, unknown offsets, invalid dates and
+non-increasing intervals still refuse before any row is delivered.
+
 ## Free/busy physical sequencing
 
 The Calendar FreeBusy adapter supplies only synchronous request and checked

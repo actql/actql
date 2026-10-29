@@ -69,7 +69,7 @@ function fixture(family,pages,{limits={},names=columns[family],status=200,consum
     preparePageReader({columns:selected},applySynchronousProjection){return (family === 'notion' ? prepareNotionUserListPages
       :prepareCalendarListPages)({moon,names:selected,limits:bounded},applySynchronousProjection);}});
   const reader=factory.prepare(callbacks);
-  return {reader,requests,events,delivered,moon,bounded,callbacks,
+  return {reader,factory,requests,events,delivered,moon,bounded,callbacks,
     notCurrent(){live=false;},bytes:bodies.reduce((n,b)=>n+BigInt(b.length),0n)};
 }
 
@@ -110,9 +110,31 @@ test('Notion still refuses duplicate identity cursor target page row and aggrega
     const code={id:'NotionUserListDuplicateUser',cursor:'NotionUserListRepeatedCursor',target:'NotionUserListTargetLimit',
       pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit',bytes:'NotionUserListResponseLimit'}[mode];
     await assert.rejects(f.reader.read(),e=>e.cause?.code===code);
-    assert.equal(f.requests.length,mode==='target'?0:mode==='pages'?1:2);
+    assert.equal(f.requests.length,mode==='target'?0:['pages','rows'].includes(mode)?1:2);
     f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
   }
+});
+
+test('Notion requests only the remaining rows on its next original cursor',async()=>{
+  const first=page('notion','one','same-original-cursor');
+  first.rows.push(row('notion','two'));first.ids.push('two');
+  const f=fixture('notion',[first,page('notion','three')],{limits:{maxTotalRows:3,pageSize:2}});
+  try{
+    assert.deepEqual(await f.reader.read(),{pages:2,rowCount:3});
+    assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('page_size')),['2','1']);
+    assert.equal(new URL(f.requests[1].path,'https://provider.invalid').searchParams.get('start_cursor'),'same-original-cursor');
+    assert.deepEqual(f.delivered,[row('notion','one'),row('notion','two'),row('notion','three')]);
+  }finally{f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);}
+});
+
+test('Notion refuses an incomplete capped Source before another send or indexed grant',async()=>{
+  const f=fixture('notion',[page('notion','one','more'),page('notion','two')],{limits:{maxTotalRows:1}});
+  try{
+    await assert.rejects(f.reader.read(),error=>error.cause?.code==='NotionUserListRowLimit');
+    assert.equal(f.requests.length,1);assert.equal(f.events.filter(event=>event==='charge').length,1);
+    assert.deepEqual(f.events.filter(event=>event.startsWith('grant:')),['grant:0']);
+    assert.equal(f.reader.observe().phase,'failed');
+  }finally{f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);}
 });
 
 test('Calendar retains remaining-row requests full columns and duplicate or incomplete-page refusals',async()=>{
@@ -308,5 +330,116 @@ test('Notion refuses an incomplete provider before configuration or Site constru
     const provider=Object.fromEntries(names.filter(name=>name!==missing).map(name=>[name,()=>assert.fail('no provider call')]));
     await assert.rejects(f.load({providerMoon:provider}),{code:'InstalledNotionProviderUnavailable'});
     assert.equal(f.configurationReads(),0);assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
+  }
+});
+
+// Execute each original fixture's after callback with the actual shared
+// factory. RowRun, Journal and server are explicit ordering ports here; no
+// Common admission, native I/O or physical cleanup receipt is synthesized.
+test('provider fixtures retire their original factories before closing dependent fixture owners',async()=>{
+  for(const family of ['notion','calendar'])for(const returned of [true,false]){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const ast=parse(code,{ecmaVersion:'latest',sourceType:'module'});
+    const fixture=ast.body.find(node=>node.type==='ExportNamedDeclaration'&&
+      node.declaration?.id?.name===(family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    const failure=new Error('same original provider preparation failure'),events=[];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader(){
+        return{fetchPage(){assert.fail('no page request');},decodePage(){assert.fail('no projection');}};
+      }});
+    const options={resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}};
+    if(!returned)Object.defineProperty(options,'signal',{get(){throw failure;}});
+    const readers=[];
+    const assertRetired=()=>assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+    try{
+      if(returned)readers.push(factory.prepare(options));
+      else assert.throws(()=>factory.prepare(options),error=>error===failure);
+      const row={close(){assertRetired();events.push('row');},usage:()=>({})};
+      const journal={close(){assertRetired();events.push('journal');}};
+      const server={close(done){assertRetired();events.push('server');done();}};
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,readers,[factory],
+        row,journal,server,{diagnostic(){}},'/UNOPENED/fixture',()=>[0n,0n,0n,0n]);
+      await cleanup();
+      assertRetired();assert.deepEqual(events,['row','journal','server']);
+      if(returned)assert.equal(readers[0].observe().cleanupConfirmed,true);
+    }finally{
+      // Test-owned unwinding retains the same original even on the red.
+      for(const reader of readers)reader.requestStop();
+      assert.equal(factory.retire(),true);
+    }
+  }
+});
+
+test('provider fixture cleanup preserves dependent owners while the original factory remains pending',async()=>{
+  for(const family of ['notion','calendar']){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const fixture=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.find(node=>
+      node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name===
+        (family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    let release;
+    const pending=new Promise(resolve=>{release=resolve;}),closed=[];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader:()=>pending});
+    const reader=factory.prepare({resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}});
+    try{
+      await assert.rejects(reader.read(),{code:'InstalledSourcePageCallbackNotSynchronous'});
+      reader.requestStop();assert.equal(factory.retire(),false);
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,[reader],[factory],
+        {close(){closed.push('row');},usage:()=>({})},{close(){closed.push('journal');}},
+        {close(done){done();}},{diagnostic(){}},'/UNOPENED/fixture',()=>[0n,0n,0n,0n]);
+      await assert.rejects(cleanup(),AggregateError);
+      assert.deepEqual(closed,[],'pending original child cannot permit dependent close');
+      assert.equal(reader.observe().cleanupConfirmed,false);
+    }finally{
+      release({fetchPage(){assert.fail('no request');},decodePage(){assert.fail('no projection');}});
+      await pending;await new Promise(resolve=>setImmediate(resolve));
+      reader.requestStop();assert.equal(factory.retire(),true);
+    }
+  }
+});
+
+test('provider fixture cleanup preserves the original RowRun close failure before Journal close',async()=>{
+  for(const family of ['notion','calendar']){
+    const file=family==='notion'?'user-list-read.fixture.mjs':'calendar-list.fixture.mjs';
+    const code=await readFile(new URL(`../connectors/${family}/test/${file}`,import.meta.url),'utf8');
+    const fixture=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.find(node=>
+      node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name===
+        (family==='notion'?'userListFixture':'calendarFixture')).declaration;
+    const after=fixture.body.body.find(node=>node.type==='ExpressionStatement'&&
+      node.expression.callee?.object?.name==='t'&&node.expression.callee.property?.name==='after').expression.arguments[0];
+    const factory=createInstalledCredentialSourceReader({capacity:{},operation:'fixture:list',
+      maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
+      site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
+      preparePageReader:()=>({fetchPage(){assert.fail('no request');},decodePage(){assert.fail('no projection');}})});
+    const reader=factory.prepare({resource:'fixture',columns:['id'],verifyRead:async()=>{},
+      authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
+      consumePage(){assert.fail('no row');}});
+    const original=new Error('same original RowRun close failure');let journalCloses=0;
+    try{
+      const cleanup=Function('assert','readers','factories','row','journal','server','t','root',
+        'ledgerUsageFieldsFor',`return (${code.slice(after.start,after.end)});`)(assert,[reader],[factory],
+        {close(){throw original;},usage(){assert.fail('no settled usage');}},
+        {close(){journalCloses++;}},{close(done){done();}},{diagnostic(){}},'/UNOPENED/fixture',
+        ()=>assert.fail('no settled Ledger'));
+      await assert.rejects(cleanup(),error=>error instanceof AggregateError&&error.errors.includes(original));
+      assert.equal(journalCloses,0);assert.equal(reader.observe().cleanupConfirmed,true);
+      assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+    }finally{reader.requestStop();assert.equal(factory.retire(),true);}
   }
 });

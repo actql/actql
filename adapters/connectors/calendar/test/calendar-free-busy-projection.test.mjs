@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {test} from 'node:test';
-import * as calendar from '../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js';
+const calendar = await import(process.env.ACTQL_TEST_CALENDAR_URL ??
+  new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js',import.meta.url).href);
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 const limits = [16384, 1024, 16, 4, 10, 4096, 100, 4096];

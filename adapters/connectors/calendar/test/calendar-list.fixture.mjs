@@ -102,12 +102,20 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
     } catch (error) {response.destroy(error);}
   });
   await new Promise((resolve, reject) => {server.once('error', reject);server.listen(0, '127.0.0.1', resolve);});
-  let journal, row;const readers=[];
+  let journal, row;const readers=[],factories=[];
   t.after(async () => {
     const failures = [];
-    try {for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}} catch (cause) {failures.push(cause);}
-    try {row?.close();if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n,0n,0n,0n]);} catch (cause) {failures.push(cause);}
-    try {journal?.close();} catch (cause) {failures.push(cause);}
+    let readersRetired = false;
+    try {
+      for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}
+      for(const factory of factories)assert.equal(factory.retire(),true);
+      readersRetired = true;
+    } catch (cause) {failures.push(cause);}
+    if (readersRetired) {
+      let rowClosed = false;
+      try {row?.close();if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n,0n,0n,0n]);rowClosed = true;} catch (cause) {failures.push(cause);}
+      if (rowClosed) try {journal?.close();} catch (cause) {failures.push(cause);}
+    }
     try {await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));} catch (cause) {failures.push(cause);}
     t.diagnostic(`Retained original Calendar fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'CalendarFixtureCleanupUnconfirmed');
@@ -150,6 +158,7 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
     const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:CALENDAR_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
       preparePageReader:({columns},applySynchronousProjection)=>prepareCalendarListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
+    factories.push(factory);
     const reader=factory.prepare({resource:'calendars',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(CALENDAR_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:CALENDAR_LIST_OPERATION,index}):selected.authorizationFor,

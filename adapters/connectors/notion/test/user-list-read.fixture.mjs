@@ -106,12 +106,20 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     } catch(cause){response.destroy(cause);}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
-  let journal,row;const readers=[];
+  let journal,row;const readers=[],factories=[];
   t.after(async()=>{
     const errors=[];
-    try{for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}}catch(cause){errors.push(cause);}
-    try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}}catch(cause){errors.push(cause);}
-    try{journal?.close();}catch(cause){errors.push(cause);}
+    let readersRetired=false;
+    try{
+      for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}
+      for(const factory of factories)assert.equal(factory.retire(),true);
+      readersRetired=true;
+    }catch(cause){errors.push(cause);}
+    if(readersRetired){
+      let rowClosed=false;
+      try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}rowClosed=true;}catch(cause){errors.push(cause);}
+      if(rowClosed)try{journal?.close();}catch(cause){errors.push(cause);}
+    }
     try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
     t.diagnostic(`Retained original Notion fixture: ${root}`);
     if(errors.length){t.diagnostic(JSON.stringify(errors.map(error=>({name:error.name,code:error.code,message:error.message}))));throw new AggregateError(errors,'NotionUserListFixtureCleanupUnconfirmed');}
@@ -157,6 +165,7 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:NOTION_USER_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
       preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
+    factories.push(factory);
     const reader=factory.prepare({resource:'users',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,
