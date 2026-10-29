@@ -12,6 +12,171 @@ The common semantics stay in the MoonBit Core and the common Host owners. A
 Connector contributes a checked installation manifest and a physical driver;
 the Core decides when its work is complete.
 
+## Declarative REST Source route
+
+This section describes the target declarative route; it is not an executable
+recipe for the public `0d2d07b47dfefafc175ac115ad237fb252c72660` checkout. That
+checkout lacks `scripts/connector.mjs`, `scripts/connector-authoring.mjs` and
+`scripts/fixtures/external-rest/normal-case.test.mjs`. It also lacks the REST
+facade export, shared Host service and managed reader, and its installed
+Source loader does not forward the required original initialization context.
+Both the authoring toolkit and matching normal runtime are prerequisites.
+The commands and application snippet below are proposed usage for a source
+and distribution that actually supply both; do not copy them into the named
+public checkout expecting them to run. Source projection alone does not
+establish ordinary acceptance.
+
+For a fixed HTTPS GET API with finite JSON pages, the declarative route keeps
+connector-specific work to one definition and, only when necessary, one pure
+JavaScript row-wire projection. It requires a normal framework distribution
+with the standard REST facade and its common Host initialization and managed
+reader. A registration table or generated package alone cannot supply that
+service, physical backing or permission. Missing framework support refuses;
+do not replace it with a source import, application funder or custom reader.
+
+### The author input
+
+A definition describes the original API and typed fields, not a new execution
+owner. For example, `connector.json` can contain:
+
+```json
+{
+  "version": "actql-rest-connector/0.1",
+  "id": "acme",
+  "origin": "https://api.example.invalid",
+  "auth": {"kind": "bearer"},
+  "sources": {
+    "customers": {
+      "fields": [
+        {"name": "id", "type": "string", "nullable": false},
+        {"name": "name", "type": "string", "nullable": true}
+      ],
+      "read": {"method": "GET", "path": "/v1/customers"},
+      "pagination": {
+        "kind": "cursor",
+        "items": ["data"],
+        "next": ["next_cursor"],
+        "parameter": "after"
+      },
+      "limits": {
+        "maxPageRows": 100,
+        "maxPageBytes": 65536,
+        "maxPages": 10,
+        "maxRows": 1000,
+        "maxNodes": 10000,
+        "maxDepth": 16,
+        "maxCursorBytes": 1024
+      }
+    }
+  }
+}
+```
+
+The field DATA enters the original Common declaration constructor unchanged.
+These finite page and row ceilings constrain the connector; they are not a
+Ledger, capacity reservation, permission or an instruction to raise the Host
+policy. A selected implementation must cover them. The fixed origin/path
+cannot be replaced with a URL returned by the provider. Credentials and
+credential resolvers stay in the ordinary Account/Site setup, outside this
+file and every author callback.
+
+For a root array without pagination, use `{"kind":"none","items":[]}`.
+The standard projector already preserves JSON row bytes and cursor identity;
+an identity projection needs no extra JavaScript file. If a projection is
+needed, `transform` names one relative `.mjs` file exporting synchronous
+`decodePage(page, context)`. Its inputs are frozen row-wire/count/cursor DATA
+and resource/column DATA. It returns only `rowsWire` and an optional unchanged
+`nextCursor`. It cannot supply a row count, run an asynchronous operation,
+access credentials or authorize another read. The Host invokes it under the
+same active reader; changed wire is bounded before allocation and checked by
+Common. Avoid parsing provider numbers through JavaScript `Number` and then
+reserializing them.
+
+### Scaffold, build and install
+
+After selecting a source that contains the authoring scripts **and** a
+matching normal distribution with the required facade, Host services and
+original initialization backing, the proposed author sequence is:
+
+```sh
+node scripts/connector.mjs init /absolute/acme-author acme
+# Edit /absolute/acme-author/connector.json.
+node scripts/connector.mjs build /absolute/acme-author/connector.json /absolute/acme-package
+node scripts/connector.mjs test /absolute/acme-author/connector.json /absolute/acme-package
+npm pack /absolute/acme-package --pack-destination /absolute/artifacts
+```
+
+`test` here checks projection freshness only. It never runs a Source or
+qualifies authentication, currentness, charging, cancellation or cleanup.
+Build produces the checked installation manifest, original views wire,
+Source module, package metadata and lazy `installedConnectors` export. The
+author writes no MoonBit package or per-connector Core/Host patch. The
+original generated views wire is DATA for the Host's preparation owner, not
+another author input or a way to acknowledge physical construction.
+
+For that same supported source and normal distribution, install the generated
+tarball alongside its deliberately matching normal framework packages using
+ordinary npm lifecycle. The proposed application composes the existing
+public installation APIs with the required REST implementation:
+
+```js
+import {installedConnectors} from '@actql-connectors/acme';
+import {createInstalledConnectorTable} from '@actql/local-node';
+import {connect} from '@actql/node';
+
+const connectorTable = createInstalledConnectorTable(installedConnectors);
+const client = await connect({mode: 'local', owner: 'local', installation: {
+  connectorTable, sourceProfilePath, directory, authorization,
+  resolveSourceSecret,
+}});
+```
+
+The profile, directory, authorization and secret resolver are explicit normal
+application inputs. A connector package does not issue them or provide a
+fallback grant. Keep their setup visible and separate from the one-file
+connector implementation. The same Host owns checked declaration preparation,
+original implementation/Site association, Request admission, response holds,
+charging before decode, current checks, cancellation and physical cleanup.
+
+### Ordinary conformance and author effort
+
+Select the common external REST case under
+`scripts/fixtures/external-rest/normal-case.test.mjs` through the existing
+bounded local verification wrapper. Supply an exact normal-package manifest
+and its hash, actual source identity, an explicitly authored Account, a fresh
+output root and one selected fixture mode. No old installation or state is a
+default. Set `ACTQL_REST_CONFORMANCE_INPUT` to that descriptor; its kind is
+`actql-standard-rest-normal/0.1`, with `sourceSha`, `sourceTree`, `manifestPath`,
+`manifestSha256`, `outputRoot`, `accountConfigurationPath` and `mode`. The
+positive modes are `empty`, `one` and `paged`; fixture DATA for an error is not
+evidence that an ordinary failure case ran. The provider fixture's literal
+rows and request expectations are
+independent of the product's output. A controlled HTTPS responder is ordinary
+SDK/Host transport evidence; it does not establish support for an external
+service's undocumented behaviour.
+
+First prove a real public read and the actual first close with separate live
+scoped-FD observations. Preserve the pending submission's original public
+projection before its first await, and any returned Run reference before
+waiting. The cold Saved check reopens only that successful original in a new
+process, without another submission, provider request or secret resolution.
+Keep empty/one/multiple-page, provider-error, byte-limit, current-loss,
+cancellation, cleanup and multiple-connection frontiers distinct. A generic
+Unknown, absent Run or process exit proves neither nonacceptance nor close.
+
+Measure actual handwritten connector files/lines, optional callback count,
+commands through first successful read, automated introduction time and
+observed per-connector Core/Host edits. Report framework preparation,
+generated output and Account/Site/application setup separately. Do not label
+automated elapsed time as measured human typing time, or record zero edits
+or callbacks merely because a registration table exists.
+
+A migrated connector must also remove its replaced author API and duplicated
+reader management after the same integrated normal path is verified. An
+unused wrapper left beside a new export is not a completed migration. Keep
+advanced provider-specific protocols only for their actual distinct duties;
+this route does not authorize dropping their original lifecycle guarantees.
+
 ## Layout
 
 A Connector owns its planning, execution, transport glue and foreign
