@@ -1867,3 +1867,99 @@ test "Effect source binds an intermediate physical task of a split Stage" {
 test "Effect source follows a preceding split Stage" {
   public_effect_mapping_closure(true, split_before=true)
 }
+
+///|
+test "same original Effect input continues through retained prelude and Catalog exactly once" {
+  let (plain, _, environment, evidence, limits) = public_input_fixture()
+  let text = plain.replace(
+    old="\"id\":\"consumer\",\"inputs\":",
+    new="\"id\":\"consumer\",\"effects\":{\"save\":{\"store\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.store.v1\",\"from\":{\"result\":\"out\"}}}},\"inputs\":",
+  )
+  let program = @syntax.parse(text, limits.input, format=Json).unwrap()
+  let original = @program_check.prepare_effect_computation_input(
+    program,
+    environment,
+    None,
+    evidence,
+    limits,
+    1,
+    1,
+  ).unwrap()
+  let prelude = @program_check.observe_parsed_check_prelude(original).0.unwrap()
+  let catalog = @program_check.prepare_parsed_catalog_input(prelude).unwrap()
+  let registry = @program_check.observe_parsed_check_registry(catalog).0.unwrap()
+  let candidate = @program_check.finish_parsed_effect_check_registry(registry).unwrap()
+  let headers = @program_check.effect_computation_headers(candidate)
+  assert_true(physical_equal(@syntax.effect_headers_owner(headers), program))
+  assert_eq(@syntax.effect_header_count(headers), 1)
+  assert_eq(
+    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 0).unwrap()),
+    "store",
+  )
+  assert_true(
+    @program_check.finish_parsed_effect_check_registry(registry)
+    is Err(Phase(AlreadyConsumed)),
+  )
+  assert_true(
+    @program_check.finish_parsed_check_registry(registry)
+    is Err(AlreadyConsumed),
+  )
+  // The ordinary constructor still has no Effect header inventory.
+  let pure = @program_check.prepare_parsed_check_input(
+    program,
+    environment,
+    None,
+    evidence,
+    limits,
+  ).unwrap()
+  assert_true(
+    @program_check.observe_parsed_check_prelude(pure).0
+    is Err(Source(UnsupportedEffects(_))),
+  )
+}
+
+///|
+test "phased Effect input preserves original member and header work refusals before the computation binder" {
+  let (plain, _, environment, evidence, limits) = public_input_fixture()
+  let text = plain.replace(
+    old="\"id\":\"consumer\",\"inputs\":",
+    new="\"id\":\"consumer\",\"effects\":{\"save\":{\"store\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.store.v1\",\"from\":{\"result\":\"out\"}}}},\"inputs\":",
+  )
+  let program = @syntax.parse(text, limits.input, format=Json).unwrap()
+  assert_true(
+    @program_check.prepare_effect_computation_input(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+      0,
+      1,
+    )
+    is Err(Headers(_)),
+  )
+  assert_true(
+    @program_check.prepare_effect_computation_input(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      0,
+    )
+    is Err(Headers(_)),
+  )
+  assert_true(
+    @program_check.prepare_effect_computation_input(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+      -1,
+      1,
+    )
+    is Err(InvalidLimits),
+  )
+}

@@ -7,6 +7,11 @@ priv enum ClientRequestPreparationPhase {
   ProgramCheck
   ProgramCheckFailed
   ProgramCompiled
+  EffectCompiled
+  EffectPlanQuoted
+  EffectPlanReserved
+  EffectBodyReady
+  EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
   ProgramBodyReady
@@ -37,9 +42,16 @@ struct ClientRequestPreparation[I] {
     @publication_host.PreparedClientProgram,
   ]?
   mut compiled_program : @publication_host.PreparedClientProgram?
+  mut effect_capacity : @resources.PreparationCapacity[
+    I,
+    ClientInstalledEffectManagedPlan,
+  ]?
+  mut compiled_effect : @publication_host.PreparedClientEffectComputation?
+  mut effect_plan : ClientInstalledEffectManagedPlan?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
+  mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -227,9 +239,13 @@ pub fn[I] begin_request_preparation(
     program_check: None,
     program_capacity: None,
     compiled_program: None,
+    effect_capacity: None,
+    compiled_effect: None,
+    effect_plan: None,
     program_data: None,
     program_plan_quote: None,
     program_source_free: None,
+    program_captured: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -297,6 +313,60 @@ pub fn[I] prepare_request_program_check_preparation(
   ClientProgramCheckPreparation[I, Unit],
   ClientRequestPreparationIssue,
 ] {
+  prepare_request_check_preparation_owned(
+    owner,
+    input,
+    environment,
+    supplied,
+    evidence,
+    limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+pub fn[I] prepare_request_effect_check_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  prepare_request_check_preparation_owned(
+    owner,
+    input,
+    environment,
+    supplied,
+    evidence,
+    limits.program.checking,
+    source_catalog~,
+    source_preparation~,
+    effect_limits=Some(limits),
+  )
+}
+
+///|
+fn[I] prepare_request_check_preparation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @checked.CheckLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+  effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
   guard owner.phase == ProgramJson &&
     owner.held_program is None &&
     owner.program_check is None &&
@@ -315,18 +385,33 @@ pub fn[I] prepare_request_program_check_preparation(
     Ok(value) => value
   }
   owner.held_program = Some(program)
-  match
-    begin_program_check_preparation(
-      owner.capacity,
-      input,
-      program,
-      environment,
-      supplied,
-      evidence,
-      limits,
-      source_catalog~,
-      source_preparation~,
-    ) {
+  let outcome = match effect_limits {
+    None =>
+      begin_program_check_preparation(
+        owner.capacity,
+        input,
+        program,
+        environment,
+        supplied,
+        evidence,
+        limits,
+        source_catalog~,
+        source_preparation~,
+      )
+    Some(selected) =>
+      begin_effect_program_check_preparation(
+        owner.capacity,
+        input,
+        program,
+        environment,
+        supplied,
+        evidence,
+        selected,
+        source_catalog~,
+        source_preparation~,
+      )
+  }
+  match outcome {
     Err(issue) => {
       owner.phase = ProgramCheckFailed
       Err(ProgramCheck(issue))
@@ -429,7 +514,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
       (
         owner.phase == ProgramCheck ||
         owner.phase == ProgramCheckFailed ||
-        owner.program_capacity is Some(_)
+        owner.program_capacity is Some(_) ||
+        owner.effect_capacity is Some(_)
       ) else {
       return Err(WrongPhase)
     }
@@ -462,29 +548,41 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
   owner.compiled_program = None
+  owner.compiled_effect = None
+  owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_source_free = None
+  owner.program_captured = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
-  let stopped = match owner.program_capacity {
-    Some(capacity) =>
-      if retiring || owner.program_body_attempted {
-        @resources.retire_preparation_capacity(capacity)
-      } else {
-        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-        @resources.abort_preparation_capacity_after_cleanup(capacity, input)
-      }
-    None =>
-      if retiring {
-        @resources.retire_preparation_capacity(owner.capacity)
-      } else {
-        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-        @resources.abort_preparation_capacity_after_cleanup(
-          owner.capacity,
-          input,
-        )
-      }
+  let stopped = if owner.effect_capacity is Some(capacity) {
+    if retiring || owner.program_body_attempted {
+      @resources.retire_preparation_capacity(capacity)
+    } else {
+      guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+      @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+    }
+  } else {
+    match owner.program_capacity {
+      Some(capacity) =>
+        if retiring || owner.program_body_attempted {
+          @resources.retire_preparation_capacity(capacity)
+        } else {
+          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+          @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+        }
+      None =>
+        if retiring {
+          @resources.retire_preparation_capacity(owner.capacity)
+        } else {
+          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+          @resources.abort_preparation_capacity_after_cleanup(
+            owner.capacity,
+            input,
+          )
+        }
+    }
   }
   match stopped {
     Err(issue) => return Err(Capacity(issue))
@@ -495,6 +593,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Err(issue) => Err(Initial(issue))
     Ok(_) => {
       owner.program_capacity = None
+      owner.effect_capacity = None
       owner.phase = Closed
       Ok(())
     }

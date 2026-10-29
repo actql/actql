@@ -161,6 +161,14 @@ struct ClientProgramCheckPreparation[I, P] {
   mut compilation_limits : @publication_host.ClientProgramPreparationLimits?
   mut compilation_quote : (Int64, Int64)?
   mut compiled_program : @publication_host.PreparedClientProgram?
+  mut effect_limits : @publication_host.ClientEffectComputationLimits?
+  mut effect_candidate : @checked.EffectComputationCandidate?
+  mut compiled_effect : @publication_host.PreparedClientEffectComputation?
+  mut effect_targets : (
+    @update_targets.UpdateTargetPublication?,
+    @update_targets.StoreTargetPublication?,
+    @update_targets.CommandTargetPublication?,
+  )?
   mut compilation_known_work : Int64
   mut environment_scratch : Int64?
   mut binding_inventory : @shape.CollectionConstructionInventory?
@@ -188,6 +196,8 @@ pub suberror ClientProgramCheckPreparationIssue {
   TopologyEntry(@context.SourceViewContextIssue)
   Prelude(@checked.ParsedCheckPreludeIssue)
   Compilation(@publication_host.ClientProgramPreparationIssue)
+  EffectInput(@checked.EffectComputationIssue)
+  EffectCompilation(@publication_host.ClientEffectComputationIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs
   WrongPhase
@@ -267,6 +277,10 @@ pub fn[I, P] begin_program_check_preparation(
     compilation_limits: None,
     compilation_quote: None,
     compiled_program: None,
+    effect_limits: None,
+    effect_candidate: None,
+    compiled_effect: None,
+    effect_targets: None,
     compilation_known_work: 0L,
     environment_scratch: None,
     binding_inventory: None,
@@ -283,6 +297,43 @@ pub fn[I, P] begin_program_check_preparation(
     busy: false,
     phase: BindingInitial,
   })
+}
+
+///|
+/// Same original check owner, selecting its Effect header/budget constructor.
+/// This installed immutable configuration is DATA, not an Effect permission.
+pub fn[I, P] begin_effect_program_check_preparation(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  program : @syntax.Program,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, P],
+  ClientProgramCheckPreparationIssue,
+] {
+  match
+    begin_program_check_preparation(
+      capacity,
+      input,
+      program,
+      environment,
+      supplied,
+      evidence,
+      limits.program.checking,
+      source_catalog~,
+      source_preparation~,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(owner) => {
+      owner.effect_limits = Some(limits)
+      Ok(owner)
+    }
+  }
 }
 
 ///|
@@ -326,6 +377,10 @@ fn[I, P] transfer_program_check_input(
   owner.compilation_limits = None
   owner.compilation_quote = None
   owner.compiled_program = None
+  owner.effect_limits = None
+  owner.effect_candidate = None
+  owner.compiled_effect = None
+  owner.effect_targets = None
   owner.compilation_known_work = 0L
   owner.binding_inventory = None
   owner.binding_quote = None
