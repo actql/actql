@@ -467,6 +467,31 @@ This shared selection does not replace currentness or resource admission.
 
 ## Standard CREATE declaration
 
+A standard body-stamped write supplies optional `stamp: {recipe, finalize}`.
+The recipe is immutable bounded JSON DATA; the captured finalizer is a pure
+provider transform. Its pre-Preview request is a logical carrier with the fixed
+origin/method/path and no physical body, request CID or tag. The same Common
+CREATE inventory supplies the logical payload CID. Capability evidence binds
+that payload and recipe, independently of the later physical request.
+
+After admitting the exact Preview, the same capture owner projects the original
+Core DispatchKey CID and passes only `{request, requestTag}` to the finalizer.
+It retains the unchanged logical rows and finalized request separately. The
+finalizer preserves prior carrier fields, returns the actual final provider CID
+and exact tag DATA, and completes before capture serialization or durable claim
+construction. An invalid asynchronous return stays joined to the capture await
+through settlement, then refuses. A native Promise remains joined through its
+intrinsic settlement even when its own `then` lookup fails; that lookup failure
+remains the original error. An unstamped write retains its original path.
+Cold restore compares saved tag DATA with the recovered original keys and
+original CREATE payload, without invoking either mapper or finalizer again.
+
+Stamped capture requires the existing original Resource service. Its Run
+binding and constructor must cover the real logical/final request and saved
+wire overlap before use; recipe scalars and limits are not backing. This adds
+neither a separate Ledger nor a physical cleanup or receipt owner. Scoped
+readback and outcome admission remain separate from pure finalization.
+
 Standard JSON write requests use the existing captured connector-recovery
 record. It retains the complete plain request DATA, logical value and original
 request CID under the existing contract wire/node/depth bounds. Restoration

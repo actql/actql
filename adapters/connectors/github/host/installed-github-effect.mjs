@@ -24,8 +24,9 @@ import {createInstalledRowEffect} from
   '../../../host-node/installed-row-effect.mjs';
 import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
-import {GITHUB_COMMENT_CREATE_OPERATION, checkGitHubCommentSubject,
-  prepareGitHubCommentRequest, projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
+import {GITHUB_COMMENT_CREATE_OPERATION, GITHUB_COMMENT_STAMP_RECIPE,
+  checkGitHubCommentSubject, prepareGitHubCommentLogicalRequest,
+  finalizeGitHubCommentRequest, projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../site/github-issue-graphql-read.mjs';
 import {openGitHubSite, publishGitHubRepository, readGitHubPublication,
@@ -208,10 +209,11 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
         request({resource, value}) {
           if (typeof providerMoon.githubCommentOutcomeJson !== 'function') fail('InvalidGitHubCommentSend');
           const comment = commentValue(resource, value);
-          return prepareGitHubCommentRequest({moon: providerMoon,
-            origin: site.apiOrigin, subjectId: comment.subject_id,
+          return prepareGitHubCommentLogicalRequest({origin: site.apiOrigin, subjectId: comment.subject_id,
             body: comment.body});
         },
+        stamp: {recipe: GITHUB_COMMENT_STAMP_RECIPE,
+          finalize: ({request, requestTag}) => finalizeGitHubCommentRequest({moon: providerMoon, request, requestTag})},
         check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION,
           request: ({request, authorization, credential, callResource,
           signal}) => checkGitHubCommentSubject({moon: providerMoon,

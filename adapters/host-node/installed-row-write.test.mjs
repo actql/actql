@@ -7,12 +7,15 @@ import {join} from 'node:path';
 import {parse} from 'acorn';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
+import {runInNewContext} from 'node:vm';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
-import {prepareGitHubCommentRequest, sendGitHubIssueComment,
+import {prepareGitHubCommentRequest, prepareGitHubCommentLogicalRequest,
+  finalizeGitHubCommentRequest, GITHUB_COMMENT_STAMP_RECIPE, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
@@ -25,9 +28,10 @@ const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
-const deriveInstalledRowWrite = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
+const standardWriteStamp = Symbol('standard-write-stamp-fixture');
+const deriveInstalledRowWrite = Function('standardWriteStamp', 'createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
   'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+  standardWriteStamp, createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
 const providerCid = `sha256:${'a'.repeat(64)}`;
@@ -191,7 +195,7 @@ function selectedWrite(path, ports) {
 // Actual provider factories and the complete changed normal-caller declaration,
 // with explicit native codec/check/classifier DATA ports. No Common, Account,
 // grant issuer, real provider or normal installed execution is substituted.
-test('GitHub normal declaration keeps original GraphQL request, sender envelope and read-before-write check', async () => {
+test('GitHub normal declaration keeps marked GraphQL request, sender envelope and read-before-write check', async () => {
   const providerMoon = {githubAddCommentRequestJson: (subject, body) => JSON.stringify({body: JSON.stringify({subject, body})}),
     githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
     githubResponseHeadersJson: () => '["x-ratelimit-remaining"]'};
@@ -200,7 +204,8 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
     GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
     site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
-    prepareGitHubCommentRequest, commentValue: (_resource, value) => value,
+    prepareGitHubCommentRequest, prepareGitHubCommentLogicalRequest, finalizeGitHubCommentRequest,
+    GITHUB_COMMENT_STAMP_RECIPE, commentValue: (_resource, value) => value,
     fail: code => {throw Object.assign(new Error(code), {code});},
     checkGitHubCommentSubject(context) {checks++; assert.equal(context.repository, repository); return 'checked';},
     projectGitHubCommentObservation: () => ({kind: 'typed-success-response'}),
@@ -208,9 +213,14 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   });
   const driver = deriveInstalledRowWrite(write, 'github');
   const value = {body: 'original comment', subject_id: 'I_original'};
-  const prepared = driver.prepareRequest({member, value});
-  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id, body: value.body});
-  assert.deepEqual(prepared.request, old); assert.equal(prepared.requestCid, old.requestCid);
+  const tag = `sha256:${'d'.repeat(64)}`;
+  const logical = driver.prepareRequest({member, value,
+    createRowIdentity: {content_cid: providerCid, occurrence: 0}});
+  const prepared = await driver[standardWriteStamp].finalize(logical.request, tag);
+  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id,
+    body: value.body + '\n\n<!-- actql:effect:' + tag + ' -->'});
+  assert.deepEqual(prepared.request, {...old, logicalBody: value.body, requestTag: tag});
+  assert.equal(prepared.requestCid, old.requestCid);
   assert.equal(driver.requestFacts(prepared.request).value, value);
   assert.equal(driver.checkRequest({request: prepared.request}), 'checked'); assert.equal(checks, 1);
   const calls = [], context = {request: prepared.request, authorization: authorization(GITHUB_COMMENT_CREATE_OPERATION),
@@ -361,7 +371,7 @@ test('standard cold recovery uses saved original requests without calling the pr
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
   const targeted = kind => ['update', 'upsert', 'delete'].includes(kind);
-  const ports = {singular: owner, ownerOf, resourceFields: () => ({}), fail,
+  const ports = {standardWriteStamp, singular: owner, ownerOf, resourceFields: () => ({}), fail,
     sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
   const recoveredEntries = Function(...Object.keys(ports), `
     const approvedValue = ${selected('approvedValue')};
@@ -443,4 +453,395 @@ test('standard saved request bounds real JSON material and refuses opaque or eff
     metadata: 'x'.repeat(localContractLimits.maxWireBytes)})}), 'fixture');
   const value = {name: 'original'}, prepared = driver.prepareRequest({member, value});
   assert.throws(() => driver.recoveryEntry({member, entries: [{...prepared, value}]}), {code: 'InvalidInstalledRowWrite'});
+});
+
+
+function stampedRowClosure(name, ports) {
+  const selected = field => {
+    const values = [];
+    const visit = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id.name === field) values.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    };
+    visit(rowTree); assert.equal(values.length, 1, field);
+    return rowSource.slice(values[0].start, values[0].end);
+  };
+  return Function(...Object.keys(ports), `
+    const sameValue = ${selected('sameValue')};
+    const sameEffectValue = ${selected('sameEffectValue')};
+    const approvedValue = ${selected('approvedValue')};
+    const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
+    const entryOf = ${selected('entryOf')};
+    const requestEntry = ${selected('requestEntry')};
+    return ${selected(name)};`)(...Object.values(ports));
+}
+
+// Real standard adapter and enclosing RSE finalization helper. The original
+// Core key getter/installation owner are explicit ports; no Common admission,
+// grant, physical attempt, Plan backing or normal Host is substituted.
+test('standard post-Preview stamp uses only the original key CID and keeps logical payload stable', async () => {
+  const selectedMember = Object.freeze({kind: 'create', resource: 'records',
+    mapping: {mappingCid: boundaryCid}});
+  const value = {subject_id: 'I_original', body: ''};
+  const key = Object.freeze({}), keyCid = `sha256:${'d'.repeat(64)}`;
+  const createRowIdentity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  let mappings = 0, finalizations = 0, getters = 0;
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin, method: 'POST',
+    path: '/records', subjectId: 'I_original', logicalBody: ''});
+  const write = declaration({request(context) {
+    mappings++; assert.equal(context.value, value);
+    assert.deepEqual(Object.keys(context).sort(), ['resource', 'value']);
+    return logical;
+  }, stamp: {recipe: {separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'},
+    finalize(context) {
+      finalizations++; assert.equal(context.request, logical);
+      assert.deepEqual(Object.keys(context).sort(), ['request', 'requestTag']);
+      assert.equal(context.requestTag, keyCid);
+      return {...logical, requestTag: context.requestTag,
+        body: JSON.stringify({body: '\n\n<!-- actql:effect:' + context.requestTag + ' -->'}),
+        requestCid: boundaryCid};
+    }}});
+  const driver = deriveInstalledRowWrite(write, 'fixture');
+  const prepared = driver.prepareRequest({member: selectedMember, value, createRowIdentity});
+  assert.equal(mappings, 1); assert.equal(finalizations, 0); assert.equal(getters, 0);
+  assert.equal(prepared.request, logical); assert.equal(prepared.requestCid, providerCid);
+  const owner = {owned: driver};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const ownerOf = member => {assert.equal(member, selectedMember); return owner;};
+  const ports = {standardWriteStamp, ownerOf, fail, canonicalValueJson,
+    cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); getters++; return keyCid;}}};
+  const finalizeRequests = stampedRowClosure('finalizeRequests', ports);
+  const sourceEntry = Object.freeze({...prepared, value, target: undefined});
+  const originalEntries = Object.freeze([Object.freeze([sourceEntry])]);
+  const finalized = await finalizeRequests({members: [selectedMember], entries: originalEntries,
+    keys: [[key]], assertCurrent() {}});
+  assert.equal(mappings, 1); assert.equal(finalizations, 1); assert.equal(getters, 1);
+  assert.equal(originalEntries[0][0], sourceEntry); assert.equal(sourceEntry.request, logical);
+  assert.equal(finalized[0][0].value, value); assert.equal(finalized[0][0].requestCid, boundaryCid);
+  assert.equal(finalized[0][0].request.requestTag, keyCid);
+  assert.equal(Object.hasOwn(logical, 'body'), false); assert.equal(Object.hasOwn(logical, 'requestCid'), false);
+});
+
+function stampedFixture({finalize, prepare = true,
+  recipe = {separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'}} = {}) {
+  const value = {subject_id: 'I_original', body: 'é\r\n'};
+  const selectedMember = Object.freeze({kind: 'create', resource: 'records', mapping: {mappingCid: boundaryCid}});
+  const identity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  let mappings = 0, finalizations = 0, getters = 0;
+  const key = Object.freeze({}), tag = `sha256:${'d'.repeat(64)}`;
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin, method: 'POST', path: '/records',
+    subjectId: 'I_original', logicalBody: value.body});
+  const driver = deriveInstalledRowWrite(declaration({request() {mappings++; return logical;},
+    stamp: {recipe, finalize(context) {finalizations++; return finalize ? finalize(context)
+      : {...context.request, requestTag: context.requestTag,
+        body: JSON.stringify({body: value.body + '\n\n<!-- actql:effect:' + context.requestTag + ' -->'}),
+        requestCid: boundaryCid};}}}), 'fixture');
+  const owner = {owned: driver, connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+    runtimeBundleCid: providerCid, bindingCid: boundaryCid, connection: 'fixture:original'};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const ports = {standardWriteStamp, ownerOf: member => {assert.equal(member, selectedMember); return owner;},
+    fail, canonicalValueJson, cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); getters++; return tag;}}};
+  const prepared = prepare ? driver.prepareRequest({member: selectedMember, value, createRowIdentity: identity}) : undefined;
+  const entries = prepared === undefined ? undefined
+    : Object.freeze([Object.freeze([Object.freeze({...prepared, value, target: undefined})])]);
+  return {value, member: selectedMember, identity, logical, driver, owner, key, tag, ports, prepared, entries,
+    counts: () => ({mappings, finalizations, getters}),
+    finalize: () => stampedRowClosure('finalizeRequests', ports)({members: [selectedMember], entries,
+      keys: [[key]], assertCurrent() {}})};
+}
+
+test('standard stamped capability binds logical payload and recipe rather than the final transport CID', async () => {
+  const f = stampedFixture();
+  const capability = stampedRowClosure('commonCapability', {...f.ports, cid: contentCid,
+    CAPABILITY_VERSION: 'fixture-capability/0.1', contractCidOf: member => member.mapping.mappingCid});
+  const before = capability(f.member, f.entries[0]);
+  const entries = await f.finalize();
+  assert.equal(before.identity, capability(f.member, entries[0]).identity,
+    'post-key bytes cannot change the Preview-bound recipe');
+  assert.notEqual(entries[0][0].requestCid, f.prepared.requestCid);
+  const other = stampedFixture({recipe: {separator: '\n', prefix: '<!-- actql:effect:', suffix: ' -->'}});
+  const changed = stampedRowClosure('commonCapability', {...other.ports, cid: contentCid,
+    CAPABILITY_VERSION: 'fixture-capability/0.1', contractCidOf: member => member.mapping.mappingCid});
+  assert.notEqual(before.identity, changed(other.member, other.entries[0]).identity);
+});
+
+test('standard stamped cold recovery checks saved bytes against the original recovered key without mapping', async () => {
+  const f = stampedFixture(), entries = await f.finalize();
+  const saved = f.driver.recoveryEntry({member: f.member, entries: entries[0]});
+  const rowCid = `sha256:${'c'.repeat(64)}`;
+  const body = {effects: [{changes: [{row_preview_cid: rowCid,
+    target_row_identity: f.identity, after: {value: f.value}}], row_order: [rowCid]}]};
+  const durable = {connectorRecovery: [{memberIndex: 0, ...saved}]};
+  const cold = stampedFixture({prepare: false, finalize() {assert.fail('cold never finalizes');}});
+  const recover = stampedRowClosure('recoveredEntries', {...cold.ports,
+    singular: cold.owner, resourceFields: () => ({})});
+  const recovered = recover({members: [cold.member], body, durable,
+    recorded: {members: [{claims: [{canonicalRequestCid: boundaryCid}]}]}, previewWire: 'admitted Preview port',
+    runInvocationCid: providerCid, dispatches: [boundaryCid], keys: [[cold.key]]});
+  const restored = recovered.entries[0][0];
+  assert.equal(restored.request.body, entries[0][0].request.body);
+  assert.equal(restored.request.requestTag, f.tag); assert.equal(restored.requestCid, boundaryCid);
+  assert.deepEqual(restored.value, f.value);
+  assert.deepEqual(cold.counts(), {mappings: 0, finalizations: 0, getters: 1});
+  assert.throws(() => cold.driver.recoverRequests({members: [cold.member], body, durable,
+    requestTags: [[providerCid]]}), {code: 'InvalidInstalledRowWrite'});
+});
+
+test('standard stamped mapping refuses changed transport, copied originals and pre-key sends', async () => {
+  const f = stampedFixture(); let sends = 0;
+  await assert.rejects(f.driver.send({request: f.logical, authorization: authorization('fixture:create'),
+    credential: {}, callResource() {sends++; return response;}}), {code: 'InvalidInstalledRowWrite'});
+  assert.equal(sends, 0);
+  const first = await f.finalize(), repeated = await f.finalize();
+  assert.equal(first[0][0].request, repeated[0][0].request); assert.equal(f.counts().finalizations, 1);
+  const mode = f.driver[standardWriteStamp];
+  await assert.rejects(mode.finalize({...f.logical}, f.tag), {code: 'InvalidInstalledRowWrite'});
+  await assert.rejects(mode.finalize(f.logical, providerCid), {code: 'InvalidInstalledRowWrite'});
+  for (const change of [{subjectId: 'I_foreign'}, {origin: 'https://foreign.test'},
+    {path: '/foreign'}, {logicalBody: 'changed'}, {requestTag: providerCid}]) {
+    const bad = stampedFixture({finalize: ({request, requestTag}) => ({...request, body: '{}',
+      requestCid: boundaryCid, requestTag, ...change})});
+    await assert.rejects(bad.finalize(), {code: 'InvalidInstalledRowWrite'});
+  }
+});
+
+test('standard stamped capture joins an invalid async finalizer borrow before refusing', async () => {
+  let release; const pending = new Promise(resolve => {release = resolve;});
+  const f = stampedFixture({finalize: () => pending}); let ended = false;
+  const flight = f.finalize().finally(() => {ended = true;});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ended, false, 'capture cannot return while its logical request is borrowed');
+  release({}); await assert.rejects(flight, {code: 'InvalidInstalledRowWrite'});
+  assert.equal(ended, true);
+});
+
+test('standard stamped capture refuses a missing original resource owner', () => {
+  const f = stampedFixture();
+  const bind = stampedRowClosure('bindRunResources', {...f.ports,
+    runResources: new WeakMap(), requireSynchronousEffectResource: value => value});
+  assert.throws(() => bind({}, [f.member]), {code: 'InstalledEffectResourcesUnavailable'});
+  assert.deepEqual(f.counts(), {mappings: 1, finalizations: 0, getters: 0});
+});
+
+test('standard stamped finalizer cannot add a post-Preview query component', async () => {
+  const fixture = stampedFixture({finalize: ({request, requestTag}) => ({...request,
+    body: '{}', requestCid: boundaryCid, requestTag, query: [['unexpected', '1']]})});
+  await assert.rejects(fixture.finalize(), {code: 'InvalidInstalledRowWrite'});
+});
+
+// The complete normal declaration with explicit pure provider helper ports.
+// This checks caller forwarding only; the genuine provider helper and normal
+// module dependency must be composed before a runtime consumer is qualified.
+test('GitHub standard declaration forwards original logical request and late stamp DATA', async () => {
+  const providerMoon = {githubCommentOutcomeJson() {},
+    githubRequestHeadersJson: () => '[]', githubResponseHeadersJson: () => '[]'};
+  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository'});
+  const value = Object.freeze({subject_id: 'I_original', body: ''});
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin,
+    method: 'POST', path: GITHUB_GRAPHQL_PATH, subjectId: value.subject_id, logicalBody: ''});
+  const recipe = Object.freeze({separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'});
+  const tag = `sha256:${'e'.repeat(64)}`;
+  let mapped = 0, finalized = 0;
+  const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+    GITHUB_COMMENT_STAMP_RECIPE: recipe, site, repository, boundaryCid, providerMoon,
+    commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
+    commentValue: (_resource, original) => {assert.equal(original, value); return original;},
+    prepareGitHubCommentLogicalRequest(context) {
+      mapped++; assert.deepEqual(context, {origin, subjectId: value.subject_id, body: ''}); return logical;
+    },
+    finalizeGitHubCommentRequest(context) {
+      finalized++; assert.deepEqual(Object.keys(context).sort(), ['moon', 'request', 'requestTag']);
+      assert.equal(context.moon, providerMoon); assert.equal(context.request, logical);
+      assert.equal(context.requestTag, tag);
+      return Object.freeze({...logical, body: 'original final physical bytes', requestTag: tag, requestCid: boundaryCid});
+    },
+    prepareGitHubCommentRequest: () => assert.fail('normal stamped path cannot encode before Preview'),
+    checkGitHubCommentSubject: () => assert.fail('a declaration does not authorize a read'),
+    projectGitHubCommentObservation: () => assert.fail('no response exists'),
+    commentOutcome: () => assert.fail('no response exists'),
+    fail: code => {throw Object.assign(new Error(code), {code});},
+  });
+  const driver = deriveInstalledRowWrite(write, 'github');
+  const prepared = driver.prepareRequest({member, value,
+    createRowIdentity: Object.freeze({content_cid: providerCid, occurrence: 0})});
+  assert.equal(mapped, 1); assert.equal(finalized, 0); assert.equal(prepared.request, logical);
+  assert.equal(driver[standardWriteStamp].recipe, recipe);
+  const result = await driver[standardWriteStamp].finalize(prepared.request, tag);
+  assert.equal(finalized, 1); assert.equal(result.requestCid, boundaryCid);
+  assert.equal(result.request.requestTag, tag); assert.equal(result.request.logicalBody, '');
+  assert.equal(driver.requestFacts(result.request).value, value);
+});
+
+// Actual normal declaration, A's original provider helpers and the enclosing
+// RSE late-finalization/recovery helpers. The encoder, original key getter,
+// Account/current/Plan and repository read are explicit component ports.
+// This is not an actual Common DispatchKey, funded Host or physical claim.
+test('GitHub normal stamped declaration finalizes original key bytes and restores without encoding', async () => {
+  let encoded = 0, checks = 0;
+  const providerMoon = {githubAddCommentRequestJson(subjectId, body) {
+    encoded++;
+    return JSON.stringify({body: JSON.stringify({subjectId, body})});
+  }, githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
+  githubResponseHeadersJson: () => '["x-ratelimit-remaining"]'};
+  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository'});
+  const selectedMember = Object.freeze({kind: 'create', resource: 'issue_comments', mapping: {mappingCid: boundaryCid}});
+  const value = Object.freeze({subject_id: 'I_original', body: ''});
+  const identity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  const key = Object.freeze({}), tag = `sha256:${'e'.repeat(64)}`;
+  const githubSource = readFileSync(new URL('../connectors/github/host/installed-github-effect.mjs', import.meta.url), 'utf8');
+  const githubTree = parse(githubSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const originalFunction = name => {const node = githubTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert.ok(node); return githubSource.slice(node.start, node.end);};
+  const keysNode = githubTree.body.flatMap(node => node.declarations ?? []).find(node => node.id.name === 'sameKeys').init;
+  const originalValue = Function(`const sameKeys = ${githubSource.slice(keysNode.start, keysNode.end)};
+    const fail = code => {throw Object.assign(new Error(code), {code});}; return (${originalFunction('commentValue')});`)();
+  const originalOutcome = Function(`return (${originalFunction('commentOutcome')});`)();
+  const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+    GITHUB_COMMENT_STAMP_RECIPE, prepareGitHubCommentLogicalRequest, finalizeGitHubCommentRequest,
+    prepareGitHubCommentRequest, site, repository, boundaryCid, providerMoon,
+    commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
+    commentValue: originalValue,
+    fail: code => {throw Object.assign(new Error(code), {code});},
+    checkGitHubCommentSubject(context) {checks++; assert.equal(context.repository, repository);
+      assert.equal(context.subjectId, value.subject_id); return 'checked';},
+    projectGitHubCommentObservation: ({observation}) => ({kind: 'typed-success-response', observation,
+      result: {commentId: 123, nodeId: 'IC_original'}}),
+    commentOutcome: originalOutcome,
+  });
+  const driver = deriveInstalledRowWrite(write, 'github');
+  const logical = driver.prepareRequest({member: selectedMember, value, createRowIdentity: identity});
+  assert.equal(encoded, 0, 'logical Preview preparation cannot encode physical marked bytes');
+  assert.equal(logical.request.logicalBody, '');
+  assert.equal(Object.hasOwn(logical.request, 'body'), false);
+  assert.equal(Object.hasOwn(logical.request, 'requestCid'), false);
+  assert.equal(driver.checkRequest({request: logical.request}), 'checked');
+  assert.equal(checks, 1, 'published repository verification remains an independent read');
+  const owner = {owned: driver, connectorRegistration: 'github', connectorRevision: 'github/0.1',
+    runtimeBundleCid: providerCid, bindingCid: boundaryCid, connection: 'github:original'};
+  const ports = {standardWriteStamp, ownerOf: original => {assert.equal(original, selectedMember); return owner;},
+    fail: code => {throw Object.assign(new Error(code), {code});}, canonicalValueJson,
+    cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); return tag;}}};
+  const rows = Object.freeze([Object.freeze([Object.freeze({...logical, value, target: undefined})])]);
+  const entries = await stampedRowClosure('finalizeRequests', ports)({members: [selectedMember],
+    entries: rows, keys: [[key]], assertCurrent() {}});
+  assert.equal(encoded, 1);
+  const request = entries[0][0].request;
+  assert.deepEqual(JSON.parse(request.body), {subjectId: value.subject_id,
+    body: '\n\n<!-- actql:effect:' + tag + ' -->'});
+  assert.equal(request.logicalBody, ''); assert.equal(request.requestTag, tag);
+  assert.equal(request.subjectId, value.subject_id); assert.equal(request.path, '/graphql');
+  const hash = createHash('sha256');
+  for (const part of ['actql-github-comment-create-request/0.1', origin, 'POST', '/graphql', request.body]) {
+    const bytes = Buffer.from(part); hash.update(`${bytes.byteLength}:`); hash.update(bytes);
+  }
+  assert.equal(request.requestCid, `sha256:${hash.digest('hex')}`);
+  assert.notEqual(request.requestCid, logical.requestCid);
+  assert.equal(entries[0][0].requestCid, request.requestCid);
+  const rowCid = `sha256:${'c'.repeat(64)}`;
+  const body = {effects: [{changes: [{row_preview_cid: rowCid,
+    target_row_identity: identity, after: {value}}], row_order: [rowCid]}]};
+  const durable = {connectorRecovery: [{memberIndex: 0,
+    ...driver.recoveryEntry({member: selectedMember, entries: entries[0]})}]};
+  const coldDriver = deriveInstalledRowWrite(write, 'github');
+  const coldOwner = {...owner, owned: coldDriver};
+  const coldPorts = {...ports, ownerOf: () => coldOwner, singular: coldOwner, resourceFields: () => ({})};
+  const restored = stampedRowClosure('recoveredEntries', coldPorts)({members: [selectedMember], body, durable,
+    recorded: {members: [{claims: [{canonicalRequestCid: request.requestCid}]}]}, previewWire: 'admitted Preview port',
+    runInvocationCid: providerCid, dispatches: [boundaryCid], keys: [[key]]}).entries[0][0];
+  assert.equal(encoded, 1, 'cold must restore complete final bytes without preparing or finalizing');
+  assert.deepEqual(restored.request, request); assert.equal(restored.requestCid, request.requestCid);
+  assert.deepEqual(coldDriver.requestFacts(restored.request).value, value);
+  const classified = coldDriver.project({request: restored.request, observation: response});
+  assert.equal(classified.kind, 'provider-response'); assert.equal(Object.hasOwn(classified, 'outcome'), false);
+  assert.equal(classified.providerEvidence.kind, 'CreatedComment');
+});
+
+// Root's complete regression body is retained verbatim; only its module-level
+// derive/pure-port aliases are selected from this existing test harness.
+const derive = deriveInstalledRowWrite;
+const unused = () => assert.fail('no send or credential operation');
+test('late stamped capture retains the same native Promise before a throwing then getter can finish it',async()=>{
+ const pending=Promise.withResolvers(),cause=new Error('same original then getter failure');
+ Object.defineProperty(pending.promise,'then',{get(){throw cause;}});
+ const origin='https://provider.invalid',tag='sha256:'+'a'.repeat(64);
+ const write={kind:'create',operation:'fixture:create',resourceKind:'records',boundaryCid:'sha256:'+'b'.repeat(64),
+  http:{origin,method:'POST',path:'/records',maxRequestBytes:200,maxResponseBytes:400},
+  request:()=>({origin,method:'POST',path:'/records',logicalBody:'original'}),
+  classify:unused,stamp:{recipe:{kind:'fixed-fixture-marker'},finalize:()=>pending.promise}};
+ const driver=derive(write,'fixture');
+ const prepared=driver.prepareRequest({member:{kind:'create',resource:'records'},value:{name:'original'},
+  createRowIdentity:{content_cid:'sha256:'+'c'.repeat(64),occurrence:0}});
+ let finished=false;
+ const flight=driver[standardWriteStamp].finalize(prepared.request,tag).then(
+  ()=>{finished=true;return undefined;},error=>{finished=true;return error;});
+ await Promise.resolve();await Promise.resolve();
+ const finishedWhileOriginalPending=finished;
+ // Settle the exact original even on the expected red before asserting,
+ // leaving no pending callback or physical work in this review counter.
+ pending.resolve();await Reflect.apply(Promise.prototype.then,pending.promise,[()=>undefined]);
+ const observed=await flight;
+ assert.equal(observed,cause,'the original getter failure remains primary');
+ assert.equal(finishedWhileOriginalPending,false,'capture must still retain this exact pending native Promise');
+});
+
+// These are distinct affected native-brand/getter branches, not a replay of
+// the earlier passing ordinary Promise or plain-request cases.
+test('standard stamp native Promise waits despite a non-callable own then', async () => {
+  const pending = Promise.withResolvers();
+  Object.defineProperty(pending.promise, 'then', {value: undefined});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.resolve();
+  const error = await flight;
+  assert.equal(premature, false);
+  assert.equal(error.code, 'InvalidInstalledRowWrite');
+});
+
+test('standard stamp native Promise cannot substitute an early own then completion', async () => {
+  const pending = Promise.withResolvers(); let calls = 0;
+  Object.defineProperty(pending.promise, 'then', {value(resolve) {calls++; resolve();}});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.resolve();
+  const error = await flight;
+  assert.equal(premature, false); assert.equal(calls, 0);
+  assert.equal(error.code, 'InvalidInstalledRowWrite');
+});
+
+test('standard stamp native cross-realm rejection retains the original throwing getter failure', async () => {
+  const pending = runInNewContext('Promise.withResolvers()');
+  assert.equal(nodeTypes.isPromise(pending.promise), true);
+  const cause = new Error('original cross-realm getter failure');
+  Object.defineProperty(pending.promise, 'then', {get() {throw cause;}});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.reject(new Error('original native computation rejection'));
+  await Reflect.apply(Promise.prototype.then, pending.promise, [() => undefined, () => undefined]);
+  const error = await flight;
+  assert.equal(premature, false); assert.equal(error, cause);
+});
+
+test('standard stamp plain throwing then getter keeps its original failure', async () => {
+  const cause = new Error('original non-native getter failure');
+  const value = Object.defineProperty({}, 'then', {get() {throw cause;}});
+  const fixture = stampedFixture({finalize: () => value});
+  await assert.rejects(fixture.finalize(), error => error === cause);
 });

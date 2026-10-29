@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
+      "sha256": "6d21a3f8a9e17f2ac4cd10422e6956af251a4022f6e4d80ea03066050e877079",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4787,20 +4787,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/entries/entries",
-          "parameters": [
-            "rows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/entries/entries/entries",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/footprints/footprints",
           "parameters": [
             "member",
@@ -4812,6 +4798,20 @@
           "name": "createRowEffectStage/captureStage/holdings/holdings",
           "parameters": [
             "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/logicalEntries/logicalEntries",
+          "parameters": [
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/logicalEntries/logicalEntries/logicalEntries",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -4986,6 +4986,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/commonCapability/commonCapability/commonCapability#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/continuationOf/continuationOf",
           "parameters": [
             "plan",
@@ -5034,10 +5041,27 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/finalizeRequests/finalizeRequests",
+          "parameters": [
+            "members",
+            "entries",
+            "keys",
+            "assertCurrent"
+          ],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/footprintOf/footprintOf",
           "parameters": [
             "member",
             "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/hasStampedWrites/hasStampedWrites",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -5452,7 +5476,8 @@
             "recorded",
             "previewWire",
             "runInvocationCid",
-            "dispatches"
+            "dispatches",
+            "keys"
           ],
           "async": false
         },
@@ -5522,6 +5547,28 @@
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
           "parameters": [
             "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags/requestTags",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags#2",
+          "parameters": [
+            "member",
             "index"
           ],
           "async": false
@@ -5754,12 +5801,30 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/bindLogicalRequest",
+          "parameters": [
+            "request",
+            "resource",
+            "value",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/bindLogicalRequest/bindLogicalRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/bindRequest",
           "parameters": [
             "request",
             "resource",
             "value",
-            "expectedCid"
+            "expectedCid",
+            "stampData"
           ],
           "async": false
         },
@@ -5811,6 +5876,13 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/fail/fail",
           "parameters": [],
           "async": false
@@ -5836,6 +5908,39 @@
           "parameters": [
             "key",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": true
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize#2",
+          "parameters": [
+            "resolve",
+            "reject"
           ],
           "async": false
         },
@@ -5934,6 +6039,8 @@
           "parameters": [
             "durable",
             "members",
+            "body",
+            "requestTags",
             "indexes"
           ],
           "async": false
@@ -5948,7 +6055,8 @@
         {
           "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
           "parameters": [
-            "row"
+            "row",
+            "rowIndex"
           ],
           "async": false
         },
@@ -6253,8 +6361,8 @@
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
-            "createRowEffectStage/captureStage/entries/entries",
-            "createRowEffectStage/captureStage/entries/entries/entries",
+            "createRowEffectStage/captureStage/logicalEntries/logicalEntries",
+            "createRowEffectStage/captureStage/logicalEntries/logicalEntries/logicalEntries",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
@@ -7778,6 +7886,8 @@
         {
           "operations": [
             "deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/bindLogicalRequest",
+            "deriveInstalledRowWrite/bindLogicalRequest/bindLogicalRequest",
             "deriveInstalledRowWrite/bindRequest",
             "deriveInstalledRowWrite/cid/cid",
             "deriveInstalledRowWrite/data",
@@ -7786,10 +7896,16 @@
             "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
             "deriveInstalledRowWrite/fail/fail",
             "deriveInstalledRowWrite/freezeInput",
             "deriveInstalledRowWrite/freezeRequestData",
             "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
+            "deriveInstalledRowWrite/init:finalize/init:finalize",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize/init:finalize#2",
+            "deriveInstalledRowWrite/init:finalize/init:finalize/init:finalize#2",
             "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
             "deriveInstalledRowWrite/init:project/init:project",
             "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
@@ -7889,6 +8005,95 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "standard saved request bounds real JSON material"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard stamped capture joins an invalid async finalizer"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "late stamped capture retains the same native Promise before a throwing then getter can finish it"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/commonCapability/commonCapability/commonCapability#2",
+            "createRowEffectStage/finalizeRequests/finalizeRequests",
+            "createRowEffectStage/hasStampedWrites/hasStampedWrites",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags/requestTags",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requestTags/requestTags#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A standard body-stamped write supplies optional"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const finalizeRequests = async"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "effect.dispatchKeyCid(keys[memberIndex][rowIndex])"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const entries = hasStampedWrites ? await finalizeRequests"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const admittedPreview = control.admitEffectComputationPreview"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "InvalidInstalledRowEffectStamp"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "assertCurrent?.();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "if (owner.owned[standardWriteStamp] !== undefined) fail('InstalledEffectResourcesUnavailable')"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "An unstamped write retains its original path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard post-Preview stamp uses only the original key CID"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard stamped cold recovery checks saved bytes"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard stamped finalizer cannot add a post-Preview query"
               }
             ]
           }
