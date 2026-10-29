@@ -21,6 +21,8 @@ pub fn client_values_host_admit_completed_source_observation(String, String, Str
 
 pub fn client_values_host_admit_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[@checkpoint_runtime.SealedCheckpoint, @run_publication_host.ClientEffectCheckpointBindingIssue]
 
+pub fn client_values_host_admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, @run_publication.EffectPreviewIdentityIssue]
+
 pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?, String?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
@@ -208,6 +210,8 @@ pub fn client_values_host_issue_effect_free_run_receipt(@run_publication.RunPubl
 pub fn client_values_host_issue_effect_run_definition(@run_publication_host.ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_values_host_issue_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, @run_publication_host.ClientRequestIdentity?) -> Result[String, @run_publication_host.ClientEffectRunMaterialsIssue]
+
+pub fn client_values_host_issue_effectful_final_run_receipt(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectfulFinalReceiptIssuanceIssue]
 
 pub fn client_values_host_issue_manifest_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
 
@@ -560,6 +564,8 @@ pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompil
 pub fn client_values_host_trusted_clock_not_before(String?, String) -> Bool
 
 pub fn client_values_host_validate_effect_free_publication_commit(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.PublicationCommitIssue]
+
+pub fn client_values_host_validate_effectful_publication_commit(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.EffectfulPublicationCommitIssue]
 
 pub fn client_values_host_validate_publication_chain(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunPublicationChainIssue]
 
