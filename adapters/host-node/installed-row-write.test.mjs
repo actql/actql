@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {parse} from 'acorn';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
+import {runInNewContext} from 'node:vm';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -762,4 +763,85 @@ test('GitHub normal stamped declaration finalizes original key bytes and restore
   const classified = coldDriver.project({request: restored.request, observation: response});
   assert.equal(classified.kind, 'provider-response'); assert.equal(Object.hasOwn(classified, 'outcome'), false);
   assert.equal(classified.providerEvidence.kind, 'CreatedComment');
+});
+
+// Root's complete regression body is retained verbatim; only its module-level
+// derive/pure-port aliases are selected from this existing test harness.
+const derive = deriveInstalledRowWrite;
+const unused = () => assert.fail('no send or credential operation');
+test('late stamped capture retains the same native Promise before a throwing then getter can finish it',async()=>{
+ const pending=Promise.withResolvers(),cause=new Error('same original then getter failure');
+ Object.defineProperty(pending.promise,'then',{get(){throw cause;}});
+ const origin='https://provider.invalid',tag='sha256:'+'a'.repeat(64);
+ const write={kind:'create',operation:'fixture:create',resourceKind:'records',boundaryCid:'sha256:'+'b'.repeat(64),
+  http:{origin,method:'POST',path:'/records',maxRequestBytes:200,maxResponseBytes:400},
+  request:()=>({origin,method:'POST',path:'/records',logicalBody:'original'}),
+  classify:unused,stamp:{recipe:{kind:'fixed-fixture-marker'},finalize:()=>pending.promise}};
+ const driver=derive(write,'fixture');
+ const prepared=driver.prepareRequest({member:{kind:'create',resource:'records'},value:{name:'original'},
+  createRowIdentity:{content_cid:'sha256:'+'c'.repeat(64),occurrence:0}});
+ let finished=false;
+ const flight=driver[standardWriteStamp].finalize(prepared.request,tag).then(
+  ()=>{finished=true;return undefined;},error=>{finished=true;return error;});
+ await Promise.resolve();await Promise.resolve();
+ const finishedWhileOriginalPending=finished;
+ // Settle the exact original even on the expected red before asserting,
+ // leaving no pending callback or physical work in this review counter.
+ pending.resolve();await Reflect.apply(Promise.prototype.then,pending.promise,[()=>undefined]);
+ const observed=await flight;
+ assert.equal(observed,cause,'the original getter failure remains primary');
+ assert.equal(finishedWhileOriginalPending,false,'capture must still retain this exact pending native Promise');
+});
+
+// These are distinct affected native-brand/getter branches, not a replay of
+// the earlier passing ordinary Promise or plain-request cases.
+test('standard stamp native Promise waits despite a non-callable own then', async () => {
+  const pending = Promise.withResolvers();
+  Object.defineProperty(pending.promise, 'then', {value: undefined});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.resolve();
+  const error = await flight;
+  assert.equal(premature, false);
+  assert.equal(error.code, 'InvalidInstalledRowWrite');
+});
+
+test('standard stamp native Promise cannot substitute an early own then completion', async () => {
+  const pending = Promise.withResolvers(); let calls = 0;
+  Object.defineProperty(pending.promise, 'then', {value(resolve) {calls++; resolve();}});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.resolve();
+  const error = await flight;
+  assert.equal(premature, false); assert.equal(calls, 0);
+  assert.equal(error.code, 'InvalidInstalledRowWrite');
+});
+
+test('standard stamp native cross-realm rejection retains the original throwing getter failure', async () => {
+  const pending = runInNewContext('Promise.withResolvers()');
+  assert.equal(nodeTypes.isPromise(pending.promise), true);
+  const cause = new Error('original cross-realm getter failure');
+  Object.defineProperty(pending.promise, 'then', {get() {throw cause;}});
+  const fixture = stampedFixture({finalize: () => pending.promise});
+  let finished = false;
+  const flight = fixture.finalize().then(() => {finished = true;}, error => {finished = true; return error;});
+  await Promise.resolve(); await Promise.resolve();
+  const premature = finished;
+  pending.reject(new Error('original native computation rejection'));
+  await Reflect.apply(Promise.prototype.then, pending.promise, [() => undefined, () => undefined]);
+  const error = await flight;
+  assert.equal(premature, false); assert.equal(error, cause);
+});
+
+test('standard stamp plain throwing then getter keeps its original failure', async () => {
+  const cause = new Error('original non-native getter failure');
+  const value = Object.defineProperty({}, 'then', {get() {throw cause;}});
+  const fixture = stampedFixture({finalize: () => value});
+  await assert.rejects(fixture.finalize(), error => error === cause);
 });
