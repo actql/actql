@@ -51,6 +51,7 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
+  mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -244,6 +245,7 @@ pub fn[I] begin_request_preparation(
     program_data: None,
     program_plan_quote: None,
     program_source_free: None,
+    program_captured: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -551,6 +553,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_source_free = None
+  owner.program_captured = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if owner.effect_capacity is Some(capacity) {
