@@ -328,12 +328,12 @@ test('provider fixtures retire their original factories before closing dependent
       maxResponses:1,maxResponseBytes:128,maxSecretBytes:64,
       site:{credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no transport');}},
       preparePageReader(){
-        if(!returned)throw failure;
         return{fetchPage(){assert.fail('no page request');},decodePage(){assert.fail('no projection');}};
       }});
     const options={resource:'fixture',columns:['id'],verifyRead:async()=>{},
       authorizationFor(){assert.fail('no grant');},chargePage(){assert.fail('no charge');},
       consumePage(){assert.fail('no row');}};
+    if(!returned)Object.defineProperty(options,'signal',{get(){throw failure;}});
     const readers=[];
     const assertRetired=()=>assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
     try{
