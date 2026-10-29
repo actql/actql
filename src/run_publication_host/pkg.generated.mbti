@@ -1640,6 +1640,8 @@ pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffect
 
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
+pub fn measure_prepared_client_values_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[(Int, Int, Int), ClientValuesFragmentIssue]
+
 pub fn measure_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[(Int, Int, Int), ClientValuesPipelineIssue]
 
 pub fn normalize_client_project_model_task(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, @check_environment.ModelTaskLimits) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]

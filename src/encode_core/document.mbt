@@ -36,20 +36,7 @@ pub fn emit_document(
   w : Writer,
   value : EncodedDocument,
 ) -> Unit raise EncodeFailure {
-  active(w)
-  if value.nodes > w.remaining_nodes ||
-    value.depth > w.max_depth - w.frames.length() {
-    fail(w, OutputLimit)
-  }
-  let depth = w.frames.length() + value.depth
-  value_start(w)
-  if value.bytes > w.remaining_bytes {
-    fail(w, OutputLimit)
-  }
-  reserve_buffer(w, value.bytes)
-  w.remaining_nodes -= value.nodes - 1
-  w.remaining_bytes -= value.bytes
-  w.peak_depth = w.peak_depth.max(depth)
+  reserve_document_extent(w, value.bytes, value.nodes, value.depth)
   match w.output {
     TextOutput(output) => output.write_string(value.text)
     MeasureOutput => ()
@@ -68,4 +55,46 @@ pub fn emit_document(
       buffer.text.write_string(value.text)
     }
   }
+}
+
+///|
+// The same parent separators, node debit and depth offset apply to real
+// documents and text-free compiler measurements. This helper issues no text.
+fn reserve_document_extent(
+  w : Writer,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Unit raise EncodeFailure {
+  active(w)
+  if nodes > w.remaining_nodes || depth > w.max_depth - w.frames.length() {
+    fail(w, OutputLimit)
+  }
+  let peak = w.frames.length() + depth
+  value_start(w)
+  if bytes > w.remaining_bytes {
+    fail(w, OutputLimit)
+  }
+  reserve_buffer(w, bytes)
+  w.remaining_nodes -= nodes - 1
+  w.remaining_bytes -= bytes
+  w.peak_depth = w.peak_depth.max(peak)
+}
+
+///|
+/// Compose a completed subtree measurement without constructing its wire.
+/// Counts are DATA only: this operation accepts only a measuring writer and
+/// cannot create encoded text, a hash, a comparison result or an admitted tree.
+/// The caller retains the same original serializer and its measured subtree.
+pub fn emit_measurement(
+  w : Writer,
+  measurement : (Int, Int, Int),
+) -> Unit raise EncodeFailure {
+  active(w)
+  guard w.output is MeasureOutput else { fail(w, InvalidStructure) }
+  let (bytes, nodes, depth) = measurement
+  if bytes < 1 || nodes < 1 || depth < 0 || depth > nodes {
+    fail(w, InvalidStructure)
+  }
+  reserve_document_extent(w, bytes, nodes, depth)
 }

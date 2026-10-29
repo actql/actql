@@ -2769,3 +2769,30 @@ before allocation, then bind that artifact to this Plan before completing and
 adopting the body. Neither the module quote nor an available codec ceiling is
 spare compiler backing, and a Plan with an absent artifact is not evidence of a
 funded compilation.
+
+### Compiler construction measurements
+
+A compiler construction quote composes the original serializer's UTF-8 byte,
+value-node and peak-container-depth measurements. `encode_core.emit_measurement`
+embeds a completed subtree's metrics only in a measuring writer. It uses the
+same parent punctuation, node debit and depth offset as an encoded document;
+it cannot create text, a hash, comparison evidence or an admitted JSON value.
+Invalid metrics close that writer. A measurement is DATA and grants no storage,
+work, Run authority or right to substitute another prepared input.
+
+The Values Fragment has one body serializer for actual canonical output and
+text-free composition. Both use the same checked task, node label, field names
+and pipeline emitter. The measuring interpretation accounts for the fixed
+lowercase SHA-256 CID representation without manufacturing a representative
+identity. The real issuer still constructs and checks its original pipeline,
+output contract and actual identities. Normal output does not perform another
+Fragment measurement or full pipeline walk.
+
+The Request owner must first back the measuring traversal's own work and
+working representation. It must then account for all concurrently live pipeline,
+schema, graph, material, fact, witness, contract, wire and parsed representations
+before constructing the compilation, retaining the completed artifact in its
+original Plan/Run. A Fragment measurement is one input to that full quote; it
+cannot replace the rest of it or reuse a module-only grant as compiler backing.
+Neither measurement nor later Plan access rechecks permissions, selects another
+input, changes the codec limits or creates a second resource owner.
