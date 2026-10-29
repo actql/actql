@@ -67377,7 +67377,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ebb9a19d74547dbc7e530431c6491d6f1c0efc3e01c65afcd4ed37e0ac5c0490",
+      "sha256": "13a7f1b9de1e88be4e9614d1e8bd38d3fdc3c5e168523c691d3caa11f4929c10",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67508,7 +67508,8 @@
           "parameters": [
             "prepare",
             "receiver",
-            "options"
+            "options",
+            "retire"
           ],
           "async": true
         },
@@ -67523,6 +67524,31 @@
           "name": "startInstalledRowRun/readProvider/readProvider#2",
           "parameters": [
             "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/retireFailedFactory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/retireFailedFactory/pending/pending",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/retireFailedFactory/retireFailedFactory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/retireFailedFactory/retireFailedFactory#2",
+          "parameters": [
+            "error"
           ],
           "async": false
         },
@@ -67876,6 +67902,10 @@
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
             "startInstalledRowRun/readerRetired/readerRetired",
+            "startInstalledRowRun/retireFailedFactory",
+            "startInstalledRowRun/retireFailedFactory/pending/pending",
+            "startInstalledRowRun/retireFailedFactory/retireFailedFactory",
+            "startInstalledRowRun/retireFailedFactory/retireFailedFactory#2",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
@@ -67916,7 +67946,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "anchor": "async function readProvider({prepare, receiver, options, retire})"
               }
             ],
             "identity": [
@@ -68364,7 +68394,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1db6305c5b4307bc07aa299299089db1ef5ca1b3783cc64f317124f8d8c11bb9",
+      "sha256": "24041fb4772741a38616cdc9114b1a96737beae3981d52b7b00968d02de99bef",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70232,7 +70262,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "anchor": "async function readProvider({prepare, receiver, options, retire})"
               }
             ],
             "identity": [

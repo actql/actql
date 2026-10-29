@@ -109,3 +109,12 @@ charged-wire and optional original-authorization ports only to the private
 reader preparer, and describe optional same-cleanup retry/factory retirement.
 The failed-initialization `sourceReader` holding requires its synchronous Bool
 retirement method. These types issue no grant, capacity or cleanup authority.
+
+Reentrant factory retirement during pure preparation cannot discard an
+unreturned handle. The SAME factory retains that handle and its returned
+callback computations, requests its stop, and remains pending until they join.
+If the prepare handoff throws, the existing RowRun retains the original
+factory retirement method and receiver for that failed handoff. Cleanup
+retries that SAME method; observation is passive, and neither a truthy value
+nor a returned computation's settlement acknowledges release. No new reader
+or cleanup owner is created, and no prepare/read/send is retried.
