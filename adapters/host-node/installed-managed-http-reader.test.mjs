@@ -19,7 +19,7 @@ const deferred = () => {
 // Explicit grant/control and page ports isolate this Host lifecycle. They do
 // not qualify a normal Account, compiled Common, provider or public Source.
 function fixture({pages = [Buffer.from('one'), Buffer.from('two')],
-  charge, decode, current, authorize, call, resolveSecret, prepareFailure} = {}) {
+  charge, decode, current, authorize, call, resolveSecret, prepareFailure, request, readerOptions = {}} = {}) {
   const events = [], responses = [], delivered = [];
   const scope = Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name =>
     [name, name])), operation: 'example:records:list', resourceOrigin: 'https://example.invalid'});
@@ -54,13 +54,14 @@ function fixture({pages = [Buffer.from('one'), Buffer.from('two')],
   const capacity = {};
   const factory = createInstalledCredentialSourceReader({capacity, site,
     operation: scope.operation, maxResponses: pages.length, maxResponseBytes: 1024, maxSecretBytes: 64,
+    ...readerOptions,
     preparePageReader(input) {
       prepared++;if (prepareFailure) throw prepareFailure;assert.deepEqual(input, {resource: 'records', columns: ['id'], requestWire: 'original-request'});
       const provider = {
         fetchPage(context) {
           assert.strictEqual(this, provider);assert.equal(context.pageIndex, decoded);
           assert.deepEqual(Object.keys(context).sort(), ['pageIndex','receivedBodyBytes','rowCount']);
-          events.push('request');return {method: 'GET', path: '/records', query: [['cursor', String(decoded)]],
+          events.push('request');return request ?? {method: 'GET', path: '/records', query: [['cursor', String(decoded)]],
             headers: [['accept','application/json']]};
         },
         decodePage(response, context) {
@@ -508,4 +509,69 @@ test('native setup with a hidden then method still joins the original computatio
   for (let index=0; index<4; index++) await Promise.resolve();
   assert.equal(retiredBeforeSettlement, false);
   assert.equal(factory.retire(), true);
+});
+
+test('bounded managed POST retains the original UTF8 body and captured request ceiling through the scoped invoke', async () => {
+  const body = '{"é":1}', options = {maxRequestBytes:8};
+  assert.equal(Buffer.byteLength(body), 8);
+  let f, sends = 0;
+  f = fixture({pages:[Buffer.from('one')], readerOptions:options,
+    request:{method:'POST',path:'/records',headers:[['accept','application/json']],body},
+    call(input) {
+      sends++;
+      assert.equal(input.maxRequestBytes, 8);
+      assert.deepEqual(input.operations.get('example:records:list'), {
+        method:'POST',path:'/records',headers:[['accept','application/json']],body});
+      const response = {accepted:true,statusCode:200,body:Buffer.from('one')};
+      f.responses.push(response);
+      return response;
+    }});
+  options.maxRequestBytes = 1;
+  try {
+    assert.deepEqual(await f.reader.read(), {pages:1,rowCount:1});
+    assert.equal(sends,1);
+    assert(f.events.indexOf('charge') < f.events.indexOf('decode'));
+  } finally {
+    f.reader.requestStop();
+    assert.equal(f.reader.observe().cleanupConfirmed,true);
+    assert.equal(f.factory.retire(),true);
+  }
+});
+
+test('managed request ceiling rejects malformed present values without observing a getter or preparing a reader', () => {
+  let prepared = 0, sends = 0, getters = 0;
+  const options = {capacity:{}, site:{credential:{},referenceCurrent() {return true;},callResource() {sends++;}},
+    operation:'fixture:read',maxResponses:1,maxResponseBytes:32,maxSecretBytes:32,
+    preparePageReader() {prepared++;return {};}};
+  for (const value of [undefined,null,0,-1,1.5,NaN,Infinity,2147483648,'8',{}]) {
+    assert.throws(() => createInstalledCredentialSourceReader({...options,maxRequestBytes:value}),
+      {code:'InvalidInstalledCredentialSourceReader'});
+  }
+  const accessor = {...options};
+  Object.defineProperty(accessor,'maxRequestBytes',{get() {getters++;return 8;}});
+  assert.throws(() => createInstalledCredentialSourceReader(accessor),
+    {code:'InvalidInstalledCredentialSourceReader'});
+  assert.deepEqual({prepared,sends,getters},{prepared:0,sends:0,getters:0});
+});
+
+test('managed POST ceiling refuses one-short UTF8 unbounded POST and other methods before transport', async () => {
+  for (const [request,readerOptions] of [
+    [{method:'POST',path:'/records',body:'{"é":1}'},{maxRequestBytes:7}],
+    [{method:'POST',path:'/records',body:'{}'},{}],
+    [{method:'POST',path:'/records'},{maxRequestBytes:8}],
+    [{method:'PUT',path:'/records',body:'{}'},{maxRequestBytes:8}],
+    [{method:'PATCH',path:'/records',body:'{}'},{maxRequestBytes:8}],
+    [{method:'DELETE',path:'/records'},{maxRequestBytes:8}],
+  ]) {
+    let sends = 0;
+    const f = fixture({pages:[Buffer.from('one')],request,readerOptions,call() {sends++;}});
+    try {
+      await assert.rejects(f.reader.read(),{code:'InvalidInstalledSourcePageRequest'});
+      assert.equal(sends,0);
+    } finally {
+      f.reader.requestStop();
+      assert.equal(f.reader.observe().cleanupConfirmed,true);
+      assert.equal(f.factory.retire(),true);
+    }
+  }
 });

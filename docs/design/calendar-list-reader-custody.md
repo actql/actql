@@ -168,57 +168,47 @@ acceptance and do not establish Calendar event writes or the other profiles.
 
 ## Free/busy physical sequencing
 
-`calendar-free-busy-read.mjs` consumes the original Catalog query without
-parsing its request JSON or interpreting response fields in JavaScript. It
-snapshots the trusted compiled functions, request body, invocation scope,
-credential reference, callbacks and limits before its first await. The fixed
-registered operation is `calendar:free_busy:query`, POST
-`/calendar/v3/freeBusy`; a Calendar-list grant or a different original request
-binding cannot substitute for that operation. The original Account and
-Credential owners recheck current authority before the physical send and
-after awaits. The query does not select an OAuth endpoint, create an auth grant
-or turn successful token resolution into API authority.
+The Calendar FreeBusy adapter supplies only synchronous request and checked
+page callbacks to the same managed Host reader. It captures the original
+compiled query functions, query wire, complete output columns and independent
+limits before the Host begins an awaited read. Its one request remains POST
+`/calendar/v3/freeBusy` under `calendar:free_busy:query`. Both the request-body
+and request-transfer ceilings bound the exact UTF-8 wire; the Host must forward
+the selected request-transfer bound to its existing Credential operation.
+A service without a complete request-body recipe must refuse that selection.
+The list installation does not register the independent free/busy operation.
 
-Every complete response is retained and charged before status/current/type
-failure. The synchronous Catalog checks the complete selected calendar set and
-window before any rows reach the original RowRun. The private sequencer emits
-the complete three-column declared relation even if a later query projects a
-column away. A per-calendar error, malformed unselected cell, row limit or
-foreign window never completes a partial Source. Keyless carrier facts omit
-the `relation_keys` evidence component (`{}`); the existing Common facts Owner
-requires a nonempty candidate list whenever that component is present. It must
-continue rejecting the invalid `candidate_keys: []` declaration rather than
-repairing it into evidence.
+The same Host reader owns Account/current checks, original operation/grant,
+physical binding, indexed use, response retention and byte charge, cancellation,
+stop, retry and cleanup observation. Calendar retains no separate invocation
+scope, Credential reference, auth/current loop, abort controller or read/stop
+state. A lost POST reply remains the original Credential journal use's
+Unknown, with no new use or resend. The provider error wrapper preserves the
+same cause without exposing another raw response inventory. A returned or
+failed read alone is not physical cleanup acknowledgement.
 
-The private reader's `read`, `requestStop` and `observe` require the original
-receiver. Read starts once; stop only requests cancellation of that same
-operation. A lost POST reply remains the original Credential journal use's
-Unknown. The sequencer has no retry, token refresh, replacement use or resend
-loop. Its retained failure preserves the original cause and received bodies,
-including when charging, current checks or delivery fail. It never infers
-unsent from zero observed responses or from an exception.
+Every complete response is charged before provider status or type decoding.
+The Catalog still checks the complete selected calendar set and time window,
+including every unselected cell, before a complete three-column page is
+returned. Per-calendar errors, missing calendars, a foreign window and bounds
+refuse without partial rows. Keyless carrier facts still omit `relation_keys`;
+an explicitly present empty candidate list remains invalid evidence.
 
-In addition to the Catalog graph, the invocation snapshots, request body,
-transport request, original response/header/body, temporary checked page,
-metadata/row output, observation arrays, failure cause, callbacks, original
-reader/method receivers, abort signals/listeners and pending/settled Promise
-graphs can overlap. Body/request/response/value/output ceilings remain distinct
-and are not numerical funding. The free/busy observer reports retained custody and
-`cleanupConfirmed: false`: that private sequencer borrows its original binding
-and does not own its physical close. The actual owner must still confirm any
-acquired native transport/FD duty; copied observations and ordinary managed
-allocation do not require a separate GC/RSS retirement receipt. This list
-installation does not register the independent free/busy operation.
+The existing Host cleanup joins its original read and callback computations,
+then closes the same physical binding before releasing response aliases.
+Actual native/FD duties and unresolved outcomes remain their original owners'
+responsibility. No provider decoder owns physical cleanup or a new capacity.
+Query wire, request, raw response, checked page, metadata and full row output
+can overlap. Limits bound those constructors; they are not reservations or a
+complete numerical supplier.
 
-The source fixture exercises actual Common Account/RowRun, signed Credential
-scope, SQLite journal and loopback TLS using explicitly supplied component
-bounds and a private fixture Bearer secret. It is not the Google service-account
-token protocol, normal installation, a funded normal profile or live Google
-acceptance. Its retained fresh DBs/keys and response-loss Unknown remain
-evidence; they are not retried or removed to pass a test. A real installation
-still requires the separately scoped original auth dependency and original
-secret/key generation, normal capacity, physical-retirement integration and
-the normally packaged Source path.
+The actual-provider callback component uses the real typed Calendar query and
+projections with explicit Account/Credential/current/charge/transport ports.
+The distinct SQLite/TLS fixture uses actual Common and original signed grants
+when matching artifacts are supplied. Neither scope alone proves normal Source
+construction/funding, service-account auth, physical Google I/O, ordinary Saved
+or the complete preconstruction/failed-child overlap. Old component states,
+keys and Unknown evidence remain at their original qualified source.
 
 ## Invitation response request data
 
