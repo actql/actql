@@ -1,0 +1,73 @@
+{
+  "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+  "fixtureOnly": true,
+  "wholeGraphAdopted": false,
+  "productOverlay": false,
+  "files": [
+    {
+      "path": "adapters/host-node/fixtures/installed-family-scenario.fixture.mjs",
+      "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+      "gitEntry": "100644 blob 53b15e95bafd0ccc78bbd4eff643017689cad326\tadapters/host-node/fixtures/installed-family-scenario.fixture.mjs",
+      "bytes": 9607,
+      "sha256": "8001fb978e344a39694067ba282f83215be31592c8a971843587dfbd83016707",
+      "mode": 420,
+      "relativeImports": [
+        {
+          "specifier": "../../site-node/https-exchange-fixture.mjs",
+          "path": "adapters/site-node/https-exchange-fixture.mjs"
+        },
+        {
+          "specifier": "../../host-common/http-exchange.mjs",
+          "path": "adapters/host-common/http-exchange.mjs"
+        }
+      ],
+      "destination": "scripts/fixtures/external-rest/fixture-source/adapters/host-node/fixtures/installed-family-scenario.fixture.mjs"
+    },
+    {
+      "path": "adapters/host-node/fixtures/installed-family-process.fixture.mjs",
+      "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+      "gitEntry": "100644 blob 067c53edf4213197359cb467178e58878f3b6bb5\tadapters/host-node/fixtures/installed-family-process.fixture.mjs",
+      "bytes": 3503,
+      "sha256": "e501d5492d5702e16c21b78fe2ce5f039c474d4d3805bdc630c11f75d6566d35",
+      "mode": 420,
+      "relativeImports": [
+        {
+          "specifier": "./installed-family-read.fixture.mjs",
+          "path": "adapters/host-node/fixtures/installed-family-read.fixture.mjs"
+        }
+      ],
+      "destination": "scripts/fixtures/external-rest/fixture-source/adapters/host-node/fixtures/installed-family-process.fixture.mjs"
+    },
+    {
+      "path": "adapters/host-node/fixtures/installed-family-read.fixture.mjs",
+      "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+      "gitEntry": "100644 blob 05e1347f04a466a43328b0ef4910b6e38e03e4b9\tadapters/host-node/fixtures/installed-family-read.fixture.mjs",
+      "bytes": 9853,
+      "sha256": "03f4790d483ca57940ffccae41bb332b7b6531ecb76fba87ab94f8d53fdfcbda",
+      "mode": 420,
+      "relativeImports": [],
+      "destination": "scripts/fixtures/external-rest/fixture-source/adapters/host-node/fixtures/installed-family-read.fixture.mjs"
+    },
+    {
+      "path": "adapters/site-node/https-exchange-fixture.mjs",
+      "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+      "gitEntry": "100644 blob dde8f5af49c92dc79f6f459cf2f939c36b1d8341\tadapters/site-node/https-exchange-fixture.mjs",
+      "bytes": 11782,
+      "sha256": "61d7e231283c9f82ea9577f7c9b366afa03a451838c406d67e9e77deb7b48445",
+      "mode": 420,
+      "relativeImports": [],
+      "destination": "scripts/fixtures/external-rest/fixture-source/adapters/site-node/https-exchange-fixture.mjs"
+    },
+    {
+      "path": "adapters/host-common/http-exchange.mjs",
+      "source": "031508819e1f5647545d06c0c6511c7d5a04075a",
+      "gitEntry": "100644 blob f512680b2a6a6b56e5b4be156645edbf25c73a08\tadapters/host-common/http-exchange.mjs",
+      "bytes": 9528,
+      "sha256": "bbeee8665db66a336ebdb8aec60d93a3e90f770fb865f0bead7355d27822f9c8",
+      "mode": 420,
+      "relativeImports": [],
+      "destination": "scripts/fixtures/external-rest/fixture-source/adapters/host-common/http-exchange.mjs"
+    }
+  ],
+  "completeRelativeImportClosure": true
+}
