@@ -363,7 +363,7 @@ test('standard cold recovery uses saved original requests without calling the pr
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
   const targeted = kind => ['update', 'upsert', 'delete'].includes(kind);
-  const ports = {singular: owner, ownerOf, resourceFields: () => ({}), fail,
+  const ports = {standardWriteStamp, singular: owner, ownerOf, resourceFields: () => ({}), fail,
     sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
   const recoveredEntries = Function(...Object.keys(ports), `
     const approvedValue = ${selected('approvedValue')};
@@ -465,6 +465,8 @@ function stampedRowClosure(name, ports) {
   return Function(...Object.keys(ports), `
     const sameValue = ${selected('sameValue')};
     const sameEffectValue = ${selected('sameEffectValue')};
+    const approvedValue = ${selected('approvedValue')};
+    const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
     const entryOf = ${selected('entryOf')};
     const requestEntry = ${selected('requestEntry')};
     return ${selected(name)};`)(...Object.values(ports));
@@ -515,4 +517,106 @@ test('standard post-Preview stamp uses only the original key CID and keeps logic
   assert.equal(finalized[0][0].value, value); assert.equal(finalized[0][0].requestCid, boundaryCid);
   assert.equal(finalized[0][0].request.requestTag, keyCid);
   assert.equal(Object.hasOwn(logical, 'body'), false); assert.equal(Object.hasOwn(logical, 'requestCid'), false);
+});
+
+function stampedFixture({finalize, prepare = true,
+  recipe = {separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'}} = {}) {
+  const value = {subject_id: 'I_original', body: 'é\r\n'};
+  const selectedMember = Object.freeze({kind: 'create', resource: 'records', mapping: {mappingCid: boundaryCid}});
+  const identity = Object.freeze({content_cid: providerCid, occurrence: 0});
+  let mappings = 0, finalizations = 0, getters = 0;
+  const key = Object.freeze({}), tag = `sha256:${'d'.repeat(64)}`;
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin, method: 'POST', path: '/records',
+    subjectId: 'I_original', logicalBody: value.body});
+  const driver = deriveInstalledRowWrite(declaration({request() {mappings++; return logical;},
+    stamp: {recipe, finalize(context) {finalizations++; return finalize ? finalize(context)
+      : {...context.request, requestTag: context.requestTag,
+        body: JSON.stringify({body: value.body + '\n\n<!-- actql:effect:' + context.requestTag + ' -->'}),
+        requestCid: boundaryCid};}}}), 'fixture');
+  const owner = {owned: driver, connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+    runtimeBundleCid: providerCid, bindingCid: boundaryCid, connection: 'fixture:original'};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const ports = {standardWriteStamp, ownerOf: member => {assert.equal(member, selectedMember); return owner;},
+    fail, canonicalValueJson, cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted: () => false,
+    effect: {dispatchKeyCid(original) {assert.equal(original, key); getters++; return tag;}}};
+  const prepared = prepare ? driver.prepareRequest({member: selectedMember, value, createRowIdentity: identity}) : undefined;
+  const entries = prepared === undefined ? undefined
+    : Object.freeze([Object.freeze([Object.freeze({...prepared, value, target: undefined})])]);
+  return {value, member: selectedMember, identity, logical, driver, owner, key, tag, ports, prepared, entries,
+    counts: () => ({mappings, finalizations, getters}),
+    finalize: () => stampedRowClosure('finalizeRequests', ports)({members: [selectedMember], entries,
+      keys: [[key]], assertCurrent() {}})};
+}
+
+test('standard stamped capability binds logical payload and recipe rather than the final transport CID', async () => {
+  const f = stampedFixture();
+  const capability = stampedRowClosure('commonCapability', {...f.ports, cid: contentCid,
+    CAPABILITY_VERSION: 'fixture-capability/0.1', contractCidOf: member => member.mapping.mappingCid});
+  const before = capability(f.member, f.entries[0]);
+  const entries = await f.finalize();
+  assert.equal(before.identity, capability(f.member, entries[0]).identity,
+    'post-key bytes cannot change the Preview-bound recipe');
+  assert.notEqual(entries[0][0].requestCid, f.prepared.requestCid);
+  const other = stampedFixture({recipe: {separator: '\n', prefix: '<!-- actql:effect:', suffix: ' -->'}});
+  const changed = stampedRowClosure('commonCapability', {...other.ports, cid: contentCid,
+    CAPABILITY_VERSION: 'fixture-capability/0.1', contractCidOf: member => member.mapping.mappingCid});
+  assert.notEqual(before.identity, changed(other.member, other.entries[0]).identity);
+});
+
+test('standard stamped cold recovery checks saved bytes against the original recovered key without mapping', async () => {
+  const f = stampedFixture(), entries = await f.finalize();
+  const saved = f.driver.recoveryEntry({member: f.member, entries: entries[0]});
+  const rowCid = `sha256:${'c'.repeat(64)}`;
+  const body = {effects: [{changes: [{row_preview_cid: rowCid,
+    target_row_identity: f.identity, after: {value: f.value}}], row_order: [rowCid]}]};
+  const durable = {connectorRecovery: [{memberIndex: 0, ...saved}]};
+  const cold = stampedFixture({prepare: false, finalize() {assert.fail('cold never finalizes');}});
+  const recover = stampedRowClosure('recoveredEntries', {...cold.ports,
+    singular: cold.owner, resourceFields: () => ({})});
+  const recovered = recover({members: [cold.member], body, durable,
+    recorded: {members: [{claims: [{canonicalRequestCid: boundaryCid}]}]}, previewWire: 'admitted Preview port',
+    runInvocationCid: providerCid, dispatches: [boundaryCid], keys: [[cold.key]]});
+  const restored = recovered.entries[0][0];
+  assert.equal(restored.request.body, entries[0][0].request.body);
+  assert.equal(restored.request.requestTag, f.tag); assert.equal(restored.requestCid, boundaryCid);
+  assert.deepEqual(restored.value, f.value);
+  assert.deepEqual(cold.counts(), {mappings: 0, finalizations: 0, getters: 1});
+  assert.throws(() => cold.driver.recoverRequests({members: [cold.member], body, durable,
+    requestTags: [[providerCid]]}), {code: 'InvalidInstalledRowWrite'});
+});
+
+test('standard stamped mapping refuses changed transport, copied originals and pre-key sends', async () => {
+  const f = stampedFixture(); let sends = 0;
+  await assert.rejects(f.driver.send({request: f.logical, authorization: authorization('fixture:create'),
+    credential: {}, callResource() {sends++; return response;}}), {code: 'InvalidInstalledRowWrite'});
+  assert.equal(sends, 0);
+  const first = await f.finalize(), repeated = await f.finalize();
+  assert.equal(first[0][0].request, repeated[0][0].request); assert.equal(f.counts().finalizations, 1);
+  const mode = f.driver[standardWriteStamp];
+  await assert.rejects(mode.finalize({...f.logical}, f.tag), {code: 'InvalidInstalledRowWrite'});
+  await assert.rejects(mode.finalize(f.logical, providerCid), {code: 'InvalidInstalledRowWrite'});
+  for (const change of [{subjectId: 'I_foreign'}, {origin: 'https://foreign.test'},
+    {path: '/foreign'}, {logicalBody: 'changed'}, {requestTag: providerCid}]) {
+    const bad = stampedFixture({finalize: ({request, requestTag}) => ({...request, body: '{}',
+      requestCid: boundaryCid, requestTag, ...change})});
+    await assert.rejects(bad.finalize(), {code: 'InvalidInstalledRowWrite'});
+  }
+});
+
+test('standard stamped capture joins an invalid async finalizer borrow before refusing', async () => {
+  let release; const pending = new Promise(resolve => {release = resolve;});
+  const f = stampedFixture({finalize: () => pending}); let ended = false;
+  const flight = f.finalize().finally(() => {ended = true;});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ended, false, 'capture cannot return while its logical request is borrowed');
+  release({}); await assert.rejects(flight, {code: 'InvalidInstalledRowWrite'});
+  assert.equal(ended, true);
+});
+
+test('standard stamped capture refuses a missing original resource owner', () => {
+  const f = stampedFixture();
+  const bind = stampedRowClosure('bindRunResources', {...f.ports,
+    runResources: new WeakMap(), requireSynchronousEffectResource: value => value});
+  assert.throws(() => bind({}, [f.member]), {code: 'InstalledEffectResourcesUnavailable'});
+  assert.deepEqual(f.counts(), {mappings: 1, finalizations: 0, getters: 0});
 });
