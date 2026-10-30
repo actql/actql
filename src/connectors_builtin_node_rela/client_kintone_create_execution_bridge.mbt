@@ -197,6 +197,19 @@ pub fn client_program_kintone_create_request_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramKintoneCreateProposalConstructionCapacity")
+pub fn client_program_kintone_create_proposal_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_proposal_construction_capacity(
+    mapping, max_input_bytes, write, request,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneCreateFormRecheckConstructionCapacity")
 pub fn client_program_kintone_create_form_recheck_construction_capacity(
   mapping : @kintone_host.RecordCreateMapping,

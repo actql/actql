@@ -275,3 +275,106 @@ pub fn record_create_mapped_request_construction_capacity(
     workspace_bytes: 0L,
   })
 }
+
+///|
+/// The complete native proposal ingress, for fresh emission OR exact saved
+/// body comparison. This adds the outer Common change-envelope constructors
+/// to the existing mapped-row family; it does not reuse the array ingress as
+/// the whole proposal price. Parser/index/input backing remains a separate
+/// caller component, as do Host/physical/secret and failed-child overlap.
+pub fn record_create_mapped_proposal_construction_inventory(
+  mapping : RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> RecordCreateRequestConstructionInventory? {
+  guard record_create_mapped_request_construction_inventory(
+      mapping, max_input_bytes, write, request,
+    )
+    is Some(base) &&
+    // Unknown/duplicate fields may fail before native value admission. The
+    // allowed width TWO never bounds that supplied object or its key maps.
+    @decode.closed_object_field_construction_extent(
+      Some(write.max_nodes),
+      2,
+      0L,
+    )
+    is Some(envelope) &&
+    @shape.scale_collection_construction_extent(
+      @decode.indexed_child_construction_extent(),
+      2L,
+    )
+    is Some(lookups) &&
+    @decode.issue_construction_extent(write.max_depth) is Some(issue) else {
+    return None
+  }
+  let utf8 = @scalar.utf8_length_admission_construction_units()
+  // Allowed-name Array2 and the one-record [values] Array1. text's Ok and
+  // missing/wrong-state Err add2H1R2W; both entry Result wrapper alternatives
+  // add4H4R4W. Cold's CompareOutput+ComparedText+finish tuple add3H2R7W.
+  // The two saved-body UTF8 checks (outer ingress and inner native restore)
+  // use the scalar owner's SAME controls, with no encoded copy of that body.
+  // The base deliberately still co-counts its emitted TextOutput constructor
+  // beside these comparator controls, so it also bounds the fresh branch.
+  guard @shape.collection_construction_extent({
+      records: 9L + 2L * utf8.0,
+      record_references: 7L + 2L * utf8.1,
+      record_words: 13L + 2L * utf8.2,
+      reference_arrays: 2L,
+      reference_items: 3L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(controls) &&
+    @shape.compose_collection_construction_extents([
+      base.representation,
+      envelope,
+      lookups,
+      issue,
+      controls,
+    ])
+    is Some(representation) else {
+    return None
+  }
+  Some({ representation, owned_utf16_units: base.owned_utf16_units, })
+}
+
+///|
+/// Price only the proposal-native family above, held until output retirement.
+/// The original saved body is borrowed from its separately backed caller; no
+/// constructor, grant, clock, new lifetime or physical operation is issued.
+pub fn record_create_mapped_proposal_construction_capacity(
+  mapping : RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_create_mapped_proposal_construction_inventory(
+      mapping, max_input_bytes, write, request,
+    )
+    is Some(inventory) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: inventory.representation.record_headers,
+      reference_slots: inventory.representation.reference_slots,
+      scalar_words: inventory.representation.scalar_words,
+      owned_utf16_units: inventory.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
