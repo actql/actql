@@ -38,12 +38,12 @@ test('REST metadata retains the same Host reader methods and exact original CA w
     readText() {assert.fail('Configured CA uses the actual-FD reader, not a caller bound');},
     readOriginalBytes(path) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
-      calls.push(['text', path]);return ca;
+      calls.push(['bytes', path]);return ca;
     },
   };
   const input = await metadata.readInputs(f.profile, {configurationReader: reader});
   assert.equal(input.ca, ca);assert.deepEqual(input.site, f.site);
-  assert.deepEqual(calls, [['json', f.profile.siteProfilePath], ['text', f.site.caPath]]);
+  assert.deepEqual(calls, [['json', f.profile.siteProfilePath], ['bytes', f.site.caPath]]);
   const original = metadata.authoredDeclarationWire();f.definition.sources[0].fields[0].name = 'changed';
   assert.equal(metadata.authoredDeclarationWire(), original);
   assert.equal(Object.hasOwn(metadata, 'restore'), false);assert.equal(Object.hasOwn(metadata, 'publish'), false);
