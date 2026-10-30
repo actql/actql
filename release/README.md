@@ -290,8 +290,8 @@ the exact artifact `identity` (name/version/bytes/SHA256 and npm integrity).
 Identical bytes may be reused, absence names the same missing bytes, unknown
 or conflict blocks the plan and any identity mismatch stops it. This input is not authenticated
 registry reobservation or owner authority, and the command never sends bytes.
-Protected execution, standalone Native observation, channel arbitration and
-release acceptance remain separate unfinished work.
+Protected execution, authenticated Native draft recovery, channel arbitration
+and release acceptance remain separate unfinished work.
 
 All sets from this layer remain explicitly `unaccepted`. The existing Python
 checker reused here establishes wheel metadata and frozen-byte correspondence,
@@ -299,6 +299,69 @@ not original engine execution, normal install, Linux support or public registry
 acceptance. Synthetic metadata fixtures contain no usable engine. Real
 candidate assembly and acceptance wait for the selected coherent product
 source and owner-selected version/scope.
+
+## Bind the review evidence and proposed execution scope
+
+The preparation manifest alone does not contain a complete approval
+presentation. After collecting the original build and acceptance records, use
+the same fixed-set owner to retain them in a **new** directory:
+
+```sh
+node scripts/release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-review-directory>
+node scripts/release.mjs summary <new-review-directory> <new-externally-retained-SHA256>
+```
+
+The new upper manifest retains the exact preparation manifest, raw review
+request and original evidence bytes with sizes/SHA256s. Artifact and child
+manifest bytes remain exact. The original preparation is unchanged; enriching
+an already enriched set or overwriting a destination refuses. Changed evidence
+or proposed execution scope creates a different upper digest and therefore a
+different candidate for any later approval. The detached digest is not an
+approval record.
+
+The request has schema `actql-release-review-request/0.1` and exactly these
+fields, validated by the existing `release-set.mjs` owner:
+
+- `manifestSha256`: the original preparation digest.
+- `evidence`: original `{id, kind, file, bytes, sha256}` records. `file` is
+  relative to this request's directory, with no traversal or symlink. Kinds
+  are `recipe`, `toolchain`, `build`, `acceptance`, `diff` and `signing`.
+- `provenance`: one ordered `{targetId, recipeEvidence, toolchainEvidence,
+  build}` entry per selected target. A supplied GitHub build records kind
+  `github-actions`, `repository`, decimal-string `runId`, positive `attempt`,
+  decimal-string `artifactId`, `artifactSha256` and build `evidence` id. A
+  local build instead records `{kind: "local", run, artifactId: null,
+  evidence}`. A local receipt cannot invent a hosted immutable artifact id.
+- `environments`: one ordered `{targetId, platforms, profiles, node, python,
+  abi, limitations}` entry per target. Platforms/profiles must equal the
+  original selection; runtime range text or `null` and ABI declarations are
+  supplied claims for review, not certified support.
+- `acceptance`: two ordered entries per target, phases
+  `prepublication-install` then `public-install`, each containing
+  `{targetId, phase, status, evidence, limitations}`. Status is `not-run`,
+  `passed` or `failed`. An executed result requires original acceptance
+  evidence ids; `not-run` has none. A reported pass does not establish that
+  its scope, source, bytes, runtime or oracle has been independently verified.
+- `changes`: `{previousSource, diffEvidence}`, both `null` if none is supplied;
+  otherwise an exact prior commit and original diff evidence id.
+- `executionScope`: `{publish, promote, resumeIdenticalMissing}`. Publish and
+  resume are explicit target-id arrays. Proposed promotions are
+  `{targetId, channel}` entries already selected in the request. Resume cannot
+  exceed the proposed publication targets. This data grants no operation.
+
+The request is bounded to 1 MiB, with at most 128 original evidence files,
+64 MiB each and 256 MiB total. Every input is checked before output creation;
+all retained evidence is reobserved during cold verification. These bounds
+apply to release-review records, not product or runtime limits. A copy failure
+leaves failed partial output for inspection rather than rebuilding or repairing.
+
+Both JSON and Markdown summaries include the same bound provenance, runtime
+declarations, reported results, evidence digests, limitations and proposed
+scope. They continue to say `unaccepted`. The protected reviewer must inspect
+the original evidence and actual trusted run/artifact identity, source and
+branch rules, policy and complete acceptance; local JSON, `passed`, actor text
+and hashes do not establish those facts. No line permission, publisher role,
+registry mutation, public install or owner approval is created by this step.
 
 ## Read-only public registry observation
 

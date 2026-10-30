@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {copyFile, lstat, mkdir, open, readFile, writeFile} from 'node:fs/promises';
-import {basename, join, resolve} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
@@ -146,7 +146,8 @@ export async function verifyReleaseSet(directory, {expectedSha256} = {}) {
   const bytes = await readFile(await originalFile(directory, 'release-set.json'));
   const manifestSha256 = hash(bytes);
   if (expectedSha256 !== undefined) {assert.match(expectedSha256, /^[a-f0-9]{64}$/u); assert.equal(manifestSha256, expectedSha256, 'Release set differs from the externally retained digest');}
-  const manifest = JSON.parse(bytes); exact(manifest, ['schemaVersion', 'release', 'request', 'policy', 'cohorts', 'artifacts', 'acceptance', 'qualification']);
+  const manifest = JSON.parse(bytes); exact(manifest, ['schemaVersion', 'release', 'request', 'policy', 'cohorts', 'artifacts', 'acceptance', 'qualification',
+    ...(Object.hasOwn(manifest, 'review') ? ['review'] : [])]);
   assert.equal(manifest.schemaVersion, 'actql-release-set/0.1');
   assert.equal(manifest.acceptance, 'unaccepted', 'Local byte verification cannot promote acceptance');
   const selected = admitReleaseRequest(manifest.request, manifest.policy);
@@ -206,7 +207,155 @@ export async function verifyReleaseSet(directory, {expectedSha256} = {}) {
   }
   assert.equal(keys.size, manifest.artifacts.length, 'Unknown target artifact');
   assert.equal(await readFile(await originalFile(directory, 'release-set.sha256'), 'utf8'), `${manifestSha256}  release-set.json\n`);
-  return {manifest, sha256: manifestSha256};
+  const review = Object.hasOwn(manifest, 'review') ? await verifyReview(directory, manifest) : null;
+  return {manifest, sha256: manifestSha256, ...(review ? {review} : {})};
+}
+
+const reviewKinds = ['recipe', 'toolchain', 'build', 'acceptance', 'diff', 'signing'];
+const literal = value => assert(typeof value === 'string' && value.length && value.length <= 4096 &&
+  value === value.trim() && !/[\u0000-\u001f\u007f]/u.test(value), 'Expected bounded literal review text');
+const uniqueList = value => {assert(Array.isArray(value)); assert.equal(new Set(value).size, value.length);};
+const digestText = value => {assert.equal(typeof value, 'string'); assert.match(value, /^[a-f0-9]{64}$/u);};
+const commitText = value => {assert.equal(typeof value, 'string'); assert.match(value, /^[a-f0-9]{40}$/u);};
+
+function admitReview(request, manifest, originalSha256) {
+  exact(request, ['schemaVersion', 'manifestSha256', 'evidence', 'provenance', 'environments', 'acceptance', 'changes', 'executionScope']);
+  assert.equal(request.schemaVersion, 'actql-release-review-request/0.1');
+  assert.equal(request.manifestSha256, originalSha256, 'Review request selects another preparation manifest');
+  assert(Array.isArray(request.evidence) && request.evidence.length > 0 && request.evidence.length <= 128);
+  const evidence = new Map(); let total = 0;
+  for (const item of request.evidence) {
+    exact(item, ['id', 'kind', 'file', 'bytes', 'sha256']);
+    assert.equal(typeof item.id, 'string'); assert.match(item.id, /^[a-z][a-z0-9-]{0,63}$/u);
+    assert(!evidence.has(item.id), 'Duplicate evidence id'); evidence.set(item.id, item);
+    assert(reviewKinds.includes(item.kind)); literal(item.file);
+    assert(!item.file.startsWith('/') && item.file.split('/').every(part => part && !['.', '..'].includes(part)));
+    assert(Number.isSafeInteger(item.bytes) && item.bytes > 0 && item.bytes <= 64 * 1024 * 1024);
+    total += item.bytes; assert(total <= 256 * 1024 * 1024); digestText(item.sha256);
+  }
+  const reference = (id, kind) => assert(evidence.has(id) && evidence.get(id).kind === kind, `Missing ${kind} evidence: ${id}`);
+  const targets = manifest.request.targets, ids = targets.map(value => value.id);
+  for (const field of ['provenance', 'environments']) {
+    assert(Array.isArray(request[field]));
+    assert.deepEqual(request[field].map(value => value.targetId), ids, `Review ${field} must follow every original target`);
+  }
+  for (const item of request.provenance) {
+    exact(item, ['targetId', 'recipeEvidence', 'toolchainEvidence', 'build']);
+    reference(item.recipeEvidence, 'recipe'); reference(item.toolchainEvidence, 'toolchain');
+    const build = item.build;
+    if (build.kind === 'github-actions') {
+      exact(build, ['kind', 'repository', 'runId', 'attempt', 'artifactId', 'artifactSha256', 'evidence']);
+      assert.equal(build.repository, manifest.request.source.repository);
+      for (const key of ['runId', 'artifactId']) {assert.equal(typeof build[key], 'string'); assert.match(build[key], /^[1-9][0-9]*$/u);}
+      assert(Number.isSafeInteger(build.attempt) && build.attempt > 0); digestText(build.artifactSha256);
+    } else {
+      exact(build, ['kind', 'run', 'artifactId', 'evidence']); assert.equal(build.kind, 'local'); literal(build.run);
+      assert.equal(build.artifactId, null, 'A local receipt cannot invent a hosted immutable artifact id');
+    }
+    reference(build.evidence, 'build');
+  }
+  for (const [index, item] of request.environments.entries()) {
+    exact(item, ['targetId', 'platforms', 'profiles', 'node', 'python', 'abi', 'limitations']);
+    assert.deepEqual(item.platforms, targets[index].platforms); assert.deepEqual(item.profiles, targets[index].profiles);
+    for (const field of ['node', 'python']) if (item[field] !== null) literal(item[field]);
+    literal(item.abi); assert(Array.isArray(item.limitations)); item.limitations.forEach(literal);
+  }
+  assert(Array.isArray(request.acceptance));
+  assert.deepEqual(request.acceptance.map(value => [value.targetId, value.phase]),
+    ids.flatMap(id => [[id, 'prepublication-install'], [id, 'public-install']]));
+  for (const item of request.acceptance) {
+    exact(item, ['targetId', 'phase', 'status', 'evidence', 'limitations']);
+    assert(['not-run', 'passed', 'failed'].includes(item.status)); uniqueList(item.evidence);
+    assert.equal(item.evidence.length > 0, item.status !== 'not-run', 'Executed acceptance needs its original evidence');
+    item.evidence.forEach(id => reference(id, 'acceptance'));
+    assert(Array.isArray(item.limitations)); item.limitations.forEach(literal);
+  }
+  exact(request.changes, ['previousSource', 'diffEvidence']);
+  if (request.changes.previousSource === null) assert.equal(request.changes.diffEvidence, null);
+  else {commitText(request.changes.previousSource); reference(request.changes.diffEvidence, 'diff');}
+  const scope = request.executionScope;
+  exact(scope, ['publish', 'promote', 'resumeIdenticalMissing']);
+  for (const field of ['publish', 'resumeIdenticalMissing']) {
+    uniqueList(scope[field]); assert(scope[field].every(id => ids.includes(id)), 'Unselected execution target');
+  }
+  assert(scope.resumeIdenticalMissing.every(id => scope.publish.includes(id)), 'Resume scope exceeds proposed publication');
+  assert(Array.isArray(scope.promote)); const moves = new Set();
+  for (const item of scope.promote) {
+    exact(item, ['targetId', 'channel']); const target = targets.find(value => value.id === item.targetId);
+    assert(target && target.channels.includes(item.channel), 'Unselected promotion channel');
+    const key = `${item.targetId}/${item.channel}`; assert(!moves.has(key), 'Duplicate promotion'); moves.add(key);
+  }
+  assert(scope.publish.length || scope.promote.length, 'Select the proposed execution scope explicitly');
+  // These are supplied review claims and raw evidence bindings, never a proof
+  // of the claims, an accepted support row, owner approval or an execution lease.
+  return structuredClone(request);
+}
+
+async function checkedBytes(directory, record, maximum) {
+  const path = await originalFile(directory, record.path);
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const before = await handle.stat();
+    assert(before.isFile() && before.size > 0 && before.size <= maximum, 'Review file exceeds its explicit byte bound');
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'mode']) assert.equal(after[key], before[key]);
+    assert.equal(bytes.length, before.size);
+    if (record.bytes !== undefined) assert.equal(bytes.length, record.bytes);
+    if (record.sha256 !== undefined) assert.equal(hash(bytes), record.sha256);
+    return bytes;
+  } finally {await handle.close();}
+}
+
+async function verifyReview(directory, manifest) {
+  const binding = manifest.review; exact(binding, ['preparation', 'request', 'evidence']);
+  const verify = async (record, path, maximum) => {
+    exact(record, ['path', 'bytes', 'sha256']); assert.equal(record.path, path); digestText(record.sha256);
+    return checkedBytes(directory, record, maximum);
+  };
+  const preparation = await verify(binding.preparation, 'review/preparation.json', 4 * 1024 * 1024);
+  const {review, ...original} = manifest;
+  assert.deepEqual(JSON.parse(preparation), original, 'Review enrichment changed the original preparation body');
+  const request = admitReview(JSON.parse(await verify(binding.request, 'review/request.json', 1024 * 1024)), original, binding.preparation.sha256);
+  assert(Array.isArray(binding.evidence));
+  assert.deepEqual(binding.evidence.map(item => item.id), request.evidence.map(item => item.id));
+  for (const [index, item] of binding.evidence.entries()) {
+    exact(item, ['id', 'path', 'bytes', 'sha256']);
+    const {id, ...record} = item, supplied = request.evidence[index];
+    assert.equal(record.bytes, supplied.bytes); assert.equal(record.sha256, supplied.sha256);
+    await verify(record, `review/evidence/${id}`, 64 * 1024 * 1024);
+  }
+  return request;
+}
+
+export async function prepareReleaseReview({directory, expectedSha256, reviewFile, destination}) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  assert(!Object.hasOwn(fixed.manifest, 'review'), 'A review-enriched set cannot be silently enriched again');
+  directory = resolve(directory); reviewFile = resolve(reviewFile); destination = resolve(destination);
+  const preparation = await checkedBytes(directory, {path: 'release-set.json', sha256: expectedSha256}, 4 * 1024 * 1024);
+  const requestBytes = await checkedBytes(dirname(reviewFile), {path: basename(reviewFile)}, 1024 * 1024);
+  const request = admitReview(JSON.parse(requestBytes), fixed.manifest, expectedSha256), payloads = [];
+  for (const item of request.evidence) payloads.push({item, bytes: await checkedBytes(dirname(reviewFile),
+    {path: item.file, bytes: item.bytes, sha256: item.sha256}, 64 * 1024 * 1024)});
+  // Every supplied file and the original set validate before any destination is
+  // created. Partial output on an I/O failure stays original failed evidence.
+  await verifyReleaseSet(directory, {expectedSha256});
+  await mkdir(destination);
+  for (const item of [...fixed.manifest.cohorts, ...fixed.manifest.artifacts]) {
+    const output = join(destination, item.path); await mkdir(dirname(output), {recursive: true});
+    await copyFile(await originalFile(directory, item.path), output, constants.COPYFILE_EXCL);
+    const actual = await digest(output); assert.equal(actual.bytes, item.bytes); assert.equal(actual.sha256, item.sha256);
+  }
+  await mkdir(join(destination, 'review/evidence'), {recursive: true});
+  const put = async (path, bytes) => {await writeFile(join(destination, path), bytes, {flag: 'wx'}); return {path, bytes: bytes.length, sha256: hash(bytes)};};
+  const review = {preparation: await put('review/preparation.json', preparation), request: await put('review/request.json', requestBytes), evidence: []};
+  for (const {item, bytes} of payloads) review.evidence.push({id: item.id, ...await put(`review/evidence/${item.id}`, bytes)});
+  const manifest = {...fixed.manifest, review}, bytes = json(manifest), sha256 = hash(bytes);
+  await writeFile(join(destination, 'release-set.json'), bytes, {flag: 'wx'});
+  await writeFile(join(destination, 'release-set.sha256'), `${sha256}  release-set.json\n`, {flag: 'wx'});
+  await verifyReleaseSet(directory, {expectedSha256});
+  return verifyReleaseSet(destination, {expectedSha256: sha256});
 }
 
 // Registry observations are DATA, not approval/currentness or a publication
@@ -251,6 +400,30 @@ export function releaseSetSummary(fixed) {
     lines.push('', `${field}:`);
     for (const value of request.notes[field]) lines.push(`- ${escape(value)}`);
   }
+  if (fixed.review) {
+    const supplied = fixed.review;
+    lines.push('', '## Bound review evidence and proposed scope', '',
+      `Original preparation SHA256: ${supplied.manifestSha256}`, '',
+      'All provenance, environment and result labels below are supplied review DATA, not independently verified claims or owner approval.',
+      'A local build has no hosted immutable artifact ID. A passed label does not promote acceptance. The protected reviewer must inspect the bound original evidence.', '',
+      `Proposed publish targets: ${supplied.executionScope.publish.map(escape).join(', ') || '(none)'}`,
+      `Proposed identical-missing resume targets: ${supplied.executionScope.resumeIdenticalMissing.map(escape).join(', ') || '(none)'}`,
+      `Proposed promotion: ${supplied.executionScope.promote.map(item => `${escape(item.targetId)}/${escape(item.channel)}`).join(', ') || '(none)'}`, '',
+      `Previous source: ${supplied.changes.previousSource || '(none supplied)'}`, `Diff evidence: ${escape(supplied.changes.diffEvidence || '(none supplied)')}`);
+    for (const item of supplied.provenance) lines.push('', `Build provenance ${escape(item.targetId)} (supplied):`,
+      `Recipe: ${escape(item.recipeEvidence)}; toolchain: ${escape(item.toolchainEvidence)}`,
+      `Build: ${escape(JSON.stringify(item.build))}`);
+    for (const item of supplied.environments) lines.push('', `Environment ${escape(item.targetId)} (declared, not certified):`,
+      `Platforms: ${item.platforms.map(escape).join(', ')}; profiles: ${item.profiles.map(escape).join(', ')}`,
+      `Node: ${escape(item.node ?? '(not declared)')}; Python: ${escape(item.python ?? '(not declared)')}; ABI: ${escape(item.abi)}`,
+      ...item.limitations.map(value => `- ${escape(value)}`));
+    for (const item of supplied.acceptance) lines.push('',
+      `Reported ${escape(item.targetId)}/${escape(item.phase)}: ${escape(item.status)}; evidence: ${item.evidence.map(escape).join(', ') || '(none)'}`,
+      ...item.limitations.map(value => `- ${escape(value)}`));
+    lines.push('', '| Evidence | Kind | Bytes | SHA256 |', '| --- | --- | ---: | --- |');
+    for (const item of supplied.evidence) lines.push(`| ${escape(item.id)} | ${escape(item.kind)} | ${item.bytes} | ${item.sha256} |`);
+    lines.push('', 'Execution remains unavailable without independent owner approval, protected validator/policy and actual current execution checks.');
+  } else lines.push('', 'Review evidence and explicit execution scope are not bound. This preparation alone is not a complete approval presentation.');
   return {manifestSha256: fixed.sha256, request: structuredClone(request), artifacts: structuredClone(artifacts),
-    acceptance, markdown: `${lines.join('\n')}\n`};
+    acceptance, review: fixed.review ? structuredClone(fixed.review) : null, markdown: `${lines.join('\n')}\n`};
 }

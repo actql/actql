@@ -57,12 +57,16 @@
     {
       "id": "A05",
       "required": "Owner approval binds exact version and bytes",
-      "currentSlice": "Fixed release-set and protected executor pending",
+      "currentSlice": "Fixed release-set plus a distinct immutable review enrichment binds raw build/acceptance evidence and proposed publish/promotion/identical-missing scope. Supplied claims stay unaccepted; protected owner approval/executor remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "fixed header binds the explicit release line and every version projection"
+        },
+        {
+          "kind": "Inert cold-byte/evidence component only; no trusted approval or actual candidate acceptance",
+          "test": "release review: CLI creates a distinct bound evidence set and both summaries without mutating or approving preparation"
         }
       ]
     },
@@ -81,7 +85,7 @@
     {
       "id": "A07",
       "required": "Changed source/scope/channel/digest invalidates approval",
-      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests and exact artifact identity; protected approval/executor pending",
+      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests, exact artifacts and separately supplied review evidence/scope. Evidence/proposal changes yield a new digest; protected approval/executor pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {

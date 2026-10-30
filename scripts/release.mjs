@@ -7,7 +7,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {releasePlan} from './release-policy.mjs';
-import {freezeReleaseSet, verifyReleaseSet, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
+import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {promotionPlan} from './release-channels.mjs';
 import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
@@ -33,6 +33,10 @@ export async function runRelease(args) {
   if (command === 'observe' || command === 'channels') {
     assert.equal(values.length, 2, 'usage: release.mjs observe|channels <fixed-directory> <externally-retained-sha256>');
     return (command === 'observe' ? observeReleaseSet : observeReleaseChannels)(values[0], values[1]);
+  }
+  if (command === 'review') {
+    assert.equal(values.length, 4, 'usage: release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-directory>');
+    return prepareReleaseReview({directory: values[0], expectedSha256: values[1], reviewFile: values[2], destination: values[3]});
   }
   if (command === 'promotion-plan') {
     assert.equal(values.length, 4, 'usage: release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>');
