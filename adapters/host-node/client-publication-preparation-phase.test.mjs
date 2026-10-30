@@ -55,7 +55,7 @@ test('publication invocation issues and binds through one Core original engine, 
  const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared);
  assert.equal(issued.invocation,invocation);assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
  assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Foreign Client compiled Run/);
- compiled.kind='tasks';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
+ compiled.kind='infer';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
 });
 
 test('funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call',()=>{
@@ -98,6 +98,42 @@ test('funded source-free Tasks invocation uses the same Core owner without a leg
    {maxWireBytes:11,maxNodes:13,maxDepth:17},owner,prepared);
  assert.equal(issued.invocation,invocation);
  assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
+});
+
+test('funded invocation refuses Source evidence and every non Values Tasks profile before Core',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},definition={};let calls=0;
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,{}]]),token:x=>x,captureContractLimits:x=>x,
+   moon:{clientProgramIssuePublicationInvocation(){calls++;assert.fail('invalid profile reached Core');}}},true);
+ for(const kind of ['values','tasks']){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{source:{},dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ for(const kind of ['infer','serialization','effects',undefined]){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ assert.equal(calls,0);
+ assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},{},owner,prepared),
+   /Foreign Client compiled Run/);
+});
+
+test('unfunded source-free Tasks invocation retains its original legacy issuer',()=>{
+ const compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssueCompiledSourceFreeTaskInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssuePublicationInvocation(){assert.fail('no admitted publication owner was supplied');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17});
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
 function captureFinisher(context,name='finishProgramCapture') {
