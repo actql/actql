@@ -1479,3 +1479,40 @@ test('whole Source capacity facade captures the original method and receiver wit
   source.managedWholeSourceCapacity = () => assert.fail('Original fixed method must be retained');
   assert.equal(bound.managedWholeSourceCapacity(facts), selected);
 });
+
+test('funded policy Source original wins over compute while preserving the same request verifier and signal', async () => {
+  const request = {}, originalRequest = {}, environment = {}, result = {}, verifier = () => {};
+  const signal = new AbortController().signal, events = [];
+  const source = {fundedPreparation(value, selected, callback, actualSignal) {
+    assert.equal(this, source); assert.equal(value, originalRequest); assert.equal(selected, environment);
+    assert.equal(callback, verifier); assert.equal(actualSignal, signal); events.push('source');
+    return Promise.resolve(result);
+  }, close() {return {pending: false};}};
+  const compute = {fundedPreparation() {assert.fail('The original Source manager must not fall through to compute');},
+    close() {return {pending: false};}};
+  const f = lifecycle({source, factory: async () => compute,
+    originalRequest(value) {assert.equal(value, request); events.push('same-request'); return originalRequest;},
+    current(manager) {if (manager !== undefined) events.push(manager === source ? 'source-current' : 'compute-current');}});
+  await f.preparation.prepareManagedCompute(); events.length = 0;
+  try {
+    assert.equal(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
+    assert.deepEqual(events, ['source-current', 'same-request', 'source']);
+  } finally {await f.initialControl.close();}
+});
+
+test('funded policy Source current refusal keeps its original cause before mapping or compute fallback', async () => {
+  const cause = new Error('original Source installation is no longer current');
+  let refuse = false, mapped = 0, calls = 0;
+  const source = {fundedPreparation() {calls++; assert.fail('A refused Source cannot enter preparation');},
+    close() {return {pending: false};}};
+  const compute = {fundedPreparation() {assert.fail('A current Source refusal is not optional compute selection');},
+    close() {return {pending: false};}};
+  const f = lifecycle({source, factory: async () => compute,
+    originalRequest() {mapped++; assert.fail('Refuse before original request projection');},
+    current(manager) {if (refuse && manager === source) throw cause;}});
+  await f.preparation.prepareManagedCompute(); refuse = true;
+  try {
+    assert.throws(() => f.preparation.fundedPreparation({}, {}, () => {}, undefined), error => error === cause);
+    assert.equal(mapped, 0); assert.equal(calls, 0);
+  } finally {refuse = false; await f.initialControl.close();}
+});
