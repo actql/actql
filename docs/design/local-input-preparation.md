@@ -3594,3 +3594,27 @@ capture borrows those trees; its existing original construction extent supplies
 the recursive row-node envelope for nested writer keys, without copying rows or
 parsing them again. Physical funding, output storage and cleanup acknowledgement
 remain obligations of their existing owners.
+
+## Request checking precedes final body selection
+
+The Request's semantic-check boundary can complete while its original working
+reservation still has Unit body type. Native and query inputs retain their same
+Source/index, Program, Parameter cursor, Catalog and checked child. Completing
+this boundary issues no Prepared body, executable Plan, Run, policy attestation
+or retirement acknowledgement. Reobserving an already completed semantic phase
+does not run its checker or spend its work receipt again.
+
+The existing full preparation driver consumes that same checked child through
+its compiler and the one eventual Pure/Effect capacity continuation. It does
+not reconstruct an input or select a second reservation. Before that selection,
+original cancellation can still clear the checker and its aliases through the
+Request's existing cleanup; after selection the existing typed body owns its
+normal retirement duties.
+
+A trusted request-value verifier may require a supplemented checking Environment.
+The check-only boundary cannot certify that changed Environment with the old
+verdict: the actual Host must retain its original policy evidence, input and
+parent through the required supplemental semantic phase before final compiler
+and body selection. Neither an absent verifier result nor this Unit return is
+permission to serialize again, substitute a Source publication, skip policy
+verification or manufacture an unowned fallback preparation.

@@ -100,6 +100,65 @@ fn[I] finish_request_original_computation(
     Err(issue) => return Err(Publication(issue))
     Ok(original) => original
   }
+  match
+    prepare_request_original_computation_check_owned(
+      owner, input, environment, catalog, evidence, program_limits, effect_limits,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    finish_request_computation_preparation(
+      owner,
+      input,
+      update_targets=update,
+      store_targets=store,
+      command_targets=command,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  request_prepared_computation_kind(owner, input).map_err(issue => {
+    Preparation(issue)
+  })
+}
+
+///|
+/// Continue the same constructed native/query Program through its checker,
+/// retaining the original Source/index/Parameters and Unit working capacity.
+/// Later trusted Host policy verification must not force another SDK capture
+/// or choose an eventual body before its final checking Environment is known.
+pub fn[I] prepare_request_original_computation_check(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+) -> Result[Unit, ClientRequestTerminalIssue] {
+  let catalog = match
+    @source_publication.prepared_published_query_catalog(
+      publication, environment,
+    ) {
+    Err(issue) => return Err(Publication(issue))
+    Ok(original) => original
+  }
+  prepare_request_original_computation_check_owned(
+    owner, input, environment, catalog, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+fn[I] prepare_request_original_computation_check_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  catalog : @checked.PreparedSourceCatalog,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+) -> Result[Unit, ClientRequestTerminalIssue] {
   let child = match
     prepare_request_computation_check_preparation(
       owner,
@@ -186,18 +245,5 @@ fn[I] finish_request_original_computation(
     Err(issue) => return Err(Preparation(ProgramCheck(issue)))
     Ok(_) => ()
   }
-  match
-    finish_request_computation_preparation(
-      owner,
-      input,
-      update_targets=update,
-      store_targets=store,
-      command_targets=command,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  request_prepared_computation_kind(owner, input).map_err(issue => {
-    Preparation(issue)
-  })
+  finish_request_computation_check(owner, input)
 }
