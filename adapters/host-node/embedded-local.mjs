@@ -2742,6 +2742,19 @@ async function openInstalledHost(originalInstallation, preparation) {
   // reconstruction that the live Run's exact-original fence must refuse.
   // Weak ownership neither keeps the Prepared alive nor grants another Run.
   const sourceFreeRequestIdentities = new WeakMap();
+  const originalSourceFreeRequest = (preparedProgram, requestId) => {
+    let original = sourceFreeRequestIdentities.get(preparedProgram);
+    if (original === undefined) {
+      const requested = moon.clientProgramRequestIdentity(preparedProgram,
+        authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
+      if (requested === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+      original = Object.freeze({requestId, requested});
+      sourceFreeRequestIdentities.set(preparedProgram, original);
+    } else if (original.requestId !== requestId) {
+      throw clientOperationError('ForeignInstalledComputeRun');
+    }
+    return original.requested;
+  };
   const requestOf = ({preparedProgram, requestId}) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
@@ -2796,16 +2809,33 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (acquisitionCount > 2) {
         throw clientOperationError('ClientProgramUnsupported');
       }
+      const requested = originalSourceFreeRequest(preparedProgram, requestId);
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
-          const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-            preparedProgram, runtimeOptionalField(coordinates, 0) ?? task, runtimeOptionalField(coordinates, 1) ?? 0,
-            registry, values, fragment, ordered));
-          const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
+          const stage = runtimeOptionalField(coordinates, 0) ?? task;
+          const input = runtimeOptionalField(coordinates, 1) ?? 0;
+          const selected = checked(moon.clientProgramSelectInstalledSourceInput(
+            preparedProgram, requested, stage, input));
+          const kind = moon.clientProgramSelectedSourceInputKind(selected);
+          if (kind !== 'query' && kind !== 'whole-input' ||
+              kind === 'whole-input' && (acquisitionCount !== 1 || keyedAcquisition !== undefined)) {
+            throw new Error('InstalledSourcePreparationMismatch');
+          }
+          const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
+          if (kind === 'query') {
+            const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+              preparedProgram, stage, input, registry, values, fragment, ordered));
+            if (moon.clientProgramQueryRequirementSourceRef(requirement) !== sourceRef) {
+              throw new Error('InstalledSourcePreparationMismatch');
+            }
+          }
           const adapter = installedSourceFor(sourceProfile, sourceRef);
+          if (kind === 'whole-input' && typeof adapter.managedWholeSourceCapacity !== 'function') {
+            throw new Error('InstalledSourceCapacityUnavailable');
+          }
           if (acquisitionCount === 2 &&
               !installedSourceReadBindings(adapter).includes(sourceRef)) {
             throw new Error('InstalledMultiSourceUnsupported');
@@ -2841,18 +2871,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
     } else prepareInferSelection(preparedProgram, occurrences[0]);
-    let originalIdentity = sourceFreeRequestIdentities.get(preparedProgram);
-    if (originalIdentity === undefined) {
-      const requested = moon.clientProgramRequestIdentity(preparedProgram,
-        authorityScopeCid, requestId,
-        moon.clientProgramSourceFreeInputIntentCid());
-      if (requested === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-      originalIdentity = Object.freeze({requestId, requested});
-      sourceFreeRequestIdentities.set(preparedProgram, originalIdentity);
-    } else if (originalIdentity.requestId !== requestId) {
-      throw clientOperationError('ForeignInstalledComputeRun');
-    }
-    const {requested} = originalIdentity;
+    const requested = originalSourceFreeRequest(preparedProgram, requestId);
     const resultNames = [];
     for (let index = 0;
       index < moon.clientProgramResultCount(preparedProgram); index++) {
@@ -2864,13 +2883,19 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const prepareAcquisition = async (preparedProgram, sourceAccess,
     occurrence = {stage: 0, input: 0, task: 0}) => {
-    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-      preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+    if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+    const selected = checked(moon.clientProgramSelectInstalledSourceInput(
+      preparedProgram, requestIdentity, occurrence.stage, occurrence.input));
+    const kind = moon.clientProgramSelectedSourceInputKind(selected);
+    if (kind !== 'query' && kind !== 'whole-input') {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
     const adapter = installedSourceFor(sourceProfile,
-      moon.clientProgramQueryRequirementSourceRef(requirement));
+      moon.clientProgramSelectedSourceInputRef(selected));
     try {
       const prepared = await adapter.prepare({preparedProgram, registry, values, fragment, ordered,
-        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence,
+        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence, requestIdentity,
         requireImmediateReadAuthorization: checkpoints === undefined});
       if (prepared.selection !== undefined) diagnostic('acquisition_selection',
         {task: occurrence.task, selection: prepared.selection});
