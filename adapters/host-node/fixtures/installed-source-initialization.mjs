@@ -2,7 +2,7 @@
 // This is not the public Host installation/current or Request-borrow route.
 import assert from 'node:assert/strict';
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/closed-values-preparation-adapter.mjs';
+  from '../../local-node/request-preparation-adapter.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   installedSourceConfigurationReader, beginInstalledSourceInitialization,
   finishInstalledSourceInitialization, retireInstalledSourceInitialization}
