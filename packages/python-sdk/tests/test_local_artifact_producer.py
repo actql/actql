@@ -229,7 +229,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('sdk_binary_image_inspector',
             ROOT / 'scripts/build-python-product-wheels.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-        wheel = self.root / 'synthetic-sdk.whl'
+        wheel = self.root / 'actql_sdk-0.0.0.dev0-py3-none-any.whl'
         for binary in (False, True):
             with zipfile.ZipFile(wheel, 'w') as archive:
                 archive.writestr('sdk.dist-info/METADATA',
