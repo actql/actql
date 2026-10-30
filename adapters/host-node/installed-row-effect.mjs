@@ -434,12 +434,51 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
   let checkOptions;
   if (check !== undefined) {
     const resource = data(check, 'resource'), operation = data(check, 'operation');
-    const request = data(check, 'request');
     const beforeSend = data(check, 'beforeSend', true);
-    if (!text(resource) || !text(operation) || typeof request !== 'function' ||
+    const checkHttp = data(check, 'http', true);
+    const request = data(check, 'request', checkHttp !== undefined);
+    if (!text(resource) || !text(operation) ||
         (beforeSend !== undefined && typeof beforeSend !== 'boolean')) fail();
-    checkOptions = {check: Object.freeze({resource, operation, ...(beforeSend === true ? {beforeSend} : {})}),
-      checkRequest: context => Reflect.apply(request, check, [context])};
+    const description = Object.freeze({resource, operation, ...(beforeSend === true ? {beforeSend} : {})});
+    if (checkHttp === undefined) {
+      if (typeof request !== 'function') fail();
+      checkOptions = {check: description, checkRequest: context => Reflect.apply(request, check, [context])};
+    } else {
+      const body = data(check, 'body'), project = data(check, 'project');
+      const checkOrigin = data(checkHttp, 'origin'), checkMethod = data(checkHttp, 'method'), checkPath = data(checkHttp, 'path');
+      const requestBytes = data(checkHttp, 'maxRequestBytes'), responseBytes = data(checkHttp, 'maxResponseBytes');
+      if (request !== undefined || checkOrigin !== origin || !['GET','POST','HEAD'].includes(checkMethod) || !text(checkPath) ||
+          ![requestBytes,responseBytes].every(value => Number.isSafeInteger(value) && value > 0) ||
+          typeof body !== 'function' || typeof project !== 'function' ||
+          nodeTypes.isAsyncFunction(body) || nodeTypes.isAsyncFunction(project)) fail();
+      const readHeaders = ownRequestHeaders(data(checkHttp, 'headers', true));
+      const readResponseHeaders = ownResponseHeaderNames(data(checkHttp, 'responseHeaders', true));
+      const template = ownHttpRequest({method: checkMethod, path: checkPath,
+        query: data(checkHttp, 'query', true), headers: readHeaders});
+      checkOptions = {check: description,
+        async checkRequest({request, authorization, credential, callResource, signal}) {
+          original(request);
+          if (authorization?.scope?.resourceOrigin !== checkOrigin) fail();
+          signal?.throwIfAborted();
+          const context = Object.freeze({resource, request});
+          const value = Reflect.apply(body, check, [context]);
+          if (typeof value !== 'string') {
+            // Invalid async provider work stays in this SAME original child
+            // until settlement. Rejection preserves its original cause.
+            await value;
+            fail();
+          }
+          if (value.length > requestBytes || Buffer.byteLength(value) > requestBytes) fail();
+          const observed = await invokeScopedCredentialOperation({authorization, credential, callResource,
+            operation, method: checkMethod, path: template.target, headers: template.headers, body: value,
+            responseHeaders: readResponseHeaders, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, signal});
+          signal?.throwIfAborted();
+          const projected = Reflect.apply(project, check, [Object.freeze({resource, request,
+            observation: Object.freeze({useCid: observed.useCid, statusCode: observed.statusCode, body: observed.body}),
+            ...(Object.hasOwn(observed, 'headers') ? {headers: observed.headers} : {})})]);
+          if (projected !== undefined) {await projected; fail();}
+        }};
+    }
   }
   const originals = new WeakMap();
   const original = request => {
