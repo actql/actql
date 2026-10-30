@@ -1601,6 +1601,8 @@ pub fn client_program_query_time_context(@run_publication_host.ClientQueryTimePr
 
 pub fn client_program_query_time_created_at(@run_publication_host.ClientQueryTimePreparation) -> String
 
+pub fn client_program_query_time_invocation_original(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
+
 pub fn client_program_read_installed_model_defaults(String, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientModelProviderDefaults, @run_publication_host.ClientModelProviderDefaultsIssue]
 
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]

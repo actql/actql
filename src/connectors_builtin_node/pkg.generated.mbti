@@ -2700,6 +2700,8 @@ pub fn client_program_query_time_context(@run_publication_host.ClientQueryTimePr
 
 pub fn client_program_query_time_created_at(@run_publication_host.ClientQueryTimePreparation) -> String
 
+pub fn client_program_query_time_invocation_original(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
+
 pub fn client_program_read_composed_infer_model_execution(@run_publication_host.ClientInferOccurrence, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_publication.ModelCaptureBundleRead, @run_publication.RunEvidenceValueIssue]
