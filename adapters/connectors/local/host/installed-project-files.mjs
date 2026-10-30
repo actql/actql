@@ -226,25 +226,22 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     current();const run=runs.get(prepared);
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
-    checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-      (run.value,prepared,run.request));return run;
+    checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,run.request));return run;
   };
-  function prepareRun(prepared,request,effectful){
+  function prepareRun(prepared,request,effectful=false){
+    if(effectful!==false)fail('InstalledEffectPlanUnavailable');
     current();let run=runs.get(prepared);
     if(run!==undefined){if(run.effectful!==effectful)fail('ForeignLocalFilesPreparation');sameRun(prepared);
-      checked((effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-        (run.value,prepared,request));return;}
+      checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,request));return;}
     if(runs.size===4096)fail('LocalFilesRunLimit');
     run={prepared,request,effectful,original:undefined,admission:undefined,value:undefined,reads:new Map(),retired:false,
       failed:false,failure:undefined};
     runs.set(prepared,run);
     try{
-      run.original=effectful?sourceManaged.prepareEffectRun(prepared):sourceManaged.prepareRun(prepared);
+      run.original=sourceManaged.prepareRun(prepared);
       current();
-      run.admission=checked((effectful?moon.clientProgramNodeEffectManagedRunPrepare:moon.clientProgramNodeManagedRunPrepare)
-        (run.original,prepared));
-      run.value=checked((effectful?moon.clientProgramInstalledEffectManagedRunBegin:moon.clientProgramInstalledManagedRunBegin)
-        (run.admission,prepared,request));sameRun(prepared);
+      run.admission=checked(moon.clientProgramNodeManagedRunPrepare(run.original,prepared));
+      run.value=checked(moon.clientProgramInstalledManagedRunBegin(run.admission,prepared,request));sameRun(prepared);
     }catch(cause){run.failed=true;run.failure=cause;throw cause;}
   }
   function prepareContentRun(prepared,request,recipe){
@@ -326,8 +323,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       if([...run.reads.values()].some(read=>!read.closed)||run.retired)continue;
       try{
         if(run.value!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-        else if(run.admission!==undefined)checked((run.effectful?moon.clientProgramNodeEffectManagedRunCleanup:
-          moon.clientProgramNodeManagedRunCleanup)(run.admission));
+        else if(run.admission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(run.admission));
         run.retired=true;
       }catch(cause){errors.push(cause);}
     }
@@ -379,6 +375,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         originalKeyedTransport:keyedTransports.get(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence}){
+          if(effectful!==false)fail('InstalledEffectPlanUnavailable');
           const run=sameRun(checkedOwner),index=occurrence.stage;
           if(effectful!==run.effectful||declaration!==entry.declaration||occurrence.input!==0||
               !Number.isSafeInteger(index)||index<0||run.reads.has(index))fail('LocalFilesSourcePreparationMismatch');
@@ -526,7 +523,6 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:ref=>sources.some(source=>source.admitsSource(ref)),
       prepareManagedRun:(prepared,request)=>prepareRun(prepared,request,false),
-      prepareManagedEffectRun:(prepared,request)=>prepareRun(prepared,request,true),
       prepareManagedContentRun:prepareContentRun,managedContentLedger:contentLedger,close});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:{close}});}
 }

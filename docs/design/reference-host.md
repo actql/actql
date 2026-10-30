@@ -1742,14 +1742,28 @@ The selected component handles enter the Plan's provider factory alongside the
 unchanged canonical family constructors; later execution must use those same
 handles rather than append a replacement after quoting.
 
-The Host Run record retains the Plan before Root preparation and its admission
-before beginning the existing Model Scope. A failed begin remains attached to
-that same admission. The returned managed Run and Scope remain paired with the
-original compiled definition and graph. The existing complete dispatch or
-initialization retirement observation reaches the same Scope's finish port
-before the parent can retire. Live reads, a pending finish, or changed originals
-refuse that transition; a terminal outcome or settled Promise supplies no
-physical-cleanup acknowledgement.
+The Host retains the same SDK Request, selected Plan and Model demand before
+constructing its Scope on the original Request parent. The immutable Plan
+projection must match that exact demand. The existing outer Run record retains
+the returned Scope before Request completion or adoption can fail; there is no
+second Node admission, replacement Root or additional cleanup owner. The
+manager captures both Model methods with the original runtime receiver before
+construction. Non-Model Requests retain their existing completion path.
+
+The existing complete dispatch or initialization retirement observation reaches
+the same Scope's finish port before the preparation-owned Run can retire.
+Live reads, a pending finish, or changed originals refuse that transition; a
+terminal outcome or settled Promise supplies no physical-cleanup acknowledgement.
+After that witness, Host retirement cuts its raw Scope, compiled definition,
+graph, selected demand and Plan aliases before returning the original typed
+input borrower. Failed adoption retains that Scope in the same outer record;
+its original producer/input cleanup, rather than a nonexistent adopted manager
+Run, retires the initial parent.
+
+The normal implementation still has to select its actual original Model graph,
+component providers and complete initial constructor/read overlap. Neither this
+caller nor the Model Plan's numeric requirements select or fund those inputs.
+A missing original selection continues to refuse before execution.
 
 ## Capturing the installed Source service
 

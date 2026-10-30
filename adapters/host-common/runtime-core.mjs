@@ -3344,27 +3344,6 @@ function publicationControl(moon) {
         budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
         budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
     },
-    checkedClientEffectMockModelRunRequirements(prepared, compiled, compilation, definition, occurrence, graph,
-      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Effect Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectMockModelManagedRunRequirements(
-        prepared, value, compilation, token(definition), occurrence, graph, declarations,
-        query, evidence, transport, scratch, registry, values, fragment, ordered));
-    },
-    beginCheckedClientEffectMockModelManagedRun(admission, prepared, request, compiled, compilation,
-      definition, graph, budget) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Effect Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectMockModelManagedRunBegin(admission,
-        prepared, request, value, compilation, token(definition), graph,
-        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
-        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
-    },
     prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {

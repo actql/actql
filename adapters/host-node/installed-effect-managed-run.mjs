@@ -2,7 +2,6 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
-import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
@@ -23,7 +22,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   if (old !== undefined) return same(old);
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
   const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model,
-    definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined,
+    definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined, modelScope: undefined,
     closed: false, selecting: false, operationsBegun: false};
   runs.set(prepared, run);
   liveRuns.add(run);
@@ -90,22 +89,24 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       }
       assertCurrent();
     } else {
-      run.cleanup = runtime.clientProgramNodeEffectManagedPlanCleanup;
-      run.prepare = runtime.clientProgramNodeEffectModelManagedPlanPrepare;
-      run.begin = runtime.clientProgramInstalledEffectModelManagedPlanBegin;
       run.finishModelScope = runtime.clientProgramFinishInferOriginalReadScope;
-      const original = manager.prepareEffectModelPlanRun;
-      if (![run.cleanup, run.prepare, run.begin, original].every(value => typeof value === 'function')) {
-        fail('NodeManagedRunRuntimeUnavailable');
+      const matches = runtime.clientProgramInstalledEffectPlanMatchesModelDemand;
+      const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectModelPreparation')?.value;
+      if (typeof run.finishModelScope !== 'function' || typeof matches !== 'function') {
+        fail('InstalledEffectModelRuntimeUnavailable');
       }
-      if (typeof run.finishModelScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
-      run.original = Reflect.apply(original, manager, [prepared, operationPlan]);
+      if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
+      if (Reflect.apply(matches, runtime, [operationPlan, run.modelDemand]) !== true) {
+        fail('ForeignInstalledEffectModelSelection');
+      }
+      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan, run]);
+      if (adopted.original !== run.original || adopted.operationPlan !== operationPlan ||
+          run.original === undefined || run.modelScope === undefined || adopted.value === undefined) {
+        fail('ForeignInstalledEffectManagedRun');
+      }
+      run.value = adopted.value;
+      run.preparationFunded = true;
       assertCurrent();
-      run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, operationPlan]));
-      const begun = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request, operationPlan]));
-      run.value = runtimeField(begun, 0);
-      run.modelScope = runtimeField(begun, 1);
-      if (run.value === undefined || run.modelScope === undefined) fail('InstalledEffectModelScopeUnavailable');
     }
     // The original Request/Model adoption above supplies the SAME Ledger.
     // Quote DATA alone cannot back the consumer's later operation controls.
