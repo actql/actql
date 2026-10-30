@@ -4,5 +4,7 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/calendar_profile",
+  "actql/actql/program_check",
+  "actql/actql/check_environment",
   "actql/actql/connectors/calendar/catalog",
 }

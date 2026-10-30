@@ -64,6 +64,16 @@ before use and performs no exchange, accounting, grant or cleanup itself.
 Actual Source publication, the complete parent and the original Profile getter
 must be connected by their existing owners before this is a normal reader.
 
+The Calendar provider's `calendarEventsProfileFromEnvironment` bridge exposes
+the exact Profile retained by the supplied original CheckEnvironment, through
+the existing `checking_environment_calendar_profile` and
+`selected_calendar_profile` accessors. An environment without a selected
+artifact refuses; the getter does not admit bytes, select a profile or enable
+Calendar. Supplying a different environment is not proof of correspondence to
+the caller's Source or Run. The shared Host must retain and supply that same
+checked-environment original at its actual preparation boundary. This keeps the
+provider's request/page conversion independent of ambient timezone state.
+
 Publication and physical reading must still bind the actual original calendar,
 timezone, selected profile and response to the same checked acquisition. The
 shared Host owns current authorization, original request/response custody,
