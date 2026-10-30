@@ -261,3 +261,84 @@ test "cold CREATE keeps Mapping typed value and independent comparison bounds re
     is Err(Catalog(Request(BudgetExceeded))),
   )
 }
+
+///|
+test "original CREATE proposal ingress rejects foreign envelopes without an encoder fallback" {
+  let mapping = restore_create_mapping()
+  for
+    wire in [
+      "[]", "{\"value\":{\"Subject\":\"x\"}}", "{\"state\":\"absent\",\"value\":{\"Subject\":\"x\"}}",
+      "{\"state\":\"present\",\"value\":{\"Subject\":\"x\"},\"extra\":true}", "{\"state\":\"present\",\"value\":[{\"Subject\":\"x\"}]}",
+    ] {
+    assert_true(
+      prepare_record_create_execution_proposal(
+        mapping,
+        @utf8.encode(wire),
+        8192,
+        create_construction_write(16),
+        create_construction_request(),
+      )
+      is Err(Catalog(InvalidRecords)),
+    )
+  }
+  assert_true(
+    prepare_record_create_execution_proposal(
+      mapping,
+      b"{\"state\":\"present\",\"value\":{\"Subject\":42}}",
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(Catalog(Write(InvalidValue("Subject")))),
+  )
+}
+
+///|
+test "original CREATE proposal ingress checks independent input body and Mapping bounds" {
+  let mapping = restore_create_mapping()
+  let wire = b"{\"state\":\"present\",\"value\":{\"Subject\":\"東京\"}}"
+  assert_true(
+    prepare_record_create_execution_proposal(
+      mapping,
+      wire,
+      wire.length() - 1,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(Catalog(BudgetExceeded)),
+  )
+  let copied : RecordCreateMapping = { ..mapping, }
+  assert_true(
+    prepare_record_create_execution_proposal(
+      copied,
+      wire,
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(MappingMismatch),
+  )
+  assert_true(record_create_mapping_resource(copied) is Err(MappingMismatch))
+  assert_eq(record_create_mapping_resource(mapping), Ok("inquiries"))
+  assert_true(
+    restore_record_create_execution_proposal(
+      mapping,
+      wire,
+      "{\"app\":\"12\",\"records\":[]}",
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(Catalog(Request(InvalidRequest))),
+  )
+  assert_true(
+    prepare_record_create_execution_proposal(
+      mapping,
+      wire,
+      8192,
+      create_construction_write(16),
+      { ..create_construction_request(), max_output_bytes: 5, },
+    )
+    is Err(Catalog(Request(BudgetExceeded))),
+  )
+}
