@@ -140,3 +140,69 @@ test "original JSON page array enters existing full row admission without droppi
     is Err(_),
   )
 }
+
+///|
+test "original JSON page supports root arrays and bounded nullable nested cursor paths" {
+  let rows = "[ {\"id\":\"1\"} ]"
+  let root = project_row_source_json_page(
+    @utf8.encode(" \r\n" + rows + "\t"),
+    [],
+    false,
+    [],
+    4096,
+    256,
+    16,
+    1,
+    0,
+  ).unwrap()
+  assert_eq(row_source_json_page_rows_wire(root), rows)
+  assert_false(row_source_json_page_has_next_cursor(root))
+  let nested = project_row_source_json_page(
+    @utf8.encode(
+      "{\"ignored\":\"🚀\",\"data\":{\"rows\":" +
+      rows +
+      "},\"paging\":{\"cursor\":\"\"}}",
+    ),
+    ["data", "rows"],
+    true,
+    ["paging", "cursor"],
+    4096,
+    256,
+    16,
+    1,
+    0,
+  ).unwrap()
+  assert_eq(row_source_json_page_rows_wire(nested), rows)
+  assert_true(row_source_json_page_has_next_cursor(nested))
+  assert_eq(row_source_json_page_next_cursor(nested).unwrap(), "")
+  for cursor in ["null", "{}"] {
+    let page = project_row_source_json_page(
+      @utf8.encode("{\"items\":[],\"paging\":" + cursor + "}"),
+      ["items"],
+      true,
+      ["paging", "cursor"],
+      4096,
+      256,
+      16,
+      0,
+      64,
+    ).unwrap()
+    assert_false(row_source_json_page_has_next_cursor(page))
+  }
+  for cursor in ["false", "[]", "{\"cursor\":false}"] {
+    assert_true(
+      project_row_source_json_page(
+        @utf8.encode("{\"items\":[],\"paging\":" + cursor + "}"),
+        ["items"],
+        true,
+        ["paging", "cursor"],
+        4096,
+        256,
+        16,
+        0,
+        64,
+      )
+      is Err(InvalidCursor),
+    )
+  }
+}
