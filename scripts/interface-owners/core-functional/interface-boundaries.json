@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -28231,7 +28231,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "406423800e18b7f90439efd48eec10d08b650d2a9fa36d03cfd2bf4b523ea8d3",
+      "sha256": "bb7207042356176a011e74ea825d0f6ea9bc6316895704495c457680002ef104",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28265,8 +28265,16 @@
           "declaration": "[ I ] finish_request_program_artifact_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
+          "name": "[I]prepare_request_capture_module_body",
+          "declaration": "[ I ] prepare_request_capture_module_body ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
           "name": "[I]prepare_request_program_module_body",
           "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_program_module_body_owned",
+          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "[I]request_program_plan_quote",
@@ -28499,6 +28507,111 @@
               {
                 "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
                 "anchor": "test \"original Values and Task Plan writer debits preserve"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_capture_module_body",
+            "[I]prepare_request_program_module_body_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "pub fn[I] prepare_request_capture_module_body("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "fn[I] prepare_request_program_module_body_owned("
+              },
+              {
+                "path": "src/client_local_host/installed_capture_plan.mbt",
+                "anchor": "mut compilation : @publication_host.ClientRunCompilation?"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "!physical_equal(plan.prepared, prepared) ||"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "!physical_equal(plan.installed_contracts, contracts) ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.program_captured = Some(plan)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.phase = Selecting"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "@resources.reserve_working_preparation_phase(capacity, input, r, e)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "return Err(Preparation(ForeignOriginal))"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "ignore(finish_request_program_artifact_work(owner))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_owned_run.mbt",
+                "anchor": "value.captured_preparation = None"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "@resources.begin_preparation_phase_work64("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.program_artifact_work = Some(work)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
               }
             ]
           }
@@ -32691,7 +32804,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "a98f1361d2bfbb1366fca3b5534a39c4ff03da51fd3dd492186790504ef43761",
+      "sha256": "6793697cc1a214f22c782f736698bd090fa3e40d2a748f85c7c5b0e88623b315",
       "exports": [],
       "operations": [
         {
@@ -33804,7 +33917,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e93bb786424c92e3a8a4e0baff1d3bf9102eb8efc5a89541a4d6cfb6526c933b",
+      "sha256": "1378e3f244f984178b2115eba62e7564526135bcfb7e75f8f7a24cf98d433d6f",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -33856,10 +33969,6 @@
         {
           "name": "client_program_close_host_initialization_preparation",
           "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
-        },
-        {
-          "name": "client_program_complete_request_capture_preparation",
-          "declaration": "client_program_complete_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
           "name": "client_program_complete_request_effect_preparation",
@@ -34198,7 +34307,6 @@
         {
           "operations": [
             "client_program_adopt_request_capture_preparation",
-            "client_program_complete_request_capture_preparation",
             "client_program_installed_managed_capture_plan_prepare"
           ],
           "exports": [],
@@ -35962,7 +36070,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "f305a3e9333da0dce4dc3d2467f0b53159ab1e0b0a246565b8782b804f559281",
+      "sha256": "f429335049749c20cf3045fdda80f469039d505311ad3610716282e3082d8bd7",
       "exports": [],
       "operations": [
         {
@@ -36083,6 +36191,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
               }
             ]
           }
@@ -36250,7 +36362,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "2d75e1919b2daaaf86efaa2bb81b276d31d936537f4638897f3f73ced6f7b6ec",
+      "sha256": "a8cff76a3ec70888adde94451d9280517d6a2f01c17d96522cf5a34177e29279",
       "exports": [],
       "operations": [
         {
@@ -36501,6 +36613,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
               }
             ]
           }
@@ -39740,6 +39856,301 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/installed_capture_provider_source.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "141e85188f9f88088efb748810e75a040c9d73ccc8fa4b713871f288e92d4696",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_managed_capture_source_read",
+          "declaration": "begin_installed_managed_capture_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_managed_capture_source_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_source_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original, prepared) &&"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original_capacity, capacity) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// read on the original Run before any following refusal can escape."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// Current may reenter. Recheck the captured originals without another"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "return Err(ForeignOriginal)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn retire_installed_source_read("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "installed_provider_row_capture_capacity_matches("
+              },
+              {
+                "path": "src/client_local_host/installed_capture_plan.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_read("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider read reuses the same Request Plan acquisition and crosses current once\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9057c1bf28c22783ea4a6a2920ef14e1d8fd60301826c6b18de26d323d30f5d3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_managed_capture_source_read",
+          "declaration": "client_program_installed_managed_capture_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_capture_module_body",
+          "declaration": "client_program_prepare_request_capture_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_managed_capture_source_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_source_read("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+                "anchor": "pub fn client_program_installed_managed_capture_source_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original, prepared) &&"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original_capacity, capacity) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// read on the original Run before any following refusal can escape."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// Current may reenter. Recheck the captured originals without another"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "return Err(ForeignOriginal)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn retire_installed_source_read("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "installed_provider_row_capture_capacity_matches("
+              },
+              {
+                "path": "src/client_local_host/installed_capture_plan.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_read("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider read reuses the same Request Plan acquisition and crosses current once\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepare_request_capture_module_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "pub fn[I] prepare_request_capture_module_body("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_capture_module_body("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "physical_equal(plan.prepared, prepared)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "physical_equal(plan.installed_contracts, contracts)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.program_captured = Some(plan)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.program_body_attempted ||"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "owner.phase = Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+                "anchor": "Err(issue) => return Err(Manifests(issue))"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "return Err(Preparation(ForeignOriginal))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_parent.mbt",
+                "anchor": "pub fn[I] abort_request_preparation_after_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "/// Plan construction and its supplied domain must already be backed."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "domain. The real Host caller must retain the original Plan input borrow through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "`clientProgramPrepareRequestCaptureModuleBody` forwards the original Request,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "prepare_request_capture_module_body("
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Source read contract and receipts remain unchanged. New Request captured-module delegate and its underlying captured compilation case are SOURCE/FORMAT ONLY; Core/Node canonical API generation, compiler, external ABI and actual normal caller/backing remain UNEXECUTED."
     }
   ]
 }

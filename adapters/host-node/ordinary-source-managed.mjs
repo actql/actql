@@ -409,11 +409,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
               state.parent, producer.receipt));
           } else if (state.compilationKind === 'effect_free') {
-            checkedRequestProgramPreparation(moon,
-              moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
-                producer.receipt, contracts.admission, state.context.retainedRelationOutput),
-              moon.clientProgramRequestProgramModuleIssueCode);
-            state.holder = checked(moon.clientProgramBorrowRequestProgramPreparation(state.parent));
+            // Pure includes captured Source Programs. Retain the original
+            // constructor input before selecting its installed Plan; a Pure
+            // compiler result alone is not a Source-free module witness.
+            state.holder = checked(moon.clientProgramBorrowRequestProgramPlanInput(
+              state.parent, producer.receipt));
+            const prepared = moon.clientProgramPreparationBorrowRead(state.holder);
+            if (prepared === undefined) fail('ForeignInstalledSourceProducer');
+            const count = moon.clientProgramAcquisitionCount(prepared);
+            if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
+            state.acquisitionCount = count;
+            if (count === 0) {
+              checkedRequestProgramPreparation(moon,
+                moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
+                  producer.receipt, contracts.admission, state.context.retainedRelationOutput),
+                moon.clientProgramRequestProgramModuleIssueCode);
+            }
           } else fail('NodeManagedRunPlanUnavailable');
         } catch (cause) {
           state.preparationFailed = true;
@@ -471,7 +482,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request);
       const state = producer?.preparation;
       if (state === undefined) return undefined;
-      if (state.prepared !== prepared || state.holder === undefined || state.adopting) fail('ForeignInstalledSourceProducer');
+      if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
+          state.acquisitionCount !== 0) fail('ForeignInstalledSourceProducer');
       state.adopting = true;
       const outcome = state.context.runtime.clientProgramAdoptRequestProgramPreparation(state.parent,identity);
       if (runtimeIsError(outcome)) state.adopting = false;
@@ -481,6 +493,59 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.liveRuns++;
       runs.set(prepared,run);liveRuns.add(run);
       return run;
+    },
+    adoptCapturePreparation(prepared, request, identity, constructPlan) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined) return undefined; // Other purposes retain their existing owner.
+      if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
+          state.compilationKind !== 'effect_free' || !(state.acquisitionCount > 0) ||
+          runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
+          liveRuns.size >= 4096 || typeof constructPlan !== 'function') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime;
+      const prepareModule = moon.clientProgramPrepareRequestCaptureModuleBody;
+      const projectIssue = moon.clientProgramRequestProgramModuleIssueCode;
+      const adopt = moon.clientProgramAdoptRequestCapturePreparation;
+      if (typeof prepareModule !== 'function' || typeof projectIssue !== 'function' ||
+          typeof adopt !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      state.adopting = true;
+      try {
+        // This private Host constructor uses its already retained Source
+        // inventory, on the same input reservation. It is not a capacity or
+        // authorization callback, and does not run for another purpose.
+        const plan = constructPlan();
+        state.capturePlan = plan;
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        // The SAME Request already backs this Plan and retains its input borrow.
+        // Construct/measure its original compilation before adoption; bare
+        // completion would lose that artifact and force later re-preparation.
+        checkedRequestProgramPreparation(moon,
+          Reflect.apply(prepareModule, moon, [state.parent, producer.receipt, plan]),
+          projectIssue);
+        const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
+        const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
+          effectful: false, content: undefined, original: state.original,
+          children: [], fileIdentity: undefined, value};
+        producer.liveRuns++;
+        runs.set(prepared, run); liveRuns.add(run);
+        // The actual Core Run now retains this same Plan. Do not keep a
+        // second strong Plan root after its completed handoff.
+        state.capturePlan = undefined;
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      }
     },
     adoptEffectPreparation(prepared, request, identity, operationPlan) {
       current();
@@ -543,6 +608,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.body = producer.request = producer.snapshotPublication = undefined;
       run.prepared = run.request = undefined;
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
+      state.capturePlan = state.effectPlan = run.operationPlan = undefined;
       state.preparationFailure = undefined;state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.effectBorrowMethods === undefined

@@ -220,6 +220,57 @@ pub fn[I] prepare_request_program_module_body(
     @local.ManagedProvider,
   ],
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  prepare_request_program_module_body_owned(
+    owner,
+    input,
+    contracts,
+    None,
+    manifests~,
+    compilation_limits~,
+    retained_output~,
+    provider_factory~,
+  )
+}
+
+///|
+/// Preserve the captured Plan's actual original compilation under the SAME
+/// artifact measurement/work and Request capacity as the source-free path.
+/// Plan construction and its supplied domain must already be backed.
+pub fn[I] prepare_request_capture_module_body(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedCapturePlan,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  prepare_request_program_module_body_owned(
+    owner,
+    input,
+    plan.installed_contracts,
+    Some(plan),
+    manifests~,
+    compilation_limits~,
+    retained_output=plan.configuration.retained_output,
+    provider_factory~,
+  )
+}
+
+///|
+fn[I] prepare_request_program_module_body_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  contracts : ClientInstalledSequenceContracts,
+  captured : ClientInstalledManagedCapturePlan?,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
   if owner.program_body_attempted ||
     owner.program_artifact_work is Some(_) ||
     owner.program_artifact_work_issue is Some(_) {
@@ -236,6 +287,26 @@ pub fn[I] prepare_request_program_module_body(
     physical_equal(original, input) &&
     owner.compiled_program is Some(prepared) else {
     return Err(Preparation(ForeignOriginal))
+  }
+  match (owner.program_captured, captured) {
+    (Some(original), Some(plan)) if !physical_equal(original, plan) =>
+      return Err(Preparation(ForeignOriginal))
+    (Some(_), None) => return Err(Preparation(ForeignOriginal))
+    _ => ()
+  }
+  if captured is Some(plan) {
+    if !physical_equal(plan.prepared, prepared) ||
+      !physical_equal(plan.installed_contracts, contracts) ||
+      plan.values_body != contracts.original.values_body ||
+      plan.fragment_body != contracts.original.fragment_body ||
+      plan.ordered_body != contracts.original.ordered_body ||
+      plan.configuration.retained_output != retained_output ||
+      owner.program_source_free is Some(_) {
+      return Err(Preparation(ForeignOriginal))
+    }
+    // Retain the original selected Plan before any callback/measurement can
+    // fail. This adds no second compilation or cleanup owner.
+    owner.program_captured = Some(plan)
   }
   if owner.program_artifact_inputs
     is Some(
@@ -275,25 +346,31 @@ pub fn[I] prepare_request_program_module_body(
         Err(_) => return Err(Preparation(ForeignOriginal))
         Ok(_) => ()
       }
-      let plan = match owner.program_source_free {
-        Some(original) => original
-        None =>
-          match
-            prepare_installed_managed_source_free_with_contracts(
-              prepared,
-              contracts,
-              installed.values_body,
-              installed.fragment_body,
-              installed.ordered_body,
-              retained_output~,
-              provider_factory~,
-            ) {
-            Err(issue) => return Err(Installed(issue))
-            Ok(value) => {
-              owner.program_source_free = Some(value)
-              value
-            }
-          }
+      let plan = if captured is Some(_) {
+        None
+      } else {
+        Some(
+          match owner.program_source_free {
+            Some(original) => original
+            None =>
+              match
+                prepare_installed_managed_source_free_with_contracts(
+                  prepared,
+                  contracts,
+                  installed.values_body,
+                  installed.fragment_body,
+                  installed.ordered_body,
+                  retained_output~,
+                  provider_factory~,
+                ) {
+                Err(issue) => return Err(Installed(issue))
+                Ok(value) => {
+                  owner.program_source_free = Some(value)
+                  value
+                }
+              }
+          },
+        )
       }
       let limits = compilation_limits
       let sequence = @publication_host.prepared_client_values_sequence_limits(
@@ -446,9 +523,18 @@ pub fn[I] prepare_request_program_module_body(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      plan.compilation = Some(artifact)
       owner.phase = ProgramPlanReserved
-      let completed = complete_request_program_preparation(owner, input, plan)
+      let completed = match captured {
+        Some(original) => {
+          original.compilation = Some(artifact)
+          complete_request_capture_preparation(owner, input, original)
+        }
+        None => {
+          let original = plan.unwrap()
+          original.compilation = Some(artifact)
+          complete_request_program_preparation(owner, input, original)
+        }
+      }
       if completed is Ok(_) {
         // The actual Plan now owns its compilation. Measurement/retry DATA
         // has no subsequent consumer; do not retain another per-task graph

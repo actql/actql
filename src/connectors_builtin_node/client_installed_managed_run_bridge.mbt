@@ -134,6 +134,24 @@ pub fn client_program_installed_managed_run_source_read(
 }
 
 ///|
+/// The existing configured Host already retains its CapturedDAG. Project it
+/// directly; no Node wrapper or additional Run/cleanup holder is required.
+#export_name("clientProgramOpenInstalledManagedCaptureHost")
+pub fn client_program_open_installed_managed_capture_host(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[@query.CapturedInputSource],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @client_local_host.ClientInstalledCaptureHostIssue,
+] {
+  @client_local_host.open_installed_managed_capture_host(
+    value, prepared, request, sources,
+  ).map(original => original.0)
+}
+
+///|
 #export_name("clientProgramInstalledManagedRunRequirements")
 pub fn client_program_installed_managed_run_requirements(
   prepared : @publication_host.PreparedClientProgram,

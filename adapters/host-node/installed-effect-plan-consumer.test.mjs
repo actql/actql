@@ -13,7 +13,7 @@ import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 const ok = value => ({$tag: 1, _0: value});
 const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
 function fixture() {
-  const prepared = {}, request = {}, plan = {}, parent = {}, original = {}, admission = {};
+  const prepared = {}, request = {}, plan = {}, parent = {}, original = {};
   const facts = {prepared, identity: request, compilation: {}, allowed: {}, definition: {}};
   const runs = new WeakMap(), liveRuns = new Set(), calls = [];
   const inputs = Object.freeze({}), sourceProfile = {};
@@ -30,14 +30,6 @@ function fixture() {
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
       assert.strictEqual(p, prepared); assert.strictEqual(r, request); checkCallback(); return ok(plan);
-    },
-    clientProgramNodeEffectManagedPlanPrepare(value, scope) {
-      assert.strictEqual(this, runtime); assert.strictEqual(value, original); assert.strictEqual(scope, plan);
-      calls.push('admit'); return ok(admission);
-    },
-    clientProgramInstalledEffectManagedPlanBegin(value, p, r, scope) {
-      assert.strictEqual(this, runtime); assert.strictEqual(value, admission); assert.strictEqual(p, prepared);
-      assert.strictEqual(r, request); assert.strictEqual(scope, plan); calls.push('begin'); return ok(parent);
     },
   };
   const requestInput = {};

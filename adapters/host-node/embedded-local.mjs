@@ -504,6 +504,76 @@ export function readLocalPreparationContext(originals) {
   return context;
 }
 
+// Same original Source inventory serves its retained Plan and legacy purpose
+// quote. A Source capacity is immutable DATA; it grants neither a read nor a
+// second Resource Run. Actual source readers retain their existing authority.
+function retainedManagedCaptureInventory(originals, run, contracts) {
+  const moon = originals.installation.projectRuntime, checkedPrepared = run.prepared;
+  if (run.runtime !== moon || run.closed || Object.hasOwn(run, 'failure') ||
+      originals.installation.computeRuns?.get(checkedPrepared) !== run ||
+      run.sourceProfile !== originals.installation.managedSourceProfile) {
+    throw clientOperationError('ForeignInstalledComputeRun');
+  }
+  if (run.sourceCapacities === undefined) {
+    const count = moon.clientProgramAcquisitionCount(checkedPrepared);
+    if (!Number.isSafeInteger(count) || count < 1) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const inventory = [];
+    const installed = prepareInstalledSequenceContractOriginal(originals);
+    for (let stage = 0; stage < count; stage++) {
+      const requirement = checked(run.queryTimePreparation === undefined
+        ? moon.clientProgramPrepareLocalQueryRequirement(
+          checkedPrepared, stage, 0, installed.admission,
+          contracts.values, contracts.expression, contracts.ordered)
+        : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(
+          checkedPrepared, stage, 0, run.queryTimePreparation, run.request,
+          installed.admission, contracts.values, contracts.expression, contracts.ordered));
+      const adapter = installedSourceFor(run.sourceProfile,
+        moon.clientProgramQueryRequirementSourceRef(requirement));
+      const selected = adapter.managedCaptureCapacity(requirement);
+      if (selected?.capacity === undefined || typeof selected.transferBytes !== 'bigint' ||
+          typeof selected.executionBytes !== 'bigint' ||
+          selected.transferBytes < 0n || selected.executionBytes < 0n) {
+        throw clientOperationError('InstalledSourceCapacityUnavailable');
+      }
+      inventory.push(Object.freeze({adapter, requirement, capacity: selected.capacity,
+        transferBytes: selected.transferBytes, executionBytes: selected.executionBytes}));
+    }
+    run.sourceCapacities = Object.freeze(inventory);
+  }
+  if (run.closed || Object.hasOwn(run, 'failure') ||
+      originals.installation.computeRuns?.get(checkedPrepared) !== run ||
+      run.sourceProfile !== originals.installation.managedSourceProfile) {
+    throw clientOperationError('ForeignInstalledComputeRun');
+  }
+  return run.sourceCapacities;
+}
+
+// The Request manager invokes this only while its original constructor input
+// remains borrowed. Complete/adopt retains this exact Plan; no Run quote or
+// sequence preparation is substituted after an original refusal.
+function prepareManagedComputeCapturePlan(originals, run) {
+  const {projectRuntime: moon, retainedRelationOutput} = originals.installation;
+  if (typeof moon?.clientProgramInstalledManagedCapturePlanPrepare !== 'function' ||
+      typeof retainedRelationOutput !== 'boolean') {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  const contracts = installedManagedRunContracts(originals);
+  const inventory = retainedManagedCaptureInventory(originals, run, contracts);
+  const installed = prepareInstalledSequenceContractOriginal(originals);
+  const plan = checked(moon.clientProgramInstalledManagedCapturePlanPrepare(
+    run.prepared, run.request, inventory.map(value => value.capacity),
+    inventory.map(value => value.transferBytes), inventory.map(value => value.executionBytes),
+    installed.admission, contracts.values, contracts.expression, contracts.ordered,
+    retainedRelationOutput, run.queryTimePreparation));
+  if (run.closed || Object.hasOwn(run, 'failure') ||
+      originals.installation.computeRuns?.get(run.prepared) !== run) {
+    throw clientOperationError('ForeignInstalledComputeRun');
+  }
+  return plan;
+}
+
 // The separate selected Compute original covers this projection. An empty
 // declaration inventory is not a Source installation or a scalar admission:
 // Common still checks the same nominal preparation and its complete graph.
@@ -525,30 +595,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
         typeof moon.clientProgramInstalledManagedCaptureRunRequirements !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
-    if (run.sourceCapacities === undefined) {
-      const count = moon.clientProgramAcquisitionCount(checkedPrepared);
-      if (!Number.isSafeInteger(count) || count < 1) {
-        throw clientOperationError('InstalledSourcePreparationMismatch');
-      }
-      const inventory = [];
-      const installed = prepareInstalledSequenceContractOriginal(originals);
-      for (let stage = 0; stage < count; stage++) {
-        const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-          checkedPrepared, stage, 0, installed.admission,
-          contracts.values, contracts.expression, contracts.ordered));
-        const adapter = installedSourceFor(run.sourceProfile,
-          moon.clientProgramQueryRequirementSourceRef(requirement));
-        const selected = adapter.managedCaptureCapacity(requirement);
-        if (selected?.capacity === undefined || typeof selected.transferBytes !== 'bigint' ||
-            typeof selected.executionBytes !== 'bigint' ||
-            selected.transferBytes < 0n || selected.executionBytes < 0n) {
-          throw clientOperationError('InstalledSourceCapacityUnavailable');
-        }
-        inventory.push(Object.freeze({adapter, requirement, capacity: selected.capacity,
-          transferBytes: selected.transferBytes, executionBytes: selected.executionBytes}));
-      }
-      run.sourceCapacities = Object.freeze(inventory);
-    }
+    retainedManagedCaptureInventory(originals, run, contracts);
     limits = checked(moon.clientProgramInstalledManagedCaptureRunRequirements(
       checkedPrepared, run.sourceCapacities.map(value => value.capacity),
       run.sourceCapacities.map(value => value.transferBytes),
@@ -5481,7 +5528,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.prepared !== prepared || run.sourceProfile !== selected) {
           throw clientOperationError('ForeignInstalledSourcePreparation');
         }
-        if (run.failure !== undefined) throw run.failure;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (run.value === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
         const parent = run.value;
         checked(Reflect.apply(run.check, runtime, [parent, prepared, run.request]));
@@ -5492,7 +5539,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.sourceProfile !== selected || run.value !== parent) {
           throw clientOperationError('ForeignInstalledSourcePreparation');
         }
-        if (run.failure !== undefined) throw run.failure;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
         return parent;
       });
       record.managedSourceProfile = originalInstallation.managedSourceProfile = selected;
@@ -5544,16 +5591,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       originalInstallation.computeRuns = runs;
       let run = runs.get(prepared);
       if (run !== undefined) {
-        if (run.failure !== undefined) throw run.failure;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (run.closed || run.runtime !== runtime || run.prepared !== prepared ||
-            run.sourceProfile !== sourceProfile) {
+            run.request !== request || run.manager !== manager || run.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
         const value = run.value;
         checked(Reflect.apply(run.check, runtime, [value, prepared, request]));
-        if (run.failure !== undefined) throw run.failure;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
         assertCurrent(manager, originals);
-        if (run.failure !== undefined) throw run.failure;
+        if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (record.computeRuns !== runs || runs.get(prepared) !== run ||
             record.computeLiveRuns !== liveRuns || !liveRuns.has(run) ||
             run.closed || run.runtime !== runtime || run.prepared !== prepared ||
@@ -5564,7 +5611,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return value;
       }
       run = {runtime, prepared, request, manager, sourceProfile, original: undefined, admission: undefined,
-        value: undefined, failure: undefined, closed: false};
+        value: undefined, closed: false};
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       runs.set(prepared, run);
       liveRuns.add(run);
@@ -5574,18 +5621,28 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.retire = runtime.clientProgramInstalledManagedRunRetire;
         run.cleanup = runtime.clientProgramNodeManagedRunCleanup;
         run.check = runtime.clientProgramInstalledManagedRunCheck;
-        run.prepare = runtime.clientProgramNodeManagedRunPrepare;
-        run.begin = sourceProfile === undefined ? runtime.clientProgramInstalledManagedSourceFreeBegin
-          : runtime.clientProgramInstalledManagedRunBegin;
-        if (![run.retire, run.cleanup, run.check, run.prepare, run.begin].every(value => typeof value === 'function')) {
+        if (![run.retire, run.check].every(value => typeof value === 'function')) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
         const originalRequest = originalSourceManagedHostRequest(originals, prepared);
         const funded = sourceProfile === undefined
-          ? manager.adoptPreparation?.(prepared, originalRequest, request) : undefined;
+          ? manager.adoptPreparation?.(prepared, originalRequest, request)
+          : manager.adoptCapturePreparation?.(prepared, originalRequest, request,
+            () => prepareManagedComputeCapturePlan(originals, run));
         if (funded !== undefined) {
           run.original = funded.original;run.value = funded.value;run.preparationFunded = true;
+          // Core now retains the same inventory through its original Plan.
+          // Do not leave a second strong preparation graph on the Host record.
+          run.sourceCapacities = undefined;
         } else {
+          // An explicitly separate, not Request-owned purpose keeps its
+          // original admission. A failed Request constructor never lands here.
+          run.prepare = runtime.clientProgramNodeManagedRunPrepare;
+          run.begin = sourceProfile === undefined ? runtime.clientProgramInstalledManagedSourceFreeBegin
+            : runtime.clientProgramInstalledManagedRunBegin;
+          if (![run.cleanup, run.prepare, run.begin].every(value => typeof value === 'function')) {
+            throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+          }
           run.original = manager.prepareRun(prepared);
           assertCurrent(manager, originals);
           run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));
@@ -5648,7 +5705,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     managedComputePublicationPreparation(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded) return undefined;
-      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || run.failure !== undefined) {
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       return run.manager.publicationPreparation(prepared);
@@ -5656,7 +5713,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     managedComputeReservePublication(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded || run.runtime !== runtime ||
-          run.prepared !== prepared || run.closed || run.failure !== undefined) {
+          run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       return run.manager.reservePublication(prepared);
@@ -5664,7 +5721,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     managedComputeCompilationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded) return undefined;
-      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || run.failure !== undefined) {
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       // The driver owns the staged compilation under this Run's existing

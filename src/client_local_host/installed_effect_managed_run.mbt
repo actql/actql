@@ -201,46 +201,6 @@ fn check_installed_effect_managed_run_binding(
 }
 
 ///|
-/// The admission is bound to this exact plan original, not merely a prepared
-/// Program or an equal six-number quote. The Host retains it before start so a
-/// failed constructor still has the original admission's cleanup carrier.
-pub fn begin_prepared_installed_effect_managed_run(
-  admission : @resources.NodeManagedRunAdmission[
-    ClientInstalledEffectManagedPlan,
-  ],
-  prepared : @publication_host.PreparedClientEffectComputation,
-  request : @publication_host.ClientRequestIdentity,
-  plan : ClientInstalledEffectManagedPlan,
-) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  if !installed_effect_plan_matches(plan, prepared, request) {
-    return Err(ForeignOriginal)
-  }
-  // The ordinary entry cannot spend a separately selected Model purpose or
-  // begin Source reads before that plan's original Scope is installed.
-  if plan.model is Some(_) {
-    return Err(Unsupported)
-  }
-  match @resources.check_node_source_compute_run_preparation(admission, plan) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(_) => ()
-  }
-  let ledger = match @resources.start_node_managed_run_admission(admission) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
-    return Err(InsufficientCapacity)
-  }
-  let value = new_installed_managed_run_owned(
-    PlannedEffectManaged(admission, plan),
-    request,
-    ledger,
-  )
-  value.source_free_preparation = plan.source_free
-  require_installed_managed_run(value).map(_ => value)
-}
-
-///|
 /// Install the same recorded Model Scope before any Source or Compute child.
 /// No sequence/contract/provider is re-prepared here. The Host retains this
 /// admission before calling: bootstrap/Scope failure keeps its original cleanup.
