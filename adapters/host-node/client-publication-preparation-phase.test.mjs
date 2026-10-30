@@ -467,3 +467,95 @@ test('Source context original refusal cannot allocate or select an unfunded snap
     }
   }
 });
+
+
+test('composed INFER consumes original captured evidence without serializing or readmitting it', async () => {
+  const occurrence = {}, source = {}, logical = {}, evidence = {}, original = {}, failure = new Error('BeforeProviderConstruction');
+  const captured = {capture: {source: () => source}, logicalInput: logical, identity: {}, requirement: {}};
+  let held, calls = 0;
+  const run = get('./installed-composed-infer-run.mjs', 'runInstalledComposedInfers', {
+    runtimeField: (value, index) => value[index], checked: value => value,
+  });
+  await assert.rejects(run({
+    moon: {clientProgramResultCount: () => 0, clientProgramInferPlanBoundary: () => [0],
+      strategyRunEvidenceJson() {assert.fail('live logical input serialized again');},
+      clientProgramAdmitComposedInferSources() {assert.fail('raw wire admission');}},
+    control: {admitComposedInferSources(actual, captures, evidenceValues, authority, start, end) {
+      assert.equal(actual, occurrence); assert.deepEqual(captures, [captured]);
+      assert.deepEqual(evidenceValues, [evidence]); assert.equal(authority, 'authority');
+      assert.equal(start, 'start'); assert.equal(end, 'end'); calls++; throw failure;
+    }}, preparedProgram: original, plan: {runDefinition: {wire: '{"run_id":"fixture"}'}},
+    selected: {components: [{occurrence, graph: {}}]},
+    acquiredInfer: {captured, sourceEvidence: evidence, captureStartedAt: 'start', captureCompletedAt: 'end'},
+    modelController: {discover: () => []}, signal: new AbortController().signal,
+    retainExecution(value) {assert.equal(held, undefined); held = value;}, authorityScopeCid: 'authority',
+  }), actual => actual === failure);
+  assert.equal(calls, 1); assert.equal(typeof held.cleanup, 'function');
+});
+
+
+test('INFER control forwards the same logical and Source evidence tokens without a wire issuer', () => {
+  const prepared = {}, occurrence = {}, source = {}, logical = {}, identity = {}, requirement = {}, evidence = {}, original = {}, calls = [];
+  const captured = {inferStep: 4, capturedSource: source, identity, requirement, logicalInput: logical,
+    capture: {source: () => source}};
+  const context = {checked: value => value,
+    evidenceToken: value => {if (value !== evidence) throw new TypeError('Foreign Run evidence'); return original;},
+    moon: {clientProgramAdmitInferCapturedInput(...args) {calls.push(args); return 'single';},
+      clientProgramAdmitComposedInferSources(...args) {calls.push(args); return 'composed';},
+      strategyRunEvidenceJson() {assert.fail('original logical wire');},
+      strategyRunEvidenceAdmit() {assert.fail('original evidence readmission');}}};
+  const single = get('../host-common/runtime-core.mjs', 'admitInferCapturedInput', context, true);
+  const composed = get('../host-common/runtime-core.mjs', 'admitComposedInferSources', context, true);
+  assert.equal(single(prepared, captured, evidence, 'authority', 'policy', 'start', 'end'), 'single');
+  assert.equal(composed(occurrence, [captured], [evidence], 'authority', 'start', 'end'), 'composed');
+  assert.deepEqual(calls, [[prepared, 4, source, identity, requirement, logical, original, 'authority', 'policy', 'start', 'end'],
+    [occurrence, [source], [identity], [requirement], [logical], [original], 'authority', 'start', 'end', undefined]]);
+  assert.throws(() => single(prepared, captured, {...evidence}, 'authority', 'policy', 'start', 'end'), /Foreign Run evidence/);
+  assert.throws(() => composed(occurrence, [captured], [{...evidence}], 'authority', 'start', 'end'), /Foreign Run evidence/);
+  assert.equal(calls.length, 2);
+});
+
+
+test('saved INFER reacquisition forwards the original captured token without another evidence admission', async () => {
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}); let selected;
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'run' &&
+        node.value.params?.[0]?.properties?.some(field => field.key?.name === 'acquireSource')) {
+      assert.equal(selected, undefined); selected = node.value;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  }
+  walk(ast); assert(selected);
+  const prepared = {}, captured = {checkedSource: {sourceDataPolicyCid: 'policy'}}, evidence = {}, input = {}, plan = {},
+    ref = {}, sourceAccess = {}, preparedSource = {}, signal = {}, retainExecution = () => {}, beginPhysicalWork = () => {};
+  let cancelled = false, reads = 0, admissions = 0, executions = 0;
+  const context = {journal: {lookupRunDefinition: value => {assert.equal(value, ref); return {
+    cancellationRequested: cancelled, observedTerminalOutcome: null, runDefinition: {wire: 'definition'},
+  };}}, accepted: {ref}, moon: {clientProgramAdmitInferCapturedInput() {assert.fail('wire path');}},
+    control: {admitInferCapturedInput(body, acquisition, original, authority, policy, start, end) {
+      assert.equal(body, prepared); assert.equal(acquisition, captured); assert.equal(original, evidence);
+      assert.deepEqual([authority, policy, start, end], ['authority', 'policy', 'start', 'end']); admissions++; return input;
+    }, admitRunEvidence() {assert.fail('original evidence admitted again');}},
+    planFor: () => plan, submission: {preparedProgram: prepared}, requested: {}, acquired: true,
+    checkpoints: undefined, sourceProfile: {sourceAccess}, prepareAcquisition: async (body, access) => {
+      assert.equal(body, prepared); assert.equal(access, sourceAccess); return preparedSource;
+    }, authorityScopeCid: 'authority', store: {}, actual: 'actor',
+    runInfer: async options => {executions++; assert.equal(options.plan, plan); assert.equal(options.replay, true);
+      assert.equal(options.acquiredInfer.input, input); assert.equal(options.acquiredInfer.sourceEvidence, evidence);
+      assert.equal(options.signal, signal); assert.equal(options.retainExecution, retainExecution);
+      assert.equal(options.beginPhysicalWork, beginPhysicalWork);},
+  };
+  const code = `async function(${selected.params.map(param => text.slice(param.start, param.end)).join(',')})${text.slice(selected.body.start, selected.body.end)}`;
+  const run = new Function(...Object.keys(context), `return (${code});`)(...Object.values(context));
+  const ports = {signal, retainExecution, beginPhysicalWork, acquireSource: async options => {
+    reads++; assert.equal(options.preparedProgram, prepared); assert.equal(options.preparedSource, preparedSource);
+    assert.equal(options.sourceAccess, sourceAccess); return {captured, sourceEvidence: evidence,
+      captureStartedAt: 'start', captureCompletedAt: 'end'};
+  }};
+  await run(ports); assert.deepEqual([reads, admissions, executions], [1, 1, 1]);
+  cancelled = true; await run(ports); assert.deepEqual([reads, admissions, executions], [1, 1, 1]);
+});

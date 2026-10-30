@@ -253,7 +253,7 @@ pub fn client_program_admit_compiled_run_definition(@run_publication_host.Client
 
 pub fn client_program_admit_composed_infer_egress(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
-pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
+pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
@@ -271,7 +271,7 @@ pub fn client_program_admit_effect_run_materials(String, String, Bool, Bool, Boo
 
 pub fn client_program_admit_effect_serialization_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
-pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
+pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 

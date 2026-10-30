@@ -623,7 +623,8 @@ test('keyed INFER Source closure requires both original observations and rejects
       const observed = await lookup.issueObservation({authorityScopeCid: scope, observedAt: at});
       const admit = keyed => moon.clientProgramAdmitComposedInferSources(occurrence,
         [value.captured.capture.source()], [value.captured.identity], [value.captured.requirement],
-        [moon.strategyRunEvidenceJson(value.captured.logicalInput)], [directWire], scope, at, at, keyed);
+        [value.captured.logicalInput], [checked(moon.strategyRunEvidenceAdmit(
+          'source_evidence', directWire, 100000, 10000, 100))], scope, at, at, keyed);
       assert.equal(admit(undefined).$tag, 0,
         'Direct evidence cannot omit the original keyed Source obligation');
       const admitted = admit(observed.observation);

@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3062b4cd578f9141a9c3687d3a963c7942d3ba9fe880c4064ab5a8b3c01320ac",
+      "sha256": "9b701c1164401d32d4d81b7df7408cbe80f3268178d544ba3d5aadf5ce4aadd2",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -16893,12 +16893,66 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
+          "parameters": [
+            "occurrence",
+            "captures",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "startedAt",
+            "completedAt",
+            "keyed"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
           "parameters": [
             "wire",
             "runDefinition",
             "authoring",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
+          "parameters": [
+            "prepared",
+            "captured",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "dataPolicyCid",
+            "startedAt",
+            "completedAt"
           ],
           "async": false
         },
@@ -27035,6 +27089,119 @@
               }
             ]
           }
+        },
+        {
+          "exports": [],
+          "operations": [
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -30895,7 +31062,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a9716e3f99fb259a4d8590f03715e8d0a7e0e0bdc03d0ca36081d11d8331e9d0",
+      "sha256": "8ae3760ea8b6a5311c206e8b32dd246e30d19001e69ddab3d066691f472ad0b2",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -31539,6 +31706,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -31659,6 +31830,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -39364,7 +39539,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8d1deeb01de6b9d6635645c32eb61a0cf0347702c4ed3a74a12b81b28010946b",
+      "sha256": "121838b04408315bcc0912f5899d7bdc6882f62e9f4d9836563f47c411a1818a",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -42482,6 +42657,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -42666,6 +42845,10 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -55807,7 +55990,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7634cf832d43a599214f2f267def78f6963de4fb8c8389ae0557172c9565bede",
+      "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -56044,41 +56227,6 @@
             "child"
           ],
           "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/wires/wires",
-          "parameters": [
-            "source"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -56130,6 +56278,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -56214,6 +56366,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -56224,12 +56380,7 @@
             "runInstalledComposedInfers/originals/originals",
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/setup/setup#2",
-            "runInstalledComposedInfers/setup/setup#3",
-            "runInstalledComposedInfers/sources/sources",
-            "runInstalledComposedInfers/sources/sources#2",
-            "runInstalledComposedInfers/sources/sources#3",
-            "runInstalledComposedInfers/sources/sources#4",
-            "runInstalledComposedInfers/wires/wires"
+            "runInstalledComposedInfers/setup/setup#3"
           ],
           "exports": [],
           "attributes": {

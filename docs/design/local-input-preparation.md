@@ -3527,3 +3527,24 @@ runtime/control/contract/output-mode checks remain authoritative. Unsupported
 context selections and the remaining unfunded installation or consumer
 boundaries still require their own migration; callback presence is not proof
 of physical backing, Source permission, or successful cleanup.
+
+
+### INFER original captured evidence
+
+Live ordinary single and composed INFER consumers pass the same captured
+logical input and Source Evidence values to the existing Node bridge entries.
+Their signatures consume those original DATA values rather than JSON strings.
+The existing Core Model-source observation and captured/composed input
+admission functions remain the semantic owners. The bridge checks retained
+canonical name/byte/node/container-depth facts against the same previous wire
+envelope before calling those functions; it does not parse, hash, or emit the
+values again. A copied nominal JavaScript view cannot supply its private token.
+
+The live Source owner still prepares the evidence under its current boundary
+and transfers it once from the same capture. Continuation snapshots may retain
+the value's already-canonical wire; reading that existing String is not another
+serialization. Restored external wire is admitted at its existing restoration
+boundary before entering this typed consumer. This does not regrant dispatch,
+weaken saved-Run or Source custody checks, or turn an uncertain physical stop
+into an acknowledgment. Content/keyed combinations and other unmigrated
+callers retain their distinct obligations.

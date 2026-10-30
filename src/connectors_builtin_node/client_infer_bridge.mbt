@@ -494,10 +494,22 @@ pub fn client_program_compile_local_infer(
 }
 
 ///|
-/// The installed Host retains the checked barrier and derives call identity
-/// from the exact completed input before the first physical model dispatch.
+// Retained canonical usage enforces the existing wire admission envelope.
+// This DATA check neither re-admits JSON nor grants Source/Model authority.
+fn check_client_infer_original_evidence(
+  name : String,
+  evidence : @publication.RunEvidenceValue,
+) -> Result[Unit, @publication_host.ClientInferCallScopeIssue] {
+  if @publication.run_evidence_value_name(evidence) != name ||
+    !@publication.run_evidence_value_fits(evidence, 100000, 10000, 100) {
+    return Err(@publication_host.Evidence(@publication.RunEvidenceInvalidWire))
+  }
+  Ok(())
+}
 
 ///|
+/// The installed Host retains the checked barrier and derives call identity
+/// from the exact completed input before the first physical model dispatch.
 #export_name("clientProgramAdmitInferCapturedInput")
 pub fn client_program_admit_infer_captured_input(
   prepared : @publication_host.PreparedClientProgram,
@@ -506,7 +518,7 @@ pub fn client_program_admit_infer_captured_input(
   identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
   logical : @publication.RunEvidenceValue,
-  source_evidence_wire : String,
+  source_evidence : @publication.RunEvidenceValue,
   authority_scope_cid : String,
   data_policy_cid : String,
   started_at : String,
@@ -515,12 +527,10 @@ pub fn client_program_admit_infer_captured_input(
   @publication_host.ClientInferCapturedInput,
   @publication_host.ClientInferCallScopeIssue,
 ] {
-  let source_evidence = match
-    @publication.admit_run_evidence_value(
-      "source_evidence", source_evidence_wire, 100000, 10000, 100,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(@publication_host.Evidence(issue))
+  match
+    check_client_infer_original_evidence("source_evidence", source_evidence) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let (source_ref, source_contract) = @planning.query_requirement_source(
     requirement,

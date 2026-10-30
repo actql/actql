@@ -894,22 +894,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             resourceUsage: resourceUsage(ledger)});
           const evidenceOptions = {authorityScopeCid,
             effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
-          if (inferring) {
-            const sourceEvidenceWire = await captured.issueSourceEvidence(evidenceOptions);
-            sources.push({...source, captured, sourceEvidenceWire});
-          } else {
-            await captured.prepareSourceEvidenceOriginal(evidenceOptions);
-            const sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
-            sources.push({...source, captured, sourceEvidence});
-          }
+          await captured.prepareSourceEvidenceOriginal(evidenceOptions);
+          const sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
+          sources.push({...source, captured, sourceEvidence,
+            ...(inferring ? {sourceEvidenceWire: sourceEvidence.wire} : {})});
         }
         const captureCompletedAt = now();
         const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
         if (effectiveDataPolicyCid === undefined) throw new Error('InstalledMultiSourcePolicyUnavailable');
         if (inferring) {
           acquiredInfer = {sources, ledger, captureStartedAt, captureCompletedAt,
-            sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence', source.sourceEvidenceWire,
-              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}))};
+            sourceEvidence: sources.map(source => source.sourceEvidence)};
         } else {
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
@@ -932,7 +927,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
-            {captureOnly: generatingContent, originalEvidence: singleAccounted,
+            {captureOnly: generatingContent, originalEvidence: singleAccounted || inferring && !generatingContent,
               ledger: generatingContent || singleAccounted ? ledger : undefined});
         if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
@@ -941,17 +936,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
         } else if (inferring) {
           const captured = entry.sourceCapture;
-          const input = captured.composedInfer ? undefined : checked(moon.clientProgramAdmitInferCapturedInput(
-            preparedProgram, captured.inferStep, captured.capturedSource,
-            captured.identity, captured.requirement, captured.logicalInput,
-            sourceEvidenceWire, authorityScopeCid,
-            captured.checkedSource.sourceDataPolicyCid,
-            captureStartedAt, captureCompletedAt));
+          const input = captured.composedInfer ? undefined : control.admitInferCapturedInput(
+            preparedProgram, captured, sourceEvidence, authorityScopeCid,
+            captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
           acquiredInfer = {input, captured, preparedSource: held.preparedSource, sourceAccess,
-            sourceEvidenceWire, captureStartedAt, captureCompletedAt,
-            sourceEvidence: control.admitRunEvidence(
-            'source_evidence', sourceEvidenceWire,
-            {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+            sourceEvidenceWire: sourceEvidence.wire, captureStartedAt, captureCompletedAt, sourceEvidence};
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
           acquired: held.plan, preparedProgram,
@@ -1183,7 +1172,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       return run(Object.freeze({
       signal: entry.abort.signal,
       acquireSource({preparedProgram, preparedSource, sourceAccess}) {
-        return acquireSource(entry, preparedProgram, preparedSource, sourceAccess);
+        return acquireSource(entry, preparedProgram, preparedSource, sourceAccess, {originalEvidence: true});
       },
       beginPhysicalWork() {
         entry.physicalStarted = true;

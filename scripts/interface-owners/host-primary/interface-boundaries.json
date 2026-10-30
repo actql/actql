@@ -1504,7 +1504,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "a9716e3f99fb259a4d8590f03715e8d0a7e0e0bdc03d0ca36081d11d8331e9d0",
+      "sha256": "8ae3760ea8b6a5311c206e8b32dd246e30d19001e69ddab3d066691f472ad0b2",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -2228,6 +2228,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -2396,6 +2400,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -4996,7 +5004,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "8d1deeb01de6b9d6635645c32eb61a0cf0347702c4ed3a74a12b81b28010946b",
+      "sha256": "121838b04408315bcc0912f5899d7bdc6882f62e9f4d9836563f47c411a1818a",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -8453,6 +8461,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -9117,6 +9129,10 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
