@@ -221,3 +221,32 @@ For the checked-in Node/Explorer cohorts, independently compare every common
 `originalSha256`, final `sha256`/integrity and payload byte/mode inventory.
 Normal consumers keep their exact cohort and source checks. This mechanism
 is not formal registry publication or evidence of an installed E2E result.
+# Initial and continuing release preparation
+
+The common entry `node scripts/release.mjs plan <release-request.json>` validates
+an explicit candidate request without building, obtaining credentials, staging,
+uploading, creating tags or changing channels. `release-request.schema.json`
+describes its input; `release-policy.mjs` checks the cross-field rules. No real
+release request or version is selected by the synthetic test fixtures.
+
+The initial allowed package line is `0.0`. Complete final, alpha, beta and RC
+versions are explicit inputs; no patch/minor/major bump or next-version update
+exists. The shared parser maps those versions to Python metadata, and rejects
+unknown prerelease forms and build metadata rather than normalizing them.
+Package versions do not rename language, protocol, ABI or CID identity domains.
+
+Candidate policy and request files are DATA, not publisher authority. The old
+Node and Native CLI `--publish` entries are disabled before their credential or
+upload subprocesses. The reusable existing pack, digest, registry comparison
+and receipt functions remain available. A separately protected owner-approved
+executor is still required; a local `approved: true`, actor name, successful
+check, CI opt-in or merge cannot provide that authority. This code does not
+claim that externally usable owner credentials or arbitrary Release APIs have
+been isolated by repository code alone.
+
+`acceptance.json` retains all 26 release requirements and their outstanding
+evidence. No candidate artifact, platform support, public install, protected
+publisher setting or external acceptance is established by a valid plan.
+The existing ecosystem instructions below retain their artifact-verification
+details; their direct CLI publication examples are held until the protected
+execution path is connected and the owner approves a fixed release set.

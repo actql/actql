@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
+import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.mjs';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
@@ -182,6 +183,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const [command, input, ...artifacts] = process.argv.slice(2);
   assert(input && ['prepare', 'verify', 'plan', '--publish'].includes(command),
     'usage: native-cli-release.mjs prepare <new-directory> <artifact-directories...> | verify|plan <directory> | --publish <directory> after GO');
+  if (command === '--publish') refuseUnconfiguredPublication();
   const directory = resolve(input);
   const manifest = command === 'prepare' ? await prepareNativeCliRelease(directory, artifacts) : await verifyNativeCliRelease(directory);
   if (command === '--publish') {

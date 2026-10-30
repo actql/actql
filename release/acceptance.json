@@ -1,0 +1,247 @@
+{
+  "requirementsSourceSHA256": "1be13daa3e823dc5bd1a56800f1d643e62b377d52e2f05259e149a9e4879d795",
+  "scope": "Implementation/acceptance map, not a passing release checklist",
+  "conditions": [
+    {
+      "id": "A01",
+      "required": "Merge/Conventional Commit cannot select a version, create tags or publish",
+      "currentSlice": "No automatic bump in new planner; existing workflow audit pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A02",
+      "required": "No credentials/upload without independent owner approval",
+      "currentSlice": "Legacy Node and Native CLI fail-closed guard; new CLI plan-only; external permission isolation pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "real legacy CLI publication refuses before credential or upload subprocesses"
+        },
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "required": "Reject disallowed lines including prereleases",
+      "currentSlice": "Explicit shared version/base-line validator",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "initial 0.0 policy rejects later lines including their prereleases"
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "required": "0.0 breaking changes require migration without automatic minor bump",
+      "currentSlice": "Request notes/migration validation",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "breaking changes require migration text without bumping to another line"
+        }
+      ]
+    },
+    {
+      "id": "A05",
+      "required": "Owner approval binds exact version and bytes",
+      "currentSlice": "Fixed release-set and protected executor pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A06",
+      "required": "Actor string/agent/approved=true is not approval",
+      "currentSlice": "Extra authority fields refused by candidate request/policy; external attestation pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "forged approval and actor fields cannot enter policy or request data"
+        }
+      ]
+    },
+    {
+      "id": "A07",
+      "required": "Changed source/scope/channel/digest invalidates approval",
+      "currentSlice": "Upper manifest and approval binding pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A08",
+      "required": "Candidate cannot replace trusted policy/validator/workflow",
+      "currentSlice": "External trusted-revision/executor configuration pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A09",
+      "required": "Shared owner sessions/tokens cannot prove separation",
+      "currentSlice": "External identity/credential settings not inspected or changed",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A10",
+      "required": "Arbitrary agent GitHub Release API denied",
+      "currentSlice": "Strict source-vs-release credential boundary pending owner configuration",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A11",
+      "required": "Stage-only identity cannot publish/approve",
+      "currentSlice": "Registry-side configuration and actual refusal evidence pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A12",
+      "required": "No unauthorized initial npm placeholder stage",
+      "currentSlice": "New entry refuses all stage; protected staging adapter pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "required": "Maintenance publication cannot roll newer latest backward",
+      "currentSlice": "Channel transition validator/receipts pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A14",
+      "required": "Maintenance line excludes new features/breaking contracts",
+      "currentSlice": "Backport/forward-port documented enforcement pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A15",
+      "required": "Resume only missing approved identical bytes after partial publication",
+      "currentSlice": "Reuse existing npm whole-cohort preflight/identical-integrity receipt; upper multi-ecosystem resume pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "partial publication resumes exact remaining versions and never republishes confirmed bytes"
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "required": "Occupied version with different bytes stops without bump/overwrite",
+      "currentSlice": "Existing npm publishedVersion comparator; protected execution binding pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "registry absence, unavailability and occupied version mismatch stay distinct"
+        }
+      ]
+    },
+    {
+      "id": "A17",
+      "required": "Only one concurrent release/channel mutation",
+      "currentSlice": "Existing actual authority-side lock/CAS design pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A18",
+      "required": "Exact public Node entry installs outside repository",
+      "currentSlice": "Candidate-specific tar/platform/consumer and public registry acceptance pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A19",
+      "required": "Python entry works without Node/npm/ActQL CLI",
+      "currentSlice": "Existing Python cohort/build paths inventoried; candidate-specific acceptance pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A20",
+      "required": "Native standalone works without Node and refuses missing binary",
+      "currentSlice": "Existing native builder/reader inventoried; candidate-specific acceptance pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A21",
+      "required": "Unaccepted Linux runtime/profile cannot be declared supported",
+      "currentSlice": "Request plan explicitly leaves platform acceptance pending; publication gate pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "Python has an explicit package/platform/profile selection and no npm-style channel"
+        }
+      ]
+    },
+    {
+      "id": "A22",
+      "required": "RC and final require separate metadata/artifacts/approval",
+      "currentSlice": "Shared explicit SemVer/PEP440 conversion; artifact gate pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "explicit versions map once to Python without selecting or incrementing a version"
+        }
+      ]
+    },
+    {
+      "id": "A23",
+      "required": "Loopback/private install is not public install acceptance",
+      "currentSlice": "Separate acceptance/provenance records pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A24",
+      "required": "Missing/rebuilt artifacts cannot inherit approval",
+      "currentSlice": "Upper fixed manifest and immutable artifact custody gate pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A25",
+      "required": "CI opt-in/rerun does not create release/version authority",
+      "currentSlice": "New entry plan-only; full workflow/authority connection pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A26",
+      "required": "Package version never rewrites /0.1 contracts or CIDs",
+      "currentSlice": "Only explicit package-version parser added; no owned contract/product identity changes",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "explicit versions map once to Python without selecting or incrementing a version"
+        }
+      ]
+    }
+  ]
+}
