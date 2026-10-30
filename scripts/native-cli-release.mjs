@@ -11,6 +11,7 @@ import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {releaseVersion} from './release-version.mjs';
+import {admitReleaseChannel} from './release-policy.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.mjs';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
@@ -51,8 +52,7 @@ export function admitNativeReleaseCohort(value) {
   assert.notEqual(value.packageVersion, '0.0.1', 'The published placeholder remains immutable');
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
-  assert(typeof value.tag === 'string' && /^[a-z][a-z0-9-]*$/u.test(value.tag) &&
-    value.tag === value.tag.trim(), 'Select one literal Native candidate tag');
+  admitReleaseChannel(value.tag);
   return structuredClone(value);
 }
 

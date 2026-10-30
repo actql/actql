@@ -186,7 +186,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
-      "sha256": "52065ea15db16c90102cd9190b2f1653d605b61c8ee51fddc401c8f130f95452",
+      "sha256": "4182cef1fc7b861fa9a92b5d9a932849dc3217bf3680caddd7a20ec2c70e2098",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode, Host current, Credential nominal use and original accounted RowRun owners",
@@ -462,6 +462,10 @@
               {
                 "path": "src/client_row_source_host/host.mbt",
                 "anchor": "pub fn consume_row_run_observation_charge("
+              },
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "## Remaining-row request bound"
               }
             ],
             "extension": [
@@ -478,6 +482,18 @@
               {
                 "path": "src/connectors/hubspot/catalog/property_current_wbtest.mbt",
                 "anchor": "test \"current property recheck"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-remaining-row-requests.test.mjs",
+                "anchor": "HubSpot list request and actual decoder share the remaining row allowance on every page"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-remaining-row-requests.test.mjs",
+                "anchor": "HubSpot remaining allowance keeps a next cursor at exhaustion as refusal without another request"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-remaining-row-requests.test.mjs",
+                "anchor": "HubSpot remaining allowance refuses a server over-response without clipping or admitting rows"
               }
             ]
           }
