@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {releaseVersion} from './release-version.mjs';
-import {observeReleaseSet, observePythonReleaseTarget} from './release-registry.mjs';
+import {observeReleaseSet, observePythonReleaseTarget, observeNpmReleaseTarget} from './release-registry.mjs';
 import {runRelease} from './release.mjs';
 
 const sha = body => createHash('sha256').update(body).digest('hex');
@@ -99,6 +99,21 @@ test('registry observation: selected Python consumer reuses original public byte
   assert.equal((await observe()).observations[0].state, 'conflict');
   f.routes.set(f.urls[2], () => new Response('', {status: 404}));
   assert.equal((await observe()).observations[0].state, 'absent');
+  assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
+});
+
+test('registry observation: selected Native Host consumer reuses complete original npm target without unrelated PyPI reads', async t => {
+  const f = await fixture(t), before = await readFile(join(f.directory, 'release-set.json'));
+  const observe = () => observeNpmReleaseTarget(f.directory, f.digest, 'node', {fetchResponse: f.fetchResponse});
+  assert.equal((await observe()).observations[0].state, 'present');
+  assert.deepEqual(f.calls.map(value => value.url), f.urls.slice(0, 2));
+  f.routes.set(f.urls[1], () => new Response(Buffer.alloc(f.artifacts[0].bytes, 65)));
+  assert.equal((await observe()).observations[0].state, 'conflict');
+  f.routes.set(f.urls[0], () => new Response('', {status: 403}));
+  assert.equal((await observe()).observations[0].state, 'unknown');
+  assert(f.calls.every(value => value.url.startsWith('https://registry.npmjs.org/')));
+  await assert.rejects(observeNpmReleaseTarget(f.directory, undefined, 'node', {fetchResponse: f.fetchResponse}));
+  await assert.rejects(observeNpmReleaseTarget(f.directory, f.digest, 'python', {fetchResponse: f.fetchResponse}));
   assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
 });
 

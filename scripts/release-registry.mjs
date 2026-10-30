@@ -2,8 +2,9 @@
 // owner approval, a publication lease, upload permission or public install.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {lstat, readFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {closeSync, fsyncSync, openSync, writeSync} from 'node:fs';
+import {lstat, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {dirname, join, resolve} from 'node:path';
 import {publishedVersion, verifyPackageRelease} from './package-release.mjs';
 import {resumeReleaseSet, verifyReleaseSet} from './release-set.mjs';
 
@@ -82,11 +83,11 @@ async function artifactBytes(url, artifact, fetchResponse, requests) {
   await artifactBody(response, artifact, requests.at(-1));
 }
 
-async function artifactBody(response, artifact, record) {
+async function artifactBody(response, artifact, record, retain = () => {}) {
   // A missing download after positive metadata is not version absence.
   if (response.status !== 200) {await discard(response); unavailable(`Published artifact unavailable: HTTP ${response.status}`);}
   const sha = createHash('sha256'), sri = createHash('sha512');
-  const bytes = await consume(response, artifact.bytes, chunk => {sha.update(chunk); sri.update(chunk);},
+  const bytes = await consume(response, artifact.bytes, chunk => {sha.update(chunk); sri.update(chunk); retain(chunk);},
     () => conflict(`Occupied artifact exceeds its fixed length: ${artifact.name}/${artifact.file}`));
   const actual = {bytes, sha256: sha.digest('hex'), integrity: `sha512-${sri.digest('base64')}`};
   Object.assign(record, actual);
@@ -176,7 +177,7 @@ function githubCdnUrl(value) {
   return url;
 }
 
-async function githubArtifactBytes(item, artifact, fetchResponse, requests) {
+async function githubArtifactBytes(item, artifact, fetchResponse, requests, retain) {
   let url = `${githubApi}/releases/assets/${item.id}`;
   const seen = new Set();
   for (let redirects = 0; ; redirects++) {
@@ -196,7 +197,7 @@ async function githubArtifactBytes(item, artifact, fetchResponse, requests) {
       const next = response.headers.get('location'); await discard(response);
       url = githubCdnUrl(next).href;
     } else {
-      await artifactBody(response, artifact, requests.at(-1));
+      await artifactBody(response, artifact, requests.at(-1), retain);
       return;
     }
   }
@@ -444,6 +445,81 @@ export async function observePythonReleaseTarget(directory, expectedSha256, targ
   return {schemaVersion: 'actql-python-public-observation/0.1', manifestSha256: fixed.sha256, targetId,
     startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
     qualification: 'anonymous selected Python target byte observations only; no public install, runtime, approval or publisher authority'};
+}
+
+// The same original bounded reader can retain the bytes it actually checked.
+// There is no second downloader, local-archive substitute or publisher here.
+export async function downloadNativeReleaseTarget(directory, expectedSha256, targetId, destination,
+  {fetchResponse = fetch} = {}) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u, 'Supply the externally retained fixed manifest digest');
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === targetId);
+  assert.equal(target?.ecosystem, 'native');
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === targetId);
+  assert.equal(cohort.kind, 'native-standalone');
+  const {verifyNativeStandalone} = await import('./native-standalone-release.mjs');
+  const {requireNativeCohortPackageVersions} = await import('./native-cli-artifact-reader.mjs');
+  const standalone = await verifyNativeStandalone(dirname(join(directory, cohort.path)));
+  requireNativeCohortPackageVersions(JSON.parse(standalone.origin.manifest));
+  destination = resolve(destination); await mkdir(destination, {mode: 0o700});
+  const record = {schemaVersion: 'actql-native-public-download/0.1', manifestSha256: fixed.sha256, targetId,
+    startedAt: new Date().toISOString(), status: 'incomplete', files: [], requests: [],
+    qualification: 'actual bounded public bytes only; installation/profile/approval/publication remain separate'};
+  try {
+    const before = await githubReleaseContext(fixed, fetchResponse, record.requests);
+    for (const artifact of fixed.manifest.artifacts.filter(value => value.targetId === targetId)) {
+      const path = join(destination, artifact.file), fd = openSync(path, 'wx', 0o600);
+      const file = {file: artifact.file, path, expectedBytes: artifact.bytes, expectedSha256: artifact.sha256,
+        status: 'incomplete', retainedBytes: 0}; record.files.push(file);
+      try {
+        await githubArtifactBytes(before.find(value => value.name === artifact.file), artifact, fetchResponse, record.requests, chunk => {
+          for (let offset = 0; offset < chunk.byteLength;) {
+            const count = writeSync(fd, chunk, offset, chunk.byteLength - offset);
+            assert(count > 0, 'Public Native download made no file progress'); offset += count; file.retainedBytes += count;
+          }
+        });
+        fsyncSync(fd); file.status = 'verified';
+      } finally {closeSync(fd);}
+    }
+    const after = await githubReleaseContext(fixed, fetchResponse, record.requests);
+    const identity = items => items.map(item => fields(item,
+      ['id', 'name', 'state', 'size', 'digest', 'browser_download_url']))
+      .sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    assert.deepEqual(identity(after), identity(before), 'Public immutable Native asset identity changed during download');
+    await verifyReleaseSet(directory, {expectedSha256}); record.status = 'verified';
+    return {download: record, standalone};
+  } catch (failure) {
+    record.failure = failure instanceof RegistryConflict ? 'conflict' : 'unavailable-or-incomplete';
+    throw failure;
+  } finally {
+    record.endedAt = new Date().toISOString();
+    // Failed and partial bytes stay owned evidence. No success record, cleanup,
+    // automatic retry or alternative source can make them usable.
+    await writeFile(join(destination, 'download.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx', mode: 0o600});
+  }
+}
+
+export async function observeNpmReleaseTarget(directory, expectedSha256, targetId, {fetchResponse = fetch} = {}) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === targetId);
+  assert.equal(target?.ecosystem, 'npm');
+  const observations = [], requests = [], issues = [], startedAt = new Date().toISOString();
+  for (const artifact of fixed.manifest.artifacts.filter(value => value.targetId === targetId)) {
+    const base = fields(artifact, ['targetId', 'file', 'name', 'version']);
+    try {
+      const state = await npmObservation(artifact, fetchResponse, requests);
+      observations.push({...base, state, ...(state === 'present' ? {identity: identity(artifact)} : {})});
+    } catch (failure) {
+      if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
+      const state = failure instanceof RegistryConflict ? 'conflict' : 'unknown';
+      observations.push({...base, state}); issues.push({...base, state, reason: failure.message});
+    }
+  }
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {schemaVersion: 'actql-npm-public-target-observation/0.1', manifestSha256: fixed.sha256, targetId,
+    startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
+    qualification: 'selected original public npm byte observation; no consumer, approval or publisher authority'};
 }
 
 export async function observeReleaseChannels(directory, expectedSha256, {fetchResponse = fetch} = {}) {

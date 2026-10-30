@@ -157,3 +157,45 @@ the fixed release set and owner approval. Real GitHub Draft/immutable release,
 asset reobservation, attestation, public download and Latest remain separate
 executor/acceptance duties. Header-only fixtures or an archive check never
 establish those outcomes.
+
+
+## Public standalone Remote consumer
+
+After the owner has published the exact fixed set, use its externally retained
+SHA256 and two original target IDs:
+
+```sh
+node scripts/test-native-standalone-install.mjs <fixed-directory> <release-set-SHA256> <native-target-id> <host-node-target-id> <new-external-consumer-directory>
+```
+
+This consumer downloads the original standalone target through the existing
+anonymous GitHub release reader. It requires the exact immutable tag/source,
+complete asset inventory, bounded public bytes and identical identities before
+and after download. The same checked byte stream is written exclusively to its
+fresh directory. Interrupted, missing, oversized or conflicting downloads keep
+incomplete files and a failed receipt; they cannot become an install input or
+trigger a retry, local archive substitution or rebuild.
+
+Extraction reuses the full standalone verifier, original archive reader and
+complete installed file/mode/ABI checks. Direct Native children have an empty
+PATH and fresh HOME, without Node/npm, loader injection, profiles or credentials.
+The same executable must display the exact version, help, and argument refusal.
+Missing executable and changed-byte controls never select an alternative engine.
+
+For Remote behavior the harness installs only the exact public `@actql/node`
+entry of the separately selected original Node target, with isolated npm/HOME
+and full public-byte/installed-payload audits. That process is the external test
+Host, not a Native dependency. The unchanged Remote fixture submits once, saves
+its original reference before wait, checks Result/lookup/delivery/cancellation
+and prevents a second Compute. Native commands are independent direct processes.
+The test Host's explicit client/Host close calls must return before an observation
+of zero scoped state descriptors in that same still-live process, followed by
+its acknowledgement. Native process exit is not promoted to a Host close ACK.
+
+The receipt covers only actually completed operations on that platform. It does
+not qualify Local bootstrap/execution/approval, the standard Project/README CLI,
+other platforms, npm-launcher installation or the full fault matrix. Those
+remain separate required acceptance. Component HTTP/inert-file and own-process
+observation tests do not establish a real public Native install. This launcher
+has no publication/owner-approval or credentials path, and retains its entire
+fresh state on success or failure.

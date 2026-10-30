@@ -10,6 +10,12 @@ import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 
 const executable = process.argv[2]; assert(executable);
 const root = process.cwd(), records = [];
+// Only the standalone acceptance harness selects this environment. The Host
+// driver is separate; its Native children have no Node/npm/tool search path.
+const standaloneHome = process.env.ACTQL_TEST_NATIVE_STANDALONE_HOME;
+const childEnvironment = standaloneHome === undefined ? undefined : {
+  PATH: '', HOME: standaloneHome, TMPDIR: join(standaloneHome, 'tmp'), LANG: 'C',
+};
 let computes = 0;
 const host = await openInstalledRemoteHttpHost({directory: join(root, 'host-state'),
   beforeDispatch: () => {computes++;}, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
@@ -30,14 +36,22 @@ const common = ['--endpoint', endpoint, '--connection-root', root, '--connection
   '--ca', join(root, 'remote.crt'), '--cert', join(root, 'remote.crt'), '--key', join(root, 'remote.key')];
 async function run(...args) {
   const record = await new Promise((resolve, reject) => {
-    const child = spawn(executable, [...common, ...args], {cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
-    let stdout = '', stderr = '';
-    const timer = setTimeout(() => child.kill('SIGTERM'), 30_000);
-    child.stdout.on('data', bytes => {stdout += bytes;}); child.stderr.on('data', bytes => {stderr += bytes;});
+    const child = spawn(executable, [...common, ...args], {cwd: root, env: childEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
+    let stdout = '', stderr = '', bytes = 0, terminationReason = null;
+    const timer = setTimeout(() => {terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 30_000);
+    const append = (chunk, error) => {
+      bytes += chunk.length;
+      if (bytes > 8 * 1024 * 1024) {terminationReason = 'output-limit'; child.kill('SIGTERM');}
+      else if (error) stderr += chunk; else stdout += chunk;
+    };
+    child.stdout.on('data', chunk => append(chunk, false)); child.stderr.on('data', chunk => append(chunk, true));
     child.once('error', error => {clearTimeout(timer); reject(error);});
-    child.once('close', code => {clearTimeout(timer); resolve({args, code, stdout, stderr});});
+    child.once('close', (code, signal) => {clearTimeout(timer); resolve({args, code, signal, terminationReason, stdout, stderr});});
   });
-  records.push(record); assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`); return record.stdout;
+  records.push(record);
+  await writeFile('native-commands.json', JSON.stringify(records, null, 2));
+  assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`); assert.equal(record.signal, null);
+  assert.equal(record.terminationReason, null); return record.stdout;
 }
 let client;
 try {
@@ -86,4 +100,16 @@ try {
   await new Promise(resolve => schemaServer.close(resolve));
   await new Promise(resolve => server.close(resolve));
   await host.close();
+}
+if (standaloneHome !== undefined) {
+  // All original explicit close calls above returned before this observation.
+  // The parent observes this SAME still-live Host process, then acknowledges.
+  console.log(JSON.stringify({stage: 'closed', pid: process.pid, clientCloseReturned: true, hostCloseReturned: true}));
+  const acknowledgement = await new Promise(resolve => {
+    let input = ''; process.stdin.setEncoding('utf8');
+    process.stdin.on('data', chunk => {input += chunk; if (input.includes('\n')) resolve(input);});
+    process.stdin.once('end', () => resolve(input));
+  });
+  assert.equal(acknowledgement, 'observed\n');
+  console.log(JSON.stringify({stage: 'close-observation-ack', pid: process.pid}));
 }
