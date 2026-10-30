@@ -124,7 +124,7 @@ test('installed contract projection is immutable and cannot cross Host control o
   assert.equal(broken.calls.length, 1);
 });
 
-test('Mock Model requirement purposes reuse only the same installed static strings', () => {
+test('Pure Mock Model requirements reuse only the same installed static strings', () => {
   const f = fixture(), modelCalls = [], budgets = Array(15).fill(0n);
   f.requirements()(f.originals, f.prepared);
   const held = f.originals.installation.managedRunContracts;
@@ -134,7 +134,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
     assert.strictEqual(runtime, f.moon);
     return {publicationControl: {
       checkedClientMockModelRunRequirements(...args) {modelCalls.push(['pure', args]); return budgets;},
-      checkedClientEffectMockModelRunRequirements(...args) {modelCalls.push(['effect', args]); return budgets;},
+
     }};
   };
   f.ports.readInitialControlInstallationAsset = (control, original, path) => {
@@ -144,7 +144,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
     return f.assets.get(path);
   };
   const read = actual('readLocalMockModelRunRequirements', f.ports);
-  for (const compilation of [undefined, {}]) {
+  for (const compilation of [undefined]) {
     const model = {compiled: {}, runDefinition: {}, occurrence: 0, graph: {}, compilation};
     read(f.originals, f.prepared, model);
     const [, args] = modelCalls.at(-1);
@@ -154,7 +154,7 @@ test('Mock Model requirement purposes reuse only the same installed static strin
       readRetainedBytes: 0n, readExecutionBytes: 0n, modelRetainedBytes: 0n,
       modelExecutionBytes: 0n, maxReservations: 0, maxHoldings: 0, maxDelegations: 0});
   }
-  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure', 'effect']);
+  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure']);
 });
 
 test('source-free requirements forward the same checked preparation and empty Source inventories', () => {
@@ -435,4 +435,40 @@ test('retired raw LocalFiles Effect constructor refuses before a replacement Roo
     no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no);
   assert.throws(() => prepare({}, {}, true), {code: 'InstalledEffectPlanUnavailable'});
   assert.equal(calls, 0); assert.equal(runs.size, 0);
+});
+
+
+// Actual unchanged Pure constructor and Source-read callee, with explicit
+// manager/Core ports only; this does not supply a physical/native parent.
+test('LocalFiles Pure admission preserves original identity and Effect read cannot borrow it', () => {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
+    n.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const node = install.body.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === 'prepareRun');
+  const prepared = {}, request = {}, original = {}, admission = {}, parent = {}, runs = new Map(), calls = [];
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const current = () => {calls.push('current');};
+  const sameRun = value => {assert.equal(value, prepared); return runs.get(value);};
+  const moon = {
+    clientProgramNodeManagedRunPrepare(o, p) {assert.equal(o, original); assert.equal(p, prepared); calls.push('admit'); return admission;},
+    clientProgramInstalledManagedRunBegin(a, p, r) {assert.equal(a, admission); assert.equal(p, prepared); assert.equal(r, request); calls.push('begin'); return parent;},
+    clientProgramInstalledManagedRunCheck(p, owner, r) {assert.equal(p, parent); assert.equal(owner, prepared); assert.equal(r, request); calls.push('check');},
+  };
+  const sourceManaged = {prepareRun(p) {assert.equal(p, prepared); calls.push('original'); return original;}};
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+    text.slice(node.start, node.end) + ';return prepareRun;')(
+    current, runs, value => value, moon, sourceManaged, fail, sameRun);
+  prepare(prepared, request, false); prepare(prepared, request, false);
+  assert.equal(runs.get(prepared).value, parent); assert.equal(runs.get(prepared).original, original);
+  assert.equal(calls.filter(x => x === 'original').length, 1); assert.equal(calls.filter(x => x === 'begin').length, 1);
+  const found = [];
+  const visit = n => {if (!n || typeof n !== 'object') return;
+    if (n.type === 'Property' && n.key?.name === 'prepareSourceRead') found.push(n);
+    for (const value of Object.values(n)) {if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);}};
+  visit(install); assert.equal(found.length, 1);
+  const read = new Function('sameRun', 'fail', 'return ({' + text.slice(found[0].start, found[0].end) + '}).prepareSourceRead;')(
+    () => assert.fail('No Pure Run borrow from Effect read'), fail);
+  assert.throws(() => read({checkedOwner: prepared, effectful: true, occurrence: {stage: 0}}),
+    {code: 'InstalledEffectPlanUnavailable'});
 });

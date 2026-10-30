@@ -375,6 +375,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         originalKeyedTransport:keyedTransports.get(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence}){
+          if(effectful!==false)fail('InstalledEffectPlanUnavailable');
           const run=sameRun(checkedOwner),index=occurrence.stage;
           if(effectful!==run.effectful||declaration!==entry.declaration||occurrence.input!==0||
               !Number.isSafeInteger(index)||index<0||run.reads.has(index))fail('LocalFilesSourcePreparationMismatch');
