@@ -226,10 +226,16 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     sourceManaged.assertCurrent();
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
-  const sameRun=prepared=>{
-    current();const run=sharedRuns.get(prepared)??runs.get(prepared);
+  // Private retained DATA only: callers already own their Project-current
+  // boundary. No Core/current callback or replacement admission runs here.
+  const retainedRun=prepared=>{
+    const run=sharedRuns.get(prepared)??runs.get(prepared);
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
+    return run;
+  };
+  const sameRun=prepared=>{
+    current();const run=retainedRun(prepared);
     checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
       (run.value,prepared,run.request));return run;
   };
@@ -249,7 +255,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     const effectful=true;
     current();let run=runs.get(prepared);
     if(sharedRuns.has(prepared))fail('ForeignLocalFilesPreparation');
-    if(run!==undefined){if(run.effectful!==effectful)fail('ForeignLocalFilesPreparation');sameRun(prepared);
+    if(run!==undefined){if(run.effectful!==effectful)fail('ForeignLocalFilesPreparation');run=retainedRun(prepared);
       checked((effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
         (run.value,prepared,request));return;}
     if(runs.size===4096)fail('LocalFilesRunLimit');
@@ -271,8 +277,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     const prior=runs.get(prepared);
     if(prior!==undefined){
       if(prior.recipe!==recipe)fail('ForeignLocalFilesContentPreparation');
-      sameRun(prepared);
-      checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return;
+      const run=retainedRun(prepared);
+      checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,request));return;
     }
     if(runs.size===4096)fail('LocalFilesRunLimit');
     const run={prepared,request,effectful:false,recipe,original:undefined,admission:undefined,value:undefined,

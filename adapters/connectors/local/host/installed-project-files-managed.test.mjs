@@ -372,3 +372,121 @@ test('Local duplicate installation retains the actual returned profile for origi
   assert.strictEqual(retained, profile);
   assert.strictEqual(record.managedSourceProfile, existing);
 });
+
+// Exact original installer, with explicit nominal Core/Host ports. Count JS
+// calls to the existing check API and Project-current callback, not full Core
+// validation work, physical resource use or ordinary execution time.
+async function reuseFixture(kind,{beginFailure}={}) {
+  const owner={}, request={}, restored={}, managed={}, original={}, admission={}, selected={}, keyed={};
+  const declaration={}, requirement={}, acquisition={}, capacity={}, cause=new Error('OriginalRunBindingRefused');
+  let checks=0, currents=0, roots=0, begins=0, handler;
+  const requests=new Set([request]), tuples=[];
+  const check=(value, prepared, intent)=>{
+    checks++; tuples.push([value,prepared,intent]);
+    assert.strictEqual(value,managed); assert.strictEqual(prepared,owner);
+    if(handler!==undefined) return handler(intent);
+    return requests.has(intent)?ok():{$tag:0,_0:cause};
+  };
+  const moon={clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
+    clientProgramInstalledEffectManagedRunCheck:check,clientProgramInstalledManagedRunCheck:check,
+    clientProgramNodeEffectManagedRunPrepare(value,prepared){
+      assert.strictEqual(value,original);assert.strictEqual(prepared,owner);return ok(admission);},
+    clientProgramInstalledEffectManagedRunBegin(value,prepared,intent){
+      assert.strictEqual(value,admission);assert.strictEqual(prepared,owner);assert.strictEqual(intent,request);
+      begins++;if(beginFailure!==undefined)throw beginFailure;return ok(managed);},
+    clientProgramKeyedAcquisitionMatchesProgram:(value,prepared)=>value===keyed&&prepared===owner,
+    clientProgramKeyedDirectAcquisitionCoordinates:()=>({_0:0,_1:0}),
+    clientProgramPrepareLocalQueryRequirement:()=>ok(requirement),
+    clientProgramQueryRequirementSourceRef:()=> 'local:files',
+    clientProgramKeyedAcquisitionSourceEvidenceFacts:()=>ok(['local:contents']),
+    clientProgramRowSourcePrepareAcquisition:()=>ok(acquisition),
+    clientProgramInstalledRowCaptureCapacity:()=>capacity,
+    clientProgramInstalledManagedKeyedContentPrepare:()=>ok(selected),
+    clientProgramNodeLocalContentRunPrepare(value,prepared){
+      assert.strictEqual(value,original);assert.strictEqual(prepared,owner);return ok(admission);},
+    clientProgramInstalledManagedKeyedContentRunBegin(value,prepared,intent,plan){
+      assert.strictEqual(value,admission);assert.strictEqual(prepared,owner);assert.strictEqual(intent,request);
+      assert.strictEqual(plan,selected);begins++;if(beginFailure!==undefined)throw beginFailure;return ok(managed);},
+    clientProgramInstalledManagedRunRetire:value=>{assert.strictEqual(value,managed);return ok();},
+    clientProgramNodeEffectManagedRunCleanup:value=>{assert.strictEqual(value,admission);return ok();},
+    clientProgramNodeManagedRunCleanup:value=>{assert.strictEqual(value,admission);return ok();},
+  };
+  const entry={connection:'local',rootPath:'/not-opened',declaration,
+    scopeCid:'sha256:'+'a'.repeat(64),limits:{maxReadBytes:4096,maxPages:4,maxPageBytes:1024,
+      maxFileBytes:1024,maxPageRows:4,maxFiles:8},queryAliases:[],
+    wire:JSON.stringify({views:[{resource:'files',source_ref:'local:files'},
+      {resource:'contents',source_ref:'local:contents'}]})};
+  const bundle={sources:[entry]}, recipe={keyedAcquisition:keyed,registry:{},values:'values',
+    fragment:'fragment',ordered:undefined,task:0,step:0,prefixRetainedBytes:1n,prefixExecutionBytes:1n};
+  const sourceManaged={assertCurrent(){currents++;},prepareRead(){assert.fail('No Source read');},
+    prepareEffectRun(prepared){assert.strictEqual(prepared,owner);roots++;return original;},
+    prepareContentRun(prepared,plan){assert.strictEqual(prepared,owner);assert.strictEqual(plan,selected);
+      roots++;return original;}};
+  const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
+    async()=>({connectorBindings:[],admitsSource:()=>true}),()=>({wire:'{}'}),()=> '{}',
+    async failure=>failure,AcquisitionOpenError,()=>assert.fail('No Native constructor'),mime);
+  const profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged,
+    baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'sha256:'+'b'.repeat(64)},
+      assertAccountCurrent(){assert.fail('No dispatch');}})});
+  const prepare=intent=>kind==='effect'?profile.prepareManagedEffectRun(owner,intent):
+    profile.prepareManagedContentRun(owner,intent,recipe);
+  if(beginFailure===undefined)prepare(request);
+  return {profile,request,restored,cause,tuples,prepare,accept(value){requests.add(value);},
+    setHandler(value){handler=value;},counts(){return {checks,currents,roots,begins};}};
+}
+
+for(const kind of ['effect','content']){
+  test(`Local original ${kind} reuse checks the requested tuple once without another current boundary`,async()=>{
+    const f=await reuseFixture(kind), before=f.counts();
+    f.prepare(f.request);
+    const after=f.counts();
+    assert.equal(after.checks-before.checks,1);
+    assert.equal(after.currents-before.currents,1);
+    assert.equal(after.roots,before.roots);assert.equal(after.begins,before.begins);
+    assert.strictEqual(f.tuples.at(-1)[2],f.request);
+    await f.profile.close();
+  });
+
+  test(`Local original ${kind} reuse forwards foreign and explicit absent requests to the original Core binding`,async()=>{
+    const f=await reuseFixture(kind);
+    for(const request of [{},undefined]){
+      const before=f.counts();
+      assert.throws(()=>f.prepare(request),error=>error.code==='MoonBitHostFailure'&&error.cause===f.cause);
+      const after=f.counts();
+      assert.equal(after.checks-before.checks,1);assert.equal(after.currents-before.currents,1);
+      assert.strictEqual(f.tuples.at(-1)[2],request);
+      assert.equal(after.roots,before.roots);assert.equal(after.begins,before.begins);
+    }
+    await f.profile.close();
+  });
+
+  test(`Local original ${kind} reuse leaves requested-tuple equivalence with the Core owner`,async()=>{
+    const f=await reuseFixture(kind);f.accept(f.restored);
+    const before=f.counts();f.prepare(f.restored);
+    const after=f.counts();
+    assert.equal(after.checks-before.checks,1);assert.equal(after.currents-before.currents,1);
+    assert.strictEqual(f.tuples.at(-1)[2],f.restored);
+    assert.equal(after.roots,before.roots);assert.equal(after.begins,before.begins);
+    await f.profile.close();
+  });
+
+  test(`Local original ${kind} reuse retains the original current refusal without issuing another Run`,async()=>{
+    const f=await reuseFixture(kind), failure=new Error('OriginalManagedCurrentRefused');
+    f.setHandler(()=>{throw failure;});
+    const before=f.counts();assert.throws(()=>f.prepare(f.request),error=>error===failure);
+    const after=f.counts();
+    assert.equal(after.checks-before.checks,1);assert.equal(after.currents-before.currents,1);
+    assert.equal(after.roots,before.roots);assert.equal(after.begins,before.begins);
+    await f.profile.close();
+  });
+
+  test(`Local original ${kind} reuse preserves the original partial-begin failure and cleanup`,async()=>{
+    const failure=new Error('OriginalManagedBeginFailed'),f=await reuseFixture(kind,{beginFailure:failure});
+    assert.throws(()=>f.prepare(f.request),error=>error===failure);
+    const before=f.counts();assert.throws(()=>f.prepare(f.request),error=>error===failure);
+    const after=f.counts();
+    assert.equal(after.checks,before.checks);assert.equal(after.currents-before.currents,1);
+    assert.equal(after.roots,before.roots);assert.equal(after.begins,before.begins);
+    await f.profile.close();
+  });
+}
