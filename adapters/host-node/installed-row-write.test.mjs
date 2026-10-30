@@ -117,6 +117,27 @@ test('standard declaration captures callbacks and preserves the independent read
   }
 });
 
+test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA',async()=>{
+  let bodyCalls=0,projectCalls=0,reads=0;
+  const nativeObservation=Object.freeze({useCid:providerCid,statusCode:200,body:Buffer.from('{"revision":"7"}'),headers:[]});
+  const check={resource:'forms',operation:'fixture:form',beforeSend:true,
+    http:{origin,method:'POST',path:'/form',headers:[['x-http-method-override','GET']],maxRequestBytes:200,maxResponseBytes:400},
+    body(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','request']);assert(Object.isFrozen(context));
+      assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);bodyCalls++;return '{"app":"12"}';},
+    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','request','observation','headers']);
+      assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);assert.equal(context.observation.body,nativeObservation.body);
+      assert.equal(context.observation.statusCode,200);assert.equal(context.headers,nativeObservation.headers);assert(Object.isFrozen(context));projectCalls++;}};
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture');
+  const prepared=driver.prepareRequest({member,value:{name:'intended'}}),raw=authorization('fixture:form');
+  check.body=()=>assert.fail('original body method changed');check.project=()=>assert.fail('original projection changed');check.http.path='/foreign';
+  await driver.checkRequest({member,request:prepared.request,authorization:raw,credential:{},
+    callResource(options){reads++;assert.equal(options.grant,raw.grant);assert.equal(options.useId,raw.useId);
+      assert.deepEqual([...options.operations],[['fixture:form',{method:'POST',path:'/form',body:'{"app":"12"}',headers:[['x-http-method-override','GET']]}]]);
+      return nativeObservation;}});
+  assert.deepEqual([bodyCalls,projectCalls,reads],[1,1,1]);
+  assert.deepEqual(driver.check,{resource:'forms',operation:'fixture:form',beforeSend:true});
+});
+
 test('standard request callbacks receive only original provider DATA, not the RSE lifetime context', () => {
   const value = {name: 'original'}, internal = Object.freeze({});
   const write = declaration({request(context) {
