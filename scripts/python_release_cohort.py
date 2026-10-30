@@ -214,8 +214,9 @@ def verify_built_cohort(directory: Path, source: str, version: str, *,
 
 
 def verify_installed_release(plan: dict[str, object], report_path: Path,
-                             entry: str, site: Path) -> dict[str, object]:
-    """Audit pip's original report and installed bytes; never import product code.
+                             entry: str, site: Path, *, manager: str = 'pip',
+                             project_path: Path | None = None) -> dict[str, object]:
+    """Audit original manager evidence and installed bytes; never import product code.
 
     The caller first cold-verifies the complete original cohort. This reader
     compares that exact wheel material, not a second package/engine verifier.
@@ -229,6 +230,7 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
     import os
     import re
     import stat
+    import sys
     from urllib.parse import unquote, urlsplit
     import zipfile
 
@@ -267,7 +269,7 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
                 raise ValueError('Installed payload is a source/workspace link')
         return path
 
-    if entry not in ('actql', 'actql-sdk') or type(plan) is not dict:
+    if entry not in ('actql', 'actql-sdk') or type(plan) is not dict or manager not in ('pip', 'uv'):
         raise ValueError('Select one exact public Python entry')
     if (not re.fullmatch(r'[a-f0-9]{64}', plan.get('manifestSha256', ''))
             or type(plan.get('artifacts')) is not list):
@@ -277,33 +279,102 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
         raise ValueError('Incomplete original Python cohort')
     names = ['actql-sdk'] if entry == 'actql-sdk' else [item['name'] for item in artifacts]
     original_report = stable_file(report_path, 4 * 1024 * 1024, lambda f: f.read())
-    report = json.loads(original_report)
-    if report.get('version') != '1' or type(report.get('install')) is not list:
-        raise ValueError('Select the stable pip installation report format')
-    selected = {}
-    for item in report['install']:
-        name = normalized(item['metadata']['name'])
-        if (item.get('is_direct') is not False or item.get('is_yanked') is not False
-                or item.get('requested') is not (name == entry)):
-            raise ValueError('Install must request only its public entry without direct/yanked artifacts')
-        url = item['download_info']['url']
+    def public_wheel(url):
+        if type(url) is not str:
+            raise ValueError('Unavailable public artifact URL')
         parsed = urlsplit(url)
-        if (type(url) is not str or url != url.strip() or any(ord(c) <= 32 or ord(c) == 127 for c in url)
+        if (url != url.strip() or any(ord(c) <= 32 or ord(c) == 127 for c in url)
                 or parsed.scheme != 'https' or parsed.netloc != 'files.pythonhosted.org'
                 or parsed.username or parsed.password or parsed.query or parsed.fragment
                 or not parsed.path.endswith('.whl')):
             raise ValueError('Install did not use an official public wheel origin')
-        if name.startswith('actql'):
-            if name not in names or name in selected:
-                raise ValueError('Unexpected or duplicate ActQL dependency')
-            original = next(value for value in artifacts if value['name'] == name)
-            if (item['metadata']['version'] != original['version']
-                    or unquote(Path(parsed.path).name) != Path(original['path']).name
-                    or item['download_info']['archive_info']['hashes']['sha256'] != original['sha256']):
-                raise ValueError('Installed report differs from the fixed original wheel')
-            selected[name] = item
-    if set(selected) != set(names):
-        raise ValueError('Pip report omits the complete selected ActQL graph')
+        return unquote(Path(parsed.path).name)
+
+    original_project = None
+    if manager == 'pip':
+        if project_path is not None:
+            raise ValueError('Pip acceptance does not use a uv project')
+        report = json.loads(original_report)
+        if report.get('version') != '1' or type(report.get('install')) is not list:
+            raise ValueError('Select the stable pip installation report format')
+        selected = {}
+        for item in report['install']:
+            name = normalized(item['metadata']['name'])
+            if (item.get('is_direct') is not False or item.get('is_yanked') is not False
+                    or item.get('requested') is not (name == entry)):
+                raise ValueError('Install must request only its public entry without direct/yanked artifacts')
+            filename = public_wheel(item['download_info']['url'])
+            if name.startswith('actql'):
+                if name not in names or name in selected:
+                    raise ValueError('Unexpected or duplicate ActQL dependency')
+                original = next(value for value in artifacts if value['name'] == name)
+                if (item['metadata']['version'] != original['version']
+                        or filename != Path(original['path']).name
+                        or item['download_info']['archive_info']['hashes']['sha256'] != original['sha256']):
+                    raise ValueError('Installed report differs from the fixed original wheel')
+                selected[name] = item
+        if set(selected) != set(names):
+            raise ValueError('Pip report omits the complete selected ActQL graph')
+    else:
+        if project_path is None:
+            raise ValueError('uv acceptance requires its original project and lock')
+        original_project = stable_file(project_path, 65536, lambda f: f.read())
+        project = tomllib.loads(original_project.decode('utf-8'))
+        version = next(value['version'] for value in artifacts if value['name'] == entry)
+        minor = str(sys.version_info.major) + '.' + str(sys.version_info.minor)
+        expected_project = {'project': {'name': 'release-consumer-check', 'version': '0.0.0',
+            'requires-python': '==' + minor + '.*', 'dependencies': [entry + '==' + version]}}
+        # uv add can persist the explicit default index. This exact official
+        # index is the sole permitted configuration; no source/workspace table.
+        indexed_project = {**expected_project, 'tool': {'uv': {'index': [
+            {'url': 'https://pypi.org/simple', 'default': True}]}}}
+        if project != expected_project and project != indexed_project:
+            raise ValueError('uv must request only its exact public entry in the fresh project')
+        lock = tomllib.loads(original_report.decode('utf-8'))
+        # Do not guess at future lock revisions or marker/fork semantics.
+        if (set(lock) != {'version', 'revision', 'requires-python', 'package'}
+                or type(lock['version']) is not int or lock['version'] != 1
+                or type(lock['revision']) is not int or lock['revision'] != 3
+                or lock['requires-python'] != expected_project['project']['requires-python']
+                or type(lock['package']) is not list or not 1 <= len(lock['package']) <= 1000):
+            raise ValueError('Unavailable selected uv lock format')
+        selected = {}
+        packages = {}
+        roots = []
+        for package in lock['package']:
+            name = normalized(package['name'])
+            if name in packages:
+                raise ValueError('Duplicated/forked uv resolution requires a separate audit')
+            packages[name] = package
+            if name == 'release-consumer-check':
+                roots.append(package)
+                continue
+            if package.get('source') != {'registry': 'https://pypi.org/simple'}:
+                raise ValueError('uv resolution contains a non-public or local source')
+            if name.startswith('actql'):
+                if (name not in names or set(package) - {'name', 'version', 'source', 'dependencies', 'wheels'}
+                        or type(package.get('wheels')) is not list or len(package['wheels']) != 1):
+                    raise ValueError('Unexpected ActQL uv resolution or artifact alternatives')
+                original = next(value for value in artifacts if value['name'] == name)
+                wheel = package['wheels'][0]
+                if (set(wheel) - {'url', 'hash', 'size', 'upload-time'} or not {'url', 'hash', 'size'} <= set(wheel)
+                        or package['version'] != original['version']
+                        or public_wheel(wheel['url']) != Path(original['path']).name
+                        or wheel['hash'] != 'sha256:' + original['sha256']
+                        or type(wheel['size']) is not int or wheel['size'] != original['bytes']):
+                    raise ValueError('uv resolution differs from the fixed original wheel')
+                selected[name] = package
+        expected_root = {'name': 'release-consumer-check', 'version': '0.0.0', 'source': {'virtual': '.'},
+            'dependencies': [{'name': entry}],
+            'metadata': {'requires-dist': [{'name': entry, 'specifier': '==' + version}]}}
+        if roots != [expected_root] or set(selected) != set(names):
+            raise ValueError('uv lock omits the complete exact single-entry ActQL graph')
+        # Every graph edge must resolve in this finite lock. Conditional third-
+        # party edges remain resolution DATA, not proof that every wheel ran.
+        for package in packages.values():
+            for dependency in package.get('dependencies', []):
+                if normalized(dependency['name']) not in packages:
+                    raise ValueError('uv resolution has an unresolved dependency')
     if site.is_symlink():
         raise ValueError('Installed site is a source/workspace link')
     site = site.resolve(strict=True)
@@ -355,11 +426,12 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
         stable_file(Path(item['path']), item['bytes'], inspect)
         dist_info = next(value.split('/')[0] for value in expected if value.endswith('.dist-info/METADATA'))
         generated = {dist_info + '/INSTALLER'}
-        if name == entry:
+        if name == entry or manager == 'uv':
             generated.add(dist_info + '/REQUESTED')
-        if stable_file(child(site, dist_info + '/INSTALLER'), 16, lambda f: f.read()) != b'pip\n':
+        installer = b'pip\n' if manager == 'pip' else b'uv'
+        if stable_file(child(site, dist_info + '/INSTALLER'), 16, lambda f: f.read()) != installer:
             raise ValueError('Unexpected installed wheel installer')
-        if name == entry and stable_file(child(site, dist_info + '/REQUESTED'), 0, lambda f: f.read()) != b'':
+        if (name == entry or manager == 'uv') and stable_file(child(site, dist_info + '/REQUESTED'), 0, lambda f: f.read()) != b'':
             raise ValueError('Unexpected requested-entry marker')
         # importlib.metadata.files intentionally hides missing entries on some
         # supported Python versions. Read the original installed RECORD itself
@@ -372,7 +444,7 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
         for path in recorded:
             child(site, path)
         if len(recorded) != len(set(recorded)) or set(recorded) != expected | generated:
-            raise ValueError('Installed RECORD inventory differs from the exact wheel plus pip metadata')
+            raise ValueError('Installed RECORD inventory differs from the exact wheel plus manager metadata')
         roots = {Path(value).parts[0] for value in expected}
         expected_roots.update(roots)
         actual = set()
@@ -389,10 +461,15 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
     if actual_roots != expected_roots:
         raise ValueError('Installed ActQL namespace contains unregistered or surplus material')
     if stable_file(report_path, 4 * 1024 * 1024, lambda f: f.read()) != original_report:
-        raise ValueError('Original pip report changed during audit')
+        raise ValueError('Original manager evidence changed during audit')
+    if original_project is not None and stable_file(project_path, 65536, lambda f: f.read()) != original_project:
+        raise ValueError('Original uv project changed during audit')
     return {'entry': entry, 'manifestSha256': plan['manifestSha256'], 'payloads': payloads,
-            'reportSha256': hashlib.sha256(original_report).hexdigest(),
-            'qualification': 'Actual pip-report/original-wheel/installed-byte audit only; '
+            'manager': manager, 'evidenceKind': 'pip-install-report' if manager == 'pip' else 'uv-resolution-lock',
+            ('reportSha256' if manager == 'pip' else 'lockSha256'): hashlib.sha256(original_report).hexdigest(),
+            **({'projectSha256': hashlib.sha256(original_project).hexdigest()} if original_project is not None else {}),
+            'qualification': 'Original manager evidence and exact installed ActQL wheel bytes only; '
+                             'uv lock is resolution, not a download transaction report; '
                              'not engine execution, public Client acceptance or owner approval'}
 
 
@@ -404,12 +481,16 @@ if __name__ == '__main__':
         import sysconfig
         parser = argparse.ArgumentParser(description='Audit the selected public installed Python wheel bytes')
         parser.add_argument('--audit-installed', type=Path, required=True)
-        parser.add_argument('--pip-report', type=Path, required=True)
+        evidence = parser.add_mutually_exclusive_group(required=True)
+        evidence.add_argument('--pip-report', type=Path)
+        evidence.add_argument('--uv-lock', type=Path)
+        parser.add_argument('--uv-project', type=Path)
         parser.add_argument('--entry', choices=('actql', 'actql-sdk'), required=True)
         arguments = parser.parse_args()
         print(json.dumps(verify_installed_release(
-            json.loads(arguments.audit_installed.read_bytes()), arguments.pip_report,
-            arguments.entry, Path(sysconfig.get_path('purelib')))))
+            json.loads(arguments.audit_installed.read_bytes()), arguments.pip_report or arguments.uv_lock,
+            arguments.entry, Path(sysconfig.get_path('purelib')),
+            manager='uv' if arguments.uv_lock else 'pip', project_path=arguments.uv_project)))
         raise SystemExit(0)
     parser = argparse.ArgumentParser(description='Verify an existing frozen Python wheel cohort; no build or publication')
     parser.add_argument('--verify-directory', type=Path, required=True)

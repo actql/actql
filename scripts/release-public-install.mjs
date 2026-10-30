@@ -10,11 +10,13 @@ import {releaseVersion} from './release-version.mjs';
 export const publicNpmRegistry = 'https://registry.npmjs.org/';
 
 export function pythonReleaseInstallSelection(args) {
-  assert(Array.isArray(args) && args.length === 5,
-    'usage: test-python-release-install.mjs <fixed-directory> <externally-retained-SHA256> <target-id> <absolute-python> <new-external-consumer-directory>');
+  assert(Array.isArray(args) && (args.length === 5 || (args.length === 7 && args[5] === '--uv')),
+    'usage: test-python-release-install.mjs <fixed-directory> <externally-retained-SHA256> <target-id> <absolute-python> <new-external-consumer-directory> [--uv <absolute-uv>]');
   assert.match(args[1], /^[a-f0-9]{64}$/u); assert(isAbsolute(args[3]), 'Select one absolute Python interpreter');
+  if (args.length === 7) assert(isAbsolute(args[6]), 'Select one absolute uv executable');
   return {directory: resolve(args[0]), manifestSha256: args[1], targetId: args[2],
-    python: args[3], consumer: resolve(args[4]), kind: 'public-pypi'};
+    python: args[3], consumer: resolve(args[4]), kind: 'public-pypi',
+    manager: args.length === 7 ? 'uv' : 'pip', uv: args.length === 7 ? args[6] : null};
 }
 
 export function pythonPublicConsumerEnvironment(parent, root, interpreter) {
@@ -36,6 +38,44 @@ export function pythonInstallCommand(version, entry, report) {
   return ['-I', '-B', '-m', 'pip', '--isolated', 'install', '--index-url', 'https://pypi.org/simple',
     '--only-binary=:all:', '--no-cache-dir', '--no-compile', '--disable-pip-version-check', '--no-input',
     '--report', report, `${entry}==${selected.pythonVersion}`];
+}
+
+export function pythonUvConsumerEnvironment(parent, root) {
+  const env = pythonPublicConsumerEnvironment(parent, root, '/no-path/python');
+  // The explicitly selected uv/Python executables are absolute. Nothing from
+  // the invoking user's shared uv cache/config, active venv or PATH is used.
+  env.PATH = ''; env.UV_CACHE_DIR = join(root, 'uv-cache');
+  return env;
+}
+
+export function pythonUvProject(minor) {
+  assert.match(minor, /^3\.(?:1[1-9]|[2-9][0-9])$/u);
+  return `[project]\nname = "release-consumer-check"\nversion = "0.0.0"\nrequires-python = "==${minor}.*"\ndependencies = []\n`;
+}
+
+export async function pythonUvProjectParents(root) {
+  // Refuse an enclosing project before uv can discover or modify a foreign
+  // workspace. --no-workspace controls dependency membership, not discovery.
+  let parent = dirname(root);
+  for (let depth = 0; depth < 128; depth++) {
+    for (const name of ['pyproject.toml', 'uv.toml']) {
+      try {await lstat(join(parent, name)); throw Error('uv consumer has an enclosing project/configuration');}
+      catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+    }
+    const next = dirname(parent);
+    if (next === parent) return;
+    parent = next;
+  }
+  throw Error('uv consumer ancestor bound exceeded');
+}
+
+export function pythonUvInstallCommand(version, entry, python) {
+  assert(['actql', 'actql-sdk'].includes(entry)); assert(isAbsolute(python));
+  const selected = releaseVersion(version);
+  return ['add', '--python', python, '--no-managed-python', '--no-python-downloads', '--no-config',
+    '--default-index', 'https://pypi.org/simple', '--no-build', '--no-sources', '--no-cache',
+    '--link-mode', 'copy', '--no-install-project', '--no-workspace', '--bounds', 'exact',
+    '--keyring-provider', 'disabled', `${entry}==${selected.pythonVersion}`];
 }
 
 export async function releaseConsumerDestination(destination, excludedRoots) {
