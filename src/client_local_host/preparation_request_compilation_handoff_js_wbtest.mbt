@@ -165,3 +165,50 @@ test "module throw after early compilation retains its spent artifact until orig
   assert_eq(parent.program_artifact_work_spent, spent)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "single Values compilation uses the same original output slot through module and Run" {
+  let document =
+    #|{"version":"actql/0.1","id":"single-values-compilation","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let (parent, check, _, input) = registration_parent_fixture(text=document)
+  finish_program_check_preparation(check).unwrap() |> ignore
+  let prepared = compile_program_check_preparation(
+    check, @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  continue_request_program_preparation(parent, input).unwrap() |> ignore
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+  let calls = Ref(0)
+  let factory = (_ : @execution.ExecutionCapacity) => {
+    calls.val += 1
+    []
+  }
+  let artifact = prepare_request_program_compilation(
+    parent, input, contracts, manifests~, compilation_limits~,
+    retained_output=true, provider_factory=factory,
+  ).unwrap()
+  assert_true(artifact is @publication_host.Values(_))
+  assert_eq(calls.val, 0)
+  let spent = parent.program_artifact_work_spent
+  assert_true(spent > 0L)
+  prepare_request_program_module_body(
+    parent, input, contracts, manifests~, compilation_limits~,
+    retained_output=true, provider_factory=factory,
+  ).unwrap()
+  assert_true(physical_equal(
+    parent.program_source_free.unwrap().compilation.unwrap(), artifact,
+  ))
+  assert_eq(calls.val, 1)
+  assert_eq(parent.program_artifact_work_spent, spent)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared, "sha256:" + "a".repeat(64), "single-values-original",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(
+    installed_managed_run_compilation_original(run, prepared).unwrap(), artifact,
+  ))
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(parent.program_artifact_work_spent, spent)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
