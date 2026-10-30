@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
 
@@ -416,4 +416,64 @@ test('a failed original pre-write Form check retains the claim without entering 
   const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
   await assert.rejects(dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current}),error=>error===primary);
   assert.deepEqual(events,['claim','flight','check','end']);assert.equal(retainedClaim.canonicalRequestCid,entry.requestCid);assert.equal(route.retire(),true);
+});
+
+// Execute the complete original capture prelude through Source export. The
+// checked pin/export and native Plan/borrow are explicit ports; this proves
+// ordering/lifetime, not complete constructor quantities or ordinary authority.
+function prefixFixture({failBorrowAt, exportFailure}={}) {
+  const events=[],children=[],input=Object.freeze({}),nativePlan={},parent={},prepared={},identity={};
+  let releaseInputs,finish,borrowCount=0,exportCalls=0;
+  const moon={clientProgramPinEffectSources(){events.push('pin');return {ok:input};},
+    clientProgramReleaseEffectInputs(value){assert.equal(value,input);events.push('unpin');},
+    clientProgramEffectInputExportLimits(){return {};},
+    clientProgramInstalledEffectManagedOperationPlan(){return {$tag:1,_0:nativePlan};},
+    clientProgramInstalledEffectOperationBorrow(owner,p,r,plan,memberIndex,perRow,operationIndex,rowIndex,operation){
+      assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
+      assert.deepEqual([perRow,operationIndex,rowIndex,operation],[false,0,0,'capture-prefix']);
+      events.push(`borrow-${memberIndex}`);borrowCount++;
+      if(borrowCount===failBorrowAt)throw primary;
+      return {$tag:1,_0:{memberIndex}};
+    },
+    clientProgramInstalledEffectOperationRetire(token,ack){assert.equal(ack,true);events.push(`retire-${token.memberIndex}`);return {$tag:1,_0:true};}};
+  const primary=new Error('same original capture-prefix failure');
+  const members=Array.from({length:failBorrowAt??1},(_,memberIndex)=>Object.freeze({kind:'create',memberIndex}));
+  const recipe=Object.freeze({memberOperations:Object.freeze([Object.freeze({operation:'capture-prefix',extent:{}})]),
+    rowOperations:Object.freeze([]),captureConstruction:Object.freeze({operationIndex:0})});
+  const owned=Object.freeze({managedPlanRecipe:recipe,profile:{source:'fixture-source'}});
+  const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
+    readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+  const control={publicationPreparedReleaseAction(index,_count,checked,pending,attempted){
+    return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';}};
+  const ports={moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
+    limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
+    ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
+    ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
+    prepareInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
+    prepareCredentialOperation:()=>assert.fail('No physical child in capture prelude'),
+    plan:{outputLimits:{maxWireBytes:100}},exportLimits:()=>[],singular:undefined,cid:()=>cid('e'),
+    store:{storeAuthorityCid:cid('f')},runInvocationCid:cid('c'),execution:{},signal:undefined,
+    preparePinnedEffectSourceSet:async options=>{
+      exportCalls++;events.push('export');
+      assert.equal(borrowCount,members.length,'all original member prefix reservations precede exported rows');
+      assert.equal(children[0].length,members.length,'all same children retained before export');
+      members.forEach((_,index)=>options.onProposalRow(index,0,{changesWire:'{"value":{"label":"same"}}'}));
+      if(exportFailure)throw primary;
+      return {payloads:[]};
+    }};
+  const end=capture.body.body.find(node=>node.type==='ExpressionStatement'&&node.expression.type==='CallExpression'&&node.expression.callee.name==='own'&&node.expression.arguments[0]?.name==='sourceSet').end;
+  const code=source.slice(capture.body.start+1,end);
+  const run=()=>Function(...Object.keys(ports),`return (async()=>{${code};return {proposals,requestChildren};})();`)(...Object.values(ports));
+  return {run,events,children,primary,exportCalls:()=>exportCalls,cleanup:async()=>{finish();await releaseInputs();}};
+}
+
+test('original member capture reservation precedes exported proposal rows and retains their prefix until release',async()=>{
+  const f=prefixFixture(),result=await f.run();
+  assert.deepEqual(f.events,['pin','borrow-0','export']);
+  assert.equal(result.proposals[0][0].changesWire,'{"value":{"label":"same"}}');
+  assert.equal(result.requestChildren.length,1);
+  assert.equal(result.requestChildren[0].prepared.status().pending,true);
+  await f.cleanup();
+  assert.equal(result.proposals.length,0);
+  assert.deepEqual(f.events,['pin','borrow-0','export','retire-0','unpin']);
 });
