@@ -6,7 +6,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {releaseVersion} from './release-version.mjs';
-import {admitReleasePolicy, admitReleaseRequest, releasePlan} from './release-policy.mjs';
+import {admitReleasePolicy, admitReleaseRequest, releasePlan, admitReleaseChannel} from './release-policy.mjs';
 import {runReleasePlan} from './release.mjs';
 import {admitCohort, preparePackageRelease, releasePackageMetadata} from './package-release.mjs';
 import {admitNativeReleaseCohort, nativeReleaseMetadata, prepareNativeCliRelease} from './native-cli-release.mjs';
@@ -186,4 +186,19 @@ test('release preparation: real Node and Native CLI cannot silently use source v
     await assert.rejects(readFile(join(destination, 'release.json')), {code: 'ENOENT'});
   }
   await assert.rejects(readFile(marker), {code: 'ENOENT'});
+});
+
+test('dotted channel owner is shared by request, Node and Native cohort admission', async () => {
+  const node = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
+  const native = {packageVersion: '0.0.7', registry: node.registry, access: node.access, tag: 'release-0.0'};
+  assert.equal(admitReleaseChannel(native.tag), native.tag);
+  assert.equal(admitNativeReleaseCohort(native).tag, native.tag);
+  assert.equal(admitCohort({...node, packageVersion: native.packageVersion, tag: native.tag}).tag, native.tag);
+  const selected = request(); selected.targets[0].channels = [native.tag];
+  assert.deepEqual(admitReleaseRequest(selected, policy).request.targets[0].channels, [native.tag]);
+  for (const tag of ['', ' release-0.0', 'release-0.0' + String.fromCharCode(10), 'x/y']) {
+    assert.throws(() => admitReleaseChannel(tag));
+    assert.throws(() => admitNativeReleaseCohort({...native, tag}));
+    assert.throws(() => admitCohort({...node, tag}));
+  }
 });

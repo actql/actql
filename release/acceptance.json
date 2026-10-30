@@ -137,21 +137,31 @@
     {
       "id": "A13",
       "required": "Maintenance publication cannot roll newer latest backward",
-      "currentSlice": "Channel transition validator/receipts pending",
+      "currentSlice": "Read-only channel plan binds exact prior value/report and destination artifact, rejects normal downgrade/stable prerelease alias/wrong maintenance line. Actual protected promotion, GitHub Latest and public install remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Synthetic local channel-plan component; no actual registry channel mutation",
+          "test": "release lanes: newer latest cannot be rolled back by a maintenance release"
+        }
+      ]
     },
     {
       "id": "A14",
       "required": "Maintenance line excludes new features/breaking contracts",
-      "currentSlice": "Backport/forward-port documented enforcement pending",
+      "currentSlice": "Local Git branch/cut/cherry-pick inspection and complete maintenance review-DATA shape implemented. Broad main merge and explicitly incompatible categories refuse; protected semantic hunk review, actual branch operation and owner approval remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Real temporary Git histories, not actual product/maintenance acceptance",
+          "test": "release lanes: whole development merge into maintenance is detected from real history even with bugfix labels"
+        }
+      ]
     },
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Existing npm same-integrity resume retained; upper read-only supplied-observation classifier distinguishes present/absent/unknown/conflict, real cross-ecosystem observation/upload pending",
+      "currentSlice": "Anonymous bounded npm/PyPI HTTP byte observations feed the fixed same-bytes classifier. Actual protected upload/partial-publication recovery and standalone Native remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -161,13 +171,17 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte transport component only; no actual public publication or approval",
+          "test": "registry observation: actual npm identity owner and bounded remote bytes feed same-bytes resume without writing the fixed set"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Existing npm publishedVersion comparator; protected execution binding pending",
+      "currentSlice": "Existing npm identity owner plus actual remote byte comparisons; PyPI checks complete selected release files/size/SHA256 and downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -177,13 +191,17 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP component only; no real registry write",
+          "test": "registry observation: old foreign or empty PyPI releases cannot acquire a new platform/product by append"
         }
       ]
     },
     {
       "id": "A17",
       "required": "Only one concurrent release/channel mutation",
-      "currentSlice": "Existing actual authority-side lock/CAS design pending",
+      "currentSlice": "Exact historical channel expected-value checks implemented for review; actual single protected cross-repository executor/exclusive roles or registry CAS remain unconfigured and unaccepted",
       "acceptanceStatus": "pending",
       "executedEvidence": []
     },

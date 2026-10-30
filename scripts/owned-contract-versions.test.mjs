@@ -62,6 +62,25 @@ test('owned namespaces, schema URNs and law versions reject advances', () => {
     '{"version":"2.3.4","node":"22.22.0"}', 'package.json').length, 0);
 });
 
+test('registry package version URLs remain independent from owned contract versions', () => {
+  const version = '0.0.7rc1';
+  const urls = [
+    `https://pypi.org/pypi/actql-sdk/${version}/json`,
+    `https://pypi.org/project/actql/${version}/`,
+    `https://registry.npmjs.org/actql/${future}`,
+    `https://registry.npmjs.org/@scope/actql-sdk/${future}`,
+  ];
+  for (const url of urls) assert.deepEqual(occurrences(`'${url}'`, 'source.mjs'), []);
+  const owned = `actql-binding/${future}`;
+  assert.deepEqual(occurrences(`${urls[0]} ${owned}`, 'source.mjs').map(item => item.token), [owned]);
+  for (const url of [
+    `https://other.invalid/pypi/actql-sdk/${future}/json`,
+    `https://owner@pypi.org/pypi/actql-sdk/${future}/json`,
+    `https://other.invalid/path/https://pypi.org/pypi/actql-sdk/${future}/json`,
+    `https://pypi.org/pypi/actql-sdk/${future}/json?extra=1`,
+  ]) assert.equal(occurrences(url, 'source.mjs').length, 1, url);
+});
+
 test('legacy inventory cannot authorize another file, context or duplicate', () => {
   const original = source(future);
   const [entry] = occurrences(original, 'old.mjs');
