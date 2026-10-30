@@ -55,6 +55,7 @@ fn request_capture_bridge_fixture() -> (
       request_diagnostic_test_json("null"),
       environment,
       publication,
+      None,
     ).unwrap(),
     "effect_free",
   )

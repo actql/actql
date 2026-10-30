@@ -143,7 +143,7 @@ test "optional prefix capabilities are selected from the same installed bundle" 
       assets.values,
       None,
       None,
-    )
+    ).to_option()
     is Some(_),
   )
 }

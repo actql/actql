@@ -55,6 +55,7 @@ fn[I, P] compile_program_check_preparation_owned(
     max_parameter_name_bytes=limits.max_parameter_name_bytes,
     max_tasks=limits.max_tasks,
     max_graph_work=limits.max_graph_work,
+    values_max_rows=limits.values_max_rows,
   )
   owner.compilation_known_work = known
   let charged = @resources.spend_preparation_phase_work64(work, known)

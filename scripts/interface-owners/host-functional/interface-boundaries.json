@@ -18850,7 +18850,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5be38f428f9f2f0021bf9925a48e7c70036c2cfc0e2a0fd5ef56b6b252758245",
+      "sha256": "548cb6e7d0b02a4114a5d830498eeffff7cfccbc2138f952844ba8005f7d6993",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18870,7 +18870,8 @@
           "name": "checkedRequestProgramPreparation",
           "parameters": [
             "moon",
-            "result"
+            "result",
+            "projectIssue"
           ],
           "async": false
         },
@@ -19570,7 +19571,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "let prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
+                "anchor": "let prepareEffect = funded || !allowEffects ? undefined : sourcePublication === undefined"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -76686,7 +76687,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8b4f105609d37735c9c6ee619a49cf4f4bcb216b6d6401dcfc6680ee0632afba",
+      "sha256": "1840b14434faca56d29323963b6a2b21926620f21c50c34ee785d8e8aa47532f",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -81921,7 +81922,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "c7af9318bcbfa402a70537c7db94444c9de68db6bf5d6bca6dd6112548d87704",
+      "sha256": "b6558a85de048fe043dd5e8f04ae1d7117f89854cdee227d5d72e013cad986e9",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",

@@ -3286,3 +3286,32 @@ original Plan/Run retirement remains responsible for its existing owner.
 This immutable DATA reuse carries no currentness, permission, physical-start
 or cleanup result. It avoids a repeated variable allocation, but does not price
 all first-pass lowering/Fragment/Carrier scratch or complete compiler work.
+
+
+## Selected Local Values row limits enter the first Request
+
+The installed Local `valuesMaxRows` setting is immutable preparation DATA. The
+normal Request context forwards it into the existing Program preparation limits
+before the first checked Program becomes a `PreparedClientProgram`. The shared
+row-profile eligibility predicate is the same predicate used by the independent
+raw preparation API: one source-free Values task, no Graph carrier and no INFER.
+No permission, capacity credit or additional work allowance follows from this
+setting. Default demand-derived bounds and all independent cell/value/work/byte
+limits retain their existing meanings.
+
+The funded Local route requires neither the old raw preparation exports nor the
+post-preparation row-limit copy API. It cannot serialize or check the same input
+again when a selected bound is refused. The original prepared body, installed
+sequence, Plan and Run retain that first selection; the thin installer reads the
+original immutable row bound before retaining its normal metadata.
+
+The existing sequence constructor returns its original typed failure through
+the installed Plan constructor. A Values limit is not converted to `None` and
+then to a generic unsupported installation. Node projects only that original
+`Sequence(ValuesFailure(_, ValuesLimit))` into its existing implementation-limit
+refusal category. Foreign/current/resource/cleanup and other unclassified causes
+remain uncertain. Projection performs no second input admission, sequence
+construction, public check or error-string classification. Existing Option-only
+consumers keep their own established interface; the normal Result path preserves
+the typed cause. Request abort and the original body borrower still govern
+retirement, independently of the diagnostic projection.

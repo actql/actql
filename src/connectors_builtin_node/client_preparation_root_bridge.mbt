@@ -681,6 +681,20 @@ pub fn client_program_prepare_request_program_module_body(
 }
 
 ///|
+/// Read only the original installed sequence refusal. Foreign/current/cleanup
+/// and all unclassified failures remain uncertain; no input is checked again.
+#export_name("clientProgramRequestProgramModuleIssueCode")
+pub fn client_program_request_program_module_issue_code(
+  result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
+) -> String? {
+  match result {
+    Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
+      Some("values_profile_unsupported")
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramBorrowRequestProgramPreparation")
 pub fn client_program_borrow_request_program_preparation(
   parent : @client_local_host.ClientRequestPreparation[
@@ -918,6 +932,7 @@ pub fn client_program_prepare_request_native_computation(
   parameters : NativeJsonValue,
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  values_max_rows : Int?,
 ) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
   @client_local_host.prepare_request_native_computation(
     parent,
@@ -927,7 +942,10 @@ pub fn client_program_prepare_request_native_computation(
     environment,
     publication,
     [],
-    @publication_host.client_standard_program_preparation_limits(),
+    {
+      ..@publication_host.client_standard_program_preparation_limits(),
+      values_max_rows,
+    },
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None
@@ -977,6 +995,7 @@ pub fn client_program_prepare_request_source_computation(
   parameters : NativeJsonValue,
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  values_max_rows : Int?,
 ) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
   @client_local_host.prepare_request_native_source_computation(
     parent,
@@ -986,7 +1005,10 @@ pub fn client_program_prepare_request_source_computation(
     environment,
     publication,
     [],
-    @publication_host.client_standard_program_preparation_limits(),
+    {
+      ..@publication_host.client_standard_program_preparation_limits(),
+      values_max_rows,
+    },
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None

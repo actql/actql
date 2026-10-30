@@ -35,6 +35,7 @@ fn request_effect_bridge_fixture() -> (
       request_diagnostic_test_json("null"),
       environment,
       publication,
+      None,
     ).unwrap(),
     "effectful",
   )

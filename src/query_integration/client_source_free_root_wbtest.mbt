@@ -22,6 +22,7 @@ test "captured Values output supports shared Effect and publication borrows" {
     max_stages: 2,
   }
   let preparation : @publication_host.ClientProgramPreparationLimits = {
+    values_max_rows: None,
     checking: {
       input,
       compilation: {

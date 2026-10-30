@@ -22,6 +22,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     max_stages: 2,
   }
   let preparation : @publication_host.ClientProgramPreparationLimits = {
+    values_max_rows: None,
     checking: {
       input,
       compilation: {

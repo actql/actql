@@ -161,7 +161,7 @@ fn keyed_captured_local_installed_limits(
           values_body,
           fragment_body,
           ordered_body,
-        )
+        ).to_option()
         is Some(sequences) else {
         return None
       }

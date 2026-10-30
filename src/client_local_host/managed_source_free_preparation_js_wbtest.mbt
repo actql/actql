@@ -142,13 +142,15 @@ test "Pure prepared module selects its original factory before Run and never cal
       reference, prepared,
     ).unwrap()
     let raw = source_free_installed_managed_preparation_owned(
-      Pure(prepared),
-      contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-      false,
-    ).unwrap()
+        Pure(prepared),
+        contracts,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+        false,
+      )
+      .to_option()
+      .unwrap()
     assert_true(
       begin_prepared_installed_managed_source_free_run(
         admission, prepared, request, raw,

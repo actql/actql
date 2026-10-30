@@ -125,7 +125,7 @@ fn prepare_client_keyed_local_join_owned(
       // Reuse the existing owned prefix compiler without preparing later
       // consumers as part of this keyed operation's acquisition barrier.
       infer_prefix=Some((task, step)),
-    )
+    ).to_option()
     is Some([generated]) &&
     @publication_host.prepare_client_keyed_lookup_join_inputs(lookup, generated)
     is Ok((sequence, _, _)) else {

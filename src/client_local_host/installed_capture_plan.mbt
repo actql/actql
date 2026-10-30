@@ -94,8 +94,8 @@ pub fn prepare_installed_managed_capture_plan(
       ordered_body,
       query_time=query_time.map(original => (original, request)),
     ) {
-    Some(value) => value
-    None => return Err(Unsupported)
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let compute = match
     prepare_installed_compute_preparation(

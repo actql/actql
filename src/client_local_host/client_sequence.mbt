@@ -16,7 +16,7 @@ pub fn prepare_client_local_sequences(
     fragment_body,
     ordered_body,
     task_count~,
-  )
+  ).to_option()
 }
 
 ///|
@@ -37,7 +37,7 @@ pub fn prepare_client_effect_local_sequences(
     fragment_body,
     ordered_body,
     task_count~,
-  )
+  ).to_option()
 }
 
 ///|
@@ -65,7 +65,7 @@ pub fn prepare_client_local_sequences_at_query_time(
     fragment_body,
     ordered_body,
     query_time=Some((original, request)),
-  )
+  ).to_option()
 }
 
 ///|
@@ -85,7 +85,7 @@ pub fn prepare_client_effect_local_sequences_at_query_time(
     fragment_body,
     ordered_body,
     query_time=Some((original, request)),
-  )
+  ).to_option()
 }
 
 ///|
@@ -126,7 +126,9 @@ pub fn prepare_client_infer_prefix(
     ordered_body,
     task_count=Some(1),
     infer_prefix=Some((task, step - 1)),
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -344,7 +346,9 @@ fn prepare_client_serialization_prefix_owned(
       ),
     ),
     serialization_input=Some((task, barrier)),
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -373,7 +377,9 @@ pub fn prepare_client_infer_suffix(
     ordered_body,
     task_count=Some(1),
     infer_suffix=Some((0, step)),
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -497,7 +503,9 @@ fn prepare_owned_infer_segment(
     selected_task=Some(task),
     infer_prefix=if suffix { None } else { Some((task, step - 1)) },
     infer_suffix=if suffix { Some((task, step)) } else { None },
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -550,7 +558,9 @@ fn prepare_client_query_acquisition_prefix(
     infer_prefix=Some((task, capture)),
     acquisition_source=Some((task, source_index)),
     query_time~,
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -586,7 +596,9 @@ fn prepare_client_restored_serialization_sequence(
     selected_task=Some(task),
     infer_prefix=Some((task, step - 1)),
     serialization_restore=Some((task, serialization_step, step)),
-  ).bind(sequences => sequences.get(0))
+  )
+  .to_option()
+  .bind(sequences => sequences.get(0))
 }
 
 ///|
@@ -607,11 +619,11 @@ fn prepare_client_local_sequences_owned(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
-) -> Array[@execution.GeneratedSequence]? {
+) -> Result[Array[@execution.GeneratedSequence], ClientInstalledManagedRunIssue] {
   guard client_local_sequence_selection_matches(
     installed_contracts, values_body, fragment_body, ordered_body,
   ) else {
-    return None
+    return Err(Unsupported)
   }
   let admitted = installed_contracts.original.value
   let contracts = admitted.contracts
@@ -641,7 +653,7 @@ fn prepare_client_local_sequences_owned(
   }
   let count = task_count.unwrap_or(@strategy.graph_task_count(graph))
   if count < 1 || count > @strategy.graph_task_count(graph) {
-    return None
+    return Err(Unsupported)
   }
   let generated = []
   let composed_boundaries = match prepared {
@@ -663,10 +675,10 @@ fn prepare_client_local_sequences_owned(
   // Each checked boundary still needs its installed provider. Retaining both
   // markers neither executes generation nor grants Model authorization.
   if serialization_boundaries.length() > 1 {
-    return None
+    return Err(Unsupported)
   }
   if selected_task is Some(task) && (task < 0 || task >= count) {
-    return None
+    return Err(Unsupported)
   }
   for task in 0..<count {
     let composed_boundary = composed_boundaries
@@ -694,7 +706,7 @@ fn prepare_client_local_sequences_owned(
       continue
     }
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
-      return None
+      return Err(Unsupported)
     }
     let source_index = match acquisition_source {
       Some((source_task, source_index)) if source_task == task => source_index
@@ -821,12 +833,12 @@ fn prepare_client_local_sequences_owned(
           }
       }) {
       Ok(value) => value
-      Err(_) => return None
+      Err(issue) => return Err(Sequence(issue))
     }
     let contexts : Array[@execution.FragmentRuntimeContext] = []
     for step in 0..<@lower.sequence_count(sequence) {
       guard @lower.sequence_step(sequence, step) is Some(operation) else {
-        return None
+        return Err(Unsupported)
       }
       match operation {
         @lower.RowStep(kernel) => {
@@ -855,7 +867,9 @@ fn prepare_client_local_sequences_owned(
           if !required {
             continue
           }
-          guard fragment_contract is Some(contract) else { return None }
+          guard fragment_contract is Some(contract) else {
+            return Err(Unsupported)
+          }
           let fragment = match
             @lower.prepare_fragment_pipeline(sequence, step, {
               max_roots: 100,
@@ -863,7 +877,7 @@ fn prepare_client_local_sequences_owned(
               max_work: 100000,
             }) {
             Ok(value) => value
-            Err(_) => return None
+            Err(_) => return Err(Unsupported)
           }
           // Work covers measuring every value these rows admit, with a small
           // constant per byte. Live values are charged in the execution
@@ -890,7 +904,7 @@ fn prepare_client_local_sequences_owned(
               row_limits=if ordered { Some(logical) } else { None },
             ) {
             Ok(value) => value
-            Err(_) => return None
+            Err(_) => return Err(Unsupported)
           }
           let context = match
             @execution.prepare_runtime_fragment(
@@ -908,7 +922,7 @@ fn prepare_client_local_sequences_owned(
               ordered=if ordered { ordered_contract } else { None },
             ) {
             Ok(value) => value
-            Err(_) => return None
+            Err(_) => return Err(Unsupported)
           }
           contexts.push(context)
         }
@@ -920,7 +934,7 @@ fn prepare_client_local_sequences_owned(
       let last = @lower.sequence_count(sequence) - 1
       guard last > boundary &&
         @lower.node_at(@lower.bound_preparation(owner), last) is Some(node) else {
-        return None
+        return Err(Unsupported)
       }
       @execution.prepare_generated_sequence(
         contracts,
@@ -936,7 +950,7 @@ fn prepare_client_local_sequences_owned(
       task == prefix_task {
       guard @lower.node_at(@lower.bound_preparation(owner), terminal)
         is Some(node) else {
-        return None
+        return Err(Unsupported)
       }
       @execution.prepare_generated_sequence(
         contracts,
@@ -976,7 +990,7 @@ fn prepare_client_local_sequences_owned(
     }
     let sequence = match outcome {
       Ok(value) => value
-      Err(_) => return None
+      Err(_) => return Err(Unsupported)
     }
     let sequence = if infer_suffix is Some((suffix_task, boundary)) &&
       task == suffix_task {
@@ -988,7 +1002,7 @@ fn prepare_client_local_sequences_owned(
           ),
         )
         is Some(selected) else {
-        return None
+        return Err(Unsupported)
       }
       selected
       // A segmented graph task executes and retains only its exact operation.
@@ -1002,7 +1016,7 @@ fn prepare_client_local_sequences_owned(
       @strategy.graph_task_selected_step(graph, task) is Some(step) {
       guard @execution.select_generated_sequence_step(sequence, step)
         is Some(selected) else {
-        return None
+        return Err(Unsupported)
       }
       selected
     } else {
@@ -1023,11 +1037,11 @@ fn prepare_client_local_sequences_owned(
         }
         match bound {
           Ok(value) => value
-          Err(_) => return None
+          Err(_) => return Err(Unsupported)
         }
       }
     }
     generated.push(sequence)
   }
-  Some(generated)
+  Ok(generated)
 }
