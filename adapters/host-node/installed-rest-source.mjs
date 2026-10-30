@@ -69,8 +69,16 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
         }
       }
     }
-    const implementationLimits = Object.freeze(Object.fromEntries(
-      [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])));
+    // Both constructors select the same already-validated Source demand.
+    // Other codec/workspace rejection bounds remain the selected Host policy.
+    const limits = Object.freeze({maxPages: Math.max(...original.sources.map(source => source.limits.maxPages)),
+      maxPageBytes: Math.max(...original.sources.map(source => source.limits.maxPageBytes)),
+      maxPageRows: Math.max(...original.sources.map(source => source.limits.maxPageRows)),
+      maxCaptureRows: Math.max(...original.sources.map(source => source.limits.maxRows))});
+    const implementationLimits = Object.freeze({...Object.fromEntries(
+      [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])),
+      maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
+      maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows});
     const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
       columnCount: Math.max(...declared.views.map(view => view.fields.length))});
     const targets = new Map(original.sources.map(source => [source.resource, source]));
@@ -115,10 +123,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
         bindingCid: cid({connectorId: input.installed.connectorId, connectorRegistration: original.registration,
           connectorRevision: original.revision, originalStringsCid: input.originalStringsCid,
           catalogCid: declared.catalog_cid, runtimeBundleCid, contextCid: authorization.context.contextCid}),
-        limits: {maxPages: Math.max(...original.sources.map(source => source.limits.maxPages)),
-          maxPageBytes: Math.max(...original.sources.map(source => source.limits.maxPageBytes)),
-          maxPageRows: Math.max(...original.sources.map(source => source.limits.maxPageRows)),
-          maxCaptureRows: Math.max(...original.sources.map(source => source.limits.maxRows))},
+        limits,
         providerReader});
     } catch (cause) {
       throw await retainInstalledHostInitializationFailure(cause,
