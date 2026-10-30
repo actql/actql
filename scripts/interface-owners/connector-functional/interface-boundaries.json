@@ -8926,7 +8926,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "0e5fcd4a0bffeadd893f64ae934b3fa2632f6872759e1497cd223046c4df82f5",
+      "sha256": "bfd1043e6fb5192a2bde49d797d97062b381c8b2e055f66e9bc782a99df5ef99",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11157,6 +11157,10 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
               }
             ]
           }
@@ -12191,6 +12195,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
               }
             ]
           }
