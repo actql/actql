@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
@@ -380,4 +381,39 @@ test('actual claimed CREATE runs its separately authorized original Form check b
   assert.equal((await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current})).claimed,true);
   assert.deepEqual(events,['effect-grant','claim','flight','authorize-read','read-grant','managed-read','form','managed-write','send','end','store','project']);
   assert.equal(route.retire(),true);
+});
+
+test('pre-write check selection captures original callback and refuses unfunded or accessor flags before use',()=>{
+  const node=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureBeforeSendCheck').node;
+  const capture=Function('nodeTypes','fail','text',`return (${source.slice(node.start,node.end)});`)(nodeTypes,fail,value=>typeof value==='string'&&value.length>0);
+  const recipe={rowOperations:[{operation:'form-read'}],credentialOperations:[{phase:'write-check',operationIndex:0}]};
+  let called=0;
+  const original=function(){called++;},driver={kinds:['create'],check:Object.freeze({resource:'forms',operation:'form-read',beforeSend:true}),checkRequest:original};
+  const selected=capture(driver,recipe);assert.equal(called,0);assert.equal(selected.request,original);assert.equal(selected.receiver,driver);assert(Object.isFrozen(selected));
+  driver.checkRequest=()=>assert.fail('later replacement');assert.equal(selected.request,original);
+  assert.throws(()=>capture(driver,undefined),{code:'InvalidInstalledEffectWriteCheck'});
+  assert.throws(()=>capture({kinds:['create']},recipe),{code:'InstalledEffectWriteCheckUnavailable'});
+  const accessor={kinds:['create'],check:Object.freeze({resource:'forms',operation:'form-read',get beforeSend(){called++;return true;}}),checkRequest:original};
+  assert.throws(()=>capture(accessor,recipe),{code:'InvalidInstalledEffectWriteCheck'});assert.equal(called,0);
+  assert.equal(capture({kinds:['create'],check:Object.freeze({resource:'forms',operation:'form-read'}),checkRequest:original},undefined),undefined);
+});
+
+test('a failed original pre-write Form check retains the claim without entering send store or settlement',async()=>{
+  const selected={kind:'create',resource:'rows'},request={},entry={request,requestCid:cid('e')},primary=new Error('original Form changed'),events=[];
+  const claim={scope:'scope',locator:'locator',key:'key',basis:'basis',intentFingerprintCid:'row',canonicalRequestCid:entry.requestCid};
+  const owned={writeOperation:()=> 'create',checkRequest(){throw primary;},send(){assert.fail('Form drift cannot send');}};
+  const owner={installed:[{}],owned,managedPlanRecipe:{credentialOperations:[{phase:'write-check'},{phase:'write'}]},
+    beforeSendCheck:{resource:'forms',operation:'form-read',request:owned.checkRequest,receiver:owned},
+    site:{issueEffectGrant:()=>({grant:'write'}),issueReadGrant:()=>({grant:'read'})}};selected.mapping=owner.installed[0];
+  let retainedClaim;
+  const ledger={claimDispatch(original){retainedClaim=original;events.push('claim');return {claimed:true,dispatching:{}};},
+    beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){assert.fail('No mutation response exists');}};
+  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+    admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
+    admitRow:()=>claim,captureClaimedEffectResponse,readDecision:async()=>({action:'dispatch'}),settle:()=>assert.fail('No typed mutation outcome')})({
+      members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],subjectCid:'subject',runInvocationCid:'run',
+      applyPreview:{},ledger,assertCurrent(){},physicalOperations(facts){assert.equal(facts.phase,'write-check');events.push('check');return facts.invoke({});}});
+  const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
+  await assert.rejects(dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current}),error=>error===primary);
+  assert.deepEqual(events,['claim','flight','check','end']);assert.equal(retainedClaim.canonicalRequestCid,entry.requestCid);assert.equal(route.retire(),true);
 });
