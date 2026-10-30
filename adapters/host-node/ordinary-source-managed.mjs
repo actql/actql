@@ -382,21 +382,24 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         state.preparing = true;
         try {
           if (state.compilationKind === undefined) {
+            const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
             const result = producer.kind === 'program'
               ? moon.clientProgramPrepareRequestNativeComputation(
                 state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment)
+                environment, state.context.preparedEnvironment, valuesMaxRows)
               : moon.clientProgramPrepareRequestSourceComputation(
                 state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment);
+                environment, state.context.preparedEnvironment, valuesMaxRows);
             state.compilationKind = checkedRequestProgramPreparation(moon, result);
           }
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different
           // parent or claim that an unconstructed Plan is ready.
           if (state.compilationKind !== 'effect_free') fail('NodeManagedRunPlanUnavailable');
-          checked(moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
-            producer.receipt, contracts.admission, state.context.retainedRelationOutput));
+          checkedRequestProgramPreparation(moon,
+            moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
+              producer.receipt, contracts.admission, state.context.retainedRelationOutput),
+            moon.clientProgramRequestProgramModuleIssueCode);
           state.holder = checked(moon.clientProgramBorrowRequestProgramPreparation(state.parent));
         } catch (cause) {
           state.preparationFailed = true;

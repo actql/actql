@@ -646,7 +646,7 @@ fn multi_captured_capacity_limits_owned(
   }
   guard prepare_client_local_sequences_owned(
       owner, installed_contracts, values_body, fragment_body, ordered_body,
-    )
+    ).to_option()
     is Some(sequences) else {
     return None
   }

@@ -21,6 +21,7 @@ const ports = () => ({
   clientProgramAbortRequestPreparation() {},
   clientProgramPrepareRequestNativeComputation() {},
   clientProgramPrepareRequestProgramModuleBody() {},
+  clientProgramRequestProgramModuleIssueCode() {},
   clientProgramBorrowRequestProgramPreparation() {},
   clientProgramAdoptRequestProgramPreparation() {},
   clientProgramReserveRequestSnapshot() {},
@@ -47,14 +48,14 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
 });
 
 test('funded caller passes the same installed mode to one original Request compiler and ModuleBody', async () => {
-  for (const mode of [false, true]) {
+  for (const mode of [false, true]) for (const valuesMaxRows of [undefined, 2]) {
     const parent = {}, receipt = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
     const captured = {input: {}, parameters: {text: '日本語😀'}}, parametersCursor = {}, calls = [];
     let constructing = false;
     const moon = {...ports(),
       clientProgramPrepareRequestNativeComputation(...args) {
         assert.strictEqual(this, moon);
-        assert.deepEqual(args, [parent, receipt, captured.input, captured.parameters, environment, preparedEnvironment]);
+        assert.deepEqual(args, [parent, receipt, captured.input, captured.parameters, environment, preparedEnvironment, valuesMaxRows]);
         calls.push('compiler'); return 'effect_free';
       },
       clientProgramPrepareRequestProgramModuleBody(...args) {
@@ -72,7 +73,7 @@ test('funded caller passes the same installed mode to one original Request compi
       },
     };
     const state = {parent, snapshot: captured, context: Object.freeze({runtime: moon, environment,
-      preparedEnvironment, retainedRelationOutput: mode})};
+      preparedEnvironment, retainedRelationOutput: mode, valuesMaxRows})};
     const producer = {receipt, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
     const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
@@ -156,4 +157,23 @@ test('Host retains the actual output mode in its original preparation context an
       assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
     }
   }
+});
+
+
+test('selected row context requires finite own DATA without observing accessors', () => {
+  for (const valuesMaxRows of [undefined, 1, 10000]) {
+    assert.equal(requestPreparationAvailable(Object.freeze({
+      ...context(ports(), false), valuesMaxRows})), true);
+  }
+  for (const valuesMaxRows of [null, 0, -1, 1.5, 10001, Infinity, '2']) {
+    assert.equal(requestPreparationAvailable(Object.freeze({
+      ...context(ports(), false), valuesMaxRows})), false);
+  }
+  let getters = 0;
+  const selected = Object.freeze({...context(ports(), false),
+    get valuesMaxRows() {getters++; return 2;}});
+  assert.equal(requestPreparationAvailable(selected), false);
+  assert.equal(getters, 0);
+  const missing = ports(); delete missing.clientProgramRequestProgramModuleIssueCode;
+  assert.equal(requestPreparationAvailable(context(missing, false)), false);
 });

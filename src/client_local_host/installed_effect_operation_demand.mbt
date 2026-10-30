@@ -215,14 +215,20 @@ pub fn prepare_installed_effect_managed_plan(
     }
   }
   let source_free = if @strategy.graph_captured_prefix(graph) == 0 {
-    source_free_installed_managed_preparation_owned(
-      Effect(prepared),
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-      model is Some(_),
-      query_time=invocation,
+    Some(
+      match
+        source_free_installed_managed_preparation_owned(
+          Effect(prepared),
+          installed_contracts,
+          values_body,
+          fragment_body,
+          ordered_body,
+          model is Some(_),
+          query_time=invocation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      },
     )
   } else {
     None
@@ -254,8 +260,8 @@ pub fn prepare_installed_effect_managed_plan(
           ordered_body,
           query_time=invocation,
         ) {
-        Some(value) => value
-        None => return Err(Unsupported)
+        Ok(value) => value
+        Err(issue) => return Err(issue)
       }
   }
   let captures = []

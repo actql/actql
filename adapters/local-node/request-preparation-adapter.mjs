@@ -46,12 +46,17 @@ export function requestPreparationAvailable(context) {
   if(moon===null || typeof moon!=='object' || nodeTypes.isProxy(moon) ||
       own(context,'preparedEnvironment')===undefined ||
       typeof own(context,'retainedRelationOutput')!=='boolean') return false;
+  const rowField=Object.getOwnPropertyDescriptor(context,'valuesMaxRows');
+  if (rowField!==undefined && !Object.hasOwn(rowField,'value')) return false;
+  const rows=rowField?.value;
+  if (rows!==undefined && (!Number.isSafeInteger(rows) || rows<1 || rows>10000)) return false;
   return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
     typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
+    typeof own(moon,'clientProgramRequestProgramModuleIssueCode')==='function' &&
     typeof own(moon,'clientProgramBorrowRequestProgramPreparation')==='function' &&
     typeof own(moon,'clientProgramAdoptRequestProgramPreparation')==='function' &&
     typeof own(moon,'clientProgramReserveRequestSnapshot')==='function';

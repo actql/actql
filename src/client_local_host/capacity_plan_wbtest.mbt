@@ -68,17 +68,19 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
     client_local_scalar_nodes(sequences, max_rows).unwrap() |> ignore
     let (_, execution, measurement) = client_local_execution_limits(
@@ -254,7 +256,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
         Some(assets.fragment),
         assets.ordered,
         false,
-      )
+      ).to_option()
       is Some(_)
     assert_eq(accepted, retained <= 536870912L)
     println(
@@ -312,17 +314,19 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
       @publication_host.prepared_client_graph(prepared),
     )
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     let inventory = client_local_schema_proof_inventory(
       sequences,
       graph=Some(@publication_host.prepared_client_graph(prepared)),
@@ -381,7 +385,7 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
         Some(assets.fragment),
         assets.ordered,
         false,
-      )
+      ).to_option()
       is Some(_)
     assert_eq(tasks, 4 * terms + 1)
     assert_true(admitted)

@@ -290,6 +290,7 @@ pub fn client_program_preparation_issue_code(
             match owner {
               Syntax(_) => "program_syntax"
               EffectNotSupported(_) => "effect_not_supported"
+              ValuesProfileUnsupported => "values_profile_unsupported"
               NeedsInputs(_) => "needs_inputs"
               Check(diagnostic) =>
                 if @program_check.diagnostic_cause(diagnostic)

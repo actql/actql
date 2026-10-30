@@ -8,12 +8,15 @@ pub(all) struct ClientProgramPreparationLimits {
   max_parameter_name_bytes : Int
   max_tasks : Int
   max_graph_work : Int
+  // Selected Local Values execution envelope; None retains ordinary demand.
+  values_max_rows : Int?
 }
 
 ///|
 pub(all) enum ClientProgramPreparationIssue {
   Syntax(@syntax.SyntaxError)
   EffectNotSupported(String)
+  ValuesProfileUnsupported
   NeedsInputs(@checked.InputRequests)
   Check(@checked.CheckDiagnostic)
   MissingCheckedStage(Int)
@@ -47,26 +50,8 @@ pub fn with_prepared_client_values_row_limit(
   value : PreparedClientProgram,
   max_rows : Int,
 ) -> PreparedClientProgram? {
-  let standard = client_standard_values_sequence_limits()
-  if max_rows < 1 ||
-    max_rows > standard.max_cells ||
-    @strategy.graph_task_count(value.graph) != 1 ||
-    prepared_client_uses_graph_carrier(value) {
+  if !client_values_row_limit_supported(value.graph, max_rows) {
     return None
-  }
-  guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
-    return None
-  }
-  let prepared = @lower.bound_preparation(owner)
-  let pipeline = @lower.pipeline(prepared)
-  if !@pipeline.starts_with_values(pipeline) {
-    return None
-  }
-  for step in 0..<@pipeline.step_count(pipeline) {
-    if @lower.node_at(prepared, step) is Some(node) &&
-      @lower.payload(node) is @lower.Infer(_) {
-      return None
-    }
   }
   Some({
     ..value,
@@ -74,6 +59,35 @@ pub fn with_prepared_client_values_row_limit(
     full_sequences: [],
     task_pipeline_inputs: [],
   })
+}
+
+///|
+fn client_values_row_limit_supported(
+  graph : @strategy.CheckedDAG,
+  max_rows : Int,
+) -> Bool {
+  let standard = client_standard_values_sequence_limits()
+  if max_rows < 1 ||
+    max_rows > standard.max_cells ||
+    @strategy.graph_task_count(graph) != 1 ||
+    client_graph_uses_graph_carrier(graph) {
+    return false
+  }
+  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+    return false
+  }
+  let prepared = @lower.bound_preparation(owner)
+  let pipeline = @lower.pipeline(prepared)
+  if !@pipeline.starts_with_values(pipeline) {
+    return false
+  }
+  for step in 0..<@pipeline.step_count(pipeline) {
+    if @lower.node_at(prepared, step) is Some(node) &&
+      @lower.payload(node) is @lower.Infer(_) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -173,8 +187,13 @@ pub fn prepared_client_values_max_rows(value : PreparedClientProgram) -> Int {
 pub fn prepared_client_uses_graph_carrier(
   value : PreparedClientProgram,
 ) -> Bool {
-  for task in 0..<@strategy.graph_task_count(value.graph) {
-    guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+  client_graph_uses_graph_carrier(value.graph)
+}
+
+///|
+fn client_graph_uses_graph_carrier(graph : @strategy.CheckedDAG) -> Bool {
+  for task in 0..<@strategy.graph_task_count(graph) {
+    guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       continue
     }
     let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
@@ -2137,6 +2156,7 @@ pub fn prepare_parsed_effect_free_client_program(
     max_parameter_name_bytes=limits.max_parameter_name_bytes,
     max_tasks=limits.max_tasks,
     max_graph_work=limits.max_graph_work,
+    values_max_rows=limits.values_max_rows,
   )
 }
 
@@ -2154,6 +2174,7 @@ pub fn prepare_checked_effect_free_client_program(
   max_parameter_name_bytes~ : Int,
   max_tasks~ : Int,
   max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   prepare_checked_effect_free_client_program_owned(
     checked,
@@ -2162,6 +2183,7 @@ pub fn prepare_checked_effect_free_client_program(
     max_parameter_name_bytes~,
     max_tasks~,
     max_graph_work~,
+    values_max_rows~,
   )
 }
 
@@ -2176,6 +2198,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
   max_parameter_name_bytes~ : Int,
   max_tasks~ : Int,
   max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
 ) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
   let work = Ref(0L)
   let result = prepare_checked_effect_free_client_program_owned(
@@ -2185,6 +2208,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
     max_parameter_name_bytes~,
     max_tasks~,
     max_graph_work~,
+    values_max_rows~,
     lowering_work_out=Some(work),
   )
   (result, work.val)
@@ -2198,6 +2222,7 @@ fn prepare_checked_effect_free_client_program_owned(
   max_parameter_name_bytes~ : Int,
   max_tasks~ : Int,
   max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   // The checker already refused nonempty Effects on its Pure path. Read its
@@ -2217,6 +2242,7 @@ fn prepare_checked_effect_free_client_program_owned(
     max_parameter_name_bytes~,
     max_tasks~,
     max_graph_work~,
+    values_max_rows~,
     lowering_work_out~,
   )
 }
@@ -2229,6 +2255,7 @@ fn compile_effect_free_checked_client_program(
   max_parameter_name_bytes~ : Int,
   max_tasks~ : Int,
   max_graph_work~ : Int,
+  values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   let owners = match
@@ -2267,7 +2294,11 @@ fn compile_effect_free_checked_client_program(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
         ),
     ) {
-    Ok(graph) =>
+    Ok(graph) => {
+      if values_max_rows is Some(max_rows) &&
+        !client_values_row_limit_supported(graph, max_rows) {
+        return Err(ValuesProfileUnsupported)
+      }
       Ok({
         graph,
         sequence_preparation_demand,
@@ -2280,16 +2311,21 @@ fn compile_effect_free_checked_client_program(
         task_pipeline_inputs: [],
         compiler_contracts: None,
         // The default covers authored inlet demand and checked closed outputs.
-        // An explicit row-limit view replaces this envelope. The owned capacity
+        // An explicit installed row setting selects its first bound. The owned capacity
         // plan still independently admits the actual execution resources.
-        local_values_max_rows: Int::max(
-          client_standard_values_sequence_limits().max_rows,
-          Int::max(
-            sequence_preparation_demand.authored_literal_rows,
-            client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
-          ),
-        ),
+        local_values_max_rows: match values_max_rows {
+          Some(max_rows) => max_rows
+          None =>
+            Int::max(
+              client_standard_values_sequence_limits().max_rows,
+              Int::max(
+                sequence_preparation_demand.authored_literal_rows,
+                client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
+              ),
+            )
+        },
       })
+    }
     Err(issue) => Err(Graph(issue))
   }
 }
