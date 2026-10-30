@@ -752,8 +752,10 @@ existing DELETE projection and this holder share one original-page before and
 version implementation, preserving checked value types, field/array order and
 wide ID/revision strings without a JavaScript number roundtrip.
 
-Mapped object JSON uses the original Form field Contract and existing value
-admission. Duplicate keys, native wrapper fields and incompatible carriers
+Mapped object JSON and existing CREATE fresh/cold admission share one bounded
+parser and field-value callee. The CREATE adapter preserves its existing typed
+refusals, including the `InvalidValues` to `InvalidRecords` projection. Both
+use the original Form field Contract and existing value admission. Duplicate keys, native wrapper fields and incompatible carriers
 refuse. The original checked values remain paired with their request. The
 existing CREATE serializer and saved-body comparison stay distinct and retain
 their exact wire. UPDATE request and acknowledgement self references identify

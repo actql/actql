@@ -10,58 +10,12 @@ pub(all) enum RecordCreateJsonIssue {
 } derive(Eq, Debug)
 
 ///|
-fn create_json_write_limits_valid(limits : RecordWriteLimits) -> Bool {
-  limits.max_fields > 0 &&
-  limits.max_name_bytes > 0 &&
-  limits.max_nodes > 0 &&
-  limits.max_depth > 0 &&
-  limits.max_text_bytes > 0 &&
-  limits.max_output_bytes > 0
-}
-
-///|
-fn create_json_values(
-  catalog : FormFieldCatalog,
-  cursor : @decode.Cursor,
-  limits : RecordWriteLimits,
-) -> Result[RecordWriteValues, RecordCreateJsonIssue] {
-  guard @decode.open_object(cursor) is Ok(_) &&
-    @decode.object_length(cursor) is Some(count) else {
-    return Err(InvalidRecords)
-  }
-  if count > limits.max_fields {
-    return Err(BudgetExceeded)
-  }
-  let cells = []
-  let mut nodes = limits.max_nodes
-  let mut text = limits.max_text_bytes
-  for index in 0..<count {
-    let (name, value) = @decode.field_at(cursor, index).unwrap()
-    guard @scalar.admit_utf8_length(name, limits.max_name_bytes) is Ok(bytes) &&
-      bytes <= text else {
-      return Err(BudgetExceeded)
-    }
-    text -= bytes
-    guard record_write_field_contract(catalog, name) is Some(contract) else {
-      return Err(Write(FieldUnavailable(name)))
-    }
-    match
-      @admitted.admit_usage(contract, value, {
-        max_nodes: nodes,
-        max_depth: limits.max_depth,
-        max_text_bytes: text,
-      }) {
-      Ok((checked, used_nodes, used_text)) => {
-        nodes -= used_nodes
-        text -= used_text
-        cells.push((name, checked))
-      }
-      Err(_) => return Err(Write(InvalidValue(name)))
-    }
-  }
-  match prepare_record_write_values(catalog, cells, limits) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(Write(issue))
+fn create_json_issue(issue : RecordWriteJsonIssue) -> RecordCreateJsonIssue {
+  match issue {
+    InvalidLimits => InvalidLimits
+    BudgetExceeded => BudgetExceeded
+    InvalidValues => InvalidRecords
+    Write(issue) => Write(issue)
   }
 }
 
@@ -74,43 +28,13 @@ fn create_json_records(
   request_limits : RecordMutationLimits,
 ) -> Result[Array[RecordWriteValues], RecordCreateJsonIssue] {
   if max_input_bytes <= 0 ||
-    !create_json_write_limits_valid(write_limits) ||
+    !write_json_limits_valid(write_limits) ||
     !mutation_limits_valid(request_limits) {
     return Err(InvalidLimits)
   }
-  if bytes.length() > max_input_bytes {
-    return Err(BudgetExceeded)
-  }
-  let parsed = match
-    @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes,
-      max_nodes: write_limits.max_nodes,
-      max_depth: write_limits.max_depth,
-    }) {
+  let cursor = match write_json_cursor(bytes, max_input_bytes, write_limits) {
     Ok(value) => value
-    Err(error) =>
-      return Err(
-        match error.issue {
-          InputLimit | NodeLimit | DepthLimit => BudgetExceeded
-          _ => InvalidRecords
-        },
-      )
-  }
-  let cursor = match
-    @decode.admit(parsed, {
-      max_nodes: write_limits.max_nodes,
-      max_depth: write_limits.max_depth,
-      max_string_bytes: write_limits.max_text_bytes,
-      max_total_string_bytes: write_limits.max_text_bytes,
-    }) {
-    Ok(value) => value
-    Err(error) =>
-      return Err(
-        match error.kind {
-          BudgetExceeded => BudgetExceeded
-          _ => InvalidRecords
-        },
-      )
+    Err(issue) => return Err(create_json_issue(issue))
   }
   guard @decode.array_length(cursor) is Some(count) && count > 0 else {
     return Err(InvalidRecords)
@@ -122,9 +46,9 @@ fn create_json_records(
   for index in 0..<count {
     let row = @decode.element_at(cursor, index).unwrap()
     guard @decode.open_object(row) is Ok(_) else { return Err(InvalidRecords) }
-    match create_json_values(catalog, row, write_limits) {
+    match write_json_values(catalog, row, write_limits) {
       Ok(value) => records.push(value)
-      Err(issue) => return Err(issue)
+      Err(issue) => return Err(create_json_issue(issue))
     }
   }
   Ok(records)

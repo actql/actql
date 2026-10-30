@@ -41261,7 +41261,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_create_json.mbt",
-      "sha256": "3c00f06c7b2d635dd51265c501be38a5f513c954c8927492ebbc3dd57746c9d1",
+      "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
@@ -41269,16 +41269,12 @@
       "exports": [],
       "operations": [
         {
+          "name": "create_json_issue",
+          "declaration": "create_json_issue ( issue : RecordWriteJsonIssue ) - > RecordCreateJsonIssue"
+        },
+        {
           "name": "create_json_records",
           "declaration": "create_json_records ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ Array [ RecordWriteValues ] , RecordCreateJsonIssue ]"
-        },
-        {
-          "name": "create_json_values",
-          "declaration": "create_json_values ( catalog : FormFieldCatalog , cursor : @ decode . Cursor , limits : RecordWriteLimits , ) - > Result [ RecordWriteValues , RecordCreateJsonIssue ]"
-        },
-        {
-          "name": "create_json_write_limits_valid",
-          "declaration": "create_json_write_limits_valid ( limits : RecordWriteLimits ) - > Bool"
         },
         {
           "name": "prepare_record_create_request_json",
@@ -41298,8 +41294,6 @@
           "operations": [
             "<module>",
             "create_json_records",
-            "create_json_values",
-            "create_json_write_limits_valid",
             "prepare_record_create_request_json",
             "record_create_request_values_json",
             "restore_record_create_request_json"
@@ -41369,6 +41363,154 @@
               {
                 "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
                 "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "create_json_issue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
               }
             ]
           }
@@ -41765,7 +41907,7 @@
           }
         }
       ],
-      "sha256": "7138faf9bc484344754da9015f4bc222a6e7ea4a0ff4f9ccb7d121657ca4a32b",
+      "sha256": "fe198e9f375b7da433c6a75b42859fe0015f4b572723bb0576b05846355bbcb5",
       "operations": [
         {
           "name": "create_proposal_values",
