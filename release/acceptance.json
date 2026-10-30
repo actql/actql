@@ -122,12 +122,16 @@
     {
       "id": "A11",
       "required": "Stage-only identity cannot publish/approve",
-      "currentSlice": "Reusable stage-only command protocol has no approval/reject/promotion runner and requires a separate owner stage reader; actual registry-side trust separation/refusal evidence remains pending",
+      "currentSlice": "Stage-only protocol retains its separate owner reader and no approval runner. A distinct owner-terminal helper binds original stage IDs, displays the full cohort, keeps 2FA/output outside receipts and confirms original public bytes. Port presence is not identity or authority; actual registry-side trust separation and owner-terminal provisioning/refusal evidence remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: pinned tool and separate read port are required before any actual send, not actor/approved JSON"
+        },
+        {
+          "kind": "Inert staged archives and injected owner terminal only; no real npm approval, 2FA, owner identity or registry permission acceptance",
+          "test": "npm owner helper: lost response stops once without auth capture and explicit recovery skips original public bytes"
         },
         {
           "kind": "Inert Native-shaped archives and injected stage/read ports; no registry credentials, trust or actual stage",
