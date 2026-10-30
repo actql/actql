@@ -45,6 +45,37 @@ export async function sendMappedKintoneCreate({moon, mapping, declaration, reque
   return sendRawKintoneWrite({...options, moon, kind: 'create', request});
 }
 
+// Pure request/response DATA for one independently authorized Form read. The
+// standard Host supplies its fixed POST+GET-override endpoint and owns the
+// physical child. No Credential, grant, read, write or cleanup is created here.
+export function prepareMappedKintoneCreateFormCheck({moon, mapping, declaration, request, limits}) {
+  originalMapping(moon, mapping, declaration);
+  const app = moon.clientProgramKintoneCreateApp, count = moon.clientProgramKintoneCreateCount,
+    matches = moon.clientProgramKintoneCreateMappingMatchesRequest,
+    formLimits = moon.clientProgramKintoneFormLimits, recheck = moon.clientProgramKintoneCreateRecheckForm;
+  if (![app,count,matches,formLimits,recheck].every(value => typeof value === 'function') ||
+      !['maxRequestBytes','maxResponseBytes','maxNodes','maxDepth','maxFields','maxNameUnits']
+        .every(name => positive(limits?.[name]))) fail('InvalidKintoneCreateFormCheck');
+  if (Reflect.apply(count,moon,[request]) !== 1 || !Reflect.apply(matches,moon,[mapping,request])) {
+    fail('ForeignKintoneCreateRequest');
+  }
+  const appId = Reflect.apply(app,moon,[request]);
+  if (!/^[1-9][0-9]*$/u.test(appId ?? '') || appId.length > limits.maxRequestBytes - 10) {
+    fail('KintoneWriteRequestLimit');
+  }
+  const maxResponseBytes = limits.maxResponseBytes;
+  const bounded = Reflect.apply(formLimits,moon,[maxResponseBytes,limits.maxNodes,
+    limits.maxDepth,limits.maxFields,limits.maxNameUnits]);
+  const body = JSON.stringify({app:appId});
+  return Object.freeze({body,
+    project(observation) {
+      if (!(observation?.body instanceof Uint8Array) || observation.body.byteLength > maxResponseBytes ||
+          !Number.isInteger(observation.statusCode)) fail('InvalidKintoneCreateFormObservation');
+      if (observation.statusCode !== 200) fail('KintoneWriteReadRejected');
+      return checked(Reflect.apply(recheck,moon,[request,observation.body,bounded]));
+    }});
+}
+
 
 // One actual typed CREATE acknowledgement, not bytes-as-success. The original
 // Effect Owner still owns saved response/dispatch correlation, current grant,
