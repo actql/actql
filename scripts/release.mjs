@@ -11,7 +11,7 @@ import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseS
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {promotionPlan} from './release-channels.mjs';
 import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
-import {npmStagePlan} from './publish-package-release.mjs';
+import {npmStagePlan, pythonPublishPlan} from './publish-package-release.mjs';
 
 export async function runReleasePlan(args) {
   const [command, requestFile, ...rest] = args;
@@ -42,6 +42,10 @@ export async function runRelease(args) {
   if (command === 'npm-stage-plan') {
     assert.equal(values.length, 3, 'usage: release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>');
     return npmStagePlan(values[0], values[1], values[2]);
+  }
+  if (command === 'python-publish-plan') {
+    assert.equal(values.length, 5, 'usage: release.mjs python-publish-plan <fixed-directory> <SHA256> <target-id> <absolute-verifier-python> <protected-action-revision>');
+    return pythonPublishPlan(values[0], values[1], values[2], values[3], values[4]);
   }
   if (command === 'promotion-plan') {
     assert.equal(values.length, 4, 'usage: release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>');

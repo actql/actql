@@ -182,7 +182,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Original fixed bytes, durable intent, raw command response and separate complete owner pending-stage byte readback support the reusable npm protocol. Lost replies stay Unknown and exact pending/public versions are not resent; actual protected staging/publication/recovery remains pending. npm staging now requires explicit original code0/signalnull on tool probes and sends; signalled or unreported terminal state stays Unknown with original stdout/status, no next send and explicit same-byte recovery. Registry bytes do not replace the terminal duty.",
+      "currentSlice": "npm and one-project Python protocols retain fixed bytes, synced intent, explicit original terminal status and independent public readback. npm requires code0/signalnull and keeps signalled or unreported outcomes Unknown; the Python facade waits for exact public SDK/runtime. Original private runner/job failures and receipt-write errors retain their cleanup duty. Lost responses stay Unknown and confirmed bytes are not resent. Actual protected executor, owner approval, signing/provenance/publication/recovery acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -212,6 +212,14 @@
         {
           "kind": "Inert injected runner and physical receipt-write refusal controls only; no live child settlement, credentials, actual registry or publication",
           "test": "npm stage failure custody: Unknown receipt write refusal retains BOTH original failure and physical write error"
+        },
+        {
+          "kind": "Existing full cold wheel/fixed/review verifier with inert wheels and injected HTTP/project jobs; no PyPI/action/signing/owner trust",
+          "test": "Python publish: lost original terminal response keeps Unknown intent and same-byte resume does not resend"
+        },
+        {
+          "kind": "Existing cold wheel reader with inert job and physical receipt-write refusal controls only; no PyPI action, live child settlement or signing",
+          "test": "Python publish failure custody: Unknown receipt write refusal retains BOTH original job failure and physical write error"
         }
       ]
     },
@@ -240,6 +248,10 @@
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: reader denial, wrong immutable tag, or different pending bytes stop the whole cohort before a send"
+        },
+        {
+          "kind": "Inert same-byte publication boundary with injected registry only; not actual publisher authority",
+          "test": "Python publish: whole-target unknown conflict and foreign placeholder stop before any project send"
         }
       ]
     },
