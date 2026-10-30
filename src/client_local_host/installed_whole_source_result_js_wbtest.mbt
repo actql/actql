@@ -1,7 +1,9 @@
 ///|
 // Actual existing Request check/compiler/adoption, declared Source and RowRun.
 // Physical Account/transport/stop are explicit ports, not normal acceptance.
-test "whole Source executes its authored root and publishes the same original Result before release" {
+fn whole_source_result_publication_fixture(
+  retained_output : Bool,
+) -> Unit raise {
   let declaration = pure_provider_declaration()
   let document =
     #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
@@ -83,7 +85,7 @@ test "whole Source executes its authored root and publishes the same original Re
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
-    retained_output=true,
+    retained_output~,
     provider_factory=_ => [],
   ).unwrap()
   assert_eq(@strategy.graph_captured_prefix(plan.graph), 0)
@@ -435,4 +437,14 @@ test "whole Source executes its authored root and publishes the same original Re
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "whole Source executes its authored root and publishes the same original Result before release" {
+  whole_source_result_publication_fixture(true)
+}
+
+///|
+test "whole Source ordinary publication completes with non-retained output on the same parent" {
+  whole_source_result_publication_fixture(false)
 }
