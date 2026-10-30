@@ -340,3 +340,44 @@ test('actual claimed managed write enters its separate occurrence only inside th
     assert.equal(route.retire(),true);
   }
 });
+
+test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence',async()=>{
+  const events=[],selected={kind:'create',resource:'rows',memberIndex:2},request={},description={};
+  const claim={scope:'scope',locator:'locator',key:'key',basis:'basis',intentFingerprintCid:'row',canonicalRequestCid:cid('e')};
+  const writeGrant=Object.freeze({grant:{write:true},scope:{}}),readGrant=Object.freeze({grant:{read:true},scope:{}}),decision={};
+  let checked=false;
+  const owned={describe:()=>description,writeOperation:()=> 'create',
+    checkRequest(context){assert.equal(this,owned);assert.equal(context.request,request);assert.equal(context.authorization.grant,readGrant.grant);
+      events.push('form');checked=true;},
+    send(context){assert(checked);assert.equal(context.authorization.grant,writeGrant.grant);events.push('send');
+      return {observation:{useCid:'write-use',statusCode:200,body:Buffer.from('{}')}};},
+    project(){events.push('project');return {kind:'provider-response'};}};
+  const owner={installed:[{}],owned,managedPlanRecipe:{credentialOperations:[{phase:'write-check'},{phase:'write'}]},
+    beforeSendCheck:Object.freeze({resource:'forms',operation:'form-read',request:owned.checkRequest,receiver:owned}),
+    site:{issueEffectGrant(){events.push('effect-grant');return writeGrant;},
+      issueReadGrant(facts){assert.equal(facts.decision,decision);assert.equal(facts.resource,'forms');assert.equal(facts.operation,'form-read');
+        assert.equal(facts.runInvocationCid,'run');assert.equal(facts.dispatchRequestCid,'dispatch');assert.equal(facts.maxUses,1);
+        events.push('read-grant');return readGrant;}}};selected.mapping=owner.installed[0];
+  const ledger={claimDispatch(){events.push('claim');return {claimed:true,dispatching:{}};},
+    beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){events.push('store');return {response:{}};}};
+  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+    admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
+    admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined,
+    readDecision:async(member,resource,subject)=>{assert.equal(member,selected);assert.equal(resource,'forms');assert.equal(subject,'subject');events.push('authorize-read');return decision;}})({
+      members:[selected],entries:[[{request,requestCid:claim.canonicalRequestCid}]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],
+      subjectCid:'subject',runInvocationCid:'run',applyPreview:{},ledger,assertCurrent(){},
+      physicalOperations(facts){
+        assert.equal(facts.member,selected);assert.equal(facts.rowIndex,0);
+        if(facts.phase==='write-check'){
+          assert.equal(facts.originalAuthorization,readGrant);assert.equal(facts.purpose,'read');events.push('managed-read');
+          return facts.invoke({authorization:{...readGrant,useId:facts.useId},credential:{},callResource(){}});
+        }
+        assert.equal(facts.phase,'write');assert(checked,'Form read must finish before selecting the write child');
+        assert.equal(facts.originalAuthorization,writeGrant);assert.equal(facts.purpose,'effect');events.push('managed-write');
+        return facts.invoke({authorization:{...writeGrant,useId:facts.useId},credential:{},callResource(){}});
+      }});
+  const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
+  assert.equal((await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current})).claimed,true);
+  assert.deepEqual(events,['effect-grant','claim','flight','authorize-read','read-grant','managed-read','form','managed-write','send','end','store','project']);
+  assert.equal(route.retire(),true);
+});
