@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
+  ModelPlanReserved
   ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed

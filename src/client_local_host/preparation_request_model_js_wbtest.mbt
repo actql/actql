@@ -2,14 +2,13 @@
 // Original JSON/check/compiler and installed Model/module DATA. Initial and
 // physical frames here are explicit component ports, not C's normal supplier
 // recipe, Source/Model IO or a public acceptance/performance claim.
-fn request_model_fixture(
+fn request_model_input_fixture(
   captured? : Bool = false,
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
-  ClientInstalledManagedModelPlan,
-  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @publication_host.PreparedClientProgram,
 ) raise {
   let (environment, _) = effect_model_plan_source()
   let document = if captured {
@@ -50,7 +49,29 @@ fn request_model_fixture(
       prepared,
     ),
   )
-  let construction = borrow_request_program_plan_input(parent, input).unwrap()
+  (parent, input, prepared)
+}
+
+///|
+fn request_model_fixture(
+  captured? : Bool = false,
+  model_input? : Bool = true,
+  current? : () -> Bool = () => true,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  ClientInstalledManagedModelPlan,
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+) raise {
+  let (parent, input, prepared) = request_model_input_fixture(
+    captured~,
+    current~,
+  )
+  let construction = if model_input {
+    borrow_request_model_plan_input(parent, input).unwrap()
+  } else {
+    borrow_request_program_plan_input(parent, input).unwrap()
+  }
   let capacity = parent.program_capacity.unwrap()
   let previous = @resources.begin_preparation_io(capacity, input, 2L).unwrap()
   @resources.charge_preparation_io(previous, 1L).unwrap()
@@ -171,6 +192,108 @@ fn request_model_fixture(
     e + plan.limits.execution_bytes,
   ).unwrap()
   (parent, input, plan, construction)
+}
+
+///|
+test "Model Scope cannot adopt a Plan built without selecting its original construction input" {
+  let (parent, input, plan, construction) = request_model_fixture(
+    model_input=false,
+  )
+  assert_true(
+    prepare_request_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  assert_true(parent.program_model is None)
+  // Returning a borrow does not retire the still-active original capacity.
+  assert_false(@resources.return_preparation_body_borrow(construction).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "Model construction input preserves grown Program backing and funds its actual record once before allocation" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_model_input_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  let program = borrow_request_program_plan_input(parent, input).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  @resources.reserve_working_preparation_phase(
+    capacity,
+    input,
+    r + 129L,
+    e + 257L,
+  ).unwrap()
+  let before = calls.val
+  let model = borrow_request_model_plan_input(parent, input).unwrap()
+  assert_eq(calls.val, before + 1)
+  // Independent record inventory: header16 + nine references72 + three words24.
+  // No Model Plan, compilation, Scope, provider or IO is constructed here.
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input),
+    Ok((r + 129L + 112L, e + 257L + 112L)),
+  )
+  assert_true(parent.phase == ModelPlanReserved)
+  assert_true(parent.program_model is None)
+  assert_true(
+    @resources.preparation_body_borrow_value(model) is Some(original) &&
+    physical_equal(original, prepared),
+  )
+  assert_false(@resources.return_preparation_body_borrow(program).unwrap())
+  let charged = request_preparation_accounting(parent)
+  let second = borrow_request_model_plan_input(parent, input).unwrap()
+  assert_eq(request_preparation_accounting(parent), charged)
+  assert_true(
+    borrow_request_program_plan_input(parent, input) is Err(WrongPhase),
+  )
+  assert_true(
+    borrow_request_content_plan_input(parent, input) is Err(WrongPhase),
+  )
+  assert_true(
+    abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
+  )
+  assert_false(@resources.return_preparation_body_borrow(model).unwrap())
+  assert_true(@resources.return_preparation_body_borrow(second).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Model construction input foreign and one-byte-short refusal preserves the original Program borrow" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_model_input_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  let program = borrow_request_program_plan_input(parent, input).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let (_, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 111L
+  @resources.reserve_working_preparation_phase(capacity, input, r, e).unwrap()
+  let charged = request_preparation_accounting(parent)
+  let observed = calls.val
+  assert_true(
+    borrow_request_model_plan_input(parent, [1]) is Err(ForeignOriginal),
+  )
+  assert_eq(calls.val, observed)
+  assert_true(
+    borrow_request_model_plan_input(parent, input)
+    is Err(Capacity(Resource(RetentionLimit))),
+  )
+  assert_eq(calls.val, observed + 1)
+  assert_true(parent.phase == ProgramPlanReserved)
+  assert_eq(request_preparation_accounting(parent), charged)
+  assert_true(
+    @resources.preparation_body_borrow_value(program) is Some(original) &&
+    physical_equal(original, prepared),
+  )
+  assert_true(
+    abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
+  )
+  assert_true(@resources.return_preparation_body_borrow(program).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
@@ -380,7 +503,7 @@ fn request_model_ordinary_entry_refusal(captured : Bool) -> Unit raise {
     )
     assert_true(parent.program_source_free is None)
   }
-  assert_true(parent.phase == ProgramPlanReserved)
+  assert_true(parent.phase == ModelPlanReserved)
   assert_true(
     parent.program_model is Some(original) && physical_equal(original, plan),
   )

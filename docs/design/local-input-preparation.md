@@ -4173,14 +4173,23 @@ Model entry retains its existing serialization/profile restrictions.
 The caller retains its original compiler/constructor borrow while backing
 compilation, module factories, the new Plan and all provider/material overlap.
 The existing early bounds are retained through the late binding; Node does
-not select them again. The Plan's resident record has nine reference fields
-and three scalar fields. Its module-option, returned carriers, Scope, census
+not select them again. After an optional Program inventory read, the caller
+selects `borrow_request_model_plan_input` on the same Request/input before
+constructing the Model Plan. The existing capacity engine adds the Plan's one
+header, nine reference fields and three scalar fields once. It preserves
+actual grown R/E and both original borrowers; returning the Program borrower
+does not release Model backing. Repeated Model borrows do not add that record
+again. The caller's complete before-call domain excludes this selected record
+from its additional quote to avoid charging the same material twice.
+
+The module-option, returned carriers, Scope, census
 growth and caller frames are additional simultaneous construction, not covered
 merely by that resident record. The original Request's initial control quote
 pays for its additional resident Plan reference; selected construction and
 live `Some` carriers belong to the before-call domain backing.
 
-`prepare_request_model_read_scope` grows the original preparation census at
+`prepare_request_model_read_scope` requires the selected Model construction
+phase and grows the original preparation census at
 its actual working extents and binds that same compiled Run before completion
 or Source reads. The caller retains the returned Scope before any later
 fallible handoff. `complete_request_model_preparation` completes from the same

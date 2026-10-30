@@ -147,6 +147,8 @@ pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I) -> Re
 
 pub fn[I] borrow_request_effect_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[ClientInstalledEffectManagedPlan], ClientRequestPreparationIssue]
 
+pub fn[I] borrow_request_model_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
+
 pub fn[I] borrow_request_program_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
 pub fn[I] borrow_request_program_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]

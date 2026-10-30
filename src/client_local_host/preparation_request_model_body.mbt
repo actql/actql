@@ -1,4 +1,60 @@
 ///|
+/// Select this Model Plan's actual record before constructing it. An existing
+/// Program inventory borrow may remain live. Both borrows use the SAME body,
+/// capacity and current callback; grown extents survive either borrow return.
+/// This fixed record is not complete Model/compiler/provider/codec backing.
+pub fn[I] borrow_request_model_plan_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  ClientRequestPreparationIssue,
+] {
+  if owner.phase == ContentPlanReserved ||
+    owner.program_source_free is Some(_) ||
+    owner.program_captured is Some(_) ||
+    owner.program_artifact_inputs is Some(_) ||
+    owner.program_body_attempted {
+    return Err(WrongPhase)
+  }
+  let reserved = owner.phase == ModelPlanReserved
+  let (r, e) = match request_program_plan_quote(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let previous_phase = owner.phase
+  let capacity = owner.program_capacity.unwrap()
+  let prepared = owner.compiled_program.unwrap()
+  let (r, e) = if reserved || previous_phase == ProgramPlanReserved {
+    match @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(value) => value
+    }
+  } else {
+    (r, e)
+  }
+  let (r, e) = if reserved {
+    (r, e)
+  } else {
+    guard @execution.preparation_representation_cost(
+        installed_model_plan_record,
+      )
+      is Some(bytes) &&
+      @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+      return Err(Policy)
+    }
+    (r, e)
+  }
+  owner.phase = Selecting
+  let result = @resources.reserve_preparation_construction_input(
+    capacity, input, prepared, r, e,
+  )
+  owner.phase = if result is Ok(_) { ModelPlanReserved } else { previous_phase }
+  result.map_err(issue => Capacity(issue))
+}
+
+///|
 /// Bind this actual Model Plan before completing the original Prepared body.
 /// The caller has backed and retained its complete selected Model/read/module
 /// overlap at the current extents. This call does not derive backing from a
@@ -11,7 +67,7 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
-  guard owner.phase == ProgramPlanReserved &&
+  guard owner.phase == ModelPlanReserved &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_model is None &&
@@ -66,7 +122,7 @@ pub fn[I] prepare_request_model_read_scope(
   if result is Ok(_) {
     owner.program_model = Some(plan)
   }
-  owner.phase = ProgramPlanReserved
+  owner.phase = ModelPlanReserved
   result
 }
 
@@ -79,16 +135,26 @@ pub fn[I] complete_request_model_preparation(
   input : I,
   plan : ClientInstalledManagedModelPlan,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.program_model is Some(original) && physical_equal(original, plan) else {
+  guard owner.phase == ModelPlanReserved &&
+    owner.program_model is Some(original) &&
+    physical_equal(original, plan) else {
     return Err(ForeignOriginal)
   }
-  match (plan.source_free, plan.captured) {
+  // Only the original selected Plan reaches this shared body handoff. Its
+  // fixed record remains charged, and reentry is fenced by the existing
+  // Selecting phase before the capacity engine invokes current.
+  owner.phase = ProgramPlanReserved
+  let result = match (plan.source_free, plan.captured) {
     (Some(original), None) =>
       complete_request_program_preparation_owned(owner, input, original)
     (None, Some(original)) =>
       complete_request_capture_preparation(owner, input, original)
     _ => Err(ForeignOriginal)
   }
+  if owner.phase == ProgramPlanReserved {
+    owner.phase = ModelPlanReserved
+  }
+  result
 }
 
 ///|

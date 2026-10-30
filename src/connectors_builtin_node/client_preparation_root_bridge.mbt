@@ -6,6 +6,20 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+#export_name("clientProgramBorrowRequestModelPlanInput")
+pub fn client_program_borrow_request_model_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_model_plan_input(parent, input)
+}
+
+///|
 #export_name("clientProgramPreparedInstalledManagedModelRequirements")
 pub fn client_program_prepared_installed_managed_model_requirements(
   original : @client_local_host.ClientInstalledManagedModelPlan,

@@ -69,6 +69,7 @@ fn[I] request_program_plan_quote(
       owner.phase == ProgramCompiled ||
       owner.phase == ProgramPlanQuoted ||
       owner.phase == ProgramPlanReserved ||
+      owner.phase == ModelPlanReserved ||
       owner.phase == ContentPlanReserved
     ) &&
     owner.program_capacity is Some(capacity) &&
@@ -126,7 +127,7 @@ pub fn[I] borrow_request_program_plan_input(
   @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
   ClientRequestPreparationIssue,
 ] {
-  if owner.phase == ContentPlanReserved {
+  if owner.phase == ContentPlanReserved || owner.phase == ModelPlanReserved {
     return Err(WrongPhase)
   }
   let (r, e) = match request_program_plan_quote(owner, input) {
@@ -167,7 +168,8 @@ pub fn[I] complete_request_program_preparation(
   input : I,
   plan : ClientInstalledManagedSourceFreePreparation,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.program_model is None && plan.owner is Pure(prepared) &&
+  guard owner.program_model is None &&
+    plan.owner is Pure(prepared) &&
     installed_managed_run_purpose_supported(prepared) else {
     return Err(WrongPhase)
   }

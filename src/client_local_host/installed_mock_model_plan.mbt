@@ -145,6 +145,18 @@ struct ClientInstalledManagedModelPlan {
 }
 
 ///|
+// This exact record above: one header, nine retained references and three
+// scalar inventory words. The selected module/compiler, Option carriers,
+// Model Scope, provider and all nested construction frames are separate.
+let installed_model_plan_record : @execution.PreparationRepresentationUnits = {
+  record_headers: 1L,
+  reference_slots: 9L,
+  scalar_words: 3L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
 /// Read the original completed demand through the shared limits projection.
 /// No sequence, Model bound selection, Plan or current callback runs again.
 pub fn prepared_installed_managed_model_requirements(
