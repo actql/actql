@@ -8,6 +8,8 @@ export {
 } from './adapters/host-node/installed-row-source.mjs';
 export {createInstalledRowEffect} from
   './adapters/host-node/installed-row-effect.mjs';
+export {createInstalledRestSource} from
+  './adapters/host-node/installed-rest-source.mjs';
 export {retainInstalledHostInitializationFailure} from
   './adapters/host-node/installed-host-cleanup.mjs';
 export {checked} from './adapters/host-common/runtime-result.mjs';

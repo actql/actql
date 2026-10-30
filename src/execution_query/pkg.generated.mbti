@@ -32,17 +32,23 @@ pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
 
 pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
 
+pub fn[P] capture_verified_source_input(SourceInputCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
+
 pub fn captured_source_available(CapturedInputSource) -> Bool
 
 pub fn captured_source_identity_scan_storage(CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
 
+pub fn captured_source_matches_input_acquisition(CapturedInputSource, @sourceview_resolution.SourceAcquisition) -> Bool
+
 pub fn captured_source_matches_query(CapturedInputSource, QuerySequence) -> Bool
 
 pub fn captured_source_matches_result(CapturedInputSource, @execution_relation.ManagedResultOccurrence) -> Bool
 
 pub fn captured_source_matches_segment_input(CapturedInputSource, @execution_relation.ProducerRead) -> Bool
+
+pub fn captured_source_original_input_read(CapturedInputSource) -> @execution_relation.SuppliedRelationRead?
 
 pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
 
@@ -82,6 +88,8 @@ pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, @executio
 
 pub fn[P] prepare_trusted_capture_port(QuerySequence, @pipeline_check_context.ProgramSourceIdentity, (P) -> (@execution_relation.CompletedOutput, Int)?) -> Result[TrustedCapturePort[P], CapturedSourceIssue]
 
+pub fn[P] prepare_trusted_source_input_capture_port(@execution_relation.RegisteredRelationContracts, @lowering_relation.PreparedSequence, @sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, Int, Int, (P) -> (@execution_relation.SuppliedRelationRead, Int)?) -> Result[SourceInputCapturePort[P], CapturedSourceIssue]
+
 pub fn query_generated_sequence(QuerySequence) -> @execution_relation.GeneratedSequence
 
 pub fn query_program_matches(QuerySequence, @pipeline_check_context.ProgramSourceIdentity) -> Bool
@@ -97,6 +105,8 @@ pub fn query_sequence_owner(QuerySequence) -> @lowering_relation.BoundPrepared
 pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
 
 pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
+
+pub fn source_input_capture_preparation_matches(@lowering_relation.PreparedSequence, @sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity) -> Bool
 
 pub fn start_captured_file_locator(CapturedInputSource, @execution_relation.SuppliedRelationRead, @value_admission.ReferenceValue, String, Int) -> CapturedFileLocator?
 
@@ -210,6 +220,8 @@ pub(all) enum QuerySequenceIssue {
   ReceiptAdmission(@execution_relation.CaptureIssue)
   Execution(@execution_relation.SequenceRunIssue)
 }
+
+type SourceInputCapturePort[P]
 
 type TrustedCapturePort[P]
 

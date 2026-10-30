@@ -45,6 +45,7 @@ pub using @graph {
   checked_effect_run_source_at,
   graph_program_has_effects,
   prepare_checked_dag,
+  prepare_source_input_dag,
   graph_task_operation_count,
   graph_task_operation_at,
   graph_task_numeric_observation_count,

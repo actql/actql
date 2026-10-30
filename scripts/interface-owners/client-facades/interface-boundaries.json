@@ -1049,9 +1049,10 @@
     {
       "module": "packages/local-node/connector-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6b79194160b5d7f7927902e693ff66d0c23c9c78d82308396152c0260b7fee0",
+      "sha256": "5a7a44d0104a22e95c05671690b1aee1eb2be4e747ba36b11eac166bc72951ce",
       "exports": [
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -1066,13 +1067,12 @@
         "./adapters/host-common/owned-invocation-context.mjs",
         "./adapters/host-common/runtime-result.mjs",
         "./adapters/host-node/installed-host-cleanup.mjs",
+        "./adapters/host-node/installed-rest-source.mjs",
         "./adapters/host-node/installed-row-effect.mjs",
         "./adapters/host-node/installed-row-source.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -1179,6 +1179,78 @@
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
             ]
           }

@@ -7925,7 +7925,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "c40d77cb047c742a707397980de2f9453a8d2a0759e400926e8d99ccfb9c3e0d",
+      "sha256": "e3038050302aabaef1c63c211601fe5a70ff75874e0fd8d3a3a261c32a8529b8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -7950,7 +7950,8 @@
             "capacity",
             "keyed",
             "originalRead",
-            "originalKeyedRead"
+            "originalKeyedRead",
+            "wholeInput"
           ],
           "async": false
         },
@@ -8103,27 +8104,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/run/run#11",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run#2",
-          "parameters": [],
+          "parameters": [
+            "attempt"
+          ],
           "async": false
         },
         {
           "name": "startInstalledRowRun/run/run#3",
-          "parameters": [
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "startInstalledRowRun/run/run#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/run/run#5",
+          "name": "startInstalledRowRun/run/run#4",
           "parameters": [
             "attempt"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#5",
+          "parameters": [],
           "async": false
         },
         {
@@ -8493,7 +8501,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead}) {"
+                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {"
               }
             ],
             "identity": [
@@ -8653,6 +8661,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#11"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -8697,9 +8773,6 @@
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/decideRead/decideRead",
-            "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
-            "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
-            "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
@@ -8775,7 +8848,6 @@
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
             "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
             "openRowSourceCredentialCustody/retainRunBinding",
-            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
             "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/bindingWire/bindingWire",
@@ -9995,7 +10067,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#11",
             "createInstalledRowSource/openKeyed/cleanup/cleanup",
             "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
             "createInstalledRowSource/openKeyed/init:close/init:close",
@@ -10068,9 +10139,7 @@
           }
         },
         {
-          "operations": [
-            "createInstalledRowSource/createInstalledRowSource#12"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -10137,7 +10206,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/managedProviderCaptureCapacity",
             "createInstalledRowSource/prepareOriginalAcquisition"
           ],
@@ -10366,9 +10434,174 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
+            "createInstalledRowSource/installedSource/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+            "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+            "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/installedSource/installedSource",
+            "createInstalledRowSource/invalidReaderField",
+            "openRowSourceCredentialCustody/readChildCredential",
+            "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+            "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+            "retainCredentialOperationSite/retainCredentialOperationSite#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/managedWholeSourceCapacity",
+            "createInstalledRowSource/prepare/prepare#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "12c05c0bdc6c5a4f9b42f7fe34d42e3ee90bcbb5be7be6dc6fa274df8225df1b",
+      "sha256": "313a95890b72783fbd2ed065a26def64a39b032f901c9533a7bfe1603a614b0d",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10406,6 +10639,8 @@
             "declaration",
             "declared",
             "environmentWire",
+            "environment",
+            "sourceInitialization",
             "connectorId",
             "connectorRegistration",
             "connectorRevision",
@@ -10498,12 +10733,29 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
           "parameters": [
+            "childOperation",
+            "index",
+            "occurrence"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "parameters": [
             "body"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
+          "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
           "parameters": [
             "rows",
             "charge"
@@ -10530,18 +10782,6 @@
             "resource",
             "operation"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#11",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#12",
-          "parameters": [],
           "async": false
         },
         {
@@ -10619,7 +10859,19 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+          "name": "createInstalledRowSource/installedSource/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
           "parameters": [
             "keyedAcquisition",
             "maxWork"
@@ -10627,21 +10879,35 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
+          "name": "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+          "name": "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
+          "name": "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/installedSource",
+          "parameters": [
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/invalidReaderField",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -10656,6 +10922,15 @@
           "name": "createInstalledRowSource/managedProviderCaptureCapacity",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/managedWholeSourceCapacity",
+          "parameters": [
+            "preparedProgram",
+            "sourceSelection",
+            "installedContracts"
           ],
           "async": false
         },
@@ -10953,6 +11228,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/prepare/prepare#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/prepareKeyed",
           "parameters": [
             "preparedProgram",
@@ -11117,7 +11399,8 @@
             "admitsEffectTargetRead",
             "runAcquisitionLimits",
             "assertCurrent",
-            "receiver"
+            "receiver",
+            "configurationReader"
           ],
           "async": true
         },
@@ -11314,6 +11597,14 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/retainRunBinding",
           "parameters": [
             "authorization",
@@ -11323,7 +11614,42 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
+          "name": "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "childAuthorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
           "parameters": [],
           "async": false
         },
@@ -11366,6 +11692,7 @@
             "admitsEffectTargetRead",
             "installationMetadata",
             "runAcquisitionLimits",
+            "configurationReader",
             "ownAuthorization",
             "responseHeaders",
             "now",
@@ -11577,6 +11904,13 @@
           "async": false
         },
         {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
           "parameters": [],
           "async": false
@@ -11598,6 +11932,31 @@
           "async": true
         },
         {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
           "parameters": [
             "key"
@@ -11607,6 +11966,14 @@
         {
           "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
           "async": false
         },
         {
@@ -11719,6 +12086,14 @@
           "async": false
         },
         {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite#3",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
           "name": "rowSourceCheckEnvironment",
           "parameters": [
             "baseWire",
@@ -11770,6 +12145,7 @@
         "../host-common/authorization-gate.mjs",
         "../host-common/checkpoint-approval.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
@@ -11777,6 +12153,7 @@
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-source.mjs",
