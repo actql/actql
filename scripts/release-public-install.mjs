@@ -2,11 +2,53 @@
 // This never stages/publishes and cannot convert an install into approval.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFile, lstat, readdir} from 'node:fs/promises';
-import {join, resolve, dirname} from 'node:path';
+import {readFile, lstat, readdir, realpath} from 'node:fs/promises';
+import {join, resolve, dirname, isAbsolute, basename, relative, sep} from 'node:path';
 import {inventory} from './package-release.mjs';
+import {releaseVersion} from './release-version.mjs';
 
 export const publicNpmRegistry = 'https://registry.npmjs.org/';
+
+export function pythonReleaseInstallSelection(args) {
+  assert(Array.isArray(args) && args.length === 5,
+    'usage: test-python-release-install.mjs <fixed-directory> <externally-retained-SHA256> <target-id> <absolute-python> <new-external-consumer-directory>');
+  assert.match(args[1], /^[a-f0-9]{64}$/u); assert(isAbsolute(args[3]), 'Select one absolute Python interpreter');
+  return {directory: resolve(args[0]), manifestSha256: args[1], targetId: args[2],
+    python: args[3], consumer: resolve(args[4]), kind: 'public-pypi'};
+}
+
+export function pythonPublicConsumerEnvironment(parent, root, interpreter) {
+  assert(isAbsolute(interpreter));
+  const environment = {};
+  for (const key of ['LANG', 'LC_ALL', 'LC_CTYPE', 'TZ'])
+    if (typeof parent[key] === 'string') environment[key] = parent[key];
+  // Only the fresh venv's bin is available. Node/npm/actql, source paths,
+  // publisher tokens, proxies, Python startup and old pip config are absent.
+  Object.assign(environment, {PATH: dirname(interpreter), HOME: join(root, 'home'),
+    TMPDIR: join(root, 'tmp'), TMP: join(root, 'tmp'), TEMP: join(root, 'tmp'),
+    PIP_CONFIG_FILE: process.platform === 'win32' ? 'NUL' : '/dev/null'});
+  return environment;
+}
+
+export function pythonInstallCommand(version, entry, report) {
+  assert(['actql', 'actql-sdk'].includes(entry)); assert(isAbsolute(report));
+  const selected = releaseVersion(version);
+  return ['-I', '-B', '-m', 'pip', '--isolated', 'install', '--index-url', 'https://pypi.org/simple',
+    '--only-binary=:all:', '--no-cache-dir', '--no-compile', '--disable-pip-version-check', '--no-input',
+    '--report', report, `${entry}==${selected.pythonVersion}`];
+}
+
+export async function pythonConsumerDestination(destination, excludedRoots) {
+  const actual = join(await realpath(dirname(destination)), basename(destination));
+  for (const root of excludedRoots) {
+    const delta = relative(await realpath(root), actual);
+    assert(delta !== '' && (delta === '..' || delta.startsWith(`..${sep}`) || isAbsolute(delta)),
+      'Python consumer must be physically outside source and fixed artifacts');
+  }
+  try {await lstat(actual); throw Error('Python consumer destination already exists');}
+  catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+  return actual;
+}
 
 export function releaseInstallSelection(args) {
   assert(Array.isArray(args) && args.length >= 1, 'Supply the original RC directory');

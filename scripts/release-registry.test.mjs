@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {releaseVersion} from './release-version.mjs';
-import {observeReleaseSet} from './release-registry.mjs';
+import {observeReleaseSet, observePythonReleaseTarget} from './release-registry.mjs';
 import {runRelease} from './release.mjs';
 
 const sha = body => createHash('sha256').update(body).digest('hex');
@@ -86,6 +86,19 @@ test('registry observation: actual npm identity owner and bounded remote bytes f
   assert.equal(result.requests.length, 4);
   assert.deepEqual(result.requests.filter(item => item.url === f.urls[1] || item.url === f.urls[3]).map(item => item.sha256),
     f.artifacts.map(item => item.sha256));
+  assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
+});
+
+test('registry observation: selected Python consumer reuses original public byte owner without observing unrelated npm targets', async t => {
+  const f = await fixture(t), before = await readFile(join(f.directory, 'release-set.json'));
+  const observe = () => observePythonReleaseTarget(f.directory, f.digest, 'python', {fetchResponse: f.fetchResponse});
+  const result = await observe();
+  assert.deepEqual(result.observations.map(value => value.state), ['present']);
+  assert.deepEqual(f.calls.map(value => value.url), f.urls.slice(2));
+  f.routes.set(f.urls[3], () => new Response(Buffer.alloc(f.artifacts[1].bytes, 65)));
+  assert.equal((await observe()).observations[0].state, 'conflict');
+  f.routes.set(f.urls[2], () => new Response('', {status: 404}));
+  assert.equal((await observe()).observations[0].state, 'absent');
   assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
 });
 
