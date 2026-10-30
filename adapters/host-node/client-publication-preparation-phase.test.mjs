@@ -64,6 +64,42 @@ test('funded Values plan passes its borrowed owner and Prepared to the single in
  assert.equal(source.includes('bindPreparedPublicationCompiledOriginal'),false);
 });
 
+test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{
+ const prepared={},owner={},compiled={kind:'tasks'},definition={},observation={},invocation={},original={};
+ let issues=0;
+ const acquired={compiled,runDefinition:definition,admission:{},compiledPlan:{identity:'compiled'},
+   preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'},createdAt:'created'};
+ const control={issueCheckedClientCompiledInvocation(actual,run,policy,limits,publication,body){
+   assert.equal(actual,compiled);assert.equal(run,definition);assert.equal(policy.dataPolicyCid,'policy');
+   assert.equal(publication,owner);assert.equal(body,prepared);assert.equal(issues++,0);
+   return {observation,invocation};}};
+ const invoke=get('./local-values-plan.mjs','sourceFreeTaskPlan',{
+   acquiredTaskRunAdmission:options=>{assert.equal(options.preparedProgram,prepared);return acquired;},
+   policyCid:()=> 'policy',limits:{},
+   localPublicationPlan:input=>{assert.equal(input.invocation,invocation);assert.equal(input.observation,observation);return {};},
+   checkedLocalOutputLimits:()=>({}),valuesAdmissions:new WeakMap(),originalPlans:new WeakMap(),
+   sourceFreePlanOriginal:actual=>{assert.equal(actual,acquired);return original;}});
+ invoke({moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},
+   control,preparedProgram:prepared,publicationPreparation:owner});
+ assert.equal(issues,1);
+});
+
+test('funded source-free Tasks invocation uses the same Core owner without a legacy issuer',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssuePublicationInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssueCompiledSourceFreeTaskInvocation(){assert.fail('legacy issuer cannot bind the funded owner');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17},owner,prepared);
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
+});
+
 function captureFinisher(context,name='finishProgramCapture') {
  const source=readFileSync(new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
  const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let initializer;
