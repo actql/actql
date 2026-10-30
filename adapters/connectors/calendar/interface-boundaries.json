@@ -1,5 +1,5 @@
 {
-  "qualification": "Existing Calendar Owner source/operation references; actual component captures and physical close are separate from normal Host capacity, installed/live Google or funding acceptance",
+  "qualification": "Existing Calendar Owner source/operation references; actual component captures and physical close are separate from normal Host capacity, installed/live Google or funding acceptance; new Calendar Events complete nullable row and pure request hooks are DATA/type/component qualified only, not normal reader/Profile issuance, funding or physical retirement acceptance",
   "source": "f8eced46cf359819c131109702e8bdda6eb718bf",
   "declarations": [
     {
@@ -515,8 +515,21 @@
     },
     {
       "module": "src/connectors/calendar/catalog/pkg.generated.mbti",
-      "sha256": "4021a176faa8ec951828ba04bb9b711c83993a43abea5a83ca5a4ecba1888c85",
+      "sha256": "c3f753a8ee671d371bc1eda7e311956a07fd9bb2d12878035c63c030a5685acf",
       "exports": [
+        "pub fn calendar_events_column_names() -> Array[String]",
+        "pub fn calendar_events_envelope_calendar_id(CalendarEventsEnvelope) -> String",
+        "pub fn calendar_events_envelope_count(CalendarEventsEnvelope) -> Int",
+        "pub fn calendar_events_envelope_ids(CalendarEventsEnvelope) -> Array[String]",
+        "pub fn calendar_events_envelope_profile_cid(CalendarEventsEnvelope) -> String",
+        "pub fn calendar_events_facts_wire() -> String",
+        "pub fn calendar_events_ids(CalendarEventsPage) -> Array[String]",
+        "pub fn calendar_events_matches_query(CalendarEventsPage, CalendarEventsQuery) -> Bool",
+        "pub fn calendar_events_metadata_wire(CalendarEventsPage, Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+        "pub fn calendar_events_query_wire(CalendarEventsQuery, Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+        "pub fn calendar_events_row_count(CalendarEventsPage) -> Int",
+        "pub fn calendar_events_rows_wire(CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+        "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, CalendarEventsIssue]",
         "pub fn calendar_free_busy_column_names() -> Array[String]",
         "pub fn calendar_free_busy_facts_wire() -> String",
         "pub fn calendar_free_busy_matches_query(CalendarFreeBusyPage, CalendarFreeBusyQuery) -> Bool",
@@ -533,16 +546,76 @@
         "pub fn calendar_respond_body(CalendarRespondRequest) -> String",
         "pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo",
         "pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool",
+        "pub fn prepare_calendar_events_query(String, String, String, String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]",
         "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]",
         "pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]",
+        "pub fn project_calendar_event_times(Bytes, String, @calendar_profile.Profile, CalendarEventTimeLimits) -> Result[CalendarEventTimes, CalendarEventTimeIssue]",
+        "pub fn project_calendar_events(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsPage, CalendarEventsIssue]",
+        "pub fn project_calendar_events_envelope(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsEnvelope, CalendarEventsIssue]",
         "pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]",
         "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]",
+        "pub struct CalendarEventTimes {",
+        "pub struct CalendarEventsEnvelope {",
+        "pub struct CalendarEventsPage {",
+        "pub struct CalendarEventsQuery {",
         "pub struct CalendarFreeBusyPage {",
         "pub struct CalendarFreeBusyQuery {",
         "pub struct CalendarListPage {",
         "pub struct CalendarRespondRequest {"
       ],
       "operations": [
+        {
+          "name": "calendar_events_column_names",
+          "declaration": "pub fn calendar_events_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_events_envelope_calendar_id",
+          "declaration": "pub fn calendar_events_envelope_calendar_id(CalendarEventsEnvelope) -> String"
+        },
+        {
+          "name": "calendar_events_envelope_count",
+          "declaration": "pub fn calendar_events_envelope_count(CalendarEventsEnvelope) -> Int"
+        },
+        {
+          "name": "calendar_events_envelope_ids",
+          "declaration": "pub fn calendar_events_envelope_ids(CalendarEventsEnvelope) -> Array[String]"
+        },
+        {
+          "name": "calendar_events_envelope_profile_cid",
+          "declaration": "pub fn calendar_events_envelope_profile_cid(CalendarEventsEnvelope) -> String"
+        },
+        {
+          "name": "calendar_events_facts_wire",
+          "declaration": "pub fn calendar_events_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_events_ids",
+          "declaration": "pub fn calendar_events_ids(CalendarEventsPage) -> Array[String]"
+        },
+        {
+          "name": "calendar_events_matches_query",
+          "declaration": "pub fn calendar_events_matches_query(CalendarEventsPage, CalendarEventsQuery) -> Bool"
+        },
+        {
+          "name": "calendar_events_metadata_wire",
+          "declaration": "pub fn calendar_events_metadata_wire(CalendarEventsPage, Int, Int, Int) -> Result[String, CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_query_wire",
+          "declaration": "pub fn calendar_events_query_wire(CalendarEventsQuery, Int, Int, Int) -> Result[String, CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_row_count",
+          "declaration": "pub fn calendar_events_row_count(CalendarEventsPage) -> Int"
+        },
+        {
+          "name": "calendar_events_rows_wire",
+          "declaration": "pub fn calendar_events_rows_wire(CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_schema_wire",
+          "declaration": "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, CalendarEventsIssue]"
+        },
         {
           "name": "calendar_free_busy_column_names",
           "declaration": "pub fn calendar_free_busy_column_names() -> Array[String]"
@@ -608,12 +681,28 @@
           "declaration": "pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool"
         },
         {
+          "name": "prepare_calendar_events_query",
+          "declaration": "pub fn prepare_calendar_events_query(String, String, String, String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]"
+        },
+        {
           "name": "prepare_calendar_free_busy_query",
           "declaration": "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]"
         },
         {
           "name": "prepare_calendar_respond",
           "declaration": "pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]"
+        },
+        {
+          "name": "project_calendar_event_times",
+          "declaration": "pub fn project_calendar_event_times(Bytes, String, @calendar_profile.Profile, CalendarEventTimeLimits) -> Result[CalendarEventTimes, CalendarEventTimeIssue]"
+        },
+        {
+          "name": "project_calendar_events",
+          "declaration": "pub fn project_calendar_events(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsPage, CalendarEventsIssue]"
+        },
+        {
+          "name": "project_calendar_events_envelope",
+          "declaration": "pub fn project_calendar_events_envelope(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsEnvelope, CalendarEventsIssue]"
         },
         {
           "name": "project_calendar_free_busy",
@@ -895,6 +984,109 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "calendar_events_column_names",
+            "calendar_events_envelope_calendar_id",
+            "calendar_events_envelope_count",
+            "calendar_events_envelope_ids",
+            "calendar_events_envelope_profile_cid",
+            "calendar_events_facts_wire",
+            "calendar_events_ids",
+            "calendar_events_matches_query",
+            "calendar_events_metadata_wire",
+            "calendar_events_query_wire",
+            "calendar_events_row_count",
+            "calendar_events_rows_wire",
+            "calendar_events_schema_wire",
+            "prepare_calendar_events_query",
+            "project_calendar_event_times",
+            "project_calendar_events",
+            "project_calendar_events_envelope"
+          ],
+          "exports": [
+            "pub fn calendar_events_column_names() -> Array[String]",
+            "pub fn calendar_events_envelope_calendar_id(CalendarEventsEnvelope) -> String",
+            "pub fn calendar_events_envelope_count(CalendarEventsEnvelope) -> Int",
+            "pub fn calendar_events_envelope_ids(CalendarEventsEnvelope) -> Array[String]",
+            "pub fn calendar_events_envelope_profile_cid(CalendarEventsEnvelope) -> String",
+            "pub fn calendar_events_facts_wire() -> String",
+            "pub fn calendar_events_ids(CalendarEventsPage) -> Array[String]",
+            "pub fn calendar_events_matches_query(CalendarEventsPage, CalendarEventsQuery) -> Bool",
+            "pub fn calendar_events_metadata_wire(CalendarEventsPage, Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+            "pub fn calendar_events_query_wire(CalendarEventsQuery, Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+            "pub fn calendar_events_row_count(CalendarEventsPage) -> Int",
+            "pub fn calendar_events_rows_wire(CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+            "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, CalendarEventsIssue]",
+            "pub fn prepare_calendar_events_query(String, String, String, String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]",
+            "pub fn project_calendar_event_times(Bytes, String, @calendar_profile.Profile, CalendarEventTimeLimits) -> Result[CalendarEventTimes, CalendarEventTimeIssue]",
+            "pub fn project_calendar_events(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsPage, CalendarEventsIssue]",
+            "pub fn project_calendar_events_envelope(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsEnvelope, CalendarEventsIssue]",
+            "pub struct CalendarEventTimes {",
+            "pub struct CalendarEventsEnvelope {",
+            "pub struct CalendarEventsPage {",
+            "pub struct CalendarEventsQuery {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/pkg.generated.mbti",
+                "anchor": "pub fn calendar_events_column_names"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1004,8 +1196,15 @@
     },
     {
       "module": "src/connectors/calendar/host_node/pkg.generated.mbti",
-      "sha256": "100b73ab1eb4b601a013eee6e6856e18182d8024fb4dcd9acee1ef0f90d46fdf",
+      "sha256": "48dcb5cc42e1c9a3508ecc0f05593e6e40a3c5cbf7331daa31b817851389acb1",
       "exports": [
+        "pub fn calendar_events_column_names() -> Array[String]",
+        "pub fn calendar_events_facts_wire() -> String",
+        "pub fn calendar_events_matches_query(@catalog.CalendarEventsPage, @catalog.CalendarEventsQuery) -> Bool",
+        "pub fn calendar_events_metadata_wire(@catalog.CalendarEventsPage, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+        "pub fn calendar_events_query_wire(@catalog.CalendarEventsQuery, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+        "pub fn calendar_events_rows_wire(@catalog.CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+        "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
         "pub fn calendar_free_busy_column_names() -> Array[String]",
         "pub fn calendar_free_busy_matches_query(@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyQuery) -> Bool",
         "pub fn calendar_free_busy_metadata_json(@catalog.CalendarFreeBusyPage) -> String",
@@ -1018,11 +1217,41 @@
         "pub fn calendar_list_relation_facts_wire() -> String",
         "pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
         "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
+        "pub fn calendar_prepare_events_query(String, String, String, String, @calendar_profile.Profile, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue]",
         "pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]",
         "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]",
+        "pub fn calendar_project_events(Bytes, @catalog.CalendarEventsQuery, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsPage, @catalog.CalendarEventsIssue]",
         "pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]"
       ],
       "operations": [
+        {
+          "name": "calendar_events_column_names",
+          "declaration": "pub fn calendar_events_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_events_facts_wire",
+          "declaration": "pub fn calendar_events_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_events_matches_query",
+          "declaration": "pub fn calendar_events_matches_query(@catalog.CalendarEventsPage, @catalog.CalendarEventsQuery) -> Bool"
+        },
+        {
+          "name": "calendar_events_metadata_wire",
+          "declaration": "pub fn calendar_events_metadata_wire(@catalog.CalendarEventsPage, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_query_wire",
+          "declaration": "pub fn calendar_events_query_wire(@catalog.CalendarEventsQuery, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_rows_wire",
+          "declaration": "pub fn calendar_events_rows_wire(@catalog.CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]"
+        },
+        {
+          "name": "calendar_events_schema_wire",
+          "declaration": "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]"
+        },
         {
           "name": "calendar_free_busy_column_names",
           "declaration": "pub fn calendar_free_busy_column_names() -> Array[String]"
@@ -1072,12 +1301,20 @@
           "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]"
         },
         {
+          "name": "calendar_prepare_events_query",
+          "declaration": "pub fn calendar_prepare_events_query(String, String, String, String, @calendar_profile.Profile, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue]"
+        },
+        {
           "name": "calendar_prepare_free_busy_query",
           "declaration": "pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]"
         },
         {
           "name": "calendar_project_calendar_list",
           "declaration": "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+        },
+        {
+          "name": "calendar_project_events",
+          "declaration": "pub fn calendar_project_events(Bytes, @catalog.CalendarEventsQuery, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsPage, @catalog.CalendarEventsIssue]"
         },
         {
           "name": "calendar_project_free_busy",
@@ -1266,6 +1503,89 @@
               {
                 "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
                 "anchor": "test('actual Calendar projection binds original query"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "calendar_events_column_names",
+            "calendar_events_facts_wire",
+            "calendar_events_matches_query",
+            "calendar_events_metadata_wire",
+            "calendar_events_query_wire",
+            "calendar_events_rows_wire",
+            "calendar_events_schema_wire",
+            "calendar_prepare_events_query",
+            "calendar_project_events"
+          ],
+          "exports": [
+            "pub fn calendar_events_column_names() -> Array[String]",
+            "pub fn calendar_events_facts_wire() -> String",
+            "pub fn calendar_events_matches_query(@catalog.CalendarEventsPage, @catalog.CalendarEventsQuery) -> Bool",
+            "pub fn calendar_events_metadata_wire(@catalog.CalendarEventsPage, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+            "pub fn calendar_events_query_wire(@catalog.CalendarEventsQuery, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+            "pub fn calendar_events_rows_wire(@catalog.CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+            "pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]",
+            "pub fn calendar_prepare_events_query(String, String, String, String, @calendar_profile.Profile, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue]",
+            "pub fn calendar_project_events(Bytes, @catalog.CalendarEventsQuery, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsPage, @catalog.CalendarEventsIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/host_node/pkg.generated.mbti",
+                "anchor": "pub fn calendar_events_column_names"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
               }
             ]
           }
@@ -3136,6 +3456,741 @@
               {
                 "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
                 "anchor": "respond request preserves nullable prior response observations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/event_times.mbt",
+      "sha256": "70f55d2051d86f0ea9451f7256397f34d2fb87c7e4c61d51f3d7afd967d8f8e3",
+      "operations": [
+        {
+          "name": "event_endpoint",
+          "declaration": "event_endpoint ( value : @ decode . Cursor , calendar_time_zone : String , profile : @ calendar_profile . Profile , remaining : Int , ) - > Result [ ( String , Bool , Int ) , CalendarEventTimeIssue ]"
+        },
+        {
+          "name": "event_resolve_local_time",
+          "declaration": "event_resolve_local_time ( civil : String , zone : String , profile : @ calendar_profile . Profile , remaining : Int , ) - > Result [ ( String , Int ) , CalendarEventTimeIssue ]"
+        },
+        {
+          "name": "event_time_text",
+          "declaration": "event_time_text ( value : @ decode . ObjectView , name : String ) - > String ?"
+        },
+        {
+          "name": "project_calendar_event_times",
+          "declaration": "project_calendar_event_times ( bytes : Bytes , calendar_time_zone : String , profile : @ calendar_profile . Profile , limits : CalendarEventTimeLimits , ) - > Result [ CalendarEventTimes , CalendarEventTimeIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA projection and request hooks; original checked Source/Profile, shared Host/current Account, whole backing and physical cleanup remain their existing owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "event_endpoint",
+            "event_resolve_local_time",
+            "event_time_text",
+            "project_calendar_event_times"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/event_times.mbt",
+                "anchor": "pub fn project_calendar_event_times"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/event_times_wbtest.mbt",
+                "anchor": "Calendar Event"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/event_times_wbtest.mbt",
+                "anchor": "Calendar Event"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/events_query.mbt",
+      "sha256": "52f07b3ca0d8c88bc6d47a4c01cc748d790e01fea05b2a8e9a0e4d64622921a5",
+      "operations": [
+        {
+          "name": "calendar_events_envelope_calendar_id",
+          "declaration": "calendar_events_envelope_calendar_id ( page : CalendarEventsEnvelope , ) - > String"
+        },
+        {
+          "name": "calendar_events_envelope_count",
+          "declaration": "calendar_events_envelope_count ( page : CalendarEventsEnvelope ) - > Int"
+        },
+        {
+          "name": "calendar_events_envelope_ids",
+          "declaration": "calendar_events_envelope_ids ( page : CalendarEventsEnvelope , ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_events_envelope_profile_cid",
+          "declaration": "calendar_events_envelope_profile_cid ( page : CalendarEventsEnvelope , ) - > String"
+        },
+        {
+          "name": "calendar_events_query_wire",
+          "declaration": "calendar_events_query_wire ( query : CalendarEventsQuery , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_limits_valid",
+          "declaration": "events_limits_valid ( limits : CalendarEventsLimits ) - > Bool"
+        },
+        {
+          "name": "prepare_calendar_events_query",
+          "declaration": "prepare_calendar_events_query ( calendar_id : String , time_min : String , time_max : String , time_zone : String , profile : @ calendar_profile . Profile , limits : CalendarEventsLimits , ) - > Result [ CalendarEventsQuery , CalendarEventsIssue ]"
+        },
+        {
+          "name": "project_calendar_events_envelope",
+          "declaration": "project_calendar_events_envelope ( bytes : Bytes , query : CalendarEventsQuery , limits : CalendarEventsLimits , ) - > Result [ CalendarEventsEnvelope , CalendarEventsIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA projection and request hooks; original checked Source/Profile, shared Host/current Account, whole backing and physical cleanup remain their existing owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_events_envelope_calendar_id",
+            "calendar_events_envelope_count",
+            "calendar_events_envelope_ids",
+            "calendar_events_envelope_profile_cid",
+            "calendar_events_query_wire",
+            "events_limits_valid",
+            "prepare_calendar_events_query",
+            "project_calendar_events_envelope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/events_query.mbt",
+                "anchor": "pub fn prepare_calendar_events_query"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/events_query_wbtest.mbt",
+                "anchor": "Calendar Events query retains original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/events_query_wbtest.mbt",
+                "anchor": "Calendar Events query retains original"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/events_rows.mbt",
+      "sha256": "e11324e3f6bc4bd07bd35604d20589a9cc116d2682bf2baf31b914adba91ca01",
+      "operations": [
+        {
+          "name": "calendar_events_column_names",
+          "declaration": "calendar_events_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_events_facts_wire",
+          "declaration": "calendar_events_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_events_ids",
+          "declaration": "calendar_events_ids ( page : CalendarEventsPage ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_events_matches_query",
+          "declaration": "calendar_events_matches_query ( page : CalendarEventsPage , query : CalendarEventsQuery , ) - > Bool"
+        },
+        {
+          "name": "calendar_events_metadata_wire",
+          "declaration": "calendar_events_metadata_wire ( page : CalendarEventsPage , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_events_row_count",
+          "declaration": "calendar_events_row_count ( page : CalendarEventsPage ) - > Int"
+        },
+        {
+          "name": "calendar_events_rows_wire",
+          "declaration": "calendar_events_rows_wire ( page : CalendarEventsPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_events_schema_wire",
+          "declaration": "calendar_events_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_attendees",
+          "declaration": "events_attendees ( row : @ decode . ObjectView , limits : CalendarEventsLimits , ) - > Result [ @ admitted . Value , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_columns",
+          "declaration": "events_columns ( ) - > Array [ ( String , @ contract . Contract ) ]"
+        },
+        {
+          "name": "events_default_boolean",
+          "declaration": "events_default_boolean ( object : @ decode . ObjectView , name : String , ) - > Result [ Bool , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_nullable_text",
+          "declaration": "events_nullable_text ( object : @ decode . ObjectView , native_name : String , column : String , limits : CalendarEventsLimits , ) - > Result [ @ admitted . Value , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_nullable_timestamp",
+          "declaration": "events_nullable_timestamp ( object : @ decode . ObjectView , name : String , ) - > Result [ @ admitted . Value , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_organizer",
+          "declaration": "events_organizer ( row : @ decode . ObjectView , limits : CalendarEventsLimits , ) - > Result [ @ admitted . Value , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_temporal_values",
+          "declaration": "events_temporal_values ( row : @ decode . ObjectView , query : CalendarEventsQuery , remaining_work : Int , ) - > Result [ ( @ admitted . Value , @ admitted . Value , @ admitted . Value , Int ) , CalendarEventsIssue , ]"
+        },
+        {
+          "name": "events_text_value",
+          "declaration": "events_text_value ( text : String , limits : CalendarEventsLimits , ) - > Result [ @ admitted . Value , CalendarEventsIssue ]"
+        },
+        {
+          "name": "events_timestamp_value",
+          "declaration": "events_timestamp_value ( text : String ) - > @ admitted . Value"
+        },
+        {
+          "name": "project_calendar_events",
+          "declaration": "project_calendar_events ( bytes : Bytes , query : CalendarEventsQuery , limits : CalendarEventsLimits , ) - > Result [ CalendarEventsPage , CalendarEventsIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA projection and request hooks; original checked Source/Profile, shared Host/current Account, whole backing and physical cleanup remain their existing owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_events_column_names",
+            "calendar_events_facts_wire",
+            "calendar_events_ids",
+            "calendar_events_matches_query",
+            "calendar_events_metadata_wire",
+            "calendar_events_row_count",
+            "calendar_events_rows_wire",
+            "calendar_events_schema_wire",
+            "events_attendees",
+            "events_columns",
+            "events_default_boolean",
+            "events_nullable_text",
+            "events_nullable_timestamp",
+            "events_organizer",
+            "events_temporal_values",
+            "events_text_value",
+            "events_timestamp_value",
+            "project_calendar_events"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "pub fn project_calendar_events"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event rows refuse malformed present"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event rows refuse malformed present"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/host_node/events_bridge.mbt",
+      "sha256": "7ca9fee778648f6f1dbfa0395291a5722140636e633dbb0874d3649e61dd9a9f",
+      "operations": [
+        {
+          "name": "calendar_events_column_names",
+          "declaration": "calendar_events_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_events_facts_wire",
+          "declaration": "calendar_events_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_events_matches_query",
+          "declaration": "calendar_events_matches_query ( page : @ catalog . CalendarEventsPage , query : @ catalog . CalendarEventsQuery , ) - > Bool"
+        },
+        {
+          "name": "calendar_events_metadata_wire",
+          "declaration": "calendar_events_metadata_wire ( page : @ catalog . CalendarEventsPage , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_events_query_wire",
+          "declaration": "calendar_events_query_wire ( query : @ catalog . CalendarEventsQuery , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_events_rows_wire",
+          "declaration": "calendar_events_rows_wire ( page : @ catalog . CalendarEventsPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_events_schema_wire",
+          "declaration": "calendar_events_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_prepare_events_query",
+          "declaration": "calendar_prepare_events_query ( calendar_id : String , time_min : String , time_max : String , time_zone : String , profile : @ calendar_profile . Profile , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_identity_bytes : Int , max_cursor_bytes : Int , max_attendees : Int , max_value_nodes : Int , max_value_text_bytes : Int , max_resolution_work : Int , ) - > Result [ @ catalog . CalendarEventsQuery , @ catalog . CalendarEventsIssue ]"
+        },
+        {
+          "name": "calendar_project_events",
+          "declaration": "calendar_project_events ( bytes : Bytes , query : @ catalog . CalendarEventsQuery , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_identity_bytes : Int , max_cursor_bytes : Int , max_attendees : Int , max_value_nodes : Int , max_value_text_bytes : Int , max_resolution_work : Int , ) - > Result [ @ catalog . CalendarEventsPage , @ catalog . CalendarEventsIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA projection and request hooks; original checked Source/Profile, shared Host/current Account, whole backing and physical cleanup remain their existing owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_events_column_names",
+            "calendar_events_facts_wire",
+            "calendar_events_matches_query",
+            "calendar_events_metadata_wire",
+            "calendar_events_query_wire",
+            "calendar_events_rows_wire",
+            "calendar_events_schema_wire",
+            "calendar_prepare_events_query",
+            "calendar_project_events"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/host_node/events_bridge.mbt",
+                "anchor": "pub fn calendar_prepare_events_query"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event schema exposes approved"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+      "sha256": "c77d86813920dfea4287f95c58584fa41da86d343c3032d795c7535c38cb0c6f",
+      "exports": [
+        "CALENDAR_EVENTS_OPERATION",
+        "CalendarEventsReadFailure",
+        "prepareCalendarEventsPages"
+      ],
+      "operations": [
+        {
+          "name": "CalendarEventsReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages",
+          "parameters": [
+            "moon",
+            "query",
+            "names",
+            "limits",
+            "applySynchronousProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/frame/frame",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/init:decodePage/init:decodePage",
+          "parameters": [
+            "response",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/init:fetchPage/init:fetchPage",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/init:onError/init:onError",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/prepareCalendarEventsPages",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/prepareCalendarEventsPages#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/prepareCalendarEventsPages#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/prepareCalendarEventsPages#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarEventsPages/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA projection and request hooks; original checked Source/Profile, shared Host/current Account, whole backing and physical cleanup remain their existing owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "CalendarEventsReadFailure/constructor:constructor/constructor:constructor",
+            "count/count",
+            "fail/fail",
+            "positive/positive",
+            "prepareCalendarEventsPages",
+            "prepareCalendarEventsPages/frame/frame",
+            "prepareCalendarEventsPages/init:decodePage/init:decodePage",
+            "prepareCalendarEventsPages/init:fetchPage/init:fetchPage",
+            "prepareCalendarEventsPages/init:onError/init:onError",
+            "prepareCalendarEventsPages/prepareCalendarEventsPages",
+            "prepareCalendarEventsPages/prepareCalendarEventsPages#2",
+            "prepareCalendarEventsPages/prepareCalendarEventsPages#3",
+            "prepareCalendarEventsPages/prepareCalendarEventsPages#4",
+            "prepareCalendarEventsPages/provider/provider",
+            "prepareCalendarEventsPages/provider/provider/provider",
+            "segment/segment",
+            "segment/segment/segment"
+          ],
+          "exports": [
+            "CALENDAR_EVENTS_OPERATION",
+            "CalendarEventsReadFailure",
+            "prepareCalendarEventsPages"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The Calendar provider interprets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+                "anchor": "export function prepareCalendarEventsPages"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The page retains its same query"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "copied row IDs and column-name arrays cannot mutate them."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous provider projection or hook construction; the shared managed-reader owner sequences the actual physical exchange/current gates. This declaration issues no lock, currentness or completion evidence."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "anchor": "Calendar Events pure hooks retain original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "The shared Host owns current authorization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "Output values share finite node/text limits across the whole page."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-event-projection.md",
+                "anchor": "A matching original Profile getter"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "anchor": "Calendar Events pure hooks retain original"
               }
             ]
           }

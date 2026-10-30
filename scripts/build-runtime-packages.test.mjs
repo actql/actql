@@ -434,7 +434,7 @@ distribution.splice(distribution.indexOf('node scripts/check-submission-input-mu
 // These are fixed independent expectations, not a projection of package.json.
 expectedGates['check:remote-site-runtime'][2] = expectedGates['check:remote-site-runtime'][2]
   .replace('adapters/connectors/github/test/github-issue-read.test.mjs ',
-    'adapters/connectors/notion/test/remaining-row-requests.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/connectors/github/test/github-comment-marker.test.mjs ');
+    'adapters/connectors/notion/test/remaining-row-requests.test.mjs adapters/connectors/calendar/test/calendar-events-pages.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/connectors/github/test/github-comment-marker.test.mjs ');
 expectedGates['check:run-host-core'][2] +=
   ' packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs packages/run-host-core/effect-publication.test.mjs packages/run-host-core/effect-publication.runtime.test.mjs';
 expectedGates['check:run-host-core'][2] +=
