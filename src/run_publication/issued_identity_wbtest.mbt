@@ -127,3 +127,46 @@ test "issued Run evidence propagates identity failure without issuing a value" {
   assert_eq(calls.val, 1)
   assert_true(failed is Err(RunEvidenceEncoding))
 }
+
+///|
+test "retained Run evidence usage preserves every narrower bound without rehashing" {
+  let body = "{\"compiled_plan_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"}"
+  let calls = Ref(0)
+  let issued = seal_run_evidence_value_with_identity(
+    "logical_step_key",
+    body,
+    4096,
+    64,
+    8,
+    (value, bytes, nodes, depth) => {
+      calls.val += 1
+      @json.cid_value(value, bytes, nodes, depth)
+    },
+  ).unwrap()
+  assert_eq(issued.wire_usage.unwrap(), (297, 8, 2))
+  let unmeasured = { ..issued, wire_usage: None, }
+  assert_false(run_evidence_value_fits(unmeasured, 4096, 64, 8))
+  let wire = run_evidence_value_json(issued)
+  let restored = admit_run_evidence_value("logical_step_key", wire, 4096, 64, 8).unwrap()
+  assert_eq(restored.wire_usage.unwrap(), (297, 8, 2))
+  for
+    (bytes, nodes, depth) in [
+      (297, 8, 2),
+      (296, 8, 2),
+      (297, 7, 2),
+      (297, 8, 1),
+      (0, 8, 2),
+      (297, 0, 2),
+      (297, 8, 0),
+    ] {
+    let expected = admit_run_evidence_value(
+        "logical_step_key", wire, bytes, nodes, depth,
+      )
+      is Ok(_)
+    assert_eq(run_evidence_value_fits(issued, bytes, nodes, depth), expected)
+    assert_eq(run_evidence_value_fits(restored, bytes, nodes, depth), expected)
+  }
+  // Only this original issuer's identity calculation is observed. The old
+  // external reader above remains an independent limit/identity boundary.
+  assert_eq(calls.val, 1)
+}

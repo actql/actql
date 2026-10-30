@@ -3140,72 +3140,68 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
       limits = captureContractLimits(limits, 'Client Run Invocation');
-      if (publicationPreparation !== undefined &&
-          ((compiled.kind !== 'values' && compiled.kind !== 'tasks') || source !== undefined)) {
+      if (source !== undefined) {
+        const sources = source.sources ?? [{captured: source.captured, sourceEvidence: source.sourceEvidence}];
+        if (publicationPreparation === undefined || preparedProgram === undefined || compiled.kind !== 'tasks' ||
+            !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+            sources.some(({captured}) => captured?.capture === undefined || captured?.identity === undefined ||
+              captured?.requirement === undefined || captured?.logicalInput === undefined)) {
+          throw new TypeError('Invalid original publication invocation profile');
+        }
+        const issued = compiledRunResult(moon.clientProgramIssueCapturedPublicationInvocation(
+          publicationPreparation, preparedProgram, value, token(definition),
+          sources.map(({captured}) => captured.capture.source()), sources.map(({captured}) => captured.identity),
+          sources.map(({captured}) => captured.requirement), sources.map(({sourceEvidence}) => evidenceToken(sourceEvidence)),
+          sources.map(({captured}) => captured.logicalInput), source.keyedObservation,
+          source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+        return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+          invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+      }
+      if (publicationPreparation !== undefined && compiled.kind !== 'values' && compiled.kind !== 'tasks') {
         throw new TypeError('Invalid original publication invocation profile');
       }
       const issued = compiledRunResult(publicationPreparation !== undefined
         ? moon.clientProgramIssuePublicationInvocation(publicationPreparation,
           preparedProgram, value, token(definition), dataPolicyCid,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : source === undefined
-        ? (compiled.kind !== 'values'
+        : (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
           : moon.clientProgramIssueCompiledValuesInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-        : moon.clientProgramIssueCompiledTaskInvocation(value,
-          token(definition), source.sourceEvidenceWire,
-          source.inputLogicalWire, source.sourceRef, source.sourceContractCid,
-          source.authorityScopeCid, dataPolicyCid,
-          source.captureStartedAt, source.captureCompletedAt,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-      source === undefined ? 'RunHostInvocationRejected'
-        : 'RunHostTaskInvocationRejected');
+      , 'RunHostInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
-    issueCheckedClientCompiledMultiInvocation(compiled, definition,
-      {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'tasks' ||
-          !Array.isArray(sources) || sources.length !== 2) {
-        throw new TypeError('Foreign Client compiled multi-source Run');
-      }
-      limits = captureContractLimits(limits, 'Client Run Invocation');
-      const issued = compiledRunResult(moon.clientProgramIssueCompiledMultiTaskInvocation(
-        value, token(definition), sources.map(source => source.captured.capture.source()),
-        sources.map(source => source.captured.identity),
-        sources.map(source => source.captured.requirement),
-        sources.map(source => source.sourceEvidenceWire),
-        sources.map(source => source.inputLogicalWire),
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    admitInferCapturedInput(prepared, captured, sourceEvidence, authorityScopeCid,
+      dataPolicyCid, startedAt, completedAt) {
+      return checked(moon.clientProgramAdmitInferCapturedInput(prepared,
+        captured.inferStep, captured.capturedSource, captured.identity, captured.requirement,
+        captured.logicalInput, evidenceToken(sourceEvidence), authorityScopeCid,
+        dataPolicyCid, startedAt, completedAt));
     },
-    issueCheckedClientCompiledKeyedInvocation(compiled, definition,
-      {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'tasks' ||
-          captured?.capture === undefined || captured?.identity === undefined ||
-          captured?.requirement === undefined || keyedObservation === undefined) {
-        throw new TypeError('Foreign Client compiled keyed-source Run');
-      }
-      limits = captureContractLimits(limits, 'Client Run Invocation');
-      // The portable issuer verifies original capture/compilation ownership,
-      // whole-Source coverage and live keyed custody. Wire evidence alone is
-      // not enough to manufacture a completed keyed acquisition.
-      const issued = compiledRunResult(moon.clientProgramIssueCompiledKeyedTaskInvocation(
-        value, token(definition), captured.capture.source(), captured.identity,
-        captured.requirement, sourceEvidenceWire, inputLogicalWire, keyedObservation,
-        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
+      startedAt, completedAt, keyed) {
+      return checked(moon.clientProgramAdmitComposedInferSources(occurrence,
+        captures.map(value => value.capture.source()), captures.map(value => value.identity),
+        captures.map(value => value.requirement), captures.map(value => value.logicalInput),
+        sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+    },
+    takeSourceEvidenceOriginal(capture) {
+      const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
+      if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
+      const evidence = inspectEvidence(Reflect.apply(take, capture, []));
+      if (evidence.name !== 'source_evidence') throw new TypeError('InvalidInstalledSourceEvidence');
+      return evidence;
+    },
+    keyedLookupPublicationEvidence(original) {
+      const value = moon.clientProgramKeyedLookupObservationOriginals(original);
+      if (value === undefined) throw new TypeError('Foreign keyed lookup observation');
+      return Object.freeze({source: inspectEvidence(runtimeField(value, 1)),
+        logicalRelationCid: runtimeField(value, 2)});
     },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;

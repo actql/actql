@@ -127,6 +127,8 @@ export function prepareSourceManagedInstallation(originals) {
     read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
+    preparationContext: readLocalPreparationContext,
+    retireInitialPreparation: retireSourceManagedInitialPreparation,
     mockRequirements: readLocalMockModelRunRequirements,
   }, true);
   return prepareInstallation(originals, callbacks);
@@ -157,6 +159,8 @@ export function prepareProjectSourceManagedInstallation(originals) {
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
+    preparationContext: readLocalPreparationContext,
+    retireInitialPreparation: retireSourceManagedInitialPreparation,
     contentRequirements: readLocalContentRunRequirements,
   });
 }

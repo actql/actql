@@ -59461,7 +59461,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "7dc280d355f12fde59afbb70054ed07e90dd33c14550354453f02bf3652c7783",
+      "sha256": "9be6768b897ad78b57e5319ad178f91cbac7adec36da5f17317cf88864124031",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -59750,6 +59750,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Source request context and retirement"
               }
             ],
             "identity": [
@@ -59806,6 +59810,10 @@
               {
                 "path": "packages/sdk/original-query-intake.test.mjs",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('both actual Source entries open the same Request before snapshot and retain its original retirement'"
               }
             ]
           }

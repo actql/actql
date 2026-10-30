@@ -729,6 +729,8 @@ pub fn client_keyed_lookup_input_identity(ClientKeyedLookupInput) -> String?
 
 pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
+pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
+
 pub fn client_keyed_lookup_observation_wires(ClientKeyedLookupObservation) -> (String, String)?
 
 pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, Int64, Int64, Int64)
@@ -1436,6 +1438,8 @@ pub fn issue_captured_source_input_logical(@physical_strategy.CheckedDAG, @execu
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
 pub fn issue_client_captured_content(ClientCapturedContent, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, @run_publication.GeneratedContentReferenceIssue]
+
+pub fn issue_client_compiled_captured_invocation(ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_compiled_keyed_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, String, String, ClientKeyedLookupObservation, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 

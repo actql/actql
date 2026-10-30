@@ -684,7 +684,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -708,7 +708,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     retainedDefinitionWire,
   });
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
-  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt,
+  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation,
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
@@ -746,11 +746,11 @@ export function sourceFreeTaskPlan(options) {
 // physical capture and current authorization. This Host binds that evidence to
 // the checked task Run and the captured relation before publication.
 export function acquiredTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidenceWire, authorityScopeCid,
+  preparedProgram, captured, sourceEvidence, authorityScopeCid,
   effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (typeof sourceEvidenceWire !== 'string' ||
+  if (sourceEvidence === undefined ||
       typeof effectiveDataPolicyCid !== 'string' ||
       captured?.logicalInput === undefined ||
       captured?.checkedSource === undefined ||
@@ -760,19 +760,11 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
         captured.capture.source()) !== true) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
-  const inputLogicalWire = moon.strategyRunEvidenceJson(
-    captured.logicalInput);
-  const source = captured.checkedSource;
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition,
-    {dataPolicyCid: effectiveDataPolicyCid, source: {
-      sourceEvidenceWire, inputLogicalWire,
-      sourceRef: source.sourceRef,
-      sourceContractCid: source.sourceContractCid,
-      authorityScopeCid, captureStartedAt, captureCompletedAt,
-    }}, limits);
-  const sourceEvidence = control.admitRunEvidence('source_evidence',
-    sourceEvidenceWire, limits);
+    {dataPolicyCid: effectiveDataPolicyCid, source: {captured, sourceEvidence,
+      authorityScopeCid, captureStartedAt, captureCompletedAt}}, limits,
+    acquired.publicationPreparation, preparedProgram);
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
@@ -795,17 +787,17 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   if (!Array.isArray(sources) || sources.length !== 2 ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
-      sources.some(({captured, sourceEvidenceWire}, task) =>
-        typeof sourceEvidenceWire !== 'string' || captured?.logicalInput === undefined ||
+      sources.some(({captured, sourceEvidence}, task) =>
+        sourceEvidence === undefined || captured?.logicalInput === undefined ||
         captured?.identity === undefined || captured?.requirement === undefined ||
         !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task))) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
-  const observed = sources.map(source => ({...source,
-    inputLogicalWire: moon.strategyRunEvidenceJson(source.captured.logicalInput)}));
-  const {observation, invocation} = control.issueCheckedClientCompiledMultiInvocation(
-    acquired.compiled, acquired.runDefinition, {sources: observed, authorityScopeCid,
-      dataPolicyCid: effectiveDataPolicyCid, captureStartedAt, captureCompletedAt}, limits);
+  const observed = sources;
+  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
+    acquired.compiled, acquired.runDefinition, {source: {sources: observed, authorityScopeCid,
+      captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
+    acquired.publicationPreparation, preparedProgram);
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
@@ -815,8 +807,7 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
     // Source Evidence entry retained above in the Observation Set.
     inputRelationCids: [...new Set(sources.map(source =>
       moon.clientProgramCapturedSourceLogicalCid(source.captured.identity)))],
-    sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence',
-      source.sourceEvidenceWire, limits)),
+    sourceEvidence: observed.map(source => source.sourceEvidence),
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
@@ -827,46 +818,34 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
 // Retain both Source evidence entries while reusing the admitted compilation
 // and the ordinary Result publication/retention plan.
 export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidenceWire, keyedObservation,
+  preparedProgram, captured, sourceEvidence, keyedObservation,
   authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt,
   namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (typeof sourceEvidenceWire !== 'string' ||
+  if (sourceEvidence === undefined ||
       captured?.logicalInput === undefined || captured?.identity === undefined ||
       captured?.requirement === undefined || captured?.capture === undefined ||
       keyedObservation?.observation === undefined ||
-      typeof keyedObservation.inputLogicalWire !== 'string' ||
-      typeof keyedObservation.sourceEvidenceWire !== 'string' ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
       moon.clientProgramCapturedSourceMatches(preparedProgram, captured.capture.source()) !== true) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
-  // Read the wires from the same live opaque observation passed to issuance.
-  // Callers cannot swap one completed lookup's text onto another lookup owner.
-  const wires = moon.clientProgramKeyedLookupObservationWires(keyedObservation.observation);
-  if (wires === undefined || runtimeField(wires, 0) !== keyedObservation.inputLogicalWire ||
-      runtimeField(wires, 1) !== keyedObservation.sourceEvidenceWire) {
-    throw new TypeError('InvalidAcquiredTaskPublication');
-  }
-  const {observation, invocation} = control.issueCheckedClientCompiledKeyedInvocation(
-    acquired.compiled, acquired.runDefinition, {captured, sourceEvidenceWire,
-      inputLogicalWire: moon.strategyRunEvidenceJson(captured.logicalInput),
+  const right = control.keyedLookupPublicationEvidence(keyedObservation.observation);
+  const left = sourceEvidence;
+  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
+    acquired.compiled, acquired.runDefinition, {source: {captured, sourceEvidence: left,
       keyedObservation: keyedObservation.observation, authorityScopeCid,
-      dataPolicyCid: effectiveDataPolicyCid, captureStartedAt, captureCompletedAt}, limits);
-  // Both logical inputs have been validated by the portable issuer above.
-  // Acquired Source relations are logical dependencies, not captured input
-  // Artifacts. Do not omit the right Source's empty logical Relation.
-  const keyedInput = JSON.parse(runtimeField(wires, 0));
+      captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
+    acquired.publicationPreparation, preparedProgram);
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [...new Set([
       moon.clientProgramCapturedSourceLogicalCid(captured.identity),
-      keyedInput.logical_relation_cid,
+      right.logicalRelationCid,
     ])],
-    sourceEvidence: [sourceEvidenceWire, runtimeField(wires, 1)].map(wire =>
-      control.admitRunEvidence('source_evidence', wire, limits)),
+    sourceEvidence: [left, right.source],
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),

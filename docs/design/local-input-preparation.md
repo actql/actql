@@ -3511,3 +3511,108 @@ The manager captures the module and adoption methods with their original
 receiver before invoking its private Plan constructor. A failed module or
 adoption remains on the same Request for retirement and cannot replay the
 constructor, substitute a source-free Plan or select a detached Run.
+
+## Original captured Source publication
+
+The adopted Run issues its captured invocation once from the same checked
+capture/identity/requirement inventory, retained logical input and Source
+observations. Single, independent two-Source and keyed continuations use the
+same fixed owned entry. Wire bytes cannot replace the original capture or
+keyed lookup. Foreign definition and original-body checks precede the consumed
+invocation slot; a failed semantic issuance cannot replay it.
+
+Publication growth reads the same captured capacity Plan and checked demand
+as Compute. It does not reinterpret observed row counts as capacity, construct
+a source-free Plan or compile the Program again. External observation wire is
+admitted once at its explicit boundary and retained for both invocation and
+publication; an already retained logical input is never serialized for a
+second admission. Keyed publication reads its existing observation and logical
+identity directly, while stored/restored wire remains an external boundary.
+
+## Retained evidence keeps exact bounded-writer facts
+
+An admitted Run evidence value retains the UTF-8 bytes, value nodes and peak
+depth observed by the same writer that produced its complete canonical wire.
+Both issuance and external admission retain these facts; identities and wire
+bodies do not change. A later tighter envelope compares that exact original
+usage, without reparsing, rehashing or emitting the value again.
+
+The optional usage shape follows the existing publication-contract holder.
+An unmeasured private fixture is not a bounds witness: missing facts refuse.
+These immutable facts grant no Source, Run, currentness or resource authority.
+Their retained tuple/reference extent remains part of the actual owner
+representation and must be included by the consuming funding domain.
+
+
+### Live captured Source evidence transfer
+
+The ordinary Pure single-, multi-, and keyed-Source publication callers await
+`prepareSourceEvidenceOriginal` on the acquired Source owner, then invoke the
+same capture receiver's `takeSourceEvidenceOriginal` exactly once. The Source
+owner retains the original issuer's value across preparation and clears its
+alias on transfer or confirmed retirement. The publication control projects
+that same value into its existing nominal evidence view; it does not serialize,
+parse, hash, or issue the evidence again. Missing transfer ports fail this
+selected path and cannot select the wire issuer.
+
+The original managed Run still validates the captured source, identity,
+requirement, logical input, compiled definition, policy, and retained canonical
+usage against the publication limits. A transferred DATA value grants no Source
+permission or physical cleanup acknowledgment. Content, INFER, Effect, external
+wire admission, and stored restoration remain their separate existing
+boundaries until their actual consumers migrate.
+
+
+### Ordinary Source request context and retirement
+
+Both ordinary installed Source entries, including Project Sources, pass the
+Host's existing `readLocalPreparationContext` and
+`retireSourceManagedInitialPreparation` callbacks to their existing manager.
+The selected context is read before allocating the producer. The manager opens
+that context's Request before the SDK snapshot for native Programs and query
+text with options; its original retirement callback reaches the same prepared
+body before the preparation borrow returns.
+
+This forwarding does not construct an Environment, sequence contract, control,
+resource quote, or another parent. The existing context reader's exact
+runtime/control/contract/output-mode checks remain authoritative. Unsupported
+context selections and the remaining unfunded installation or consumer
+boundaries still require their own migration; callback presence is not proof
+of physical backing, Source permission, or successful cleanup.
+
+
+### INFER original captured evidence
+
+Live ordinary single and composed INFER consumers pass the same captured
+logical input and Source Evidence values to the existing Node bridge entries.
+Their signatures consume those original DATA values rather than JSON strings.
+The existing Core Model-source observation and captured/composed input
+admission functions remain the semantic owners. The bridge checks retained
+canonical name/byte/node/container-depth facts against the same previous wire
+envelope before calling those functions; it does not parse, hash, or emit the
+values again. A copied nominal JavaScript view cannot supply its private token.
+
+The live Source owner still prepares the evidence under its current boundary
+and transfers it once from the same capture. Continuation snapshots may retain
+the value's already-canonical wire; reading that existing String is not another
+serialization. Restored external wire is admitted at its existing restoration
+boundary before entering this typed consumer. This does not regrant dispatch,
+weaken saved-Run or Source custody checks, or turn an uncertain physical stop
+into an acknowledgment. Content/keyed combinations and other unmigrated
+callers retain their distinct obligations.
+
+
+### Shared RelA Request root
+
+The RelA Node bridge uses the existing Request root bridge and native snapshot
+reader through the same canonical mirror owner as its other shared bridges.
+The original `ClientLocalPreparationInputOriginal`, native DATA reader, and
+Request/Parameter/check/Plan delegates are generated unchanged from their Node
+source. A backend does not declare a substitute receipt type, fork snapshot
+semantics, or select another Resource parent merely to satisfy a signature.
+
+These bindings expose the existing constructors and lifetime operations; they
+do not admit arbitrary receipt-shaped DATA. The original supplier still checks
+membership and purpose, while the real caller must retain the same initial
+parent and satisfy its physical backing and retirement obligations. Compiled
+RelA and ordinary acceptance require matching artifacts and callers separately.

@@ -276,7 +276,7 @@ pub fn client_program_admit_compiled_run_definition(@run_publication_host.Client
 
 pub fn client_program_admit_composed_infer_egress(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
-pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
+pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
@@ -294,7 +294,7 @@ pub fn client_program_admit_effect_run_materials(String, String, Bool, Bool, Boo
 
 pub fn client_program_admit_effect_serialization_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
-pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
+pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
@@ -1646,6 +1646,8 @@ pub fn client_program_issue_captured_effect_input_local_result_definition(@run_p
 
 pub fn client_program_issue_captured_effect_table_input_local_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
+pub fn client_program_issue_captured_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], @run_publication_host.ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_captured_task_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
@@ -1839,6 +1841,8 @@ pub fn client_program_keyed_lookup_join_prepare(@run_publication_host.PreparedCl
 pub fn client_program_keyed_lookup_join_start(@client_local_host.ClientKeyedJoinPreparation) -> Result[@local.ManagedProviderExecution, @client_local_host.ClientQueryResidualIssue]
 
 pub fn client_program_keyed_lookup_join_work(@local.ManagedProviderExecution) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_program_keyed_lookup_observation_originals(@run_publication_host.ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
 
 pub fn client_program_keyed_lookup_observation_wires(@run_publication_host.ClientKeyedLookupObservation) -> (String, String)?
 
@@ -2879,6 +2883,8 @@ pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Resul
 pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
 
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_issue_source_evidence_original(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
 

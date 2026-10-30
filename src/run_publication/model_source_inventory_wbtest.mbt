@@ -10,6 +10,7 @@ fn model_inventory_value(
     name,
     identity: cid,
     wire: body,
+    wire_usage: None, // This private fixture is not an admitted bound witness.
     value: parse_contract_wire(body, 16384, 1024, 20).unwrap(),
   }
 }

@@ -57,10 +57,21 @@ pub fn reserve_program_publication(
   if owner.publication_started || owner.publication is Some(_) {
     return Err(WrongPhase)
   }
-  guard owner.source_free_preparation is Some(source_free) else {
-    return Err(ForeignOriginal)
+  let plan = match owner.captured_preparation {
+    Some(captured) => {
+      if !physical_equal(captured.prepared, prepared) ||
+        !physical_equal(captured.request, owner.request) {
+        return Err(ForeignOriginal)
+      }
+      captured.capacity_plan
+    }
+    None => {
+      guard owner.source_free_preparation is Some(source_free) else {
+        return Err(ForeignOriginal)
+      }
+      source_free.capacity_plan
+    }
   }
-  let plan = source_free.capacity_plan
   let (inventory, rows, text) = match plan.scalar_demand {
     Some(demand) => {
       guard plan.schema_inventory is Some(inventory) &&

@@ -19,6 +19,7 @@ test "captured context extent counts repeated snapshot occurrences and row-shape
     name: "authoring_context",
     identity: "fixture",
     wire: metadata.wire,
+    wire_usage: None, // This private fixture is not an admitted bound witness.
     value: metadata.value,
   }
   for count in [0, 10001, 100000] {

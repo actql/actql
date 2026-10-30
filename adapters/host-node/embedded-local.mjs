@@ -3704,18 +3704,13 @@ async function openInstalledHost(originalInstallation, preparation) {
               submission.requestId, sourceProfile.sourceAccess) ?? sourceProfile.sourceAccess;
             const preparedSource = await prepareAcquisition(submission.preparedProgram,
               sourceAccess);
-            const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} =
+            const {captured, sourceEvidence, captureStartedAt, captureCompletedAt} =
               await acquireSource({preparedProgram: submission.preparedProgram,
                 preparedSource, sourceAccess});
-            const input = checked(moon.clientProgramAdmitInferCapturedInput(
-              submission.preparedProgram, captured.inferStep, captured.capturedSource,
-              captured.identity, captured.requirement, captured.logicalInput,
-              sourceEvidenceWire, authorityScopeCid,
-              captured.checkedSource.sourceDataPolicyCid,
-              captureStartedAt, captureCompletedAt));
-            acquiredInfer = {input, sourceEvidence: control.admitRunEvidence(
-              'source_evidence', sourceEvidenceWire,
-              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+            const input = control.admitInferCapturedInput(
+              submission.preparedProgram, captured, sourceEvidence, authorityScopeCid,
+              captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
+            acquiredInfer = {input, sourceEvidence};
           }
           await runInfer({preparedProgram: submission.preparedProgram, plan,
             store, principalId: actual, signal, retainExecution,

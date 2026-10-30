@@ -678,9 +678,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         ? new Date().toISOString() : '2026-09-30T00:00:00.000Z'};
     let plan = captured ? acquiredTaskPublicationPlan({...options,
       acquired: acquiredTaskRunAdmission(options), captured,
-      sourceEvidenceWire: await captured.issueSourceEvidence({
-        authorityScopeCid: options.authorityScopeCid,
-        effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
+      sourceEvidence: options.control.admitRunEvidence('source_evidence',
+        await captured.issueSourceEvidence({authorityScopeCid: options.authorityScopeCid,
+          effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
+        {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
       effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid,
       captureStartedAt: captured.captureStartedAt,
       captureCompletedAt: captured.captureCompletedAt}) : sourceFreeTaskPlan(options);

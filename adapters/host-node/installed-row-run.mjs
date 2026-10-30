@@ -84,6 +84,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
       capacity.executionBytes));
   let closed = false;
+  let sourceEvidenceOriginal, sourceEvidenceCapture;
+  let sourceEvidencePreparing = false;
   let readerPrepared = false, readerStarted = false, readerReadPending = false;
   let readerStopRequested = false;
   let reader, readerRead, readerStop, readerObserve, readerRetry;
@@ -121,6 +123,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));
     if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
+    sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
@@ -247,16 +250,47 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         inferStep === undefined && !composedInfer && setup === undefined) {
       fail('InstalledSourceHostUnavailable');
     }
+    const evidenceIssuer = moon.clientProgramRowSourceIssueSourceEvidenceOriginal;
+    const captureAccess = Object.freeze({source,
+      originalRead: () => {
+        if (closed) fail('InstalledSourceClosed');
+        return moon.clientProgramRowSourceOriginalRead(captured);
+      },
+      takeSourceEvidenceOriginal() {
+        if (this !== captureAccess) fail('ForeignInstalledSourceCapture');
+        if (closed) fail('InstalledSourceClosed');
+        if (sourceEvidenceCapture !== captured || sourceEvidenceOriginal === undefined) {
+          fail('InstalledSourceEvidenceUnavailable');
+        }
+        const original = sourceEvidenceOriginal;
+        sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
+        return original;
+      },
+      ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
+        moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
       logicalInput, requirement: owner.requirement, setup, occurrence,
       capturedSource, inferStep, composedInfer,
-      capture: Object.freeze({source,
-        originalRead: () => {
+      capture: captureAccess,
+      prepareSourceEvidenceOriginal: async ({authorityScopeCid, effectiveDataPolicyCid}) => {
+        if (closed) fail('InstalledSourceClosed');
+        if (typeof evidenceIssuer !== 'function') fail('InstalledSourceEvidenceUnavailable');
+        if (sourceEvidencePreparing || sourceEvidenceOriginal !== undefined) {
+          fail('InstalledSourceEvidencePending');
+        }
+        sourceEvidencePreparing = true;
+        try {
+          await currentRead();
           if (closed) fail('InstalledSourceClosed');
-          return moon.clientProgramRowSourceOriginalRead(captured);
-        },
-        ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
-          moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})}),
+          const original = checked(Reflect.apply(evidenceIssuer, moon,
+            [acquisition, captured, identity, logicalInput, authorityScopeCid,
+              effectiveDataPolicyCid, new Date().toISOString()]));
+          if (closed) fail('InstalledSourceClosed');
+          if (original === undefined) fail('InstalledSourceEvidenceUnavailable');
+          sourceEvidenceOriginal = original;
+          sourceEvidenceCapture = captured;
+        } finally { sourceEvidencePreparing = false; }
+      },
       issueSourceEvidence: async ({authorityScopeCid, effectiveDataPolicyCid}) => {
         await currentRead();
         return checked(moon.clientProgramRowSourceIssueSourceEvidence(
