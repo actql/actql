@@ -323,17 +323,36 @@ and streams the wheel to verify its actual bytes. Unselected files, a yanked
 file or an occupied empty release cannot authorize appending a new platform or
 replacing an old placeholder. PyPI has no npm-style channel promotion.
 
-Only a 404 from the original version metadata route is absence. Authentication,
+For npm and PyPI, only a 404 from the original version metadata route is absence. Authentication,
 rate-limit/server/transport failures, malformed metadata, failed artifact GETs
 and interrupted streams remain unknown. Different occupied identities/bytes
 remain conflicts. Both states block resume; neither causes a resend, version
-bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
-followed, and artifact downloads stay on the selected public registry origins.
+bump, rebuild or `--skip-existing`. Responses are bounded. npm/PyPI redirects
+are not followed; artifact downloads stay on the selected public registry origins.
+
+Standalone Native archives use the same `observe` command with their fixed
+upper manifest. The anonymous [release-by-tag reader](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name)
+requires a visible immutable published release and the exact prerelease flag.
+It resolves the actual [Git reference](https://docs.github.com/en/rest/git/refs#get-a-reference),
+including a bounded annotated-tag chain, to the fixed source commit;
+`target_commitish` alone is not source proof. The complete paginated
+[asset inventory](https://docs.github.com/en/rest/releases/assets#list-release-assets)
+must contain exactly the selected archive and checksum filenames and metadata.
+The observer downloads each actual asset through the public binary API and
+compares size/SHA256, even when a legacy API record has no digest. A bounded
+HTTP 302 may reach only the selected HTTPS GitHub asset CDN origins; signed
+query strings are used for that GET and omitted from the observation receipt.
+
+An anonymous GitHub 404 remains **unknown**, because it cannot establish that
+an invisible draft does not already exist. A mutable/different public release
+or an immutable release missing a selected asset blocks adoption. This port
+does not append assets, authenticate to a draft, create a tag, publish a draft
+or perform partial-draft recovery. Those duties still require the separately
+approved executor and its actual current observations.
 
 These checks are not a public fresh-install or runtime acceptance. Native npm
-launcher artifacts use the same npm route; standalone GitHub archives have a
-separate assembly connection but still need actual remote observation. No observer grants
-publication authority or substitutes for the separate approved executor.
+launcher artifacts use the npm route. No observer grants publication authority
+or substitutes for the separate approved executor.
 
 ## Channel transition review
 
