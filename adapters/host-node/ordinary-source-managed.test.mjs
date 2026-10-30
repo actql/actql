@@ -59,7 +59,7 @@ test('ordinary Content owns one purpose and retains the same keyed physical clos
   f.view.finishSourceProducer(f.receipt, 'returned');
   f.setCurrent(false);
   assert.throws(() => f.view.assertCurrent(), /original-current/);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   assert.equal((await child.close()).pending, true);
   pending = false;
@@ -94,7 +94,7 @@ test('ordinary two-Source acquisition uses distinct actual readers and one manag
   assert.deepEqual(bytes[1], bytes[0]);
   assert.notStrictEqual(bytes[0], bytes[1]);
   f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   for (const child of children) assert.equal((await child.close()).pending, false);
   assert.equal(ports.status(2), 0);
@@ -137,7 +137,7 @@ test('ordinary Mock purpose retains one request original and both real Source ch
   assert.deepEqual(bytes[0], bytes[1]);
   assert.notStrictEqual(bytes[0], bytes[1]);
   f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   await children[0].close();
   assert.equal(ports.status(2), -42);
