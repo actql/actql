@@ -182,7 +182,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Original fixed bytes, durable intent, raw command response and separate complete owner pending-stage byte readback support the reusable npm protocol. Lost replies stay Unknown and exact pending/public versions are not resent; actual protected staging/publication/recovery remains pending",
+      "currentSlice": "Existing npm and new one-project Python protocols preserve original fixed bytes, synced intent, terminal output and independent public readback. Python facade waits for exact SDK/runtime; lost replies stay Unknown and confirmed bytes are not resent. Actual protected executor, owner-approved publication/recovery and signing/provenance acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -204,6 +204,10 @@
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: partial lost response preserves Unknown intent and resumes original pending bytes without sending them again"
+        },
+        {
+          "kind": "Existing full cold wheel/fixed/review verifier with inert wheels and injected HTTP/project jobs; no PyPI/action/signing/owner trust",
+          "test": "Python publish: lost original terminal response keeps Unknown intent and same-byte resume does not resend"
         }
       ]
     },
@@ -232,6 +236,10 @@
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: reader denial, wrong immutable tag, or different pending bytes stop the whole cohort before a send"
+        },
+        {
+          "kind": "Inert same-byte publication boundary with injected registry only; not actual publisher authority",
+          "test": "Python publish: whole-target unknown conflict and foreign placeholder stop before any project send"
         }
       ]
     },

@@ -604,3 +604,11 @@ evidence and compatibility. A self-authored bugfix label, evidence hash or
 backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
+
+Python's [exact-byte publication protocol](python-local.md#exact-byte-python-publication-protocol)
+uses `release.mjs python-publish-plan` and the same publisher/receipt Owner.
+It prepares one project per protected job, keeps the facade behind exact public
+SDK/runtime bytes, and distinguishes lost response, terminal success, raw
+attestation output and public confirmation. No executable CLI, configured
+workflow, OIDC credential, owner approval or actual publication is supplied by
+that plan or its inert component controls.
