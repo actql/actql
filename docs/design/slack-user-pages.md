@@ -79,6 +79,13 @@ success is returned. There is no hidden retry, cursor repair, token refresh or
 second reader. Rate rejection is retained for the original request rather than
 replayed. Normal admission/pacing remains with the installed caller.
 
+For users and channel listings, each physical `limit` is the smaller of the
+configured page size and the remaining total-row allowance. A nonterminal
+cursor after that allowance is exhausted refuses before another authorization
+or send. The original opaque cursor, workspace observation and per-operation
+uses remain unchanged. A server that returns too many rows still fails the
+existing total-row check; no rows are truncated into a partial success.
+
 The original RowRun caller charges each actual response before interpretation.
 The identity response consumes its exact non-row observation charge; data pages
 consume their own charged-page tickets. The reader returns observed rows and

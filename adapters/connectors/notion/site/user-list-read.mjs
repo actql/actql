@@ -44,7 +44,8 @@ function prepareRead({moon, names, initialAuthorization, credential,
   const columns = Object.freeze(provider.notionUserListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name=>!columns.includes(name))) fail('InvalidNotionUserListRead');
-  return Object.freeze({provider,context,names:Object.freeze(names.slice()),signal});
+  // Source capture receives every declared cell; the user's SELECT follows.
+  return Object.freeze({provider,context,names:columns,signal});
 }
 
 async function executeRead(prepared, received) {
