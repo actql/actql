@@ -3,10 +3,10 @@ fn event_time_profile() -> @calendar_profile.Profile {
   // Synthetic immutable transition fixture, not an IANA dataset certification.
   // Canonical bytes and SHA-256 were authored with Python independently.
   let wire =
-    #|{"conversion_law":"actql-calendar-boundaries/0.1","coverage_end_ms":1798761600000,"coverage_start_ms":1735689600000,"tzdb_version":"calendar-event-test","version":"actql-tzdb-table/0.1","zones":{"Fixture/Eastern":{"initial_offset_seconds":-18000,"transitions":[{"at_ms":1772953200000,"offset_seconds":-14400},{"at_ms":1793512800000,"offset_seconds":-18000}]},"UTC":{"initial_offset_seconds":0,"transitions":[]}}}
+    #|{"conversion_law":"actql-calendar-boundaries/0.1","coverage_end_ms":253402300800000,"coverage_start_ms":-62135596800000,"tzdb_version":"calendar-event-test","version":"actql-tzdb-table/0.1","zones":{"Fixture/Eastern":{"initial_offset_seconds":-18000,"transitions":[{"at_ms":1772953200000,"offset_seconds":-14400},{"at_ms":1793512800000,"offset_seconds":-18000}]},"UTC":{"initial_offset_seconds":0,"transitions":[]}}}
   @calendar_profile.admit(
     @utf8.encode(wire),
-    "sha256:9fdd1c810f9417b491a4c04831ef900cc4f148c69b29f07d90ef1c4cb8f12ea2",
+    "sha256:a693071b15721fd914a7e98cf8acbf88b8b8e31b364478016220dbe8272e4043",
     "calendar-event-test",
     {
       max_bytes: 4096,
@@ -45,7 +45,7 @@ test "Calendar Event explicit offsets preserve exact nanoseconds before and afte
   assert_false(times.all_day)
   assert_eq(
     times.calendar_profile_cid,
-    "sha256:9fdd1c810f9417b491a4c04831ef900cc4f148c69b29f07d90ef1c4cb8f12ea2",
+    "sha256:a693071b15721fd914a7e98cf8acbf88b8b8e31b364478016220dbe8272e4043",
   )
   let before = event_times(
     (
@@ -167,7 +167,7 @@ test "Calendar Event shares finite resolution work and never extrapolates the or
   assert_true(
     event_times(
       (
-        #|{"kind":"calendar#event","start":{"date":"2024-12-30"},"end":{"date":"2024-12-31"}}
+        #|{"kind":"calendar#event","start":{"date":"0000-01-01"},"end":{"date":"0000-01-02"}}
       ),
     )
     is Err(TimeZoneCoverage),

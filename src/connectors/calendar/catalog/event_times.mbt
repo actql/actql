@@ -44,12 +44,12 @@ fn event_time_text(value : @decode.ObjectView, name : String) -> String? {
 
 ///|
 fn event_resolve_local_time(
-  local : String,
+  civil : String,
   zone : String,
   profile : @calendar_profile.Profile,
   remaining : Int,
 ) -> Result[(String, Int), CalendarEventTimeIssue] {
-  if local.length() > 39 {
+  if civil.length() > 39 {
     return Err(InvalidTime)
   }
   guard @calendar_profile.zone(profile, zone) is Some(table) else {
@@ -57,7 +57,7 @@ fn event_resolve_local_time(
   }
   // The appended Z admits civil fields in an epoch coordinate only. The
   // original selected table, never this spelling, supplies their UTC meaning.
-  guard @admitted.normalize_timestamp_text(local + "Z", 40) is Some(spelling) &&
+  guard @admitted.normalize_timestamp_text(civil + "Z", 40) is Some(spelling) &&
     @admitted.timestamp_instant(spelling) is Some(instant) else {
     return Err(InvalidTime)
   }
