@@ -56,7 +56,7 @@ async function fixture(t) {
   await writeFile(join(directory, 'release-set.sha256'), `${digest}  release-set.json\n`);
   const urls = ['https://registry.npmjs.org/%40actql%2Fnode/0.0.7-rc.1',
     'https://registry.npmjs.org/@actql/node/-/node-0.0.7-rc.1.tgz',
-    'https://pypi.org/pypi/actql-sdk/0.0.7rc1/json',
+    `https://pypi.org/pypi/${names[1]}/0.0.7rc1/json`,
     `https://files.pythonhosted.org/packages/aa/${files[1]}`];
   const npm = {name: names[0], version, dist: {integrity: artifacts[0].integrity, tarball: urls[1]}};
   const python = {info: {name: names[1], version: '0.0.7rc1'}, urls: [{filename: files[1],
