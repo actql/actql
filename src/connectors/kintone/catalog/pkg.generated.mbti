@@ -177,6 +177,10 @@ pub fn record_write_values_match_catalog(RecordWriteValues, FormFieldCatalog) ->
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
 
+pub fn restore_record_create_request(FormFieldCatalog, Array[RecordWriteValues], String, RecordMutationLimits) -> Result[RecordCreateRequest, RecordMutationIssue]
+
+pub fn restore_record_create_request_json(FormFieldCatalog, Bytes, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
 // Errors
 
 // Types and methods

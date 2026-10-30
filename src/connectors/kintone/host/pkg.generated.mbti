@@ -119,6 +119,8 @@ pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDecl
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
 
+pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Errors
