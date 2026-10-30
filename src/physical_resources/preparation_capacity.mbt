@@ -72,6 +72,19 @@ pub fn[I, P] reserve_preparation_capacity(
   reserve_capacity(ledger, retained_peak, execution_peak)
   .map_err(issue => PreparationCapacityIssue::Resource(issue))
   .map(reservation => {
+    make_preparation_capacity(ledger, input, reservation, max_borrowers)
+  })
+}
+
+///|
+// One owner record constructor for ordinary and atomic-census entrances.
+fn[I, P] make_preparation_capacity(
+  ledger : Ledger,
+  input : I,
+  reservation : CapacityReservation,
+  max_borrowers : Int,
+) -> PreparationCapacity[I, P] {
+  {
     ledger,
     reservation,
     input: Some(input),
@@ -82,7 +95,7 @@ pub fn[I, P] reserve_preparation_capacity(
     retirement_claimed: false,
     active_phase_work: None,
     last_work_phase: -1,
-  })
+  }
 }
 
 ///|
@@ -276,11 +289,44 @@ fn[I, P] finish_preparation_retirement(
   if owner.borrowers != 0 {
     return Ok(false)
   }
+  let inventory = match owner.ledger.original_inventory {
+    Some(value) if physical_equal(value.bootstrap, owner.reservation) &&
+      original_inventory_preparation_owned(value) => {
+      if !preparation_inventory_can_retire(value) {
+        return Ok(false)
+      }
+      // Fence allocation before original current can reenter this owner.
+      value.closing = true
+      Some(value)
+    }
+    _ => None
+  }
   // Remove actual strong references before returning the retained allowance.
   owner.body = None
   owner.input = None
   owner.phase = Settling
-  match settle_capacity(owner.ledger, owner.reservation) {
+  let settled = match inventory {
+    None => settle_capacity(owner.ledger, owner.reservation)
+    Some(value) => {
+      let previous = value.binding
+      value.binding = PreparationSettling
+      let result = match
+        reservation_check(owner.ledger, owner.reservation.reservation) {
+        Err(issue) => Err(issue)
+        Ok(_) =>
+          settle_preparation_inventory_current(
+            owner.ledger,
+            owner.reservation,
+            value,
+          )
+      }
+      if result is Err(_) {
+        value.binding = previous
+      }
+      result
+    }
+  }
+  match settled {
     Err(issue) => {
       owner.phase = Retiring
       Err(Resource(issue))
@@ -548,7 +594,15 @@ fn[I, P] preparation_capacity_usage_isolated(
   // Zero-byte children still occupy original identities. Byte equality alone
   // cannot prove that this preparation (and its exact bootstrap) is isolated.
   if ledger.original_inventory is Some(inventory) {
-    if inventory.reservations.length() != 1 ||
+    if physical_equal(inventory.bootstrap, owner.reservation) &&
+      original_inventory_preparation_owned(inventory) {
+      if bootstrap is Some(_) ||
+        !inventory.reservations.is_empty() ||
+        !inventory.holdings.is_empty() ||
+        !inventory.delegations.is_empty() {
+        return false
+      }
+    } else if inventory.reservations.length() != 1 ||
       !physical_equal(inventory.reservations[0], token) ||
       !inventory.holdings.is_empty() ||
       !inventory.delegations.is_empty() {

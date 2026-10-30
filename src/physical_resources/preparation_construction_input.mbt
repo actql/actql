@@ -16,7 +16,8 @@ fn[I, P] reserve_preparation_borrow_slot(
   owner : PreparationCapacity[I, P],
   construction : Bool,
 ) -> Result[Unit, PreparationCapacityIssue] {
-  if !preparation_borrow_phase_matches(owner.phase, construction) {
+  if !preparation_borrow_phase_matches(owner.phase, construction) ||
+    !preparation_capacity_inventory_open(owner) {
     return Err(Retired)
   }
   if owner.borrowers >= owner.max_borrowers {
@@ -44,7 +45,8 @@ fn[I, P] claim_preparation_borrow_slot(
     }
     Ok(_) => ()
   }
-  if !preparation_borrow_phase_matches(owner.phase, construction) {
+  if !preparation_borrow_phase_matches(owner.phase, construction) ||
+    !preparation_capacity_inventory_open(owner) {
     owner.borrowers -= 1
     // The same owner retries retirement; rollback is not a cleanup ACK.
     return Err(Retired)
@@ -87,6 +89,10 @@ pub fn[I, P, D] reserve_preparation_construction_input(
     !(owner.input is Some(original) && physical_equal(original, input)) {
     owner.borrowers -= 1
     return Err(ForeignOriginal)
+  }
+  if !preparation_capacity_inventory_open(owner) {
+    owner.borrowers -= 1
+    return Err(Retired)
   }
   make_preparation_construction_input_borrow(owner, data)
 }

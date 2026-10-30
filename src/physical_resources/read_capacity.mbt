@@ -41,6 +41,18 @@ pub fn reserve_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  reserve_capacity_current(ledger, retained_bytes, execution_bytes)
+}
+
+///|
+// Same synchronous owner after its nonnegative input and original current/
+// slot checks. Initial preparation validates pristine history in that same
+// cut, without repeating those checks or this reservation allocator.
+fn reserve_capacity_current(
+  ledger : Ledger,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[CapacityReservation, LedgerIssue] {
   guard ledger.next_capacity_serial is Some(serial) else {
     return Err(InvalidCharge)
   }
@@ -176,6 +188,13 @@ fn resize_capacity_reservation(
   let usage = ledger.usage
   let retained_delta = retained - token.retention
   let execution_delta = execution - token.execution
+  if (retained_delta > 0L || execution_delta > 0L) &&
+    ledger.original_inventory is Some(inventory) &&
+    physical_equal(inventory.bootstrap, capacity) &&
+    original_inventory_preparation_owned(inventory) &&
+    inventory.closing {
+    return Err(ClosedReservation)
+  }
   // Original stopping permits disposal, never new allocation. The preceding
   // reservation check has refreshed currentness and may have latched stopping.
   if (retained_delta > 0L || execution_delta > 0L) &&

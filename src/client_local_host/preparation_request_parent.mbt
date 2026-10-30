@@ -92,6 +92,16 @@ struct ClientRequestPreparation[I] {
 }
 
 ///|
+let request_preparation_borrow_limit : Int = 6
+
+///|
+// Fixed Resource-owned census layout, priced by the existing common tariff.
+// This is retained installed DATA, not another per-Request owner or budget.
+let request_preparation_inventory_slots : (Int64, Int64, Int64) = @resources.preparation_inventory_initial_control_slots(
+  request_preparation_borrow_limit, 0, 0,
+).unwrap()
+
+///|
 pub(all) enum ClientRequestPreparationIssue {
   ForeignOriginal
   WrongPhase
@@ -120,6 +130,7 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 /// parsed tree or provider inventory is included here. Each selected next
 /// phase must reserve its own complete representation before constructing it.
 fn request_preparation_control_units() -> @execution.PreparationRepresentationUnits {
+  let (inventory_headers, inventory_refs, inventory_words) = request_preparation_inventory_slots
   // JS producer/empty receipt/preparation state; original Resource record and
   // state; fixed quota6 and weak identity membership; ports and six closures.
   // The original runtime's fixed validation arrays have lengths4,6,3,7,5,5;
@@ -183,7 +194,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
     // or B initial recipe is represented by these caller-only controls.
-    record_headers: js_headers +
+    record_headers: inventory_headers +
+    js_headers +
     import_headers +
     ledger_headers +
     2L +
@@ -192,7 +204,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    reference_slots: js_refs +
+    reference_slots: inventory_refs +
+    js_refs +
     import_refs +
     ledger_refs +
     12L +
@@ -201,7 +214,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: js_words +
+    scalar_words: inventory_words +
+    js_words +
     import_words +
     ledger_words +
     5L +
@@ -253,16 +267,18 @@ pub fn[I] begin_request_preparation(
     Err(issue) => return Err(Initial(issue))
     Ok(value) => value
   }
-  if @resources.ledger_limits(ledger) != expected {
+  // Actual sealed initial envelope may cover additional installed domains.
+  // It must contain the Local baseline; no caller-supplied limit is admitted.
+  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match
-    @resources.reserve_preparation_capacity(
+    @resources.reserve_preparation_capacity_inventory(
       ledger,
       input,
       retained,
       execution,
-      max_borrowers=6,
+      max_borrowers=request_preparation_borrow_limit,
     ) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
