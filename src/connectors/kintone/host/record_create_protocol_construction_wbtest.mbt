@@ -10,10 +10,10 @@ fn create_protocol_form_limits() -> @catalog.FormFieldLimits {
 }
 
 ///|
-test "original CREATE Form recheck inventory covers nested options lookup and narrower foreign response" {
+test "original CREATE Form recheck inventory covers nested observed refusal and narrower foreign response" {
   let wire = "{\"revision\":\"7\",\"properties\":{\"Subject\":{\"code\":\"Subject\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"\",\"required\":true},\"Tags\":{\"code\":\"Tags\",\"type\":\"MULTI_SELECT\",\"options\":{\"red\":{\"label\":\"red\"}}},\"Optional\":{\"code\":\"Optional\",\"type\":\"MULTI_LINE_TEXT\"},\"Computed\":{\"code\":\"Computed\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"server\"},\"nested\":{\"code\":\"nested\",\"type\":\"SUBTABLE\",\"fields\":{\"lookup\":{\"code\":\"lookup\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"\",\"lookup\":{\"fieldMappings\":[{\"field\":\"Optional\",\"relatedField\":\"source\"}]}}}}}}"
   let limits = create_protocol_form_limits()
-  let catalog = @catalog.project_form_fields(@utf8.encode(wire), "12", limits).unwrap()
+  let catalog = create_mapping_catalog()
   let mapping = prepare_record_create_mapping(
     create_mapping_declaration(catalog),
     "inquiries",
@@ -40,7 +40,11 @@ test "original CREATE Form recheck inventory covers nested options lookup and na
   )
   assert_true(
     @catalog.recheck_record_create_form(request, @utf8.encode(wire), limits)
-    is Ok(_),
+    is Err(@catalog.ForeignCatalog),
+  )
+  let original = b"{\"revision\":\"7\",\"properties\":{\"Subject\":{\"code\":\"Subject\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"\",\"required\":true,\"defaultValue\":\"server\"},\"Tags\":{\"code\":\"Tags\",\"type\":\"MULTI_SELECT\",\"required\":false,\"defaultValue\":[\"server\"]},\"Optional\":{\"code\":\"Optional\",\"type\":\"MULTI_LINE_TEXT\",\"required\":false,\"defaultValue\":\"server\"},\"Computed\":{\"code\":\"Computed\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"\\\"server\\\"\",\"required\":true}}}"
+  assert_true(
+    @catalog.recheck_record_create_form(request, original, limits) is Ok(_),
   )
   assert_true(
     @catalog.recheck_record_create_form(
