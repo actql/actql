@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5b62341a00f6bee5599938b1fc80a9bfd978dd9e36189ada91bcd6a3e1ecc3a2",
+      "sha256": "50a2bb6e9fc22c84ce1526e7b594c0267f0bf557e668233720b33dad8fba4a28",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -40,6 +40,10 @@
         "InvocationAuthorization",
         "InvocationPrimitive",
         "ReadGrantRequest",
+        "RestSourceInstallationDefinition",
+        "RestSourcePageData",
+        "RestSourceProfile",
+        "RestSourceTransform",
         "RowEffectCommand",
         "RowEffectCommandMember",
         "RowEffectDriver",
@@ -68,6 +72,7 @@
         "RowSourceMapping",
         "RuntimeResult",
         "checked",
+        "createInstalledRestSource",
         "createInstalledRowEffect",
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -86,6 +91,14 @@
           "result": "Result"
         },
         {
+          "name": "<call>#2",
+          "parameters": [
+            "page: Readonly<RestSourcePageData>",
+            "context: Readonly<{resource: string; columns: readonly string[]}>"
+          ],
+          "result": "Readonly<{rowsWire: string; nextCursor?: string}>"
+        },
+        {
           "name": "checked",
           "parameters": [
             "result: RuntimeResult<T>"
@@ -98,6 +111,55 @@
             "result: unknown"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "createInstalledRestSource",
+          "parameters": [
+            "definition: RestSourceInstallationDefinition",
+            "options?: Readonly<{decodePage?: RestSourceTransform}>"
+          ],
+          "result": "Readonly<{\n    checkProfile(profile: unknown): Readonly<RestSourceProfile>;\n    identityParts(profile: object, providerProfile: RestSourceProfile,\n      readJson?: (path: string) => Promise<unknown>, installation?: object,\n      context?: object): Promise<readonly unknown[]>;\n    publish(profile: RestSourceProfile, options: object): Promise<object>;\n    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;\n  }>"
+        },
+        {
+          "name": "createInstalledRestSource/checkProfile",
+          "parameters": [
+            "profile: unknown"
+          ],
+          "result": "Readonly<RestSourceProfile>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts",
+          "parameters": [
+            "profile: object",
+            "providerProfile: RestSourceProfile",
+            "readJson?: (path: string) => Promise<unknown>",
+            "installation?: object",
+            "context?: object"
+          ],
+          "result": "Promise<readonly unknown[]>"
+        },
+        {
+          "name": "createInstalledRestSource/identityParts/<call>",
+          "parameters": [
+            "path: string"
+          ],
+          "result": "Promise<unknown>"
+        },
+        {
+          "name": "createInstalledRestSource/load",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<InstalledRowSource>"
+        },
+        {
+          "name": "createInstalledRestSource/publish",
+          "parameters": [
+            "profile: RestSourceProfile",
+            "options: object"
+          ],
+          "result": "Promise<object>"
         },
         {
           "name": "createInstalledRowEffect",
@@ -1040,6 +1102,150 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<call>#2",
+            "createInstalledRestSource",
+            "createInstalledRestSource/checkProfile",
+            "createInstalledRestSource/identityParts",
+            "createInstalledRestSource/identityParts/<call>",
+            "createInstalledRestSource/load",
+            "createInstalledRestSource/publish"
+          ],
+          "exports": [
+            "RestSourceInstallationDefinition",
+            "RestSourcePageData",
+            "RestSourceProfile",
+            "RestSourceTransform",
+            "createInstalledRestSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The field DATA enters the original Common declaration constructor unchanged."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const {declaration, declared, environment} = prepare();"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The same Host owns checked declaration preparation,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host passes that projection into the original Run Ledger's"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "{sourceReader: providerReader, sourceProfile: site});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// Select original service methods before any configuration await. The"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Missing framework support refuses;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "charging before decode, current checks, cancellation and physical cleanup."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host also keeps"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Neither action confirms physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "These finite page and row ceilings constrain the connector; they are not a"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// funding. The same selected Host profile must cover them in full."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Common checks the additions and reserves them before the reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "the Core or Host for each new Connector."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error Host services are not an author facade option."
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error A factory cannot accept caller-issued capacity as authority."
+              },
+              {
+                "path": "scripts/fixtures/external-rest/preparation.test.mjs",
+                "anchor": "test('REST installed entrance checks every generated installation export before Host construction'"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Source checks,"
               }
             ]
           }

@@ -59651,42 +59651,260 @@
         "prepareSourceManagedInstallation"
       ],
       "operations": [
-        "<module>",
-        "assertManagedComputeInstallationCurrent",
-        "assertManagedComputePreparationCurrent",
-        "assertSourceManagedInstallationCurrent",
-        "assertSourceManagedPreparationCurrent",
-        "borrowSourceInitializationMaterial",
-        "callbacks/callbacks",
-        "close",
-        "close/flight/flight",
-        "computeCallbacks/computeCallbacks",
-        "current",
-        "explicitStartup/explicitStartup",
-        "invoke",
-        "original",
-        "prepareInstallation",
-        "prepareInstallation/prepareInstallation",
-        "prepareInstallation/prepareInstallation#2",
-        "prepareInstallation/view/init:assertCurrent/init:assertCurrent",
-        "prepareInstallation/view/init:assertResultReadCurrent/init:assertResultReadCurrent",
-        "prepareInstallation/view/init:beforeResultRead/init:beforeResultRead",
-        "prepareInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-        "prepareInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-        "prepareInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-        "prepareInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-        "prepareInstallation/view/init:close/init:close",
-        "prepareInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-        "prepareInstallation/view/init:intentCid/init:intentCid",
-        "prepareInstallation/view/init:prepareRead/init:prepareRead",
-        "prepareInstallation/view/init:prepareRun/init:prepareRun",
-        "prepareManagedComputeInstallation",
-        "prepareProjectSourceManagedInstallation",
-        "prepareProjectSourceManagedInstallation/prepareProjectSourceManagedInstallation",
-        "prepareSourceManagedInstallation",
-        "synchronousReceipt",
-        "syncVoid",
-        "unavailable/unavailable"
+        {
+          "name": "assertManagedComputeInstallationCurrent",
+          "parameters": [
+            "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertManagedComputePreparationCurrent",
+          "parameters": [
+            "originalInstallation",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceManagedInstallationCurrent",
+          "parameters": [
+            "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceManagedPreparationCurrent",
+          "parameters": [
+            "originalInstallation",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowSourceInitializationMaterial",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "close",
+          "parameters": [
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "computeCallbacks/computeCallbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "explicitStartup/explicitStartup",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "invoke",
+          "parameters": [
+            "index",
+            "args",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "original",
+          "parameters": [
+            "view",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation",
+          "parameters": [
+            "originals",
+            "selectedCallbacks"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallation/prepareInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/prepareInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "originalFrozenBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "originalDerivedRequest",
+            "originalDeclaration",
+            "originalRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:prepareRun/init:prepareRun",
+          "parameters": [
+            "originalCheckedPrepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectSourceManagedInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectSourceManagedInstallation/prepareProjectSourceManagedInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronousReceipt",
+          "parameters": [
+            "state",
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncVoid",
+          "parameters": [
+            "state",
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
       ],
       "imports": [
         "./embedded-local.mjs",
