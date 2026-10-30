@@ -144,6 +144,7 @@ test('actual timed invocation module resolves its canonical projection with regi
  const ok=value=>({$tag:1,_0:value});
  const readProbe=new Proxy(Object.create(null),{get(){reads++;throw projectedRead;}});
  const moon={
+  strategyRemoteManagedOutputEvidenceKind:()=> 'unused-component-remote-kind',
   clientProgramIssueOriginalValuesCompiledRun(p,a){assert.equal(p,prepared);assert.equal(a,artifact);issuers++;return ok(compiledToken);},
   clientProgramCompiledRunTemplate:()=>({}),clientProgramCompiledRunPlan:()=>({}),
   clientProgramCompiledRunPrepared:()=>({}),clientProgramCompiledRunAuthorization:()=>({}),clientProgramCompiledRunAdmission:()=>({}),
