@@ -39,11 +39,11 @@ test "Effect operation reserves original occurrence before construction and reta
   )
   assert_eq(reserved.reserved_attempts, before.reserved_attempts)
   assert_true(start_installed_effect_operation(operation) is Err(Unsupported))
-  assert_eq(retire_installed_effect_operation(operation, false), Ok(false))
+  assert_true(retire_installed_effect_operation(operation, false) is Ok(false))
   assert_eq(@resources.ledger_usage(ledger), reserved)
   assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
-  assert_eq(retire_installed_effect_operation(operation, true), Ok(true))
-  assert_eq(retire_installed_effect_operation(operation, true), Ok(true))
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
     before.reserved_retention_bytes,
@@ -83,9 +83,9 @@ test "Effect physical occurrence spends once and original lost reply stays uncer
     unknown.uncertain_transfer_bytes,
     before.uncertain_transfer_bytes + 8L,
   )
-  assert_eq(retire_installed_effect_operation(operation, false), Ok(false))
+  assert_true(retire_installed_effect_operation(operation, false) is Ok(false))
   assert_eq(@resources.ledger_usage(ledger), unknown)
-  assert_eq(retire_installed_effect_operation(operation, true), Ok(true))
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   assert_eq(@resources.ledger_usage(ledger).attempts, unknown.attempts)
   assert_eq(
     @resources.ledger_usage(ledger).uncertain_transfer_bytes,

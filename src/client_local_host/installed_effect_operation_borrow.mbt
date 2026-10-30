@@ -10,7 +10,7 @@ priv enum ClientEffectOperationBacking {
 pub struct ClientInstalledEffectOperationBorrow {
   priv mut owner : ClientInstalledManagedRun?
   priv mut ledger : @resources.Ledger?
-  priv member : Int
+  priv member_index : Int
   priv per_row : Bool
   priv operation_index : Int
   priv row_index : Int
@@ -29,7 +29,7 @@ pub fn borrow_installed_effect_operation(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   expected_plan : ClientInstalledEffectManagedPlan,
-  member : Int,
+  member_index : Int,
   per_row : Bool,
   operation_index : Int,
   row_index : Int,
@@ -50,13 +50,13 @@ pub fn borrow_installed_effect_operation(
   }
   let extent = match
     prepared_installed_effect_managed_operation(
-      plan, member, per_row, operation_index, operation,
+      plan, member_index, per_row, operation_index, operation,
     ) {
     Ok(extent) => extent
     Err(issue) => return Err(issue)
   }
   for prior in owner.effect_operations {
-    if prior.member == member &&
+    if prior.member_index == member_index &&
       prior.per_row == per_row &&
       prior.operation_index == operation_index &&
       prior.row_index == row_index {
@@ -73,7 +73,7 @@ pub fn borrow_installed_effect_operation(
   if retained <= 0L || execution <= 0L {
     return Err(InsufficientCapacity)
   }
-  let backing = if extent.physical_attempt {
+  let backing : ClientEffectOperationBacking = if extent.physical_attempt {
     match
       @resources.reserve_attempt(
         ledger,
@@ -93,7 +93,7 @@ pub fn borrow_installed_effect_operation(
   let value : ClientInstalledEffectOperationBorrow = {
     owner: Some(owner),
     ledger: Some(ledger),
-    member,
+    member_index,
     per_row,
     operation_index,
     row_index,

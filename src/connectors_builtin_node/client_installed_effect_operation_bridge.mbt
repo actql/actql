@@ -9,7 +9,7 @@ pub fn client_program_installed_effect_operation_borrow(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
-  member : Int,
+  member_index : Int,
   per_row : Bool,
   operation_index : Int,
   row_index : Int,
@@ -19,7 +19,7 @@ pub fn client_program_installed_effect_operation_borrow(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.borrow_installed_effect_operation(
-    owner, prepared, request, plan, member, per_row, operation_index, row_index,
+    owner, prepared, request, plan, member_index, per_row, operation_index, row_index,
     operation,
   )
 }
