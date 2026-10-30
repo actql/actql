@@ -670,6 +670,35 @@ pub fn issue_client_compiled_source_free_task_invocation(
 }
 
 ///|
+/// Dispatch the already selected original source-free compilation through its
+/// existing semantic issuer. The Host supplies no kind discriminator, and the
+/// Values/Tasks issuers retain their original definition and input laws.
+pub fn issue_client_compiled_source_free_invocation(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  match value.compilation {
+    Values(_) =>
+      issue_client_compiled_values_invocation(
+        value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+      )
+    Tasks(_) =>
+      issue_client_compiled_source_free_task_invocation(
+        value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+      )
+    Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("source_free_run"))
+  }
+}
+
+///|
 pub fn issue_client_compiled_task_invocation(
   value : ClientCompiledRun,
   definition : @publication.PublicationContract,

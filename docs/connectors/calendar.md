@@ -14,8 +14,10 @@ calendar.
   `description`, `start`, `end`, `all_day`, `location`, `status`, `organizer`,
   `attendees` (an array of objects with `email`, `response_status`,
   `optional`), `recurring_event_id`, `created`, `updated`, `etag`. Key
-  (`calendar_id`, `id`); `ical_uid` is unique across calendars. Filter by
-  calendar and time range; recurring events are expanded into instances.
+  (`calendar_id`, `id`). `ical_uid` identifies the same logical event across
+  calendars, but recurring instances can share it; it is not an additional
+  row key. Filter by calendar and time range; recurring events are expanded
+  into instances.
 - `calendar.free_busy` — busy intervals for a calendar in a time range:
   `calendar_id`, `start`, `end`. Filter by calendar and time range; the
   source has no key.
@@ -24,13 +26,31 @@ calendar.
 
 | Calendar | ActQL | Notes |
 | --- | --- | --- |
-| `id`, `iCalUID`, `recurringEventId` | `string` | Stable identifiers. |
-| `start`/`end` `dateTime` | `timestamp` | With its offset; `all_day = false`. |
-| `start`/`end` `date` | `date` | All-day events; `all_day = true`. The two forms never mix in one column: `start` is a `timestamp` column and all-day starts are read as midnight in the calendar's time zone, with `all_day` telling them apart. |
-| `attendees[]` | `array<struct<email string, response_status string, optional bool>>` | `response_status` is `needsAction`, `declined`, `tentative` or `accepted`. |
-| `status` | `string` | `confirmed`, `tentative`, `cancelled`. |
-| `etag` | `string` | Also the apply-time condition for updates and deletes. |
-| `created`, `updated` | `timestamp` | UTC. |
+| `id`, `calendar_id` | `string` | Required original identifiers and the row key. |
+| `iCalUID`, `recurringEventId` | `string?` | Original identifiers when available. |
+| `start`/`end` `dateTime` | `timestamp?` | Preserve the exact instant; `all_day = false` when start is known. An omitted offset requires that endpoint's explicit `timeZone` in the selected CalendarProfile. |
+| `start`/`end` `date` | `timestamp?` | All-day boundaries are independent midnights in the original calendar zone, using the selected CalendarProfile; `all_day = true`. End is exclusive. No process timezone is substituted. |
+| `all_day` | `bool?` | NULL when the original start is unavailable. |
+| `summary`, `description`, `location` | `string?` | Original text when available, without normalization. |
+| `organizer` | `string?` | Original organizer email when available; no ID or display-name fallback. |
+| `attendees[]` | `array<struct<email string, response_status string, optional bool>>?` | The complete list, in original order, or NULL when completeness is unavailable. `response_status` is `needsAction`, `declined`, `tentative` or `accepted`; omitted native `optional` means false. |
+| `status` | `string?` | Original `confirmed`, `tentative` or `cancelled`; no inferred status. |
+| `etag` | `string?` | Original version when available; writes still require their actual version guard. |
+| `created`, `updated` | `timestamp?` | Exact original instant normalized to UTC. |
+
+A cancelled or deleted item may contain only its `id`. Its unavailable cells
+are NULL, with the actual `calendar_id` and supplied status retained. When
+`endTimeUnspecified` is true, `end` is NULL: the API's compatibility end is
+validated when present but is not an actual end.
+
+An omitted/null attendee list, `attendeesOmitted`, an attendee whose email or
+response status is missing, or a pending attendee operation makes the whole
+`attendees` cell NULL; other available columns remain readable. A complete
+empty list is `[]`. No email or response status is invented. Present malformed
+values still refuse the row, including inside an incomplete list. Native
+optional booleans use their documented omitted default only; explicit null is
+not that default. See the
+[row-contract decision](../design/semantic-decisions.md#calendar-event-unavailable-cells).
 
 Writes convert in the other direction with the same rules; an all-day event
 is written by setting `all_day = TRUE` and `date`-typed `start` and `end`.
@@ -84,8 +104,8 @@ in without a service account; the same scopes are requested.
 
 | Operation | Pushed down when |
 | --- | --- |
-| Projection | Always; `attendees` is requested only when a column needs it. |
-| `WHERE` | The predicate is on `calendar_id`, a `start`/`end` time range, `updated` or a free-text match on `summary`/`description` — what the events API's `timeMin`, `timeMax`, `updatedMin` and `q` express exactly. Predicates on `attendees`, `status` and `location` run on the Host; a mixed predicate is split with the residual evaluated by the Host. |
+| Projection | Always after the complete declared Source row has been captured and validated; selecting fewer output columns does not hide malformed or incomplete input. |
+| `WHERE` | Only predicates proven equivalent to the API request are removed from the residual. `timeMin` filters event end and `timeMax` filters event start, and the API ignores fractional request seconds; forwarding them alone is not exact SQL start/end pushdown. Likewise, `q` searches additional fields beyond summary/description. Keep the required Host residual; predicates on attendees, status and location run on the Host. |
 | `ORDER BY`, `LIMIT` | `ORDER BY start` (ascending) with `LIMIT`; other orders run on the Host. |
 | `AGGREGATE`, `JOIN` | Never; both run on the Host. |
 

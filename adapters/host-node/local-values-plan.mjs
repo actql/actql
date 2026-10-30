@@ -720,10 +720,11 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
 export function sourceFreeTaskPlan(options) {
   const acquired = acquiredTaskRunAdmission(options);
   const {moon, control, preparedProgram, authorityScopeCid, namespaceId,
-    storeAuthorityCid, now, publicationOriginal} = options;
+    storeAuthorityCid, now, publicationOriginal, publicationPreparation} = options;
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits);
+    acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits,
+    publicationPreparation, preparedProgram);
   const plan = localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,

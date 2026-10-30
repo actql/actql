@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "b7e850723057ffd4a5b3622dbf254fc4b24f7d90b9c3a174504d4a1f88f5a496",
+      "sha256": "16c04b4474a58d2b04c884c886a1b72eb129b583be372f5a8d70d6cecc8a4651",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
