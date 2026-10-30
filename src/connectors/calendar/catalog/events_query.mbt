@@ -219,9 +219,15 @@ pub fn project_calendar_events_envelope(
   for index in 0..<count {
     let original = @decode.element_at(items.unwrap(), index).unwrap()
     guard @decode.open_object(original) is Ok(event) &&
-      event_time_text(event, "kind") == Some("calendar#event") &&
       event_time_text(event, "id") is Some(id) else {
       return Err(InvalidResponse)
+    }
+    // A deleted tombstone only guarantees its id. A supplied kind must still
+    // be the actual Event kind; absence is not an inferred cancellation.
+    match @decode.field(event, "kind") {
+      Missing => ()
+      Present(value) if @decode.text(value) == Ok("calendar#event") => ()
+      _ => return Err(InvalidResponse)
     }
     if id.length() > limits.max_identity_bytes ||
       @utf8.encode(id).length() > limits.max_identity_bytes {
