@@ -1504,7 +1504,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "5c8aeca3338237bef923a7b1efcb78baceb393ea51a413627ee45d4bbfdd730e",
+      "sha256": "a9716e3f99fb259a4d8590f03715e8d0a7e0e0bdc03d0ca36081d11d8331e9d0",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1642,6 +1642,7 @@
             "preparedSource",
             "sourceAccess",
             "captureOnly",
+            "originalEvidence",
             "ledger"
           ],
           "async": true
@@ -2223,6 +2224,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
               }
             ],
             "identity": [
@@ -2387,6 +2392,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
               }
             ]
           }
@@ -13374,7 +13383,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "10629499ea2d47504ad5e8ad5e01bdf362651be364b29756f8729337bccc7770",
+      "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13451,7 +13460,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "keyedObservation",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
@@ -13533,7 +13542,7 @@
           "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
           "parameters": [
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "task"
           ],
           "async": false
@@ -13553,14 +13562,6 @@
           "async": false
         },
         {
-          "name": "acquiredMultiTaskPublicationPlan/observed/observed",
-          "parameters": [
-            "captured",
-            "sourceEvidenceWire"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -13568,7 +13569,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
             "captureStartedAt",
@@ -13926,7 +13927,6 @@
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
-            "acquiredMultiTaskPublicationPlan/observed/observed",
             "acquiredTaskPublicationPlan",
             "acquiredTaskRunAdmission",
             "buildLocalPublicationPlan",
@@ -14010,6 +14010,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -14169,7 +14173,11 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
               }
             ]
           }

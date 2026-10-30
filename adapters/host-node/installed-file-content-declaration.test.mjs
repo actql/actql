@@ -1359,7 +1359,9 @@ test('actual Host publication plan retains both original keyed Source dependenci
       effectiveDataPolicyCid: value.captured.checkedSource.sourceDataPolicyCid});
     const keyedObservation = await lookup.issueObservation({authorityScopeCid, observedAt: now()});
     const options = {moon, control, acquired, preparedProgram: value.preparedProgram,
-      captured: value.captured, sourceEvidenceWire, keyedObservation, authorityScopeCid,
+      captured: value.captured, sourceEvidence: control.admitRunEvidence('source_evidence',
+        sourceEvidenceWire, {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
+      keyedObservation, authorityScopeCid,
       effectiveDataPolicyCid: moon.clientProgramPublicationDataPolicyCid(value.preparedProgram),
       captureStartedAt: now(), captureCompletedAt: '2026-10-09T00:00:01.000Z',
       namespaceId: 'keyed-publication', storeAuthorityCid: token('d'), now};
@@ -1388,9 +1390,9 @@ test('actual Host publication plan retains both original keyed Source dependenci
       error => error.code === 'RunHostTaskInvocationRejected',
       'one Direct prefix cannot publish a keyed Run as complete');
     for (const replacement of [
-      {keyedObservation: {...keyedObservation, sourceEvidenceWire}},
-      {keyedObservation: {...keyedObservation, inputLogicalWire:
-        moon.strategyRunEvidenceJson(value.captured.logicalInput)}},
+      {sourceEvidence: {...options.sourceEvidence}},
+      {sourceEvidence: control.admitRunEvidence('source_evidence', keyedObservation.sourceEvidenceWire,
+        {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})},
       {effectiveDataPolicyCid: token('e')},
       {authorityScopeCid: token('e')},
       {acquired: {...acquired, compiled: {...acquired.compiled}}},
@@ -1446,8 +1448,10 @@ test('actual keyed Host executes and commits ordinary Named Result publication',
       namespaceId: 'keyed-publication', now});
     const plan = acquiredKeyedTaskPublicationPlan({moon, control, acquired,
       preparedProgram: value.preparedProgram, captured: value.captured,
-      sourceEvidenceWire: await value.captured.issueSourceEvidence({authorityScopeCid,
-        effectiveDataPolicyCid: value.captured.checkedSource.sourceDataPolicyCid}),
+      sourceEvidence: control.admitRunEvidence('source_evidence',
+        await value.captured.issueSourceEvidence({authorityScopeCid,
+          effectiveDataPolicyCid: value.captured.checkedSource.sourceDataPolicyCid}),
+        {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
       keyedObservation: await lookup.issueObservation({authorityScopeCid, observedAt: now()}),
       authorityScopeCid, effectiveDataPolicyCid:
         moon.clientProgramPublicationDataPolicyCid(value.preparedProgram),

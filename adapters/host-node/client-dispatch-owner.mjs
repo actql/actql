@@ -183,7 +183,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const operation = ref => current(ref)?.promise;
 
   async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
-    {captureOnly = false, ledger} = {}) {
+    {captureOnly = false, originalEvidence = false, ledger} = {}) {
     if (entry.sourceCapture !== undefined) {
       throw new TypeError('ClientSourceCaptureAlreadyRetained');
     }
@@ -230,11 +230,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     await step('acquisition_completed', {ref: entry.ref,
       ...(entry.sourceCapture.acquisition === undefined ? {} :
         {acquisition: entry.sourceCapture.acquisition})});
-    const sourceEvidenceWire = await entry.sourceCapture.issueSourceEvidence({
-      authorityScopeCid,
-      effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid});
+    const evidenceOptions = {authorityScopeCid,
+      effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid};
+    let sourceEvidence, sourceEvidenceWire;
+    if (originalEvidence) {
+      await entry.sourceCapture.prepareSourceEvidenceOriginal(evidenceOptions);
+      sourceEvidence = control.takeSourceEvidenceOriginal(entry.sourceCapture.capture);
+    } else sourceEvidenceWire = await entry.sourceCapture.issueSourceEvidence(evidenceOptions);
     return {captured: entry.sourceCapture, captureStartedAt, captureCompletedAt,
-      sourceEvidenceWire};
+      sourceEvidence, sourceEvidenceWire};
   }
 
   async function acquireKeyedSources(entry, preparedProgram, selected, acquired, principalId) {
@@ -305,12 +309,19 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       keyedAcquisition: acquisition, left, ledger, signal: entry.abort.signal,
       originalCapture: captured.capture, keyedContent,
       sourceAccess: keyedAccess, preparedKeyed, maxWork: capacity.maxWork}));
-    const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
-      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
+    const evidenceOptions = {authorityScopeCid,
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
+    const contentOrInfer = acquired.serializationGraph !== undefined || acquired.kind === 'infer';
+    let sourceEvidence, sourceEvidenceWire;
+    if (contentOrInfer) sourceEvidenceWire = await captured.issueSourceEvidence(evidenceOptions);
+    else {
+      await captured.prepareSourceEvidenceOriginal(evidenceOptions);
+      sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
+    }
     const keyedObservation = await lookup.issueObservation({authorityScopeCid, observedAt: now()});
     const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
     if (effectiveDataPolicyCid === undefined) throw new Error('InstalledKeyedSourcePolicyUnavailable');
-    if (acquired.serializationGraph !== undefined || acquired.kind === 'infer') {
+    if (contentOrInfer) {
       // Both acquisition children remain in this supervisor's custody. The
       // Content provider borrows their exact sealed inputs; cleanup stops that
       // dependent before closing lookup and its left capture in reverse order.
@@ -323,7 +334,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})}};
     }
     const plan = acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-      preparedProgram, captured, sourceEvidenceWire, keyedObservation,
+      preparedProgram, captured, sourceEvidence, keyedObservation,
       authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt: now(),
       namespaceId, storeAuthorityCid, now});
     const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput});
@@ -881,9 +892,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           await step('acquisition_completed', {ref: accepted.ref, task: source.occurrence.task,
             acquisition: captured.acquisition,
             resourceUsage: resourceUsage(ledger)});
-          const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
-            effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
-          sources.push({...source, captured, sourceEvidenceWire});
+          const evidenceOptions = {authorityScopeCid,
+            effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
+          if (inferring) {
+            const sourceEvidenceWire = await captured.issueSourceEvidence(evidenceOptions);
+            sources.push({...source, captured, sourceEvidenceWire});
+          } else {
+            await captured.prepareSourceEvidenceOriginal(evidenceOptions);
+            const sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
+            sources.push({...source, captured, sourceEvidence});
+          }
         }
         const captureCompletedAt = now();
         const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
@@ -912,9 +930,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             sourceAccess);
           held.preparedSourceAccess = sourceAccess;
         }
-        const {captureStartedAt, captureCompletedAt, sourceEvidenceWire} =
+        const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
-            {captureOnly: generatingContent, ledger: generatingContent || singleAccounted ? ledger : undefined});
+            {captureOnly: generatingContent, originalEvidence: singleAccounted,
+              ledger: generatingContent || singleAccounted ? ledger : undefined});
         if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
             authorityScopeCid, captureStartedAt, captureCompletedAt,
@@ -936,7 +955,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
           acquired: held.plan, preparedProgram,
-          captured: entry.sourceCapture, sourceEvidenceWire,
+          captured: entry.sourceCapture, sourceEvidence,
           authorityScopeCid,
           effectiveDataPolicyCid:
             entry.sourceCapture.checkedSource.sourceDataPolicyCid,

@@ -249,15 +249,16 @@ test('original Source publication consumes retained observation tokens on its sa
 });
 
 
-test('all original Source publication callers retain one owner and admit each external evidence once', () => {
+test('all original Source publication callers retain original evidence without wire admission', () => {
   for (const kind of ['single', 'multi', 'keyed']) {
     const owner = {}, prepared = {}, compiled = {}, definition = {}, rightOriginal = {}, right = {}, observations = [];
+    const evidence = [{}, {}];
     const captures = [0, 1].map(index => ({logicalInput: {}, identity: {}, requirement: {},
       checkedSource: {}, capture: {source: () => `source-${index}`}}));
-    const admitted = [], issued = [];
+    const issued = [];
     const control = {
       checkClientCompiledRunOwner: (run, program) => {assert.equal(run, compiled); assert.equal(program, prepared);},
-      admitRunEvidence: (name, wire) => {assert.equal(name, 'source_evidence'); const value = {wire}; admitted.push(value); return value;},
+      admitRunEvidence: () => assert.fail('live original Source evidence admitted again'),
       issueCheckedClientCompiledInvocation: (...args) => {issued.push(args); return {observation: observations, invocation: {}};},
       keyedLookupPublicationEvidence: value => {assert.equal(value, rightOriginal); return {source: right, logicalRelationCid: 'right-logical'};},
     };
@@ -270,14 +271,15 @@ test('all original Source publication callers retain one owner and admit each ex
     const invoke = get('./local-values-plan.mjs', name, {limits: {}, localPublicationPlan: value => value,
       JSON: {parse: () => assert.fail('retained keyed input parsed again')}});
     const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'plan'}, publicationPreparation: owner};
-    const input = {moon, control, acquired, preparedProgram: prepared, captured: captures[0], sourceEvidenceWire: 'source-wire',
-      sources: captures.map((captured, i) => ({captured, sourceEvidenceWire: `source-${i}`})),
+    const input = {moon, control, acquired, preparedProgram: prepared, captured: captures[0], sourceEvidence: evidence[0],
+      sources: captures.map((captured, i) => ({captured, sourceEvidence: evidence[i]})),
       keyedObservation: {observation: rightOriginal}, effectiveDataPolicyCid: 'policy', authorityScopeCid: 'authority',
       captureStartedAt: 'start', captureCompletedAt: 'end'};
     const plan = invoke(input);
     assert.equal(issued.length, 1); assert.equal(issued[0][4], owner); assert.equal(issued[0][5], prepared);
-    assert.equal(admitted.length, kind === 'multi' ? 2 : 1);
-    assert.deepEqual(plan.sourceEvidence, kind === 'keyed' ? [admitted[0], right] : admitted);
+    assert.deepEqual(plan.sourceEvidence, kind === 'keyed' ? [evidence[0], right]
+      : kind === 'multi' ? evidence : [evidence[0]]);
+    assert.equal(issued[0][2].source.sourceEvidence ?? issued[0][2].source.sources[0].sourceEvidence, evidence[0]);
     assert.equal(plan.observation, observations);
   }
 });
@@ -295,4 +297,75 @@ test('captured invocation refuses missing owner and copied evidence before porta
   assert.throws(() => invoke(compiled, {}, input, {}, undefined, prepared), /Invalid original publication invocation profile/);
   assert.throws(() => invoke(compiled, {}, input, {}, owner, prepared), /Foreign Run evidence/);
   assert.equal(calls.length, 0);
+});
+
+
+test('live Source dispatch awaits original preparation and transfers the same capture once without wire fallback', async () => {
+  const prepared = {}, preparedSource = {checkedSource: {sourceRef: 'source'}}, sourceAccess = {},
+    original = {}, nominal = {name: 'source_evidence'}, events = [];
+  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
+    inspectEvidence: value => {assert.equal(value, original); events.push('project'); return nominal;},
+  }, true);
+  let available = false;
+  const capture = Object.freeze({takeSourceEvidenceOriginal() {
+    assert.equal(this, capture); assert.equal(available, true); available = false;
+    events.push('take'); return original;
+  }});
+  const captured = {capture, checkedSource: {sourceDataPolicyCid: 'policy'},
+    async prepareSourceEvidenceOriginal(options) {
+      assert.equal(this, captured);
+      assert.deepEqual(options, {authorityScopeCid: 'authority', effectiveDataPolicyCid: 'policy'});
+      await Promise.resolve(); events.push('prepared'); available = true;
+    }, issueSourceEvidence() {assert.fail('live Source converted to wire');}};
+  const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
+    installedSourceFor: () => ({async open(input) {
+      assert.equal(input.preparedProgram, prepared); assert.equal(input.sourceAccess, sourceAccess);
+      events.push('open'); return captured;
+    }}), sourceProfile: {}, now: () => 'time', step: async () => {},
+    acquisitionEndHandoff: () => ({retain() {}, outcome() {assert.fail('no acquisition failure');}}),
+    observation: undefined, registry: {}, values: {}, fragment: {}, ordered: {},
+    retainedRelationOutput: false, authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal: take},
+  });
+  const entry = {abort: new AbortController()};
+  const result = await invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true});
+  assert.equal(result.sourceEvidence, nominal); assert.equal(result.sourceEvidenceWire, undefined);
+  assert.equal(entry.sourceCapture, captured); assert.equal(available, false);
+  assert.deepEqual(events, ['open', 'prepared', 'take', 'project']);
+  await assert.rejects(invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true}),
+    /ClientSourceCaptureAlreadyRetained/);
+});
+
+test('Source original transfer refuses missing or accessor ports without invoking a wire issuer', async () => {
+  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
+    inspectEvidence: value => value,
+  }, true);
+  let getters = 0;
+  const accessor = {get takeSourceEvidenceOriginal() {getters++; return () => ({});}};
+  for (const capture of [{}, accessor, Object.create({takeSourceEvidenceOriginal() {assert.fail('inherited port');}})]) {
+    assert.throws(() => take(capture), /InstalledSourceEvidenceUnavailable/);
+  }
+  assert.equal(getters, 0);
+  assert.throws(() => take({takeSourceEvidenceOriginal() {return {name: 'logical_input'};}}),
+    /InvalidInstalledSourceEvidence/);
+});
+
+
+test('Source evidence preparation failure preserves the exact capture cleanup owner and original error', async () => {
+  for (const issue of [new Error('original current failed'), undefined]) {
+    const captured = {checkedSource: {sourceDataPolicyCid: 'policy'},
+      async prepareSourceEvidenceOriginal() {throw issue;},
+      issueSourceEvidence() {assert.fail('failed original selected wire fallback');}};
+    const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
+      installedSourceFor: () => ({open: async () => captured}), sourceProfile: {}, now: () => 'time',
+      step: async () => {}, acquisitionEndHandoff: () => ({retain() {}}), observation: undefined,
+      registry: {}, values: {}, fragment: {}, ordered: {}, retainedRelationOutput: false,
+      authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal() {assert.fail('preparation did not finish');}},
+    });
+    const entry = {abort: new AbortController()};
+    let failed = false;
+    try {await invoke(entry, {}, {checkedSource: {sourceRef: 'source'}}, {}, {originalEvidence: true});}
+    catch (actual) {failed = true; assert.equal(actual, issue);}
+    assert.equal(failed, true); assert.equal(entry.sourceCapture, captured);
+    assert.equal(entry.physicalWorkMayHaveStarted, true);
+  }
 });

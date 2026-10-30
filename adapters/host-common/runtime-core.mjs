@@ -3176,6 +3176,13 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
+    takeSourceEvidenceOriginal(capture) {
+      const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
+      if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
+      const evidence = inspectEvidence(Reflect.apply(take, capture, []));
+      if (evidence.name !== 'source_evidence') throw new TypeError('InvalidInstalledSourceEvidence');
+      return evidence;
+    },
     keyedLookupPublicationEvidence(original) {
       const value = moon.clientProgramKeyedLookupObservationOriginals(original);
       if (value === undefined) throw new TypeError('Foreign keyed lookup observation');

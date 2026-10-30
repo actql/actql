@@ -3490,3 +3490,22 @@ An unmeasured private fixture is not a bounds witness: missing facts refuse.
 These immutable facts grant no Source, Run, currentness or resource authority.
 Their retained tuple/reference extent remains part of the actual owner
 representation and must be included by the consuming funding domain.
+
+
+### Live captured Source evidence transfer
+
+The ordinary Pure single-, multi-, and keyed-Source publication callers await
+`prepareSourceEvidenceOriginal` on the acquired Source owner, then invoke the
+same capture receiver's `takeSourceEvidenceOriginal` exactly once. The Source
+owner retains the original issuer's value across preparation and clears its
+alias on transfer or confirmed retirement. The publication control projects
+that same value into its existing nominal evidence view; it does not serialize,
+parse, hash, or issue the evidence again. Missing transfer ports fail this
+selected path and cannot select the wire issuer.
+
+The original managed Run still validates the captured source, identity,
+requirement, logical input, compiled definition, policy, and retained canonical
+usage against the publication limits. A transferred DATA value grants no Source
+permission or physical cleanup acknowledgment. Content, INFER, Effect, external
+wire admission, and stored restoration remain their separate existing
+boundaries until their actual consumers migrate.
