@@ -1065,7 +1065,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -1567,7 +1567,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -3534,7 +3534,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -3651,7 +3651,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -3818,7 +3818,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -3940,7 +3940,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
@@ -4172,7 +4172,7 @@
             "cancellation": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The shared Host owns current authorization"
+                "anchor": "shared Host owns current authorization, original request/response custody,"
               }
             ],
             "resources": [
