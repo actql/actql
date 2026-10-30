@@ -45730,7 +45730,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "prepareManagedComputeRun(runtime, prepared, request, sourceProfile) {"
+                "anchor": "prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",

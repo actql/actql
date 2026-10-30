@@ -79203,7 +79203,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "inputsOutputs": [
@@ -79213,7 +79213,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79227,7 +79227,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "ownership": [
@@ -79237,7 +79237,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "synchronization": [
@@ -79247,7 +79247,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "failure": [
@@ -79257,7 +79257,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "cancellation": [
@@ -79267,7 +79267,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "resources": [
@@ -79277,7 +79277,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "extension": [
@@ -79287,7 +79287,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "verification": [
