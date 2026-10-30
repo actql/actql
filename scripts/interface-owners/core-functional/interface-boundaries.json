@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -32804,7 +32804,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "a98f1361d2bfbb1366fca3b5534a39c4ff03da51fd3dd492186790504ef43761",
+      "sha256": "6793697cc1a214f22c782f736698bd090fa3e40d2a748f85c7c5b0e88623b315",
       "exports": [],
       "operations": [
         {
@@ -33917,7 +33917,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e93bb786424c92e3a8a4e0baff1d3bf9102eb8efc5a89541a4d6cfb6526c933b",
+      "sha256": "1378e3f244f984178b2115eba62e7564526135bcfb7e75f8f7a24cf98d433d6f",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -33969,10 +33969,6 @@
         {
           "name": "client_program_close_host_initialization_preparation",
           "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
-        },
-        {
-          "name": "client_program_complete_request_capture_preparation",
-          "declaration": "client_program_complete_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
           "name": "client_program_complete_request_effect_preparation",
@@ -34311,7 +34307,6 @@
         {
           "operations": [
             "client_program_adopt_request_capture_preparation",
-            "client_program_complete_request_capture_preparation",
             "client_program_installed_managed_capture_plan_prepare"
           ],
           "exports": [],

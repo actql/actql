@@ -783,7 +783,7 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramRequestParametersOriginal = () => ok(undefined);
   moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt); assert.equal(actualPlan, plan);
-    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
@@ -827,7 +827,7 @@ test('installed Effect caller consumes actual Request manager adoption and same 
 });
 
 test('failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission', async () => {
-  for (const phase of ['completeFailure', 'adoptFailure']) {
+  for (const phase of ['moduleFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalEffectRequest({[phase]: failure});
     await f.view.fundedPreparation(f.sdkRequest, undefined);
     assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
@@ -916,7 +916,7 @@ test('captured Pure Request keeps its original compiler input before Source Plan
 });
 
 
-async function originalCapturedRequest({completeFailure, adoptFailure} = {}) {
+async function originalCapturedRequest({moduleFailure, adoptFailure} = {}) {
   const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {}, identity = {}, plan = {}, value = {};
   const events = []; let retiring = false, returned = false;
   f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
@@ -942,9 +942,9 @@ async function originalCapturedRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramRequestParametersOriginal = () => ok(undefined);
   moon.clientProgramPrepareRequestProgramModuleBody = () => assert.fail('no Source-free module for captured Program');
   moon.clientProgramAdoptRequestProgramPreparation = () => assert.fail('no Source-free adoption for captured Program');
-  moon.clientProgramCompleteRequestCapturePreparation = function(parent, input, selected) {
+  moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt); assert.equal(selected, plan);
-    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestCapturePreparation = function(parent, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(selected, identity);
@@ -977,7 +977,7 @@ test('captured Request completes one original Plan and adopts its same parent wi
     constructors++;
     assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
       {code: 'ForeignInstalledSourceProducer'});
-    f.moon.clientProgramCompleteRequestCapturePreparation = f.moon.clientProgramAdoptRequestCapturePreparation =
+    f.moon.clientProgramPrepareRequestCaptureModuleBody = f.moon.clientProgramAdoptRequestCapturePreparation =
       () => assert.fail('original Core methods and namespace receiver were captured before constructor entry');
     return f.plan;
   };
@@ -988,7 +988,7 @@ test('captured Request completes one original Plan and adopts its same parent wi
   assert.equal(constructors, 0);
   const run = f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct);
   assert.equal(run.original, f.original); assert.equal(run.value, f.value);
-  assert.equal(constructors, 1); assert.deepEqual(f.events, ['compile', 'borrow', 'complete', 'adopt']);
+  assert.equal(constructors, 1); assert.deepEqual(f.events, ['compile', 'borrow', 'module', 'adopt']);
   assert.equal(f.calls.filter(value => value === 'parent').length, 1);
   assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
     {code: 'ForeignInstalledSourceProducer'});
@@ -998,7 +998,7 @@ test('captured Request completes one original Plan and adopts its same parent wi
 });
 
 test('captured Request keeps original failed completion or adoption without replaying its constructor', async () => {
-  for (const phase of ['completeFailure', 'adoptFailure']) {
+  for (const phase of ['moduleFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalCapturedRequest({[phase]: failure});
     await f.view.fundedPreparation(f.request, undefined);
     let constructors = 0;
@@ -1006,10 +1006,78 @@ test('captured Request keeps original failed completion or adoption without repl
     for (let attempt = 0; attempt < 2; attempt++) {
       assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct), error => error === failure);
     }
-    assert.equal(constructors, 1); assert.equal(f.events.filter(value => value === 'complete').length, 1);
+    assert.equal(constructors, 1); assert.equal(f.events.filter(value => value === 'module').length, 1);
     assert.equal(f.events.filter(value => value === 'adopt').length, phase === 'adoptFailure' ? 1 : 0);
     await f.failedCleanup();
     assert.equal(f.events.filter(value => value === 'return').length, 1);
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   }
+});
+
+
+test('captured Request constructs its accounted module before original Run adoption on the same borrow', async () => {
+  const f = await originalCapturedRequest(), seen = [];
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, plan) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent);
+    assert.equal(input, f.receipt); assert.equal(plan, f.plan);
+    seen.push('accounted-module'); return ok(undefined);
+  };
+  f.moon.clientProgramCompleteRequestCapturePreparation = () => assert.fail('bare Plan completion bypassed original accounted compilation');
+  await f.view.fundedPreparation(f.request, undefined);
+  let run;
+  try {
+    run = f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, () => {
+      seen.push('construct');
+      f.moon.clientProgramPrepareRequestCaptureModuleBody = () => assert.fail('original module receiver/method was not captured');
+      return f.plan;
+    });
+    assert.equal(run.value, f.value); assert.equal(run.original, f.original);
+    assert.deepEqual(seen, ['construct', 'accounted-module']);
+    assert.deepEqual(f.events, ['compile', 'borrow', 'adopt']);
+  } finally {
+    if (run === undefined) await f.failedCleanup(); else await f.retireAdopted();
+  }
+  assert.equal(f.events.filter(value => value === 'return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+test('captured Request refuses absent accounted module before invoking its Plan constructor', async () => {
+  const f = await originalCapturedRequest();
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = undefined;
+  f.moon.clientProgramCompleteRequestCapturePreparation = () => assert.fail('retired bare completion is not a fallback');
+  await f.view.fundedPreparation(f.request, undefined);
+  let constructors = 0;
+  assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity,
+    () => {constructors++; return f.plan;}), {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.equal(constructors, 0);
+  await f.failedCleanup();
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('captured Request retains the original unclassified module issue and never retries construction', async () => {
+  const f = await originalCapturedRequest(), issue = new Error('original module refusal');
+  const outcome = {$tag: 0, _0: issue}; let constructors = 0, modules = 0, projections = 0;
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, plan) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent);
+    assert.equal(input, f.receipt); assert.equal(plan, f.plan); modules++; return outcome;
+  };
+  f.moon.clientProgramRequestProgramModuleIssueCode = function(actual) {
+    assert.equal(this, f.moon); assert.equal(actual, outcome); projections++; return undefined;
+  };
+  await f.view.fundedPreparation(f.request, undefined);
+  let originalFailure;
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity,
+        () => {constructors++; return f.plan;}), error => {
+        assert.equal(error.code, 'MoonBitHostFailure'); assert.equal(error.cause, issue);
+        if (originalFailure === undefined) originalFailure = error;
+        return error === originalFailure;
+      });
+    }
+    assert.deepEqual([constructors, modules, projections], [1, 1, 1]);
+    assert.equal(f.events.includes('adopt'), false);
+  } finally {await f.failedCleanup();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
 });

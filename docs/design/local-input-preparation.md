@@ -3446,3 +3446,16 @@ layout does not discard the schema demand already used by the Plan's value
 policy. Quote, configured Compute and publication therefore retain the same
 original demand. Effect/general inputs keep their existing selection, and
 all row, value, wire, work and original-parent checks remain separate.
+
+## Accounted captured module before Run adoption
+
+The captured Source continuation constructs its original module artifact under
+the same Request and retained Program input borrow before adopting the Run.
+The selected capture Plan keeps that measured compilation; the original Run
+getter forwards it to publication without another compiler invocation. Bare
+Node completion of a capture Plan is not an alternative normal entrance.
+
+The manager captures the module and adoption methods with their original
+receiver before invoking its private Plan constructor. A failed module or
+adoption remains on the same Request for retirement and cannot replay the
+constructor, substitute a source-free Plan or select a detached Run.

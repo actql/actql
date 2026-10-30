@@ -77053,7 +77053,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "2cc19685664d9b8d9b7949a1bbfd2aea49dd91abb239556d7d4fbc14ac9bb038",
+      "sha256": "8a46764a5609a320554ec989315a52a01d37a34f83510dae36a2c3773cebc6e7",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -79041,6 +79041,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Accounted captured module before Run adoption"
               }
             ],
             "identity": [
@@ -79121,6 +79125,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request completes one original Plan and adopts its same parent without an independent Run'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
               }
             ]
           }

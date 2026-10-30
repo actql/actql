@@ -280,8 +280,6 @@ pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisitio
 
 pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
-pub fn[I] complete_request_capture_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedCapturePlan) -> Result[Unit, ClientRequestPreparationIssue]
-
 pub fn[I] complete_request_effect_preparation(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_program_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSourceFreePreparation) -> Result[Unit, ClientRequestPreparationIssue]

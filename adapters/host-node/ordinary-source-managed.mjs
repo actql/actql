@@ -506,9 +506,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
-      const complete = moon.clientProgramCompleteRequestCapturePreparation;
+      const prepareModule = moon.clientProgramPrepareRequestCaptureModuleBody;
+      const projectIssue = moon.clientProgramRequestProgramModuleIssueCode;
       const adopt = moon.clientProgramAdoptRequestCapturePreparation;
-      if (typeof complete !== 'function' || typeof adopt !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (typeof prepareModule !== 'function' || typeof projectIssue !== 'function' ||
+          typeof adopt !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
@@ -523,7 +525,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
           fail('ForeignInstalledSourceProducer');
         }
-        checked(Reflect.apply(complete, moon, [state.parent, producer.receipt, plan]));
+        // The SAME Request already backs this Plan and retains its input borrow.
+        // Construct/measure its original compilation before adoption; bare
+        // completion would lose that artifact and force later re-preparation.
+        checkedRequestProgramPreparation(moon,
+          Reflect.apply(prepareModule, moon, [state.parent, producer.receipt, plan]),
+          projectIssue);
         const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
         const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
           effectful: false, content: undefined, original: state.original,
