@@ -8735,6 +8735,46 @@ pub fn client_program_row_source_prepare_acquisition(
 }
 
 ///|
+/// The installing Source retains this same admitted protocol original on its
+/// existing initialization material; no wire/cid or grant is returned here.
+#export_name("clientProgramRowSourceAdmitAcquisitionContracts")
+pub fn client_program_row_source_admit_acquisition_contracts(
+  query_contract : String,
+  evidence_contract : String,
+) -> Result[
+  @planning.QueryEvidenceContracts,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.admit_row_acquisition_contracts(
+    query_contract, evidence_contract,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourcePrepareAcquisitionWithContracts")
+pub fn client_program_row_source_prepare_acquisition_with_contracts(
+  declaration : @client_row_source_host.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_policy : @capacity_policy.Policy?,
+) -> Result[
+  @client_row_source_host.RowAcquisition,
+  @client_row_source_host.RowHostIssue,
+] {
+  let preparation = match
+    @client_row_source_host.prepare_row_source(requirement, declaration) {
+    Ok(value) => value
+    Err(issue) => return Err(@client_row_source_host.Source(issue))
+  }
+  @client_row_source_host.prepare_declared_row_acquisition_with_contracts(
+    preparation,
+    declaration.connector_registration,
+    contracts,
+    listing_policy~,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceColumns")
 pub fn client_program_row_source_columns(
   acquisition : @client_row_source_host.RowAcquisition,

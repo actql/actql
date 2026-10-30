@@ -57,7 +57,8 @@ pub fn issue_row_source_evidence(
     Err(_) => return Err(SourceEvidence(ObservationUnavailable))
   }
   guard capture.run.configuration is DirectConfiguration(configuration) &&
-    physical_equal(context.requirement, configuration.requirement) else {
+    physical_equal(context.requirement, configuration.requirement) &&
+    capture.observation is QueryObservation(observation) else {
     return Err(SourceEvidence(ObservationMismatch))
   }
   let members = context.members
@@ -99,7 +100,7 @@ pub fn issue_row_source_evidence(
     data_classification: facts.data_classification,
     source_view_contract_cid: facts.source_view_contract_cid,
     observed_at,
-    snapshot_ref: row_observation_cid(capture.observation),
+    snapshot_ref: row_observation_cid(observation),
   }
   // Only the selected funded report variant has the additional data/custody
   // obligation. Ordinary resolved listings retain their preactivation evidence
@@ -132,6 +133,73 @@ pub fn issue_row_source_evidence(
   @publication.seal_completed_source_observation(fields).map_err(issue => {
     SourceEvidence(Evidence(issue))
   })
+}
+
+///|
+/// General Source evidence from the same completed whole-input RowRun. It
+/// carries no Query receipt. The content-derived observation identity names
+/// this completed logical input under the existing weak read-committed law;
+/// it is not a provider snapshot guarantee or permission to reread.
+pub fn issue_row_input_source_evidence(
+  acquisition : RowInputAcquisition,
+  capture : RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[@publication.RunEvidenceValue, RowHostIssue] {
+  let preparation = acquisition.preparation
+  let source = match row_capture_source(capture) {
+    Ok(value) => value
+    Err(_) => return Err(SourceEvidence(ObservationUnavailable))
+  }
+  guard capture.run.configuration is InputConfiguration(selected) &&
+    physical_equal(selected.preparation, preparation) &&
+    capture.observation is InputObservation(observation) &&
+    capture.run.attempt.authority is InputAuthority(authority) &&
+    physical_equal(authority, observation.authority) &&
+    @query.captured_source_matches_input_acquisition(
+      source,
+      preparation.original,
+    ) &&
+    @query.captured_source_relation_identity_matches_source(identity, source) else {
+    return Err(SourceEvidence(ObservationMismatch))
+  }
+  let facts = preparation.facts
+  if effective_data_policy_cid != facts.source_data_policy_cid {
+    return Err(SourceEvidence(InvalidPolicy))
+  }
+  match
+    @publication.admit_completed_source_input_logical(
+      logical_input,
+      @query.captured_source_relation_logical_cid(identity),
+      @query.captured_source_relation_schema_cid(identity),
+      facts.source_contract_cid,
+      "{\"stable\":false,\"keys\":[]}",
+      4096,
+      128,
+      16,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(SourceEvidence(LogicalInput(issue)))
+  }
+  let (schema_cid, capability_cid) = @environment.connector_source_evidence_member_cids(
+    preparation.members,
+  )
+  @publication.seal_completed_source_observation({
+    input: logical_input,
+    source_ref: facts.source_ref,
+    source_contract_cid: facts.source_contract_cid,
+    schema_evidence_cid: schema_cid,
+    capability_evidence_cid: capability_cid,
+    authority_scope_cid,
+    source_data_policy_cid: facts.source_data_policy_cid,
+    data_classification: facts.data_classification,
+    source_view_contract_cid: facts.source_view_contract_cid,
+    observed_at,
+    snapshot_ref: @publication.run_evidence_value_identity(logical_input),
+  }).map_err(issue => SourceEvidence(Evidence(issue)))
 }
 
 ///|

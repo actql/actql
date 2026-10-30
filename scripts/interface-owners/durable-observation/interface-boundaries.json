@@ -5509,6 +5509,7 @@
         "exchangeHttpsCredentialAuthentication",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
+        "retainHttpsCredentialBindingReadChild",
         "withHttpsCredentialRunResponseOriginal"
       ],
       "operations": [
@@ -5519,7 +5520,8 @@
             "scope",
             "control",
             "journal",
-            "resolveSecret"
+            "resolveSecret",
+            "bindingBorrow"
           ],
           "async": false
         },
@@ -5616,6 +5618,13 @@
           "async": false
         },
         {
+          "name": "bindingQuiescent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "callCredentialResource",
           "parameters": [
             "grant",
@@ -5634,10 +5643,24 @@
             "returnRejectedResponse",
             "retainRunResponseOriginal",
             "currentBeforeSend",
+            "responseCustody",
             "signal",
             "binding"
           ],
           "async": true
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse#2",
+          "parameters": [
+            "original",
+            "cause"
+          ],
+          "async": false
         },
         {
           "name": "callHttpsCredentialResource",
@@ -5944,6 +5967,28 @@
         },
         {
           "name": "receive/receive/request/request/request#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -6517,15 +6562,96 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "bindingQuiescent",
+            "callCredentialResource/retainResponse/retainResponse",
+            "callCredentialResource/retainResponse/retainResponse#2",
+            "retainHttpsCredentialBindingReadChild",
+            "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+            "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+            "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire"
+          ],
+          "exports": [
+            "retainHttpsCredentialBindingReadChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "c61b2876b407e448439a5a276c099c572dee6057b3e3dcbb5e51036e172153ee",
+      "sha256": "c4fa821e26793b7295cfa17def801872b40f30065b20d00aa22a33a1837ab9b9",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
         "../host-common/installation-preparation-fields.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
         "node:crypto",
         "node:https",

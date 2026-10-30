@@ -35,6 +35,12 @@ priv enum RowAttemptState {
   AwaitingCleanup(@execution.CapturedRows)
   EvidenceIssued(RowRecords)
   Captured(RowObservation)
+  InputAwaitingCleanup(@execution.CapturedRows, @execution.AdmittedInput)
+  InputValidating(RowInputValidation)
+  InputValidated(RowInputValidation)
+  InputStopping(RowInputValidation)
+  InputCaptured(RowInputObservation)
+  InputFailed(@execution.AdmittedInput)
   KeyedRetained(RowKeyedRetention)
   Failed
 }
@@ -79,12 +85,14 @@ struct RowAttempt {
 ///|
 priv enum RowAttemptPreparation {
   DirectPreparation(RowSourcePreparation)
+  InputPreparation(RowInputPreparation)
   KeyedPreparation(RowKeyedAcquisition)
 }
 
 ///|
 priv enum RowAttemptAuthority {
   DirectAuthority(RowAuthority)
+  InputAuthority(RowInputAuthority)
   KeyedAuthority(RowKeyedAuthority)
 }
 
@@ -135,7 +143,25 @@ fn custody_issue(
 
 ///|
 fn abort_row_attempt(attempt : RowAttempt) -> Unit {
-  if attempt.state is (Captured(_) | KeyedRetained(_)) {
+  match attempt.state {
+    InputValidating(validation) | InputValidated(validation) => {
+      @bounded.request_cancel(validation.control) |> ignore
+      attempt.state = InputStopping(validation)
+      return
+    }
+    InputStopping(_) => return
+    InputAwaitingCleanup(_, input) => {
+      attempt.state = InputFailed(input)
+      return
+    }
+    InputCaptured(observation) => {
+      attempt.state = InputFailed(observation.input)
+      return
+    }
+    InputFailed(_) => return
+    _ => ()
+  }
+  if attempt.state is (Captured(_) | InputCaptured(_) | KeyedRetained(_)) {
     return
   }
   if attempt.state is Reading(read) {

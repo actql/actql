@@ -90,6 +90,7 @@ fn local_update_normalization_fixture() -> (
       max_parameter_name_bytes: 1000,
       max_tasks: 2,
       max_graph_work: 10000,
+      values_max_rows: None,
     },
     max_members: 1,
     max_header_work: 100,

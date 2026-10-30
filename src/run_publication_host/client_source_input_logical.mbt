@@ -50,6 +50,37 @@ pub fn issue_captured_source_input_logical(
 }
 
 ///|
+/// A complete original Source input is not a completed Compute task. Bind it
+/// to the same checked task owner without requiring or fabricating a Query
+/// residual/captured Step. The Source owner supplies completion and liveness.
+pub fn issue_captured_whole_source_input_logical(
+  graph : @strategy.CheckedDAG,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  acquisition : @acquisition.SourceAcquisition,
+  task? : Int = 0,
+) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
+  let program = @checked.source_identity(@strategy.graph_program(graph))
+  guard task >= 0 &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    @query.captured_source_matches(source, program, owner) &&
+    @query.captured_source_matches_input_acquisition(source, acquisition) else {
+    return Err(ForeignPrepared)
+  }
+  if !@query.captured_source_relation_identity_matches_source(identity, source) {
+    return Err(ForeignIdentity)
+  }
+  guard @planning.source_acquisition_evidence_facts(acquisition) is Some(facts) else {
+    return Err(ForeignRequirement)
+  }
+  seal_client_source_input_logical(
+    @query.captured_source_relation_logical_cid(identity),
+    @query.captured_source_relation_schema_cid(identity),
+    facts.source_contract_cid,
+  )
+}
+
+///|
 /// The callers prove their live capture tuple before sharing this wire codec.
 /// No row, Source, task completion or custody owner is reconstructed here.
 fn seal_client_source_input_logical(
