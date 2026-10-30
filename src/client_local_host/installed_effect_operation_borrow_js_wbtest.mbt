@@ -429,3 +429,81 @@ test "one-short Effect controls refuse before any operation view is constructed"
   @resources.settle_capacity(ledger, pressure).unwrap()
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "member capture and row constructor retain distinct original same Request reservations" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  // Accounting fixture DATA only; this is not the normal capture recipe or
+  // constructor census. Both handles use the actual original Plan and Ledger.
+  let extent = prepare_installed_effect_operation_extent(
+    "capture",
+    @execution.execution_capacity(50L, 70L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [extent],
+    [extent],
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let member = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let row = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "capture",
+  ).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes + 100L,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes + 140L,
+  )
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, false, 0, 1, "capture",
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, false, 0, 0, "capture",
+    )
+    is Err(AlreadyBound),
+  )
+  assert_false(retire_installed_effect_operation(member, false).unwrap())
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(member, true).unwrap())
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(row, true).unwrap())
+  assert_eq(@resources.ledger_usage(ledger), before)
+  retire_installed_managed_run(owner).unwrap()
+}

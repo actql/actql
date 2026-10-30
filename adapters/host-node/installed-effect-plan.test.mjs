@@ -178,3 +178,20 @@ test('fresh pre-write check keeps its fifth physical slot distinct from capture 
   assert.deepEqual(selected.credentialOperations.map(row=>row.operationIndex),[0,1,2,3,4]);
   assert.equal(selected.rowOperations[3].operation,selected.rowOperations[0].operation);
 });
+
+test('capture construction selects its original member extent without consuming a per-row slot',()=>{
+  const extent={},member=Object.freeze({operation:'capture-prefix',extent}),row=Object.freeze({operation:'construct',extent:{}});
+  const base={memberOperations:Object.freeze([member]),rowOperations:Object.freeze([row]),
+    requestConstruction:Object.freeze({operationIndex:0})};
+  const selected=captureInstalledEffectPlanRecipe(Object.freeze({...base,captureConstruction:Object.freeze({operationIndex:0})}),2);
+  assert.equal(selected.memberOperations[0].extent,extent);
+  assert.deepEqual(selected.captureConstruction,{operationIndex:0});
+  assert.deepEqual(selected.requestConstruction,{operationIndex:0});
+  assert(Object.isFrozen(selected.captureConstruction));
+  for(const operationIndex of [-1,1,0.5])assert.throws(()=>captureInstalledEffectPlanRecipe(
+    Object.freeze({...base,captureConstruction:Object.freeze({operationIndex})}),2),{code:'InvalidInstalledEffectPlanRecipe'});
+  let getters=0;
+  assert.throws(()=>captureInstalledEffectPlanRecipe(Object.freeze({...base,get captureConstruction(){getters++;return {};}}),2),
+    {code:'InvalidInstalledEffectPlanRecipe'});
+  assert.equal(getters,0);
+});

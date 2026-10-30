@@ -477,3 +477,25 @@ test('original member capture reservation precedes exported proposal rows and re
   assert.equal(result.proposals.length,0);
   assert.deepEqual(f.events,['pin','borrow-0','export','retire-0','unpin']);
 });
+
+test('partial member prefix refusal retains original sibling and releases pin without a fabricated Source set',async()=>{
+  const f=prefixFixture({failBorrowAt:2});
+  await assert.rejects(f.run(),error=>error===f.primary);
+  assert.deepEqual(f.events,['pin','borrow-0','borrow-1']);
+  assert.equal(f.exportCalls(),0);
+  assert.equal(f.children[0].length,1);
+  await f.cleanup();
+  assert.deepEqual(f.events,['pin','borrow-0','borrow-1','retire-0','unpin']);
+});
+
+test('failed Source export keeps original capture prefix child pending until enclosing capture ends',async()=>{
+  const f=prefixFixture({exportFailure:true});
+  await assert.rejects(f.run(),error=>error===f.primary);
+  assert.deepEqual(f.events,['pin','borrow-0','export']);
+  const child=f.children[0][0].prepared;
+  await child.release();
+  assert.equal(child.status().pending,true);
+  assert.deepEqual(f.events,['pin','borrow-0','export']);
+  await f.cleanup();
+  assert.deepEqual(f.events,['pin','borrow-0','export','retire-0','unpin']);
+});
