@@ -5,6 +5,7 @@
 // Source Evidence are the common runtime's and this module's; the connector
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
+import {invocationBindingsMatch} from '../host-common/owned-invocation-context.mjs';
 import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
@@ -33,11 +34,13 @@ import {signRemoteCredentialGrant} from
   '../site-node/remote-credential-signature.mjs';
 import {callHttpsCredentialResource} from
   '../site-node/https-credential-resource.mjs';
-import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
+import {openHttpsCredentialBinding, closeHttpsCredentialBinding, retainHttpsCredentialBindingReadChild} from
   '../site-node/https-credential-resource.mjs';
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
+  closeInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts} from './installed-host-services.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -162,10 +165,28 @@ export async function loadRowSourceCredentialCustody({
   let privateKey;
   let ca = options.ca;
   try {
-    privateKey = createPrivateKey(await readFile(
-      options.profile.credentialPrivateKeyPath, 'utf8'));
+    const reader = options.configurationReader;
+    let read;
+    if (reader !== undefined) {
+      if (nodeTypes.isProxy(reader)) fail(invalidCode);
+      const field = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') fail(invalidCode);
+      read = field.value;
+    }
+    privateKey = createPrivateKey(await (reader === undefined
+      ? readFile(options.profile.credentialPrivateKeyPath, 'utf8')
+      : Reflect.apply(read, reader, [options.profile.credentialPrivateKeyPath])));
     if (caPath !== undefined) ca = await readFile(caPath);
-  } catch (cause) { fail(invalidCode, cause); }
+  } catch (cause) {
+    const failure = Object.assign(new Error(invalidCode, {cause}), {code: invalidCode});
+    // Preserve the existing same-FD cleanup Owner through the old Site error
+    // wrapper. A failed key read must not become an unowned Source abort.
+    const cleanup = Object.getOwnPropertyDescriptor(Object(cause), 'cleanupHandle');
+    if (cleanup && Object.hasOwn(cleanup, 'value')) {
+      Object.defineProperty(failure, 'cleanupHandle', {value: cleanup.value});
+    }
+    throw failure;
+  }
   if (privateKey.asymmetricKeyType !== 'ed25519') fail(invalidCode);
   // The existing installer can construct its default resolver only after the
   // original key/CA admission. It receives no private key or provider secret.
@@ -231,12 +252,14 @@ function retainCredentialOperationSite(site, custody, identity, enabled) {
   if (enabled) {
     const bind = custody.bindRunAcquisition;
     const purpose = custody.authorizationPurpose;
+    const child = custody.readChildCredential;
     operationSites.set(site.credential, Object.freeze({
       ...identity, site, credential: site.credential, callResource: site.callResource,
       referenceCurrent: custody.referenceCurrent,
       bindRunAcquisition: (authorization, current) =>
         Reflect.apply(bind, custody, [authorization, current]),
       authorizationPurpose: authorization => Reflect.apply(purpose, custody, [authorization]),
+      readChildCredential: (acquisition, authorization) => Reflect.apply(child, custody, [acquisition, authorization]),
     }));
   }
   return site;
@@ -267,6 +290,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
   let released = false;
   const runBindings = acquisitionLimits === undefined ? undefined : new Set();
   let runBindingAttempts = 0;
+  const runAcquisitions = new WeakMap();
   const issuedRunAuthorizations = acquisitionLimits === undefined ? undefined : new WeakMap();
   let runJournalClose, runJournalFailure, runJournalCloseObservation;
   if (runBindings !== undefined) {
@@ -336,6 +360,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
         continue;
       }
       if (!original.closed) {
+        original.closing = true;
         original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
       }
       if (!original.closed) pending = true;
@@ -430,7 +455,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     if (runBindingAttempts >= acquisitionLimits.maxBindings) fail('RowSourceCredentialAcquisitionLimit');
     // Retain the opening child before invoking a current callback. Reentrant
     // close cannot ACK the Journal while this original binding is opening.
-    const original = {binding: undefined, closed: false};
+    const original = {binding: undefined, closed: false, closing: false, borrow: undefined};
     issued.state = 'opening';
     runBindingAttempts++;
     runBindings.add(original);
@@ -439,7 +464,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
       original.binding = openHttpsCredentialBinding({scope: authorization.scope,
         control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
         assertCurrent, ...(secretPresentation === undefined ? {} : {secretPresentation})});
-      issued.state = 'bound';
+      issued.state = 'bound';issued.acquisition = original;
     } catch (cause) {
       // No physical binding was returned. Keep the original grant with its
       // Journal and refuse another binding attempt under this authorization.
@@ -448,14 +473,88 @@ export function openRowSourceCredentialCustody({profile, principalId,
       issued.state = 'failed';
       throw cause;
     }
-    return Object.freeze({authorization,
-      credential: Object.freeze({...credential, binding: original.binding,
-        currentBeforeSend: observeCurrent}),
+    const boundCredential = Object.freeze({...credential, binding: original.binding,
+      currentBeforeSend: observeCurrent});
+    const acquisition = Object.freeze({authorization, credential: boundCredential,
       close() {
+        original.closing = true;
         if (!original.closed) original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
         if (original.closed) {original.binding = undefined; runBindings.delete(original);}
         return original.closed ? 'closed' : 'pending';
       }});
+    runAcquisitions.set(acquisition, original);
+    const originalSite = operationSites.get(credential);
+    if (originalSite !== undefined && issued.issuerPurpose?.kind === 'read') {
+      // Recognize only this SAME already-open Run credential. No copied
+      // envelope, scope/CID or fresh binding can construct this parent view.
+      operationSites.set(boundCredential, Object.freeze({...originalSite, credential: boundCredential,
+        referenceCurrent() {
+          return !original.closing && !original.closed && original.binding !== undefined &&
+            originalSite.referenceCurrent() && (original.borrow === undefined || original.borrow.available());
+        },
+        bindRunAcquisition(childAuthorization, callbacks) {
+          const childCurrent = captureRunCurrent(callbacks);
+          childCurrent.assertCurrent();assertCurrent();
+          // Existing issuer/purpose/resource/invocation checks retain their
+          // original grant. Sharing the binding does not authorize a use.
+          readChildCredential(acquisition, childAuthorization);
+          const physical = retainHttpsCredentialBindingReadChild(original.binding);
+          original.borrow = physical;
+          const childCredential = Object.freeze({...boundCredential, bindingBorrow: physical});
+          let retired = false;
+          const childAcquisition = Object.freeze({authorization: childAuthorization, credential: childCredential,
+            close() {
+              if (this !== childAcquisition) fail('ForeignRowSourceCredentialReadChild');
+              return physical.close();
+            },
+            retire() {
+              if (this !== childAcquisition) fail('ForeignRowSourceCredentialReadChild');
+              if (retired) return true;
+              if (!physical.retire()) return false;
+              retired = true;if (original.borrow === physical) original.borrow = undefined;
+              return true;
+            }});
+          runAcquisitions.set(childAcquisition, {parent: original, borrow: physical});
+          return childAcquisition;
+        },
+        callResource(input) {
+          const beforeSend = input.currentBeforeSend;
+          if (typeof beforeSend !== 'function') fail('InvalidRemoteCredentialCurrentFence');
+          return Reflect.apply(originalSite.callResource, originalSite.site, [{...input,
+            currentBeforeSend: async () => {
+              // Both original parent and child current duties stay with the
+              // Host. Neither is reconstructed from a credential envelope.
+              await observeCurrent();await Reflect.apply(beforeSend, undefined, []);
+            }}]);
+        },
+      }));
+    }
+    return acquisition;
+  }
+  function readChildCredential(acquisition, authorization) {
+    ensureOpen();
+    const retained = runAcquisitions.get(acquisition);
+    const parent = retained?.parent ?? retained;
+    const issued = issuedRunAuthorizations?.get(authorization);
+    if (retained?.borrow !== undefined && !retained.borrow.available()) fail('ForeignRowSourceCredentialReadChild');
+    if (parent === undefined || parent.closing || parent.closed || parent.binding === undefined || issued === undefined ||
+        issued.state !== 'unused' && (issued.state !== 'bound' || issued.acquisition !== parent)) {
+      fail('ForeignRowSourceCredentialReadChild');
+    }
+    const purpose = issued.issuerPurpose;
+    const originalPurpose = issuedRunAuthorizations.get(acquisition.authorization)?.issuerPurpose;
+    if (purpose?.kind !== 'read' || originalPurpose?.kind !== 'read' ||
+        purpose.resource !== originalPurpose.resource || purpose.decision === undefined || originalPurpose.decision === undefined ||
+        !invocationBindingsMatch(authorization.scope, acquisition.authorization.scope)) {
+      fail('ForeignRowSourceCredentialReadChild');
+    }
+    // This exact Site issuer has already authorized the child's own original
+    // read decision. A current observation can yield a fresh decision object;
+    // it need not reuse the parent's earlier decision to share this binding.
+    // Associate it with
+    // the parent's existing binding; do not sign, open, or own another one.
+    issued.state = 'bound';issued.acquisition = parent;
+    return acquisition.credential;
   }
   function bindRunAcquisition(authorization, callbacks) {
     ensureOpen();
@@ -506,7 +605,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     }});
   }
   return Object.freeze({credential, sign, signInstallationMetadata,
-    installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose,
+    installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
     checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
     // The existing generic entry calls its original journal close on every
@@ -630,7 +729,8 @@ async function prepareInstallationMetadataSite(options) {
   };
   let closing = false, closed = false, binding, bindingClosed = false;
   let journalClosed = false, retired = false, custody, credential, originalFailure;
-  const entries = new Map();
+  const entries = new Map(), authorizations = new WeakMap(), children = new Set();
+  const acquisitions = new WeakMap();
   const profileCurrent = () => profileKeys.every(key => {
     const descriptor = Object.getOwnPropertyDescriptor(profile, key);
     return descriptor !== undefined && Object.hasOwn(descriptor, 'value') &&
@@ -744,13 +844,77 @@ async function prepareInstallationMetadataSite(options) {
                 maxSecretBytes: original.maxSecretBytes, assertCurrent: () => ensureCurrent()});
               credential = Object.freeze({binding, control,
                 journal: custody.credential.journal, resolveSecret, ca: authority, now});
+              // The metadata Site retains its original Subject, binding and
+              // Journal. This private operation view can lend only that SAME
+              // original to the shared reader; equal envelopes do not select it.
+              operationSites.set(credential, Object.freeze({site, credential,
+                referenceCurrent: site.referenceCurrent, callResource: site.callResource,
+                authorizationPurpose(authorization) {
+                  const entry = authorizations.get(authorization);
+                  if (entry === undefined) fail('ForeignRowSourceMetadataChild');
+                  ensureCurrent(entry.facts.operation);
+                  return Object.freeze({kind: 'installation-metadata', control});
+                },
+                bindRunAcquisition(authorization, callbacks) {
+                  const entry = authorizations.get(authorization);
+                  if (entry === undefined || entry.child !== undefined || children.size !== 0 || bindingClosed) {
+                    fail('ForeignRowSourceMetadataChild');
+                  }
+                  const methods = data(callbacks, ['assertCurrent', 'observeCurrent']);
+                  if (typeof methods.assertCurrent !== 'function' || typeof methods.observeCurrent !== 'function') invalid();
+                  synchronous(Reflect.apply(methods.assertCurrent, callbacks, []));
+                  ensureCurrent(entry.facts.operation);
+                  // No external callback follows insertion before this original
+                  // is returned. A failed current fence cannot strand a lease.
+                  const record = {retired: false};
+                  const acquisition = Object.freeze({authorization, credential,
+                    close() {
+                      if (this !== acquisition) fail('ForeignRowSourceMetadataChild');
+                      if (!bindingClosed) bindingClosed = closeHttpsCredentialBinding(binding) === 'closed';
+                      return bindingClosed ? 'closed' : 'pending';
+                    },
+                    retire() {
+                      if (this !== acquisition) fail('ForeignRowSourceMetadataChild');
+                      if (record.retired) return true;
+                      if (!bindingClosed) return false;
+                      record.retired = true;children.delete(record);
+                      return true;
+                    }});
+                  entry.child = record;children.add(record);acquisitions.set(acquisition, record);
+                  return acquisition;
+                },
+                readChildCredential(acquisition, authorization) {
+                  const record = acquisitions.get(acquisition), entry = authorizations.get(authorization);
+                  if (record === undefined || record.retired || !children.has(record) || entry === undefined ||
+                      entry.child !== undefined && entry.child !== record || bindingClosed) {
+                    fail('ForeignRowSourceMetadataChild');
+                  }
+                  ensureCurrent(entry.facts.operation);
+                  // The control checks both scopes against the SAME nominal
+                  // metadata Subject, never a copied request/Run substitute.
+                  if (!invocationBindingsMatch(authorization.scope, acquisition.authorization.scope, control)) {
+                    fail('ForeignRowSourceMetadataChild');
+                  }
+                  entry.child = record;
+                  return credential;
+                },
+              }));
             }
-            return Object.freeze({...signed, useId});
+            const authorization = Object.freeze({...signed, useId});
+            authorizations.set(authorization, entry);
+            return authorization;
           } catch (cause) {
             entry.failure = cause;
             originalFailure ??= cause;
             throw cause;
           }
+        },
+        callResource(options) {
+          ensureCurrent();
+          for (const operation of options?.operations?.values?.() ?? []) {
+            if ((operation.responseHeaders ?? []).length !== 0) fail('UndeclaredResponseHeader');
+          }
+          return callHttpsCredentialResource(options);
         },
         credential() {
           ensureCurrent();
@@ -766,6 +930,9 @@ async function prepareInstallationMetadataSite(options) {
             bindingClosed = closeHttpsCredentialBinding(binding) === 'closed';
             if (!bindingClosed) fail('RowSourceMetadataCleanupPending');
           }
+          // A closed socket is not retirement of the shared reader's
+          // callbacks/response aliases. Keep the SAME Journal while borrowed.
+          if (children.size !== 0) fail('RowSourceMetadataCleanupPending');
           if (!journalClosed) { retainedJournal.close(); journalClosed = true; }
           if (!retired) { view.retireMetadataView(); retired = true; }
           closed = true;
@@ -798,7 +965,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
   runtimeBundleCid, commonMoon, resolveSecret, ca, admitsApprovalTarget,
   admitsEffectTargetRead,
   installationMetadata,
-  runAcquisitionLimits,
+  runAcquisitionLimits, configurationReader,
   ownAuthorization = false,
   responseHeaders = [],
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
@@ -837,6 +1004,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
   const custodyOptions = {profile, principalId,
     connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
     resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal,
+    configurationReader,
     runAcquisitionLimits: selectedAcquisitionLimits,
     ...(secretPresentation === undefined ? {} : {secretPresentation})};
   let custody;
@@ -1043,13 +1211,24 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
-  declared, environmentWire, connectorId, connectorRegistration,
+  declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
+  const readerDemand = sourceInitialization === undefined ? undefined
+    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader);
+  const retainedAcquisitionContracts = sourceInitialization !== undefined && prepareAcquisition === undefined;
+  const prepareWithContracts = !retainedAcquisitionContracts ? undefined
+    : moon.clientProgramRowSourcePrepareAcquisitionWithContracts;
+  if (retainedAcquisitionContracts && typeof prepareWithContracts !== 'function') {
+    fail('InstalledSourceInitializationRuntimeUnavailable');
+  }
+  if (sourceInitialization !== undefined && environment?.wire !== environmentWire) {
+    fail('ForeignInstalledSourceConstruction');
+  }
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -1073,6 +1252,11 @@ export async function createInstalledRowSource({moon, declaration,
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
   let originalReader;
+  // Managed and advanced page readers are distinct installation alternatives.
+  // A managed reader never needs a dummy or fallback unaccounted readPages.
+  if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined) {
+    fail('InvalidInstalledSourceReader');
+  }
   if ((prepareKeyedSourceRead !== undefined || closeKeyedSourceRead !== undefined) &&
       (typeof prepareKeyedSourceRead !== 'function' || typeof closeKeyedSourceRead !== 'function' ||
         providerReader !== undefined || listingReportCapacity !== undefined ||
@@ -1105,10 +1289,17 @@ export async function createInstalledRowSource({moon, declaration,
   }
   if (providerReader !== undefined) {
     if (providerReader === null || typeof providerReader !== 'object' ||
-        Object.keys(providerReader).length !== 2 ||
-        !Object.hasOwn(providerReader, 'capacity') ||
-        !Object.hasOwn(providerReader, 'prepare')) fail('InvalidInstalledSourceReader');
-    const capacity = providerReader.capacity, prepare = providerReader.prepare;
+        nodeTypes.isProxy(providerReader)) fail('InvalidInstalledSourceReader');
+    const fields = Object.getOwnPropertyDescriptors(providerReader);
+    const names = Reflect.ownKeys(fields);
+    if (names.length !== (Object.hasOwn(fields, 'retire') ? 3 : 2) ||
+        ['capacity', 'prepare'].some(function invalidReaderField(name) {
+          return !Object.hasOwn(fields[name] ?? {}, 'value');
+        }) ||
+        Object.hasOwn(fields, 'retire') && (!Object.hasOwn(fields.retire, 'value') ||
+          typeof fields.retire.value !== 'function')) fail('InvalidInstalledSourceReader');
+    const capacity = fields.capacity.value, prepare = fields.prepare.value;
+    const retire = fields.retire?.value;
     if (capacity === undefined || capacity === null || typeof prepare !== 'function' ||
         listingReportCapacity !== undefined) fail('InvalidInstalledSourceReader');
     if (['clientProgramInstalledProviderRowCaptureCapacity',
@@ -1117,7 +1308,7 @@ export async function createInstalledRowSource({moon, declaration,
       'clientProgramRowSourceBindResponseCleanup'].some(name => typeof moon?.[name] !== 'function')) {
       fail('InstalledProviderSourceUnavailable');
     }
-    originalReader = Object.freeze({capacity, prepare, receiver: providerReader});
+    originalReader = Object.freeze({capacity, prepare, retire, receiver: providerReader});
   }
   if (prepareAcquisition !== undefined &&
       (typeof prepareAcquisition !== 'function' ||
@@ -1150,13 +1341,22 @@ export async function createInstalledRowSource({moon, declaration,
   if (typeof queryContract !== 'string' || typeof evidenceContract !== 'string') {
     fail('InstalledSourceReadUnavailable');
   }
+  // The default normal constructor retains one admitted protocol original on
+  // its SAME initialization material. Existing provider-specific preparers and
+  // explicit legacy constructors keep their original raw-wire entry law.
+  let acquisitionContracts = retainedAcquisitionContracts
+    ? prepareInstalledSourceAcquisitionContracts(sourceInitialization, queryContract, evidenceContract) : undefined;
   const sourceRefs = new Set(declared.views.map(view => view.source_ref));
   if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
     .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
       limits[key] <= 2_147_483_647)) {
     fail('InvalidInstalledRowSourceLimits');
   }
-  const maxTransferBytes = BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
+  if (readerDemand !== undefined && (limits.maxPages !== readerDemand.queryPages ||
+      limits.maxPageBytes !== readerDemand.maxResponseBytes || limits.maxPageRows !== readerDemand.maxRows ||
+      limits.maxCaptureRows !== readerDemand.maxTotalRows)) fail('ForeignInstalledSourceReaderDemand');
+  const maxTransferBytes = readerDemand?.transferBytes ??
+    BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
   let keyedTransferBytes = maxTransferBytes, keyedExecutionBytes = BigInt(limits.maxPageBytes);
   if (originalKeyedTransport !== undefined) {
     // Fixed installing Source limits, not a public packet, grant or Resource
@@ -1190,9 +1390,13 @@ export async function createInstalledRowSource({moon, declaration,
   const preparations = new WeakMap();
   const keyedPreparations = new WeakMap();
   function prepareOriginalAcquisition(requirement) {
+    if (retainedAcquisitionContracts && acquisitionContracts === undefined) fail('InstalledSourceInitializationClosed');
     const acquisition = prepareAcquisition === undefined
-      ? checked(moon.clientProgramRowSourcePrepareAcquisition(
-        declaration, requirement, queryContract, evidenceContract, listingPolicy))
+      ? !retainedAcquisitionContracts
+        ? checked(moon.clientProgramRowSourcePrepareAcquisition(
+          declaration, requirement, queryContract, evidenceContract, listingPolicy))
+        : checked(Reflect.apply(prepareWithContracts, moon,
+          [declaration, requirement, acquisitionContracts, listingPolicy]))
       : prepareAcquisition(Object.freeze({declaration, requirement,
         queryContract, evidenceContract}));
     if (prepareAcquisition !== undefined) {
@@ -1425,6 +1629,14 @@ export async function createInstalledRowSource({moon, declaration,
       // prepare another equal requirement or attach a replacement acquisition.
       checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, checkedOwner, requestIdentity));
       planned = checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
+    } else if (managedRun !== undefined && originalReader !== undefined) {
+      if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
+        fail('InstalledSourcePlanUnavailable');
+      }
+      // Pure provider reads consume the SAME original Plan acquisition too.
+      // Missing retained-plan support cannot fall back to another equal query.
+      planned = checked(moon.clientProgramInstalledManagedCaptureSourceRead(
+        managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
     }
     const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
       preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
@@ -1485,15 +1697,8 @@ export async function createInstalledRowSource({moon, declaration,
     // An installed provider may select its existing pure typed preparer. It
     // must return this exact requirement/declaration's original acquisition;
     // this is neither an I/O callback nor permission to replace a checked Run.
-    const acquisition = planned !== undefined ? runtimeField(planned, 2) : prepareAcquisition === undefined
-      ? checked(moon.clientProgramRowSourcePrepareAcquisition(
-        declaration, requirement, queryContract, evidenceContract, listingPolicy))
-      : prepareAcquisition(Object.freeze({declaration, requirement,
-        queryContract, evidenceContract}));
-    if (planned === undefined && prepareAcquisition !== undefined) {
-      checked(moon.clientProgramRowSourceCheckOriginalAcquisition(
-        acquisition, declaration, requirement));
-    }
+    const acquisition = planned !== undefined ? runtimeField(planned, 2)
+      : prepareOriginalAcquisition(requirement);
     if (planned === undefined && originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
       originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
     const providerCaptureCapacity = planned !== undefined ? runtimeField(planned, 3)
@@ -2128,6 +2333,9 @@ export async function createInstalledRowSource({moon, declaration,
       const credentialRead = owner.originalRead === undefined ||
         owner.managedRun !== undefined && originalReader !== undefined;
       let grant = credentialRead && grantBeforeBegin ? issueGrant() : undefined;
+      const readChildGrants = new Map();
+      const readChildOriginals = new WeakMap();
+      let readChildIndex = 0, rootReadUses = 0, propertyOccurrences = 0;
       checked(pageLimits === undefined
         ? moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
           limits.maxPageRows, limits.maxCaptureRows, referenceIssuer)
@@ -2158,17 +2366,80 @@ export async function createInstalledRowSource({moon, declaration,
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
-        ...(credentialRead ? {authorizationFor: async index => {
+        ...(credentialRead ? {originalAuthorization: grant, authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);
           const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
             : directReadIdentity.useId(nonce, index);
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
+        }, authorizeReadChild: async (childOperation,index,occurrence) => {
+          if (readerDemand?.nested === true) {
+            if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex ||
+                index >= readerDemand.responses) fail('InvalidInstalledSourceReadChild');
+            let entry;
+            if (childOperation === operation) {
+              if (rootReadUses >= readerDemand.queryPages) fail('InstalledSourceQueryUseLimit');
+              rootReadUses++;
+            } else {
+              if (occurrence === null || typeof occurrence !== 'object' || nodeTypes.isProxy(occurrence)) {
+                fail('InstalledSourceReadChildOriginalUnavailable');
+              }
+              entry = readChildOriginals.get(occurrence);
+              if (entry === undefined) {
+                if (propertyOccurrences >= readerDemand.propertyOccurrences) fail('InstalledSourcePropertyOccurrenceLimit');
+                propertyOccurrences++;
+                // A weak occurrence key never turns the completed native
+                // query/property graph into a retained all-pages history.
+                entry = {operation: childOperation, uses: 0, grant: undefined};
+                readChildOriginals.set(occurrence, entry);
+              }
+              if (entry.operation !== childOperation || entry.uses >= readerDemand.propertyPages) {
+                fail('InstalledSourcePropertyUseLimit');
+              }
+              entry.uses++;
+            }
+            readChildIndex++;
+            const decision = await currentRead(prepared, access, signal);
+            const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
+              ? site.admitCheckpointReadApproval(decision) : decision;
+            if (entry !== undefined && entry.grant === undefined) {
+              entry.grant = site.issueReadGrant({operation: childOperation, decision: childGranted,
+                resource: owner.resource, runInvocationCid, dispatchRequestCid, maxUses: readerDemand.propertyPages});
+            }
+            const selected = entry === undefined ? grant : entry.grant;
+            const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
+              : directReadIdentity.useId(nonce,index);
+            if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
+            return Object.freeze({originalAuthorization: selected,
+              authorization: Object.freeze({...selected,useId})});
+          }
+          if (!text(childOperation) || !Number.isSafeInteger(index) || index < 0 || index >= limits.maxPages) {
+            fail('InvalidInstalledSourceReadChild');
+          }
+          await currentRead(prepared, access, signal);
+          let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
+          if (original === undefined) {
+            original = site.issueReadGrant({operation:childOperation,decision:granted,
+              resource:owner.resource,runInvocationCid,dispatchRequestCid,maxUses:limits.maxPages});
+            readChildGrants.set(childOperation,original);
+          }
+          const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
+            : directReadIdentity.useId(nonce,index);
+          if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
+          return Object.freeze({originalAuthorization:original,
+            authorization:Object.freeze({...original,useId})});
         }} : {}),
         chargePage: body => checked(moon.clientProgramRowSourceChargePage(
           run, body)),
         consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
           return checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
+        },
+        consumePageWire: (wire, {charge} = {}) => {
+          if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
+          const bytes = Buffer.from(wire, 'utf8');
+          return checked(charge === undefined
+            ? moon.clientProgramRowSourceAcceptPage(run, bytes)
+            : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
         },
         consumePage: (rows, {charge} = {}) => {
           const bytes = Buffer.from(JSON.stringify(rows), 'utf8');
@@ -2186,7 +2457,8 @@ export async function createInstalledRowSource({moon, declaration,
     }
   }
 
-  return Object.freeze({
+  let constructionClosed = false;
+  const installedSource = Object.freeze({
     realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
@@ -2248,8 +2520,29 @@ export async function createInstalledRowSource({moon, declaration,
         executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork});
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
-    close: () => site.close(),
+    close() {
+      if (originalReader?.retire !== undefined &&
+          Reflect.apply(originalReader.retire, originalReader.receiver, []) !== true) {
+        fail('InstalledSourceReaderCleanupPending');
+      }
+      const observed = site.close();
+      if (sourceInitialization === undefined) return observed;
+      // Only the existing Site's completed physical cleanup releases this
+      // constructor's aliases; the request to stop is not its acknowledgement.
+      return Promise.resolve(observed).then(value => {
+        if (!constructionClosed) {
+          closeInstalledSourceConstruction(sourceInitialization, installedSource);
+          acquisitionContracts = undefined;
+          constructionClosed = true;
+        }
+        return value;
+      });
+    },
   });
+  if (sourceInitialization !== undefined) {
+    retainInstalledSourceConstruction(sourceInitialization, installedSource, declaration, declared, environment);
+  }
+  return installedSource;
 }
 
 
@@ -2257,7 +2550,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
   installation, runtimeBundleCid, accountConfiguration, originalContext,
   connection, profile, resolveSecret, ca, responseHeaders = [],
   admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
-  assertCurrent, receiver}) {
+  assertCurrent, receiver, configurationReader}) {
   if (typeof assertCurrent !== 'function' || nodeTypes.isAsyncFunction(assertCurrent) ||
       !installation || typeof installation !== 'object' || nodeTypes.isProxy(installation) ||
       profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
@@ -2297,6 +2590,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
     site = await openRowSourceCredentialSite({root, profile, principalId, authorization,
       connection, connectorRegistration: registration, connectorRevision: revision,
       runtimeBundleCid, commonMoon, resolveSecret, ca, responseHeaders: headers,
+      configurationReader,
       admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits: acquisition,
       ownAuthorization: true, ...(secretPresentation === undefined ? {} : {secretPresentation})});
     current();

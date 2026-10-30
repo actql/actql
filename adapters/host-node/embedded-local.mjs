@@ -1,4 +1,6 @@
-import {createInstalledHostServices} from './installed-host-services.mjs';
+import {createInstalledHostServices, reserveInstalledSourceEnvironment,
+  completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
+  retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
   from '../local-node/request-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
@@ -1087,6 +1089,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const initialPreparation = preparation?.hostInitializationPreparation(moon);
   const installationServices = createInstalledHostServices({root, principalId, moon,
     assertCurrent: assertProjectRuntime, initialPreparation});
+  preparation?.retainSourceInitializationServices(moon, installationServices);
   const control = runtimeCore(moon).publicationControl;
   async function releaseLocalSigningRecovery(recovered) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
@@ -1440,6 +1443,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               effectInstallation.privateEvidenceKey.byteLength !== 32))) {
       throw new TypeError('InvalidInstalledEffectSite');
     }
+    reserveInstalledSourceEnvironment(installationServices, baseEnvironmentWire,
+      sourceProfile?.environmentWire, effectInstallation?.environmentWire);
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
@@ -1552,6 +1557,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           installedSources: sourceProfile?.sources ?? (sourceProfile === undefined ? [] : [sourceProfile])});
       const sourceEnvironmentOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
       if (sourceEnvironmentOriginal !== undefined) {
+        completeInstalledSourceInitialization(installationServices, originalInstallation,
+          sourceEnvironmentOriginal.preparedEnvironment, environmentWire);
         preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,
           preparedEnvironment:sourceEnvironmentOriginal.preparedEnvironment});
         if (preparation !== undefined) {
@@ -5130,7 +5137,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   let hostJournalOpenAttempted = false;
   let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
-  let hostInitialization;
+  let hostInitialization, sourceInitializationServices;
   const record = {};
   function retirePreparationReferences() {
     if (referencesRetired) return;
@@ -5244,6 +5251,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       record.hostJournal = undefined;
     }
     if (hostInitialization !== undefined) {
+      if (sourceInitializationServices !== undefined &&
+          retireInstalledSourceInitialization(sourceInitializationServices) !== true) {
+        throw clientOperationError('InstalledSourceInitializationCleanupPending');
+      }
+      sourceInitializationServices = record.sourceInitializationServices = undefined;
       // Source close above must settle the SAME domain/borrow inventory. The
       // Core carrier refuses a still-live selected token, including zero bytes.
       closeHostInitializationPreparation(hostInitialization);
@@ -5262,6 +5274,22 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    retainSourceInitializationServices(runtime, services) {
+      assertInitialControlHostPreparation(originals);
+      if (runtime !== moon || sourceInitializationServices !== undefined && sourceInitializationServices !== services) {
+        throw clientOperationError('ForeignInstalledSourceInitialization');
+      }
+      sourceInitializationServices = services;
+      record.sourceInitializationServices = services;
+    },
+    borrowSourceInitializationMaterial() {
+      assertInitialControlHostPreparation(originals);
+      if (sourceInitializationServices === undefined) return undefined;
+      const context = originalInstallation.closedValuesPreparationContext;
+      if (context === undefined) throw clientOperationError('InstalledSourceInitializationPending');
+      return borrowInstalledSourceInitialization(sourceInitializationServices,
+        originalInstallation, context.preparedEnvironment);
+    },
     hostInitializationPreparation(runtime) {
       assertInitialControlHostPreparation(originals);
       if (runtime !== moon || record.runtime !== runtime) {
@@ -5896,6 +5924,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       referenceRetirement = original;
     }});
+  // Fixed private callback supply for the same Source producer owner. Capture
+  // the existing method/receiver; no later caller envelope selects a parent.
+  const sourceInitializationBorrow = preparation.borrowSourceInitializationMaterial;
+  originalInstallation.borrowSourceInitializationMaterial = () =>
+    Reflect.apply(sourceInitializationBorrow,preparation,[]);
   async function releaseUnadopted() {
     const failure = await retainInstalledHostInitializationFailure(
       new Error('InstalledHostPreparationCleanupPending'), {initialControl});

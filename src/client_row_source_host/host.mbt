@@ -160,6 +160,27 @@ fn admit_contract(body : String) -> @identity.CanonicalValue? {
 }
 
 ///|
+/// Admit the same protocol bodies once under the installing Source's original
+/// constructor reservation. This immutable DATA is neither an acquisition nor
+/// a read grant; the Source material retains its actual backing across Requests.
+pub fn admit_row_acquisition_contracts(
+  query_contract_body : String,
+  evidence_contract_body : String,
+) -> Result[@planning.QueryEvidenceContracts, RowHostIssue] {
+  guard admit_contract(query_contract_body) is Some(query_contract) &&
+    admit_contract(evidence_contract_body) is Some(evidence_contract) &&
+    @planning.admit_query_evidence_contracts(
+      query_contract,
+      evidence_contract,
+      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    )
+    is Ok(contracts) else {
+    return Err(InvalidContracts)
+  }
+  Ok(contracts)
+}
+
+///|
 pub fn prepare_row_acquisition(
   declaration : RowDeclaration,
   requirement : @planning.QueryRequirement,
@@ -195,17 +216,43 @@ pub fn prepare_declared_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Source(issue))
   }
-  let requirement = preparation.requirement
-  guard admit_contract(query_contract_body) is Some(query_contract) &&
-    admit_contract(evidence_contract_body) is Some(evidence_contract) &&
-    @planning.admit_query_evidence_contracts(
-      query_contract,
-      evidence_contract,
-      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
-    )
-    is Ok(contracts) else {
-    return Err(InvalidContracts)
+  let contracts = match
+    admit_row_acquisition_contracts(query_contract_body, evidence_contract_body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  prepare_row_acquisition_owned(
+    preparation, connector_registration, contracts, listing_rows,
+  )
+}
+
+///|
+/// Consume the retained admitted protocol original. Selection, listing policy,
+/// candidate, Source evidence and later physical/current checks are unchanged.
+pub fn prepare_declared_row_acquisition_with_contracts(
+  preparation : RowSourcePreparation,
+  connector_registration : String,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowAcquisition, RowHostIssue] {
+  let listing_rows = match
+    resolve_row_listing_rows(preparation, listing_policy) {
+    Ok(value) => value
+    Err(issue) => return Err(Source(issue))
+  }
+  prepare_row_acquisition_owned(
+    preparation, connector_registration, contracts, listing_rows,
+  )
+}
+
+///|
+fn prepare_row_acquisition_owned(
+  preparation : RowSourcePreparation,
+  connector_registration : String,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_rows : RowListingRows?,
+) -> Result[RowAcquisition, RowHostIssue] {
+  let requirement = preparation.requirement
   guard @connector.prepare_capability_registry(
       [
         {
