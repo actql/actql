@@ -1,4 +1,11 @@
-# Fixed SDK / Node release
+# SDK / Node release preparation
+
+The formal version and finished product artifact cohort remain unselected.
+Legacy version numbers and retained fixtures below are historical inputs,
+not proposed replacement versions or publication instructions. Preparation
+commands produce local candidates. Staging, publication, tags and promotion
+still require the independently protected executor and the owner's explicit
+decision on the exact final version, bytes, scope and evidence.
 
 The standard cohort is `@actql/client-wire`, `@actql/sdk`,
 `@actql/local-node`, and `@actql/node`, with one explicitly selected complete
@@ -84,6 +91,50 @@ loopback registry that serves the fixed RC. npm resolves dependencies, and
 the acceptance audits exports/types and executes the existing Local/restart
 and short-query/HTTPS cases. This establishes registry installation mechanics,
 not public npm availability, live Cloud operation or every Provider feature.
+
+After the selected versions are actually published, the **same** harness has
+an explicit public npm mode:
+
+```sh
+node scripts/test-package-release-install.mjs <original-RC-directory> --public-registry <externally-retained-release.json-SHA256>
+```
+
+The digest selects the exact original Node cohort child manifest retained by
+the approved upper set. It is not a new version choice or approval. The
+existing complete cohort verifier and anonymous npm byte reader run before
+consumer creation: each original name/version/SRI and actual streamed archive
+size/SHA256/SRI must match. The separate historical public observation is saved
+even when a version is absent, unknown or conflicting; any such state refuses
+installation, with no loopback fallback, local tarball substitution or resend.
+
+Public mode creates a fresh HOME, a separate fresh cache for each entry and user/global configuration,
+without forwarding publisher credentials, source profiles or Node injection.
+Only the exact `@actql/node` or `@actql/sdk` entry is installed, using
+`--save-exact --ignore-scripts --engine-strict` against
+`https://registry.npmjs.org/`. Its
+[npm lockfile](https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/)
+must retain the selected public dependency graph, official registry origins,
+exact versions and fixed SRI. Every installed ActQL payload byte/mode is
+compared to its original archive inventory before the existing package-graph
+and consuming-interface audits. npm's nested third-party dependency directory
+is separate from the package payload; bundled dependency payloads are refused
+until their own consumer scope is selected.
+
+The README, Local/restart, short-query, explicit pre-Run refusal and SDK
+own-HTTPS cases and their original oracles remain unchanged. Public mode does
+not start a private package registry. Its final receipt names the public
+observation, fixed cohort digest, lockfile digest and actual installed payload audits, while
+retaining the incomplete pre-Run approval scope. A public package download is
+not live Cloud or Provider acceptance. The actual public mode remains
+unexecuted until the real candidate/version is selected and published; its
+inert component fixtures do not qualify that runtime boundary or a release.
+
+Both private and public harness modes now explicitly retain their owned
+consumer directory after success as well as failure, including the original
+software, lockfiles and Run/DB/WAL/key/state evidence. This uses the existing
+scratch Owner's preservation selection; it does not waive the requirement to
+confirm that every started process, Host and Store has ended. No previous
+consumer state is opened, replayed or removed by selecting the new mode.
 
 Give the integration reviewer the source SHA, PR, manifest, exact archives,
 digests, commands and receipts. Independent acceptance must consume the same

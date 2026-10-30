@@ -2,7 +2,9 @@
 // owner approval, a publication lease, upload permission or public install.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {publishedVersion} from './package-release.mjs';
+import {lstat, readFile} from 'node:fs/promises';
+import {join, resolve} from 'node:path';
+import {publishedVersion, verifyPackageRelease} from './package-release.mjs';
 import {resumeReleaseSet, verifyReleaseSet} from './release-set.mjs';
 
 class RegistryUnavailable extends Error {}
@@ -248,6 +250,38 @@ async function pypiObservation(artifact, siblings, fetchResponse, requests) {
     unavailable('PyPI download URL does not name the original file');
   await artifactBytes(url, artifact, fetchResponse, requests);
   return 'present';
+}
+
+// The existing Node install harness has its complete original RC (including
+// development originals), not a newly assembled upper set. Reuse the exact
+// same npm identity and streamed-byte owner before its explicit public mode.
+export async function observeNpmPackageRelease(directory, expectedSha256, {fetchResponse = fetch} = {}) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
+  directory = resolve(directory); const path = join(directory, 'release.json');
+  const root = await lstat(directory); assert(root.isDirectory() && !root.isSymbolicLink());
+  const stat = await lstat(path); assert(stat.isFile() && !stat.isSymbolicLink());
+  const original = await readFile(path), sha256 = createHash('sha256').update(original).digest('hex');
+  assert.equal(sha256, expectedSha256, 'Node cohort differs from its externally retained manifest digest');
+  const manifest = await verifyPackageRelease(directory);
+  assert.deepEqual(await readFile(path), original, 'Node cohort changed during original verification');
+  const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
+  for (const item of manifest.packages) {
+    const artifact = {...item, ecosystem: 'npm'}, base = {name: item.name, version: item.version, file: item.file};
+    try {
+      const state = await npmObservation(artifact, fetchResponse, requests);
+      observations.push({...base, state, ...(state === 'present' ? {identity: identity(artifact)} : {})});
+    } catch (failure) {
+      if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
+      const state = failure instanceof RegistryConflict ? 'conflict' : 'unknown';
+      observations.push({...base, state}); issues.push({...base, state, reason: failure.message});
+    }
+  }
+  await verifyPackageRelease(directory);
+  assert.deepEqual(await readFile(path), original, 'Node cohort changed during public observation');
+  const after = await lstat(path); assert(after.isFile() && !after.isSymbolicLink());
+  return {schemaVersion: 'actql-npm-public-observation/0.1', manifestSha256: sha256, sourceSha: manifest.sourceSha,
+    startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
+    qualification: 'anonymous historical npm byte observations only; no install, publisher authority, approval, lock or CAS'};
 }
 
 export async function observeReleaseSet(directory, expectedSha256, {fetchResponse = fetch} = {}) {

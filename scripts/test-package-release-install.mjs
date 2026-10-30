@@ -1,32 +1,45 @@
-// A private loopback registry serves the exact RC bytes. Consumers name only
-// their public entry package; npm must resolve the complete dependency closure.
-// This proves registry installation mechanics, not public npm publication.
+// The default private loopback path proves installation mechanics only. The
+// explicit public mode first observes exact public npm bytes. Both retain the
+// same business cases; consumers name only their selected public entry package.
 import assert from 'node:assert/strict';
 import {spawn, execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
 import {createServer} from 'node:http';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {join} from 'node:path';
 import {tmpdir, userInfo} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {observeNpmPackageRelease} from './release-registry.mjs';
+import {verifyPackageRelease} from './package-release.mjs';
+import {releaseInstallSelection, publicNpmRegistry, publicConsumerEnvironment,
+  publicInstallCommand, verifyPublicConsumer} from './release-public-install.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const input = process.argv[2];
-assert(input, 'usage: test-package-release-install.mjs <RC-directory>');
-const directory = resolve(input);
+const selection = releaseInstallSelection(process.argv.slice(2));
+const directory = selection.directory, isPublic = selection.kind === 'public-npm';
 const interfaces = await releaseInterfaceCheck({repository, directory});
 const {manifest} = interfaces;
+let publicObservation = null, publicObservationFile = null;
+if (isPublic) {
+  publicObservation = await observeNpmPackageRelease(directory, selection.manifestSha256);
+  publicObservationFile = `public-observation-${Date.now()}-${randomUUID()}.json`;
+  await writeFile(join(directory, publicObservationFile), `${JSON.stringify(publicObservation, null, 2)}\n`, {flag: 'wx'});
+  assert(publicObservation.observations.every(item => item.state === 'present'),
+    'Public install refused: every original cohort package must be published with identical bytes; retain the observation');
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'release.json'))), manifest,
+    'Cohort differs from the original interface/consumer context');
+}
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-install-',
-  label: 'fixed release registry installation'});
+  label: 'fixed release registry installation', preserve: true});
 const root = scratch.path, requested = [];
-const artifacts = await Promise.all(manifest.packages.map(async item => ({item,
+const artifacts = isPublic ? [] : await Promise.all(manifest.packages.map(async item => ({item,
   metadata: JSON.parse(execFileSync('tar', ['-xOf', join(directory, item.file), 'package/package.json'], {encoding: 'utf8'})),
   bytes: await readFile(join(directory, item.file))})));
-const registry = createServer((request, response) => {
+const registry = isPublic ? null : createServer((request, response) => {
   try {
     assert.equal(request.method, 'GET', 'Read-only acceptance registry');
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).slice(1);
@@ -44,17 +57,18 @@ const registry = createServer((request, response) => {
       'dist-tags': {latest: artifact.item.version}, versions: {[artifact.item.version]: metadata}} : metadata));
   } catch {response.writeHead(400); response.end('{}');}
 });
-await new Promise((resolve, reject) => {registry.once('error', reject); registry.listen(0, '127.0.0.1', resolve);});
-const registryUrl = `http://127.0.0.1:${registry.address().port}/`;
-const environment = {...process.env, npm_config_registry: registryUrl,
+if (registry) await new Promise((resolve, reject) => {registry.once('error', reject); registry.listen(0, '127.0.0.1', resolve);});
+const registryUrl = isPublic ? publicNpmRegistry : `http://127.0.0.1:${registry.address().port}/`;
+const environment = isPublic ? publicConsumerEnvironment(process.env, root) : {...process.env, npm_config_registry: registryUrl,
   npm_config_cache: join(root, 'npm-cache'), npm_config_update_notifier: 'false'};
+if (isPublic) for (const path of [environment.HOME, environment.TMPDIR]) await mkdir(path);
 environment.npm_config_userconfig = join(root, 'npmrc');
 environment.npm_config_globalconfig = join(root, 'npmrc-global');
 await writeFile(environment.npm_config_userconfig, `registry=${registryUrl}\n@actql:registry=${registryUrl}\n`);
 await writeFile(environment.npm_config_globalconfig, '');
 environment.npm_config_proxy = '';
 environment.npm_config_https_proxy = '';
-environment.NO_PROXY = '127.0.0.1,localhost';
+if (!isPublic) environment.NO_PROXY = '127.0.0.1,localhost';
 delete environment.NODE_PATH;
 delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
 delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
@@ -76,13 +90,16 @@ async function run(command, args, cwd) {
     });
   });
 }
-const results = [];
+const results = [], publicPayloads = [];
 try {
+  if (isPublic) results.push(await run('npm', ['--version'], root));
   for (const entry of ['node', 'sdk']) {
     const consumer = join(root, entry); await mkdir(consumer);
     await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-    results.push(await run('npm', ['install', '--no-audit', '--no-fund',
+    if (isPublic) environment.npm_config_cache = join(root, `npm-cache-${entry}`);
+    results.push(await run('npm', isPublic ? publicInstallCommand(manifest, entry) : ['install', '--no-audit', '--no-fund',
       `@actql/${entry}@${manifest.cohort.packageVersion}`], consumer));
+    if (isPublic) publicPayloads.push(await verifyPublicConsumer(consumer, manifest, entry));
     const names = entry === 'node' ? manifest.cohort.packages : ['client-wire', 'sdk'];
     const {readdir} = await import('node:fs/promises');
     assert.deepEqual((await readdir(join(consumer, 'node_modules/@actql'))).sort(), [...names].sort());
@@ -152,14 +169,22 @@ try {
   await copyFile(join(repository, 'scripts/fixtures/release-sdk-only.mjs'), join(root, 'sdk/remote-acceptance.mjs'));
   environment.ACTQL_SDK_ONLY_ACCEPTANCE = join(root, 'sdk/remote-acceptance.mjs');
   results.push(await run(process.execPath, ['short-queries.mjs'], local));
-  assert(manifest.packages.every(v => requested.includes(`archives/${v.file}`)));
+  if (!isPublic) assert(manifest.packages.every(v => requested.includes(`archives/${v.file}`)));
+  else {
+    await verifyPackageRelease(directory);
+    assert.equal(createHash('sha256').update(await readFile(join(directory, 'release.json'))).digest('hex'), selection.manifestSha256,
+      'Original Node cohort changed during public consumer acceptance');
+  }
   const receipt = {version: 'actql-release-install-acceptance/0.1', sourceSha: manifest.sourceSha,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     consumer: root, node: process.version, platform: process.platform, arch: process.arch,
-    registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested',
+    registry: isPublic ? publicNpmRegistry : 'private-loopback-fixed-RC',
+    publicRegistryPublication: isPublic ? 'exact-original-bytes-observed-anonymously' : 'not-tested',
+    ...(isPublic ? {cohortManifestSha256: selection.manifestSha256, publicObservationFile,
+      publicPayloads, publicRuntimeScope: 'existing selected Local/restart/short-query and SDK own-HTTPS cases only; not live Cloud/Provider or full release approval'} : {}),
     approvalAcceptance: {status: 'incomplete', reason: 'epoch-bound-pre-run-deferral-explicitly-unsupported', code: 'ACTQL_E_DELEGATION_UNAVAILABLE'}, results};
   await writeFile(join(directory, `install-${process.platform}-${process.arch}-${Date.now()}.json`),
     `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
   scratch.passed();
-  console.log(`Fixed RC clean installation passed: ${root}`);
-} finally {await new Promise(resolve => registry.close(resolve));}
+  console.log(`${isPublic ? 'Public exact-version' : 'Fixed RC'} clean installation passed: ${root}`);
+} finally {if (registry) await new Promise(resolve => registry.close(resolve));}
