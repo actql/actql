@@ -137,3 +137,46 @@ pub fn client_program_kintone_create_preview_outcome_matches(
     value, mapping, request, preview, member_index, row_index,
   )
 }
+
+///|
+// Standard Row Effect already binds its original mapped row, Preview and claim.
+// These are the existing Catalog's same-request provider DATA projections;
+// no Preview/authority object is passed into the standard classify callback.
+#export_name("clientProgramKintoneCreateEffectOutcome")
+pub fn client_program_kintone_create_effect_outcome(
+  request : @kintone_catalog.RecordCreateRequest,
+  response : @kintone_catalog.RecordCreateAcknowledgement,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateEffectOutcome,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_create_effect_outcome(
+    request, response, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeWire")
+pub fn client_program_kintone_create_effect_outcome_wire(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_create_effect_outcome_wire(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeResponseSha256")
+pub fn client_program_kintone_create_effect_outcome_response_sha256(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_create_effect_outcome_response_sha256(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeMatchesRequest")
+pub fn client_program_kintone_create_effect_outcome_matches_request(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+  request : @kintone_catalog.RecordCreateRequest,
+) -> Bool {
+  @kintone_catalog.record_create_effect_outcome_matches_request(value, request)
+}

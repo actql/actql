@@ -77,3 +77,39 @@ export function projectMappedKintoneCreateOutcome({moon, mapping, declaration,
     rowPreviewCid: moon.clientProgramKintoneCreatePreviewOutcomeRowCid(projected),
     responseSha256: moon.clientProgramKintoneCreatePreviewOutcomeResponseSha256(projected)});
 }
+
+// Provider DATA for the standard Row Effect classifier. The enclosing common
+// owner already compares request facts with its exact mapped/approved row and
+// binds this outcome to the original saved response and durable claim. This
+// projection supplies no Preview, authority, physical call or terminal receipt.
+export function projectMappedKintoneCreateResponseOutcome({moon, mapping, declaration,
+  request, observation, limits}) {
+  originalMapping(moon, mapping, declaration);
+  const names = ['clientProgramKintoneCreateMappingMatchesRequest',
+    'clientProgramKintoneCreateResponse', 'clientProgramKintoneCreateEffectOutcome',
+    'clientProgramKintoneCreateEffectOutcomeWire',
+    'clientProgramKintoneCreateEffectOutcomeResponseSha256',
+    'clientProgramKintoneCreateEffectOutcomeMatchesRequest'];
+  if (names.some(name => typeof moon?.[name] !== 'function')) {
+    fail('KintoneCreateOutcomeRuntimeUnavailable');
+  }
+  if (!moon.clientProgramKintoneCreateMappingMatchesRequest(mapping, request)) {
+    fail('ForeignKintoneCreateRequest');
+  }
+  if (!(observation?.body instanceof Uint8Array) || !Number.isInteger(observation.statusCode) ||
+      !['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows', 'maxIdentityBytes',
+        'maxComparisonWork'].every(name => positive(limits?.[name])) ||
+      observation.body.byteLength > limits.maxResponseBytes) fail('InvalidKintoneCreateOutcome');
+  const bounds = moon.clientProgramKintoneMutationLimits(limits.maxRows,
+    limits.maxIdentityBytes, limits.maxComparisonWork, limits.maxResponseBytes,
+    limits.maxNodes, limits.maxDepth);
+  const response = checked(moon.clientProgramKintoneCreateResponse(request,
+    observation.statusCode, observation.body, bounds));
+  const projected = checked(moon.clientProgramKintoneCreateEffectOutcome(request, response, bounds));
+  if (!moon.clientProgramKintoneCreateEffectOutcomeMatchesRequest(projected, request)) {
+    fail('ForeignKintoneCreateOutcome');
+  }
+  return Object.freeze({kind: 'typed-success-response', projected,
+    outcome: JSON.parse(moon.clientProgramKintoneCreateEffectOutcomeWire(projected)),
+    responseSha256: moon.clientProgramKintoneCreateEffectOutcomeResponseSha256(projected)});
+}
