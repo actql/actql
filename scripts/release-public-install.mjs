@@ -38,17 +38,18 @@ export function pythonInstallCommand(version, entry, report) {
     '--report', report, `${entry}==${selected.pythonVersion}`];
 }
 
-export async function pythonConsumerDestination(destination, excludedRoots) {
+export async function releaseConsumerDestination(destination, excludedRoots) {
   const actual = join(await realpath(dirname(destination)), basename(destination));
   for (const root of excludedRoots) {
     const delta = relative(await realpath(root), actual);
     assert(delta !== '' && (delta === '..' || delta.startsWith(`..${sep}`) || isAbsolute(delta)),
-      'Python consumer must be physically outside source and fixed artifacts');
+      'Release consumer must be physically outside source and fixed artifacts');
   }
-  try {await lstat(actual); throw Error('Python consumer destination already exists');}
+  try {await lstat(actual); throw Error('Release consumer destination already exists');}
   catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
   return actual;
 }
+export const pythonConsumerDestination = releaseConsumerDestination;
 
 export function releaseInstallSelection(args) {
   assert(Array.isArray(args) && args.length >= 1, 'Supply the original RC directory');
