@@ -81,4 +81,3 @@ async function fixture(t, local = false, platform = 'darwin-arm64') {
 }
 
 export {fixture as inertNativeStandaloneFixture};
-
