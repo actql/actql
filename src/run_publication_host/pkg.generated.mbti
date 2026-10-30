@@ -2993,6 +2993,7 @@ pub struct ClientInferPlanGraph {
   occurrence : ClientInferOccurrence
   result_producers : Array[(Int, String, String, String)]
   serialization : ClientSerializationPlanGraph?
+  // private fields
 }
 
 pub(all) enum ClientInferPlanGraphIssue {

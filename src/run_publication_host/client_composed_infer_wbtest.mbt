@@ -30,6 +30,120 @@ fn client_composed_infer_test_program(
 }
 
 ///|
+fn original_infer_graph_parts_fixture() -> (
+  PreparedClientProgram,
+  ClientInferPlanGraph,
+) {
+  let prepared = client_infer_prefix_test_program()
+  let occurrence = prepared_client_composed_infer_occurrence(prepared).unwrap()
+  let bounds = run_materials_limits()
+  let graph = issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    client_infer_graph_test_execution(prepared, occurrence=Some(occurrence)),
+    bounds.sequence,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  (prepared, graph)
+}
+
+///|
+test "Model component graph retains its original arrays and completed writer geometry for the actual task compiler" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let bounds = run_materials_limits()
+  let parsed = @source.parse_json_bytes_measured(
+    @utf8.encode(component.graph.wire),
+    {
+      max_input_bytes: bounds.max_evidence_bytes,
+      max_nodes: bounds.max_evidence_nodes,
+      max_depth: bounds.max_evidence_depth,
+    },
+  ).unwrap()
+  assert_eq(component.graph_wire_bytes, parsed.usage.input_bytes)
+  assert_eq(component.graph_wire_nodes, parsed.usage.nodes)
+  assert_eq(component.graph_wire_depth, parsed.usage.depth)
+  let (nodes, edges, roots) = client_infer_graph_original_parts(
+    component,
+    prepared,
+    parsed.usage.input_bytes,
+    parsed.usage.nodes,
+    parsed.usage.depth,
+  ).unwrap()
+  assert_true(physical_equal(nodes, component.graph_nodes))
+  assert_true(physical_equal(edges, component.graph_edges))
+  assert_true(physical_equal(roots, component.graph_roots))
+  assert_eq(nodes.length(), 2)
+  assert_eq(edges.length(), 1)
+  assert_true(roots.is_empty())
+  assert_true(
+    @canonical.object_field(nodes[1], "node_id") is Some(@canonical.String(id)) &&
+    id == "task_0_infer_2",
+  )
+  let compiled = issue_prepared_client_multi_infer_compilation(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  assert_eq(compiled.infers.length(), 1)
+  assert_true(physical_equal(compiled.infers[0], component))
+  assert_eq(client_task_compilation_result_names(compiled), ["answer"])
+}
+
+///|
+test "Model original graph parts keep tighter codec bounds and refuse foreign or changed wire" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let b = component.graph_wire_bytes
+  let n = component.graph_wire_nodes
+  let d = component.graph_wire_depth
+  for
+    (bytes, nodes, depth) in [
+      (b - 1, n, d),
+      (b, n - 1, d),
+      (b, n, d - 1),
+      (0, n, d),
+    ] {
+    assert_true(
+      client_infer_graph_original_parts(
+        component, prepared, bytes, nodes, depth,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    client_infer_graph_original_parts(
+      component,
+      client_infer_prefix_test_program(),
+      b,
+      n,
+      d,
+    )
+    is None,
+  )
+  let changed = { ..component, graph: { ..component.graph, wire: "{}", }, }
+  assert_true(
+    client_infer_graph_original_parts(changed, prepared, b, n, d) is None,
+  )
+  assert_true(
+    issue_prepared_client_multi_infer_task_plan_graph(
+      prepared,
+      [changed],
+      run_materials_limits().sequence,
+      b,
+      n,
+      d,
+    )
+    is Err(UnsupportedGraph),
+  )
+}
+
+///|
 test "composed INFER selects its checked JOIN task rather than task zero" {
   let prepared = client_composed_infer_test_program()
   // The existing one-task component selection remains scoped to its input.

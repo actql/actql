@@ -4161,6 +4161,23 @@ the compiler completed; a closing-byte refusal can follow all value visits.
 
 ### Pure Model Plan on the original Request
 
+The original Infer graph keeps the canonical component node, edge and root
+arrays created by its issuer, with the exact byte/node/depth usage of that same
+completed writer. The composed Task compiler borrows those private arrays;
+it does not parse the same component wire or copy the arrays again. A consumer
+with tighter codec bounds still checks the original complete usage, and a
+changed wire cannot reuse the old component facts. Saved material still follows
+its full original Program/contract reconstruction path.
+
+This changes representation lifetime: four references and three scalar words
+join the existing Infer graph record, and its three already-created arrays and
+canonical children remain live through the actual compilation/Run holder.
+Their actual backing and child/text coexistence require complete Model domain
+funding. The selected Model Plan record below does not fund them. The final
+Task graph still has its separate canonical parse; its copy overlap must remain
+in construction/retention accounting. Removing the component parse is neither
+full compiler funding nor a claim about ordinary time or retained heap savings.
+
 The fixed installed Mock Model profile can retain its source-free module or
 two-Source capture module together with the actual original Task compilation.
 `ClientInstalledManagedModelPlan` binds that same module to the Request,

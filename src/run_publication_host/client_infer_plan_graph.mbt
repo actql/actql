@@ -19,6 +19,43 @@ pub struct ClientInferPlanGraph {
   occurrence : ClientInferOccurrence
   result_producers : Array[(Int, String, String, String)]
   serialization : ClientSerializationPlanGraph?
+  // Same issuer-owned component arrays and completed writer facts. They are
+  // never exposed as caller-mutable DATA or reconstructed from saved wire.
+  priv original_graph_wire : String
+  priv graph_nodes : Array[@canonical.CanonicalValue]
+  priv graph_edges : Array[@canonical.CanonicalValue]
+  priv graph_roots : Array[@canonical.CanonicalValue]
+  priv graph_wire_bytes : Int
+  priv graph_wire_nodes : Int
+  priv graph_wire_depth : Int
+}
+
+///|
+// This is an immutable original read, not another graph admission. Retain the
+// original writer's complete limits check when a consumer selects tighter
+// bounds. A changed wire cannot use the former component facts.
+fn client_infer_graph_original_parts(
+  value : ClientInferPlanGraph,
+  owner : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+)? {
+  if !physical_equal(value.owner, owner) ||
+    value.graph.wire != value.original_graph_wire ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 ||
+    value.graph_wire_bytes > max_wire_bytes ||
+    value.graph_wire_nodes > max_nodes ||
+    value.graph_wire_depth > max_depth {
+    return None
+  }
+  Some((value.graph_nodes, value.graph_edges, value.graph_roots))
 }
 
 ///|
@@ -923,6 +960,9 @@ fn issue_client_infer_plan_graph_for_occurrence(
     @encode.key(graph_writer, "root_refs")
     client_plan_emit_array(graph_writer, roots, @canonical.emit_value)
     @encode.end_object(graph_writer)
+    let (wire, graph_wire_bytes, graph_wire_nodes, graph_wire_depth) = @encode.finish_text_usage(
+      graph_writer,
+    )
     Ok({
       owner: value,
       task,
@@ -931,7 +971,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
       execution,
       item_limit,
       graph: {
-        wire: @encode.finish(graph_writer),
+        wire,
         transformations,
         result_plans,
         standard_progress_keys: None,
@@ -945,6 +985,13 @@ fn issue_client_infer_plan_graph_for_occurrence(
       occurrence,
       result_producers: producers,
       serialization,
+      original_graph_wire: wire,
+      graph_nodes: nodes,
+      graph_edges: edges,
+      graph_roots: roots,
+      graph_wire_bytes,
+      graph_wire_nodes,
+      graph_wire_depth,
     })
   } catch {
     _ => Err(Encoding)

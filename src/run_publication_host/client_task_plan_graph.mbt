@@ -272,27 +272,18 @@ fn issue_client_task_plan_graph(
     input_nodes.push(node)
     match selected {
       Some(infer) if task == infer.task => {
-        guard parse_plan_identity_value(
-            infer.graph.wire,
-            max_wire_bytes,
-            max_nodes,
-            max_depth,
+        guard client_infer_graph_original_parts(
+            infer, value, max_wire_bytes, max_nodes, max_depth,
           )
-          is Some(component) &&
-          @canonical.object_field(component, "nodes")
-          is Some(@canonical.Array(component_nodes)) &&
-          @canonical.object_field(component, "data_edges")
-          is Some(@canonical.Array(component_edges)) &&
-          @canonical.object_field(component, "root_refs")
-          is Some(@canonical.Array(component_roots)) &&
-          @canonical.array_values(component_roots).is_empty() &&
+          is Some((component_nodes, component_edges, component_roots)) &&
+          component_roots.is_empty() &&
           infer.graph.transformations.is_empty() else {
           return Err(UnsupportedGraph)
         }
-        for component_node in @canonical.array_values(component_nodes) {
+        for component_node in component_nodes {
           nodes.push(component_node)
         }
-        for edge in @canonical.array_values(component_edges) {
+        for edge in component_edges {
           model_edges.push(edge)
         }
       }
