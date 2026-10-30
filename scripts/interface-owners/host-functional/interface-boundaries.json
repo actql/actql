@@ -19617,7 +19617,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19780,7 +19780,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -48444,7 +48444,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))"
+                "anchor": "? sourceManaged.prepareRun(prepared)"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -48502,7 +48502,7 @@
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup"
+                "anchor": "else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -84562,7 +84562,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -84811,7 +84811,7 @@
       "sha256": "063db24be83ee159521053b837813154aaa616207739c065a2e526acc1d5725f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -85217,7 +85217,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",
