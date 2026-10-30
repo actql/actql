@@ -174,11 +174,11 @@ test('same-bytes resume classification distinguishes confirmed, absent, unknown 
   observations[0].identity.sha256 = 'f'.repeat(64); assert.throws(() => resumeReleaseSet(fixed, observations), /differs/u);
 });
 
-test('unsupported Linux Python and standalone Native paths cannot inherit another verifier', async () => {
+test('unsupported Linux Python and unverified Native archives cannot inherit another verifier', async () => {
   const value = request(true); value.targets[0].platforms = ['manylinux_2_28_x86_64'];
   await assert.rejects(freezeReleaseSet({request: value, policy, cohorts: [descriptor(true)], destination: join(scratch, 'no-linux')}));
   const native = request(); native.targets[0] = {...native.targets[0], ecosystem: 'native', destination: 'https://github.com/actql/actql'};
-  await assert.rejects(freezeReleaseSet({request: native, policy, cohorts: [{...descriptor(false), kind: 'standalone-native'}], destination: join(scratch, 'no-standalone')}), /standalone Native/u);
+  await assert.rejects(freezeReleaseSet({request: native, policy, cohorts: [{...descriptor(false), kind: 'native-standalone'}], destination: join(scratch, 'no-standalone')}), /native-standalone[.]json/u);
 });
 
 test('human summary comes from the fixed manifest and new external CLI operations stay unavailable', async t => {

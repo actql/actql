@@ -261,9 +261,10 @@ execution path is connected and the owner approves a fixed release set.
 `node scripts/release.mjs freeze <request.json> <cohorts.json> <new-directory>`
 connects existing ecosystem outputs without building or publishing. The cohort
 file is an explicit array of `{targetId, kind, directory}` records. Supported
-kinds are `node-npm`, `native-npm` and `python-wheels`. Native npm launcher
-packages are not standalone Native archives; no standalone adapter is connected
-at this layer yet. The existing Python wheel verifier currently selects only
+kinds are `node-npm`, `native-npm`, `python-wheels` and `native-standalone`.
+Native npm launcher packages and standalone archives retain separate manifests
+and acceptance. The standalone connection reuses an existing Native npm OS
+payload and does not compile another binary. The existing Python wheel verifier currently selects only
 its actual macOS-arm64 layout and refuses other platforms.
 
 Each selected target must retain its complete, dependency-ordered child cohort,
@@ -322,17 +323,36 @@ and streams the wheel to verify its actual bytes. Unselected files, a yanked
 file or an occupied empty release cannot authorize appending a new platform or
 replacing an old placeholder. PyPI has no npm-style channel promotion.
 
-Only a 404 from the original version metadata route is absence. Authentication,
+For npm and PyPI, only a 404 from the original version metadata route is absence. Authentication,
 rate-limit/server/transport failures, malformed metadata, failed artifact GETs
 and interrupted streams remain unknown. Different occupied identities/bytes
 remain conflicts. Both states block resume; neither causes a resend, version
-bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
-followed, and artifact downloads stay on the selected public registry origins.
+bump, rebuild or `--skip-existing`. Responses are bounded. npm/PyPI redirects
+are not followed; artifact downloads stay on the selected public registry origins.
+
+Standalone Native archives use the same `observe` command with their fixed
+upper manifest. The anonymous [release-by-tag reader](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name)
+requires a visible immutable published release and the exact prerelease flag.
+It resolves the actual [Git reference](https://docs.github.com/en/rest/git/refs#get-a-reference),
+including a bounded annotated-tag chain, to the fixed source commit;
+`target_commitish` alone is not source proof. The complete paginated
+[asset inventory](https://docs.github.com/en/rest/releases/assets#list-release-assets)
+must contain exactly the selected archive and checksum filenames and metadata.
+The observer downloads each actual asset through the public binary API and
+compares size/SHA256, even when a legacy API record has no digest. A bounded
+HTTP 302 may reach only the selected HTTPS GitHub asset CDN origins; signed
+query strings are used for that GET and omitted from the observation receipt.
+
+An anonymous GitHub 404 remains **unknown**, because it cannot establish that
+an invisible draft does not already exist. A mutable/different public release
+or an immutable release missing a selected asset blocks adoption. This port
+does not append assets, authenticate to a draft, create a tag, publish a draft
+or perform partial-draft recovery. Those duties still require the separately
+approved executor and its actual current observations.
 
 These checks are not a public fresh-install or runtime acceptance. Native npm
-launcher artifacts use the same npm route; standalone GitHub archives still
-require their actual assembly/observation connection. No observer grants
-publication authority or substitutes for the separate approved executor.
+launcher artifacts use the npm route. No observer grants publication authority
+or substitutes for the separate approved executor.
 
 ## Channel transition review
 
