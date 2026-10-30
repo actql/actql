@@ -225,3 +225,30 @@ test('actual claimed dispatch keeps the request borrowed until send and projecti
   proceed();assert.equal((await sent).claimed,true);
   assert.equal(projects,1);assert.equal(route.retire(),true);assert.equal(sends,1);
 });
+
+test('actual create check forwards the same issued authorization into its selected managed physical occurrence',async()=>{
+  const selected={kind:'create',memberIndex:3},request={},raw=Object.freeze({grant:{original:true},scope:{}});
+  const decision={},events=[],selectedRecipe={credentialOperations:[{phase:'capture-check'}]};
+  const originalCredential={},originalResource=()=>{},boundCredential={},boundResource=()=>{};
+  const site={credential:originalCredential,callResource:originalResource,
+    issueReadGrant(facts){assert.equal(facts.decision,decision);events.push('grant');return raw;}};
+  const owned={check:{operation:'form-read',resource:'rows'},checkRequest(context){
+    assert.equal(context.request,request);assert.equal(context.authorization.grant,raw.grant);
+    assert.equal(context.credential,boundCredential);assert.equal(context.callResource,boundResource);
+    events.push('provider');return {checked:true};}};
+  const checkRows=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:selectedRecipe}),
+    readDecision:async()=>decision,fail});
+  let forwarded;
+  await checkRows({members:[selected],entries:[[{request}]],runInvocationCid:'run',dispatches:['dispatch'],
+    subjectOf:()=> 'subject',assertCurrent(){},operationPhase:'capture',
+    physicalOperations:async facts=>{
+      forwarded=facts;events.push('managed');assert.equal(facts.originalAuthorization,raw);
+      assert.equal(facts.site,site);assert.equal(facts.phase,'capture-check');
+      return facts.invoke({authorization:Object.freeze({...raw,useId:facts.useId}),
+        credential:boundCredential,callResource:boundResource});
+    }});
+  assert.deepEqual(events,['grant','managed','provider']);
+  assert.equal(forwarded.member,selected);assert.equal(forwarded.rowIndex,0);
+  assert.equal(forwarded.operation,'form-read');assert.equal(forwarded.purpose,'read');
+  assert.equal(forwarded.useId,'dispatch-check-subject-0');
+});
