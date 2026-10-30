@@ -250,3 +250,46 @@ publisher setting or external acceptance is established by a valid plan.
 The existing ecosystem instructions below retain their artifact-verification
 details; their direct CLI publication examples are held until the protected
 execution path is connected and the owner approves a fixed release set.
+
+## Freeze existing artifacts
+
+`node scripts/release.mjs freeze <request.json> <cohorts.json> <new-directory>`
+connects existing ecosystem outputs without building or publishing. The cohort
+file is an explicit array of `{targetId, kind, directory}` records. Supported
+kinds are `node-npm`, `native-npm` and `python-wheels`. Native npm launcher
+packages are not standalone Native archives; no standalone adapter is connected
+at this layer yet. The existing Python wheel verifier currently selects only
+its actual macOS-arm64 layout and refuses other platforms.
+
+Each selected target must retain its complete, dependency-ordered child cohort,
+exact source/version and explicitly selected cohort tag. The existing ecosystem
+verifier runs before output is created. The new directory retains child-manifest
+bytes and copies the exact public artifacts; it does not preserve arbitrary
+build caches or rebuild missing files. Partial local output after a failed copy
+is not a completed candidate and is never silently reused.
+
+The upper `release-set.json` binds request, candidate policy, child manifest
+digests and all artifact names, versions, sizes, SHA256s and npm SRI. Its digest
+is detached in `release-set.sha256`, never stored inside its own hashed body.
+The detached file is local integrity DATA, not an approval. Use
+`node scripts/release.mjs verify <directory> <externally-retained-SHA256>` or
+`summary` with those same arguments to reobserve the fixed bytes. The Markdown
+and JSON summary come from that same manifest. A changed digest is a new
+candidate; it does not inherit any previous approval.
+
+`resume-plan <directory> <SHA256> <observations.json>` only classifies explicitly
+supplied registry observations. An observation identifies `targetId`, `file`
+and `state` (`absent`, `present`, `unknown`); a present observation also carries
+the exact artifact `identity` (name/version/bytes/SHA256 and npm integrity).
+Identical bytes may be reused, absence names the same missing bytes, unknown
+blocks the plan and any mismatch stops it. This input is not authenticated
+registry reobservation or owner authority, and the command never sends bytes.
+Live PyPI/Native observation adapters, protected execution, channel arbitration
+and release acceptance remain separate unfinished work.
+
+All sets from this layer remain explicitly `unaccepted`. The existing Python
+checker reused here establishes wheel metadata and frozen-byte correspondence,
+not original engine execution, normal install, Linux support or public registry
+acceptance. Synthetic metadata fixtures contain no usable engine. Real
+candidate assembly and acceptance wait for the selected coherent product
+source and owner-selected version/scope.
