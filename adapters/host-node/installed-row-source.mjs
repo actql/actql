@@ -2538,6 +2538,7 @@ export async function createInstalledRowSource({moon, declaration,
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({
         capacity,
+        ...(owner.wholeInput ? {wholeInput: true} : {}),
         ...(owner.managedRun === undefined ? {} : {managedRun: owner.managedRun}),
         transferBytes: maxTransferBytes,
         executionBytes: BigInt(limits.maxPageBytes),

@@ -153,6 +153,36 @@ pub fn client_program_whole_source_check_compute_binding(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedRequiresAcquisitionResultPublication")
+pub fn client_program_installed_managed_requires_acquisition_result_publication(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_managed_acquisition_result_publication(
+    owner, prepared, request,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourceLedger")
+pub fn client_program_installed_managed_whole_source_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  transfer : Int64,
+  scratch : Int64,
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_whole_source_ledger(
+    owner, prepared, request, capacity, transfer, scratch,
+  )
+}
+
+///|
 #export_name("clientProgramWholeSourceFacts")
 pub fn client_program_whole_source_facts(
   acquisition : @client_row_source_host.RowInputAcquisition,
@@ -240,6 +270,24 @@ pub fn client_program_prepared_installed_whole_source_requirements(
   plan : @client_local_host.ClientInstalledManagedCapturePlan,
 ) -> Array[Int64] {
   @client_local_host.prepared_installed_managed_capture_requirements(plan)
+}
+
+///|
+/// Open Compute from the same adopted Plan and its original live captures.
+/// The existing Run retains the DAG before any later configuration failure.
+#export_name("clientProgramOpenInstalledManagedCaptureHost")
+pub fn client_program_open_installed_managed_capture_host(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[@query.CapturedInputSource],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @client_local_host.ClientInstalledCaptureHostIssue,
+] {
+  @client_local_host.open_installed_managed_capture_host(
+    owner, prepared, request, sources,
+  ).map(value => value.0)
 }
 
 ///|
