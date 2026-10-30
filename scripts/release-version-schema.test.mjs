@@ -24,7 +24,7 @@ test('actual schema version regex and shared parser match independent literal ve
   assert.equal(supported.length + invalid.length, 27);
 });
 
-test('existing lint opt-in selects the two release files without new publication authority', () => {
+test('existing lint opt-in selects the release files without new publication authority', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs.lint;
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
@@ -33,5 +33,5 @@ test('existing lint opt-in selects the two release files without new publication
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
     if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs'});
+    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs'});
 });
