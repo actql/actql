@@ -498,3 +498,23 @@ test('standard saved request bounds real JSON material and refuses opaque or eff
   const value = {name: 'original'}, prepared = driver.prepareRequest({member, value});
   assert.throws(() => driver.recoveryEntry({member, entries: [{...prepared, value}]}), {code: 'InvalidInstalledRowWrite'});
 });
+
+test('standard declared check retains the same independent mapped row on fresh and saved request restoration',async()=>{
+  let expected,bodyCalls=0,projectCalls=0;
+  const write=declaration({check:{resource:'forms',operation:'fixture:form',
+    http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+    body(context){assert.equal(context.value,expected);assert(Object.isFrozen(context.value));bodyCalls++;return '{}';},
+    project(context){assert.equal(context.value,expected);assert(Object.isFrozen(context.value));projectCalls++;}}});
+  const driver=deriveInstalledRowWrite(write,'fixture'),value={name:'same approved value'};
+  const prepared=driver.prepareRequest({member,value});
+  expected=driver.requestFacts(prepared.request).value;
+  const observe=request=>driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},callResource:()=>response});
+  await observe(prepared.request);
+  const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]});
+  const restored=driver.recoverRequests({durable:{connectorRecovery:[{...saved,memberIndex:0}]},members:[member]}).requests[0][0];
+  expected=driver.requestFacts(restored).value;
+  assert.notEqual(expected,value);
+  assert.deepEqual(expected,value);
+  await observe(restored);
+  assert.deepEqual([bodyCalls,projectCalls],[2,2]);
+});
