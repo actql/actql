@@ -461,11 +461,11 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "function originalReaderFactory("
+                "anchor": "providerReader=services('createSourceReader'"
               },
               {
                 "path": "docs/design/notion-user-reader.md",
-                "anchor": "The wrapper retains original options, capacity/preparer receiver, child,"
+                "anchor": "Failed construction retains the same created reader and Site through"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
