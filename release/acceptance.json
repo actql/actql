@@ -182,7 +182,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Existing npm and new one-project Python protocols preserve original fixed bytes, synced intent, terminal output and independent public readback. Python facade waits for exact SDK/runtime; lost replies stay Unknown and confirmed bytes are not resent. Actual protected executor, owner-approved publication/recovery and signing/provenance acceptance remain pending",
+      "currentSlice": "npm, one-project Python and Native Draft protocols preserve original fixed bytes, synced intent and independent byte readback. Native uses complete owner-visible drafts and immutable settings, uploads absent assets only and explicitly avoids Latest. Lost replies stay Unknown and confirmed work is not resent. Protected executor, owner-approved publication/recovery and signing/provenance acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -208,13 +208,17 @@
         {
           "kind": "Existing full cold wheel/fixed/review verifier with inert wheels and injected HTTP/project jobs; no PyPI/action/signing/owner trust",
           "test": "Python publish: lost original terminal response keeps Unknown intent and same-byte resume does not resend"
+        },
+        {
+          "kind": "Full inert Native archive/ABI reader with injected owner/mutation responses only; no executable, credential, real GitHub mutation or approval",
+          "test": "Native publish: lost create upload or publish terminal reply stays failed, next same-byte attempt never resends confirmed work"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Public and pending npm byte readers reject conflicting length/SHA256/SRI or immutable stage identity before send. Existing PyPI/Native checks remain; actual protected executor/live candidate acceptance remains pending",
+      "currentSlice": "Public/pending npm and Native Draft readers reject conflicting original length/digest/identity before send. Mutable or incomplete published Native releases cannot be repaired by append/delete/replace. Existing PyPI checks remain; actual protected executor/live candidate acceptance remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {

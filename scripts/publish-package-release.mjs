@@ -9,8 +9,8 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {inventory, publicationPlan, publishedVersion, unpack, verifyPackageRelease} from './package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
-import {readFrozenReleaseArtifact, verifyReleaseSet} from './release-set.mjs';
-import {observeNpmStageTarget, observePythonReleaseTarget} from './release-registry.mjs';
+import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet} from './release-set.mjs';
+import {observeNativePublicationTarget, observeNpmStageTarget, observePythonReleaseTarget} from './release-registry.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -351,6 +351,132 @@ export async function publishPythonReleaseProject(options) {
   const summary = {schemaVersion: 'actql-python-publish-attempt/0.1', manifestSha256: expectedSha256,
     targetId, project, attemptId, at: new Date().toISOString(), state: actionState, attestation,
     qualification: 'one-project same-byte protocol only; not owner approval, trust/image isolation, signature verification, public install or complete release acceptance'};
+  await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
+}
+
+async function nativePublishSelection(directory, expectedSha256, targetId) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
+  const fixed = await verifyReleaseSet(directory, {expectedSha256}), draft = nativeReleaseDraftRequest(fixed, targetId);
+  assert(fixed.review?.executionScope.publish.includes(targetId), 'Native publication needs its bound proposed scope/evidence');
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === targetId);
+  assert.equal(cohort.kind, 'native-standalone');
+  const {verifyNativeStandalone} = await import('./native-standalone-release.mjs');
+  const original = await verifyNativeStandalone(dirname(join(resolve(directory), cohort.path)));
+  requireNativeCohortPackageVersions(JSON.parse(original.origin.manifest));
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {fixed, draft, artifacts: fixed.manifest.artifacts.filter(value => value.targetId === targetId)};
+}
+
+export async function nativePublishPlan(directory, expectedSha256, targetId) {
+  const selected = await nativePublishSelection(directory, expectedSha256, targetId);
+  return {schemaVersion: 'actql-native-publish-plan/0.1', manifestSha256: expectedSha256, targetId,
+    execution: 'unavailable', draft: selected.draft, artifacts: selected.artifacts,
+    pending: ['Independent owner approval of this exact set and permitted same-bytes recovery',
+      'Protected immutable validator, full actual install evidence, separate read/mutation trust and one exclusive executor',
+      'Administration-read immutable setting and complete authenticated draft visibility; anonymous 404 is unknown',
+      'Actual signing/provenance and immutable-release verification; this protocol does not verify attestations',
+      'No default runner, credentials or CLI; final channel promotion/public-install acceptance is separate']};
+}
+
+// Protocol only, under the SAME existing publisher/receipt Owner. Neither the
+// ports nor proposed scope/passed labels prove owner authority. The protected
+// executor must hold exclusive current execution across the entire sequence.
+// runGitHub settles only after its ORIGINAL request/job is terminal. A lost
+// observation retains that handle externally, never another invocation here.
+export async function publishNativeRelease(options) {
+  const allowed = ['directory', 'expectedSha256', 'targetId', 'receiptsDirectory', 'fetchOwner', 'fetchCdn', 'runGitHub'];
+  assert(options && Object.keys(options).every(key => allowed.includes(key)), 'Unexpected Native publication fields');
+  const {directory, expectedSha256, targetId, receiptsDirectory, fetchOwner, fetchCdn = fetch, runGitHub} = options;
+  assert.equal(typeof fetchOwner, 'function', 'No protected Native owner read port supplied');
+  assert.equal(typeof runGitHub, 'function', 'No protected Native mutation runner supplied');
+  const selected = await nativePublishSelection(directory, expectedSha256, targetId);
+  const acceptance = selected.fixed.review.acceptance.find(value => value.targetId === targetId && value.phase === 'prepublication-install');
+  assert.equal(acceptance.status, 'passed', 'Prepublication evidence is not even supplied as passed');
+  const observe = () => observeNativePublicationTarget(directory, expectedSha256, targetId, {fetchOwner, fetchCdn});
+  const valid = value => assert(['absent', 'draft', 'published'].includes(value.state),
+    `Original Native boundary is ${value.state}: ${value.reason ?? 'unavailable'}`);
+  const initial = await observe(); valid(initial);
+  assert(isAbsolute(receiptsDirectory)); const root = resolve(receiptsDirectory); await privateDirectory(root);
+  const releaseRoot = join(root, expectedSha256); await privateDirectory(releaseRoot);
+  const targetRoot = join(releaseRoot, targetId); await privateDirectory(targetRoot);
+  const prior = await readdir(targetRoot);
+  assert(prior.every(name => name.startsWith('attempt-') && stageUuid(name.slice(8))), 'Unrecognized original Native attempt');
+  for (const name of prior) {const status = await lstat(join(targetRoot, name)); assert(status.isDirectory() && !status.isSymbolicLink());}
+  if (prior.length) assert(selected.fixed.review.executionScope.resumeIdenticalMissing.includes(targetId), 'Original scope did not permit Native same-bytes recovery');
+  const attemptId = randomUUID(), attempt = join(targetRoot, `attempt-${attemptId}`);
+  await mkdir(attempt, {mode: 0o700}); await syncDirectory(targetRoot);
+  const record = async (name, value) => writePrivateOriginal(join(attempt, name),
+    Buffer.isBuffer(value) ? value : Buffer.from(`${JSON.stringify(value, null, 2)}\n`));
+  await record('preflight.json', initial);
+  let operationIndex = 0;
+  const execute = async (kind, request, expectedStatus, artifact = null) => {
+    const index = operationIndex++;
+    if (request.body) Object.freeze(request.body);
+    if (request.headers) Object.freeze(request.headers);
+    Object.freeze(request);
+    const intent = {schemaVersion: 'actql-native-publish-intent/0.1', manifestSha256: expectedSha256,
+      targetId, attemptId, kind, at: new Date().toISOString(), state: 'outcome-unknown', request, artifact};
+    await record(`${index}-${kind}-intent.json`, intent);
+    let response;
+    try {response = await runGitHub(request, Object.freeze({manifestSha256: expectedSha256, targetId, kind}));}
+    catch (failure) {await record(`${index}-${kind}-unobserved.json`, {state: 'unknown', reason: String(failure.message).slice(0,4096)}); throw failure;}
+    const terminal = response && ['code', 'signal', 'status', 'stdout', 'stderr'].every(field => Object.hasOwn(response, field));
+    const bounded = terminal && typeof response.stdout === 'string' && typeof response.stderr === 'string' &&
+      Buffer.byteLength(response.stdout) + Buffer.byteLength(response.stderr) <= 8 * 1024 * 1024;
+    if (!bounded) {await record(`${index}-${kind}-unobserved.json`, {state: 'unknown', reason: 'Original terminal response unavailable'});
+      throw Error(`Native ${kind} outcome unknown; preserve ${attempt}`);}
+    await record(`${index}-${kind}-terminal.json`, response);
+    assert(response.code === 0 && response.signal === null && response.status === expectedStatus,
+      `Native ${kind} returned without confirmation; preserve ${attempt}`);
+    let body;
+    try {body = JSON.parse(response.stdout);} catch {throw Error(`Native ${kind} original JSON unavailable; preserve ${attempt}`);}
+    assert(Number.isSafeInteger(body?.id) && body.id > 0, 'Original GitHub response identity unavailable');
+    return body.id;
+  };
+  const api = 'https://api.github.com/repos/actql/actql';
+  let current = await observe(); await record('before-create.json', current); valid(current);
+  if (current.state === 'absent') {
+    const createdId = await execute('create', {method: 'POST', url: `${api}/releases`, body: {...selected.draft}}, 201);
+    current = await observe(); await record('after-create.json', current); valid(current);
+    assert.equal(current.state, 'draft'); assert.equal(current.releaseId, createdId, 'Original created Draft identity changed');
+  }
+  const releaseId = current.releaseId;
+  for (const [index, item] of selected.artifacts.entries()) {
+    current = await observe(); await record(`asset-${index}-before.json`, current); valid(current);
+    assert.equal(current.releaseId, releaseId, 'Original Native release was replaced');
+    const existing = current.observations.find(value => value.file === item.file);
+    if (existing.state === 'present') continue;
+    assert.equal(current.state, 'draft', 'Never append to an already published release');
+    const captured = await readFrozenReleaseArtifact(directory, expectedSha256, targetId, item.file);
+    const payload = join(attempt, `payload-${index}`); await mkdir(payload, {mode: 0o700}); await syncDirectory(attempt);
+    const path = join(payload, item.file); await writePrivateOriginal(path, captured.bytes, 0o400);
+    const assetId = await execute('upload', {method: 'POST',
+      url: `https://uploads.github.com/repos/actql/actql/releases/${releaseId}/assets?name=${encodeURIComponent(item.file)}`,
+      headers: {'content-type': item.file.endsWith('.tar.gz') ? 'application/gzip' : 'text/plain', 'content-length': String(item.bytes)},
+      file: path}, 201, item);
+    const status = await lstat(path);
+    assert(status.isFile() && !status.isSymbolicLink() && (status.mode & 0o777) === 0o400);
+    assert.deepEqual(await readFile(path), captured.bytes, 'Native uploader changed original private payload');
+    assert.deepEqual(await readdir(payload), [item.file]);
+    current = await observe(); await record(`asset-${index}-after.json`, current); valid(current);
+    assert.equal(current.releaseId, releaseId);
+    const confirmed = current.observations.find(value => value.file === item.file);
+    assert.equal(confirmed.state, 'present'); assert.equal(confirmed.assetId, assetId, 'Original uploaded asset identity changed');
+  }
+  current = await observe(); await record('before-publish.json', current); valid(current);
+  assert.equal(current.releaseId, releaseId); assert(current.observations.every(value => value.state === 'present'));
+  if (current.state === 'draft') {
+    const {generate_release_notes, ...body} = selected.draft;
+    const publishedId = await execute('publish', {method: 'PATCH', url: `${api}/releases/${releaseId}`,
+      body: {...body, draft: false, make_latest: 'false'}}, 200);
+    assert.equal(publishedId, releaseId);
+    current = await observe(); await record('after-publish.json', current); valid(current);
+  }
+  assert.equal(current.state, 'published'); assert.equal(current.releaseId, releaseId);
+  await verifyReleaseSet(directory, {expectedSha256});
+  const summary = {schemaVersion: 'actql-native-publish-attempt/0.1', manifestSha256: expectedSha256, targetId,
+    attemptId, releaseId, operationCount: operationIndex, state: 'immutable-release-and-original-assets-confirmed',
+    qualification: 'same-byte protocol/owner-port readback only; not approval, permission separation, attestation verification, public install, final channel or complete release acceptance'};
   await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
 }
 

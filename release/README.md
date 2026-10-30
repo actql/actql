@@ -470,6 +470,13 @@ pending until their independent evidence exists.
 
 ## Read-only public registry observation
 
+The [Native Draft publication protocol](native-cli.md#exact-byte-native-draft-publication-protocol)
+uses the same full Native archive and registry byte owners, but requires separate
+protected owner read/mutation ports with no default credentials or executable
+publish CLI. Complete draft visibility, immutable settings and exact asset
+recovery are distinct from the anonymous public observer below. Final channel
+promotion, owner authority and real public installation remain unaccepted.
+
 ```sh
 node scripts/release.mjs observe <fixed-directory> <externally-retained-SHA256>
 ```

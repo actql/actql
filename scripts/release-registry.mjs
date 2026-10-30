@@ -6,7 +6,7 @@ import {closeSync, fsyncSync, openSync, writeSync} from 'node:fs';
 import {lstat, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, resolve} from 'node:path';
 import {publishedVersion, verifyPackageRelease} from './package-release.mjs';
-import {resumeReleaseSet, verifyReleaseSet} from './release-set.mjs';
+import {nativeReleaseDraftRequest, resumeReleaseSet, verifyReleaseSet} from './release-set.mjs';
 
 class RegistryUnavailable extends Error {}
 class RegistryConflict extends Error {}
@@ -116,9 +116,9 @@ async function githubMetadata(path, fetchResponse, requests) {
   return reply.body;
 }
 
-async function githubReleaseContext(fixed, fetchResponse, requests) {
+async function githubReleaseContext(fixed, fetchResponse, requests, selectedRelease = null) {
   const {manifest} = fixed, tag = manifest.release.gitTag;
-  const release = await githubMetadata(`/releases/tags/${encodeURIComponent(tag)}`, fetchResponse, requests);
+  const release = selectedRelease ?? await githubMetadata(`/releases/tags/${encodeURIComponent(tag)}`, fetchResponse, requests);
   if (!release || !positiveId(release.id) || typeof release.draft !== 'boolean' ||
       typeof release.immutable !== 'boolean' || typeof release.prerelease !== 'boolean' || typeof release.tag_name !== 'string')
     unavailable('Incomplete public GitHub release identity');
@@ -126,7 +126,19 @@ async function githubReleaseContext(fixed, fetchResponse, requests) {
       release.prerelease !== manifest.release.prerelease)
     conflict('Occupied GitHub release is draft, mutable or has a different tag/prerelease identity');
   // target_commitish can be a moving branch. Resolve the actual tag instead.
-  const ref = await githubMetadata(`/git/ref/tags/${encodeURIComponent(tag)}`, fetchResponse, requests);
+  await githubTagCommit(fixed, fetchResponse, requests);
+  const assets = await githubReleaseAssets(fixed, release, fetchResponse, requests);
+  if (assets.length !== manifest.artifacts.filter(value => value.ecosystem === 'native').length)
+    conflict('An immutable public GitHub release is missing a selected asset; it cannot be appended to');
+  return assets;
+}
+
+async function githubTagCommit(fixed, fetchResponse, requests, allowMissing = false) {
+  const {manifest} = fixed, tag = manifest.release.gitTag;
+  const reply = await metadata(`${githubApi}/git/ref/tags/${encodeURIComponent(tag)}`, fetchResponse, requests, githubGet);
+  if (reply.status === 404 && allowMissing) return null;
+  if (reply.status !== 200) unavailable('Exact public Git tag reference unavailable');
+  const ref = reply.body;
   if (ref?.ref !== `refs/tags/${tag}` || !gitObject(ref.object)) unavailable('Exact public Git tag reference unavailable');
   let object = ref.object;
   const seen = new Set();
@@ -138,6 +150,11 @@ async function githubReleaseContext(fixed, fetchResponse, requests) {
     object = tagged.object;
   }
   if (object.sha !== manifest.request.source.commit) conflict('Occupied GitHub release tag resolves to another source commit');
+  return object.sha;
+}
+
+async function githubReleaseAssets(fixed, release, fetchResponse, requests) {
+  const {manifest} = fixed, tag = manifest.release.gitTag;
   const expected = manifest.artifacts.filter(value => value.ecosystem === 'native');
   if (new Set(expected.map(value => value.file)).size !== expected.length)
     conflict('Selected standalone assets have duplicate names in the one GitHub release');
@@ -159,11 +176,9 @@ async function githubReleaseContext(fixed, fetchResponse, requests) {
     if (item.state !== 'uploaded' || item.size !== artifact.bytes ||
         (item.digest !== undefined && item.digest !== null && item.digest !== `sha256:${artifact.sha256}`))
       conflict(`Occupied GitHub asset metadata differs: ${item.name}`);
-    if (item.browser_download_url !== `https://github.com/actql/actql/releases/download/${tag}/${encodeURIComponent(item.name)}`)
+    if (!release.draft && item.browser_download_url !== `https://github.com/actql/actql/releases/download/${tag}/${encodeURIComponent(item.name)}`)
       unavailable('Public GitHub asset download identity is outside the selected release');
   }
-  if (assets.length !== expected.length)
-    conflict('An immutable public GitHub release is missing a selected asset; it cannot be appended to');
   return assets;
 }
 
@@ -177,7 +192,7 @@ function githubCdnUrl(value) {
   return url;
 }
 
-async function githubArtifactBytes(item, artifact, fetchResponse, requests, retain) {
+async function githubArtifactBytes(item, artifact, fetchResponse, requests, retain, fetchCdn = fetchResponse) {
   let url = `${githubApi}/releases/assets/${item.id}`;
   const seen = new Set();
   for (let redirects = 0; ; redirects++) {
@@ -186,7 +201,7 @@ async function githubArtifactBytes(item, artifact, fetchResponse, requests, reta
     let response;
     if (redirects === 0) response = await githubGet(url, fetchResponse, 'application/octet-stream');
     else {
-      try {response = await fetchResponse(url, {method: 'GET', credentials: 'omit', redirect: 'manual',
+      try {response = await fetchCdn(url, {method: 'GET', credentials: 'omit', redirect: 'manual',
         signal: AbortSignal.timeout(15_000), headers: {accept: 'application/octet-stream'}});}
       catch {unavailable('Public GitHub asset CDN GET failed or timed out');}
     }
@@ -201,6 +216,90 @@ async function githubArtifactBytes(item, artifact, fetchResponse, requests, reta
       return;
     }
   }
+}
+
+// This supplied API-only owner reader must have actual complete draft visibility
+// and Administration-read permission. Its presence/JSON cannot prove those
+// permissions, owner approval or exclusive execution. Anonymous 404 is never
+// used as draft absence. API credentials must never reach the separate CDN port.
+export async function observeNativePublicationTarget(directory, expectedSha256, targetId,
+  {fetchOwner, fetchCdn = fetch} = {}) {
+  assert.equal(typeof fetchOwner, 'function', 'A separate protected Native owner read port is required');
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const spec = nativeReleaseDraftRequest(fixed, targetId), artifacts = fixed.manifest.artifacts.filter(value => value.targetId === targetId);
+  const requests = [], startedAt = new Date().toISOString();
+  const result = {schemaVersion: 'actql-native-publication-observation/0.1', manifestSha256: fixed.sha256, targetId,
+    startedAt, state: 'unknown', releaseId: null, observations: [], requests,
+    qualification: 'historical owner-port settings/draft/actual-byte observation only; not permission, approval, exclusive execution, signature, public install or CAS'};
+  try {
+    const setting = await githubMetadata('/immutable-releases', fetchOwner, requests);
+    if (setting?.enabled !== true || typeof setting.enforced_by_owner !== 'boolean')
+      unavailable('Original immutable-release setting is unavailable or disabled');
+    result.immutableSetting = setting;
+    const matches = [], ids = new Set();
+    for (let page = 1; ; page++) {
+      if (page > 10) unavailable('Owner release inventory exceeds its finite page bound');
+      const batch = await githubMetadata(`/releases?per_page=100&page=${page}`, fetchOwner, requests);
+      if (!Array.isArray(batch) || batch.length > 100) unavailable('Incomplete original owner release page');
+      for (const release of batch) {
+        if (!positiveId(release?.id) || ids.has(release.id) || typeof release.tag_name !== 'string')
+          unavailable('Malformed or duplicated owner release identity');
+        ids.add(release.id); if (release.tag_name === spec.tag_name) matches.push(release);
+      }
+      if (batch.length < 100) break;
+    }
+    if (matches.length > 1) conflict('Multiple original releases occupy the selected tag');
+    if (!matches.length) {
+      await githubTagCommit(fixed, fetchOwner, requests, true);
+      result.state = 'absent';
+      result.observations = artifacts.map(item => ({file: item.file, state: 'absent'}));
+    } else {
+      const release = await githubMetadata(`/releases/${matches[0].id}`, fetchOwner, requests);
+      if (!release || release.id !== matches[0].id || release.tag_name !== spec.tag_name ||
+          release.prerelease !== spec.prerelease || typeof release.draft !== 'boolean' || typeof release.immutable !== 'boolean')
+        unavailable('Original selected release identity changed or is incomplete');
+      if (release.name !== spec.name || release.body !== spec.body)
+        conflict('Occupied release presentation belongs to a different fixed candidate');
+      result.releaseId = release.id;
+      let assets;
+      if (release.draft) {
+        if (release.immutable || release.target_commitish !== spec.target_commitish)
+          conflict('Draft source/immutability differs from the original candidate');
+        await githubTagCommit(fixed, fetchOwner, requests, true);
+        assets = await githubReleaseAssets(fixed, release, fetchOwner, requests);
+        result.state = 'draft';
+      } else {
+        assets = await githubReleaseContext(fixed, fetchOwner, requests, release);
+        result.state = 'published';
+      }
+      for (const item of artifacts) {
+        const asset = assets.find(value => value.name === item.file);
+        if (!asset) {result.observations.push({file: item.file, state: 'absent'}); continue;}
+        await githubArtifactBytes(asset, item, fetchOwner, requests, undefined, fetchCdn);
+        result.observations.push({file: item.file, state: 'present', assetId: asset.id, identity: identity(item)});
+      }
+      // Mutable Draft assets and presentation must be reobserved after their
+      // streams, against the exact original selected release id, not just tag.
+      const after = await githubMetadata(`/releases/${release.id}`, fetchOwner, requests);
+      for (const field of ['id', 'tag_name', 'draft', 'immutable', 'prerelease', 'name', 'body', 'target_commitish'])
+        if (after[field] !== release[field]) unavailable('Original release changed during byte observation');
+      const afterAssets = await githubReleaseAssets(fixed, release, fetchOwner, requests);
+      const pin = values => values.map(value => fields(value, ['id', 'name', 'state', 'size', 'digest', 'browser_download_url']))
+        .sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      if (JSON.stringify(pin(afterAssets)) !== JSON.stringify(pin(assets))) unavailable('Original asset inventory changed during byte observation');
+      await githubTagCommit(fixed, fetchOwner, requests, release.draft);
+    }
+    const finalSetting = await githubMetadata('/immutable-releases', fetchOwner, requests);
+    if (finalSetting?.enabled !== true || finalSetting.enforced_by_owner !== setting.enforced_by_owner)
+      unavailable('Original immutable-release setting changed during observation');
+  } catch (failure) {
+    if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
+    result.state = failure instanceof RegistryConflict ? 'conflict' : 'unknown';
+    result.reason = failure.message;
+    result.observations = artifacts.map(item => ({file: item.file, state: result.state}));
+  }
+  await verifyReleaseSet(directory, {expectedSha256}); result.endedAt = new Date().toISOString();
+  return result;
 }
 
 async function npmObservation(artifact, fetchResponse, requests) {
