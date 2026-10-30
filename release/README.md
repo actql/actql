@@ -1,8 +1,10 @@
 # Fixed SDK / Node release
 
-The first standard cohort is `@actql/client-wire`, `@actql/sdk`,
-`@actql/local-node`, and `@actql/node`, all at `0.0.1` with exact internal
-dependencies. `@actql/sdk` remains a remote Client with no Local runtime or
+The standard cohort is `@actql/client-wire`, `@actql/sdk`,
+`@actql/local-node`, and `@actql/node`, with one explicitly selected complete
+version and exact internal dependencies. The legacy `0.0.1` cohort file does
+not select a new release or authorize replacing an existing public version.
+`@actql/sdk` remains a remote Client with no Local runtime or
 DuckDB. `@actql/node` includes the standard Local implementation; consumers do
 not assemble internal packages. `@actql/otel-node` is optional and independent.
 Host implementation packages are not dependencies of this initial cohort.
@@ -43,7 +45,7 @@ Run preparation under the existing local heavy guard, with the repository's
 Node and MoonBit toolchain pins. Use a unique, absent RC destination:
 
 ```sh
-node scripts/package-release.mjs prepare /absolute/path/to/rc
+node scripts/package-release.mjs prepare /absolute/path/to/rc <explicit-cohort.json>
 node scripts/package-release.mjs verify /absolute/path/to/rc
 node scripts/test-package-release-install.mjs /absolute/path/to/rc
 node scripts/package-release.mjs plan /absolute/path/to/rc
@@ -77,7 +79,7 @@ receipts and failed-run evidence. `verify` checks both original and release
 bytes; it never builds, repairs or changes package versions.
 
 The external consumer starts with an empty directory and private npm cache.
-It installs only `@actql/node@0.0.1` or `@actql/sdk@0.0.1`, using a read-only
+It installs only the selected exact `@actql/node` or `@actql/sdk` version, using a read-only
 loopback registry that serves the fixed RC. npm resolves dependencies, and
 the acceptance audits exports/types and executes the existing Local/restart
 and short-query/HTTPS cases. This establishes registry installation mechanics,
@@ -90,30 +92,28 @@ and acceptance of affected paths; old receipts are never relabelled.
 
 ## Publication and recovery
 
-Public publication requires integration-owner GO for the exact names,
-versions, digests, registry, tag and evidence. Authentication checks and
-preparation do not grant that GO. Keep Hosted CI stopped.
+Public publication requires the owner's explicit approval of the exact names,
+versions, digests, registry, tag and evidence through a separate protected
+executor. Authentication checks, local JSON and preparation do not grant
+approval. The legacy `--publish` CLI is disabled before any credential or
+upload subprocess. Keep the existing hosted CI opt-in conditions unchanged.
 
-After GO, an authenticated operator invokes:
-
-```sh
-node scripts/publish-package-release.mjs --publish /absolute/path/to/rc
-```
-
-This publishes frozen archives in dependency order, with lifecycle scripts
-disabled. Before any write, all existing versions are inspected. A 404 is
+The existing tarball-only publisher library retains dependency order and
+same-byte resume for a future protected executor; it is not an authorized
+entrypoint on its own. Before any write, all existing versions are inspected. A 404 is
 absence; transport failure, registry failure and mismatched integrity are
 errors. Only an existing identical version is skipped. Publication command
 success and later registry confirmation are separate facts; immutable local
 receipts preserve successful commands even if confirmation is unavailable.
-After partial failure, inspect the same RC and rerun the command. It will not
+After partial failure, a protected executor must inspect the same approved
+fixed manifest and actual registry state. The existing library will not
 republish confirmed bytes, overwrite a version, choose a new version, or infer
 that an unconfirmed command never executed. Never publish mutable package
 directories instead of these archives.
 
 Before a next release, choose a new cohort version in the reviewed recipe,
 prepare and independently accept new archives, inspect existing versions, and
-obtain new GO. An incorrectly published immutable version is not repaired by
+obtain a new owner approval. An incorrectly published immutable version is not repaired by
 overwriting it: stop publication, disclose the affected version and scope,
 then obtain review for deprecation/tag correction and a new fixed version.
 The tool does not automatically unpublish, deprecate or change tags.
@@ -128,8 +128,13 @@ CLI packaging work.
 Local standard installation:
 
 ```sh
-npm install @actql/node
+npm install "@actql/node@${ACTQL_VERSION:?Set the owner-approved exact version}"
 ```
+
+Set `ACTQL_VERSION` to the owner's exact approved public version. A missing
+version, an unqualified package name or a local loopback acceptance does not
+identify the fixed public release. Use the resulting lockfile for repeatable
+installation.
 
 ```js
 import {open} from '@actql/node';
@@ -144,7 +149,7 @@ try {
 Remote Client only:
 
 ```sh
-npm install @actql/sdk
+npm install "@actql/sdk@${ACTQL_VERSION:?Set the owner-approved exact version}"
 ```
 
 ```js
@@ -172,7 +177,7 @@ the real CLI uses a new immutable version.
 
 ## Optional standalone Explorer cohort
 
-Explorer is separately installed with `npm install @actql/explorer`; it is not
+Explorer is separately installed at the selected exact version; it is not
 added to the initial Node/SDK release gate. `release/explorer-cohort.json` fixes
 the existing four packages followed by `explorer-ui` and `explorer`. Select it
 explicitly while keeping the normal clean-HEAD prepack and immutable digest flow:

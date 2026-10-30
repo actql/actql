@@ -3,7 +3,8 @@
 This is the limited implemented Remote transport distribution, not the
 subsequent standard CLI with embedded Local execution. SDK/Node publication
 does not wait for CLI acceptance. The existing `actql@0.0.1` placeholder stays
-immutable; the first transport cohort uses `0.0.2`.
+immutable. The owner selects a complete version explicitly; the source
+package's development metadata does not select the next published number.
 
 Build from a clean fixed HEAD with the repository-pinned MoonBit compiler,
 under the existing local heavy guard. On each actual candidate platform:
@@ -26,7 +27,7 @@ The tested OS/glibc/library set and an older untested bound are distinct.
 After both platform artifacts have the same clean source SHA:
 
 ```sh
-node scripts/native-cli-release.mjs prepare .artifacts/cli-rc-<sha> \
+node scripts/native-cli-release.mjs prepare .artifacts/cli-rc-<sha> <explicit-cohort.json> \
   .artifacts/native-cli-darwin-arm64-<sha> \
   .artifacts/native-cli-linux-x64-gnu-<sha>
 node scripts/native-cli-release.mjs verify .artifacts/cli-rc-<sha>
@@ -40,6 +41,13 @@ The `actql` launcher uses npm optional OS binary packages and checks target,
 source, executable digest, macOS deployment bound and Linux glibc before starting Native. It never
 chooses another binary or executes a Node fallback engine.
 
+The cohort file has exactly `packageVersion`, `registry`, `access` and `tag`.
+Use the explicitly selected complete version, the public npm registry URL,
+`public` access and the selected candidate tag. The shared version parser
+supports final, alpha, beta and RC spellings. These are local candidate inputs,
+not owner approval, registry availability or platform acceptance. Preparation
+clones metadata into its unique staging directory and preserves source files.
+
 Use the same fixed tarballs for independent external installation, global
 `npm install -g actql`, help/version, actual mTLS Host operations and failure
 tests. Run from outside the source tree. Save command, source, tarball and
@@ -50,13 +58,11 @@ saved submission, Run or cancellation references. Unknown responses require
 lookup with the original reference, never an automatic resend.
 
 Supply names, versions, registry, digests, source and acceptance to the
-integration owner for publication GO. Authenticated npm identity/ownership and
+owner for an explicit publication decision. Authenticated npm identity/ownership and
 both tested platform declarations must be settled before public publication.
-Only after GO:
-
-```sh
-node scripts/native-cli-release.mjs --publish .artifacts/cli-rc-<sha>
-```
+The old `--publish` CLI is disabled before credentials or upload subprocesses.
+Publication also needs the separate protected executor and registry-side
+stage-only identity; a local cohort or a successful build cannot authorize it.
 
 The same SDK cohort publisher performs whole-cohort preflight, confirms exact
 immutable integrity, preserves command-success receipts and resumes only
