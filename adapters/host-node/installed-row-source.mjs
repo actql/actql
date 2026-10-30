@@ -2114,6 +2114,7 @@ export async function createInstalledRowSource({moon, declaration,
     const {run} = session;
     let externalClosed = closeSourceRead === undefined || owner.managedRun === undefined;
     let externalCloseAttempted = false;
+    let nativeReadPending = false;
     const closeOriginal = async () => {
       if (externalClosed) return;
       externalCloseAttempted = true;
@@ -2202,26 +2203,39 @@ export async function createInstalledRowSource({moon, declaration,
             ? moon.clientProgramRowSourceAcceptPage(run, bytes)
             : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
         }};
-      if (originalReader === undefined) await readPages(readerOptions);
+      if (originalReader === undefined) {
+        nativeReadPending = true;
+        await readPages(readerOptions);
+        nativeReadPending = false;
+      }
       else await session.readProvider({prepare: originalReader.prepare,
         receiver: originalReader.receiver, options: Object.freeze(readerOptions)});
       await closeOriginal();
       return await complete();
     } catch (error) {
+      if (nativeReadPending && !externalClosed && closeSourceRead !== undefined && owner.managedRun !== undefined &&
+          error instanceof AcquisitionOpenError && error.outcome === 'unknown') {
+        // The native adapter already attempted cleanup. Preserve its original
+        // recovery instead of immediately asking another helper to close it.
+        // An absent owner cannot be replaced by a different close's success.
+        const original = error.recovery ?? Object.freeze({
+          async cleanup() {return false;}, cleanupPending: () => true,
+        });
+        session.closeAfterFailure(state, original);
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
+      }
       if (!externalClosed && !externalCloseAttempted) {
         try {await closeOriginal();} catch { /* Same cleanup remains pending. */ }
       }
       if (!externalClosed) {
         // The original external child still owns its backing. Do not close
         // the Core RowRun or release that capacity ahead of its actual ACK.
-        let cleaned = false;
         const recovery = Object.freeze({close() {}, async cleanup() {
-          if (cleaned) return true;
           try {await closeOriginal();} catch {return false;}
-          cleaned = await session.cleanup(); return cleaned;
-        }, cleanupPending: () => !cleaned});
-        state.closeFailed = true; state.recovery = recovery;
-        throw new AcquisitionOpenError(error, 'unknown', recovery);
+          return true;
+        }, cleanupPending: () => !externalClosed});
+        session.closeAfterFailure(state, recovery);
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
       }
       session.closeAfterFailure(state);
       throw error;

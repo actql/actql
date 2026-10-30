@@ -134,11 +134,23 @@ test('Local concurrent closes await the same original external cleanup without r
 
 // Actual shared Source and RowRun consumer, with explicit nominal Core ports.
 // This checks routing/retirement; it does not issue a Ledger or file authority.
-async function rowFixture({pending = false, empty = true} = {}) {
+async function rowFixture({pending = false, empty = true, readFailure, recoveryGate, accountFailureAfterClose = false} = {}) {
   const owner = {}, request = {}, parent = {}, declaration = {}, originalRead = {}, requirement = {};
   const acquisition = {}, capacity = {}, ledger = {}, row = {}, captured = {}, source = {};
   const calls = [], occurrence = {stage: 0, input: 0, task: 0};
   let closeAllowed = !pending;
+  const originalRecovery = {
+    async cleanup() {assert.strictEqual(this, originalRecovery); calls.push('original-native-recovery');
+      if (recoveryGate !== undefined) await recoveryGate; return closeAllowed;},
+    cleanupPending() {assert.strictEqual(this, originalRecovery); return !closeAllowed;},
+    close() {assert.fail('No substitute close request');},
+  };
+  if (readFailure === 'getter') Object.defineProperty(originalRecovery, 'cleanup', {
+    get() {calls.push('original-recovery-getter'); throw new Error('OriginalRecoveryGetterFailed');},
+  });
+  const originalFailure = new AcquisitionOpenError(new Error('OriginalNativeUnknown'), 'unknown',
+    readFailure === 'unowned' ? undefined : originalRecovery);
+  const accountFailure = new AcquisitionOpenError(new Error('OriginalAccountUnknown'), 'unknown');
   const moon = {
     clientProgramInstalledManagedRunCheck: () => ok(),
     clientProgramInstalledManagedCaptureSourceRead(run, checked, intent, selected, index) {
@@ -187,7 +199,10 @@ async function rowFixture({pending = false, empty = true} = {}) {
     environmentWire: '{}', connectorId: 'local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
     bindingCid: 'sha256:' + 'c'.repeat(64), site: {connection: 'local', close() {},
       issueReadGrant() {assert.fail('No native credential grant');}},
-    authorization: {context: {}, authorize: async () => ({action: 'dispatch'})},
+    authorization: {context: {}, authorize: async () => {
+      if (accountFailureAfterClose && calls.includes('close-native')) throw accountFailure;
+      return {action: 'dispatch'};
+    }},
     readOperation: 'read', physicalTarget: () => ({root: '/not-opened'}),
     limits: {maxPages: 2, maxPageBytes: 1024, maxPageRows: 4, maxCaptureRows: 4},
     prepareSourceRead(facts) {
@@ -197,10 +212,10 @@ async function rowFixture({pending = false, empty = true} = {}) {
     async closeSourceRead(read) {
       assert.strictEqual(read, originalRead); calls.push('close-native'); return {pending: !closeAllowed};
     },
-    async readPages() {calls.push('read-native');},
+    async readPages() {calls.push('read-native'); if (readFailure !== undefined) throw originalFailure;},
   });
   const prepared = await adapter.prepare({preparedProgram: owner, requestIdentity: request, managedRun: parent, occurrence});
-  return {calls, capacity, adapter, prepared, allowClose() {closeAllowed = true;},
+  return {calls, capacity, adapter, prepared, originalRecovery, originalFailure, accountFailure, allowClose() {closeAllowed = true;},
     open: () => adapter.openCapture({preparedProgram: owner, preparedSource: prepared, ledger, occurrence})};
 }
 
@@ -232,6 +247,73 @@ test('shared native Source closes its actual selected read before completing a n
     'read-native', 'close-native', 'finish-row']);
   capture.close();
   assert.deepEqual(f.calls.slice(-2), ['close-row', 'retire-core']);
+});
+
+test('shared native Source retains its original unknown recovery without an automatic second close', async () => {
+  const f = await rowFixture({empty: false, pending: true, readFailure: 'owned'});
+  let failure;
+  await assert.rejects(f.open(), error => {failure = error; return error.outcome === 'unknown';});
+  assert.equal(f.calls.includes('close-native'), false);
+  assert.equal(f.calls.includes('original-native-recovery'), false);
+  assert.equal(f.calls.includes('close-row'), false);
+  // The existing RowRun owner must retain original methods and receiver,
+  // rather than discover replacement callbacks during a later cleanup.
+  f.originalRecovery.cleanup = f.originalRecovery.cleanupPending = () => assert.fail('No replacement recovery');
+  assert.equal(await failure.recovery.cleanup(), false);
+  assert.equal(failure.recovery.cleanupPending(), true);
+  assert.equal(f.calls.includes('close-row'), false);
+  f.allowClose();
+  assert.equal(await failure.recovery.cleanup(), true);
+  assert.equal(await failure.recovery.cleanup(), true);
+  assert.equal(failure.recovery.cleanupPending(), false);
+  assert.deepEqual(f.calls.slice(-3), ['original-native-recovery', 'close-row', 'retire-core']);
+  assert.equal(f.calls.filter(value => value === 'original-native-recovery').length, 2);
+});
+
+test('shared native Source preserves an unknown without a recovery instead of inferring stop from another close', async () => {
+  const f = await rowFixture({empty: false, readFailure: 'unowned'});
+  let failure;
+  await assert.rejects(f.open(), error => {failure = error; return error.outcome === 'unknown';});
+  assert.equal(f.calls.includes('close-native'), false);
+  assert.equal(await failure.recovery.cleanup(), false);
+  assert.equal(failure.recovery.cleanupPending(), true);
+  assert.equal(f.calls.includes('close-row'), false);
+});
+
+test('shared native Source retains uncertain cleanup when original recovery method capture throws', async () => {
+  const f = await rowFixture({empty: false, readFailure: 'getter'});
+  let failure;
+  await assert.rejects(f.open(), error => {failure = error; return error.outcome === 'unknown';});
+  assert.equal(await failure.recovery.cleanup(), false);
+  assert.equal(failure.recovery.cleanupPending(), true);
+  assert.equal(f.calls.filter(value => value === 'original-recovery-getter').length, 1);
+  assert.equal(f.calls.includes('close-native'), false);
+  assert.equal(f.calls.includes('close-row'), false);
+});
+
+test('shared native Source concurrent recovery awaits one original operation before one Core close', async () => {
+  let release;
+  const recoveryGate = new Promise(resolve => {release = resolve;});
+  const f = await rowFixture({empty: false, pending: true, readFailure: 'owned', recoveryGate});
+  let failure;
+  await assert.rejects(f.open(), error => {failure = error; return error.outcome === 'unknown';});
+  f.allowClose();
+  const first = failure.recovery.cleanup(), second = failure.recovery.cleanup();
+  release();
+  assert.deepEqual(await Promise.all([first, second]), [true, true]);
+  assert.equal(f.calls.filter(value => value === 'original-native-recovery').length, 1);
+  assert.equal(f.calls.filter(value => value === 'close-row').length, 1);
+  assert.equal(failure.recovery.cleanupPending(), false);
+});
+
+test('shared native Source keeps post-close Account uncertainty separate from native recovery', async () => {
+  const f = await rowFixture({accountFailureAfterClose: true});
+  let failure;
+  await assert.rejects(f.open(), error => {failure = error; return error.outcome === 'unknown';});
+  assert.equal(f.calls.includes('close-row'), true);
+  assert.equal(f.calls.includes('retire-core'), true);
+  assert.equal(f.calls.includes('original-native-recovery'), false);
+  assert.strictEqual(failure, f.accountFailure);
 });
 
 const hostSource = await readFile(new URL('../../../host-node/embedded-local.mjs', import.meta.url), 'utf8');

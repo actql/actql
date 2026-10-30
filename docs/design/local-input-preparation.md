@@ -3757,3 +3757,27 @@ immediately repeat it. Concurrent closes await the same in-flight operation.
 Once acknowledged, the Local lookup keeps only weak close and consumed-occurrence
 tombstones, with no closed reader or heavy Prepared graph. Spent attempts and
 work are never refunded and a consumed occurrence cannot reopen.
+
+### Native Source original unknown recovery
+
+When a native page driver has already reported an uncertain physical end, the
+shared Source caller retains that driver's original recovery on the existing
+RowRun cleanup owner. It does not immediately ask another helper to close the
+same child. The original recovery methods and receiver are captured before any
+later await; replacing those properties cannot substitute another operation.
+A throwing/missing method or an unknown without a recovery remains pending.
+
+Core RowRun close and read retirement remain blocked until the original native
+cleanup returns a strict acknowledgment and its original pending observation is
+false. Concurrent cleanup calls await the same in-flight operation. An explicit
+later cleanup may retry that same owner after a pending result; spent work and
+attempts are not reset. The existing RowRun continues its own capture cleanup
+only after this external boundary is acknowledged.
+
+This rule applies to the failure of the actual native read callback. Account or
+completion uncertainty after the external close acknowledgment retains its own
+original outcome; it does not fabricate a pending native child or block cleanup
+of already stopped native backing. Existing provider-reader and keyed-transport
+owners retain their separate cleanup rules. None of these observations changes
+Run acceptance, authorizes a Source, confirms a business write, or turns Unknown
+into a known terminal result.
