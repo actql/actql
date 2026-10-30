@@ -696,14 +696,18 @@ review identifiers, and files are relative to that request without traversal
 or links. The existing review bounds apply: 128 records, 64 MiB per original,
 256 MiB total. Every promoted target needs evidence; unselected targets refuse.
 
-The currently connected kind is `node-public-install`, from the existing
+One connected kind is `node-public-install`, from the existing
 four-package Node public consumer with an explicit upper/child binding. The
 reader compares only its exact original release-set, target, child, source,
 version, public-origin and artifact identities. It retains the original actual
 Node/OS and declared business/approval scope without promoting those claims.
 Legacy child-only, private-loopback, foreign-child or substituted-cohort records
-cannot acquire a new upper binding. There is no Native-npm/Python-to-Node cast;
-their missing corresponding consumer routes are not silently certified here.
+cannot acquire a new upper binding. `native-public-install` separately binds
+the actual direct standalone Native consumer, its same-upper public Node Host,
+original Native archive/binary/version and complete downloaded asset identities.
+Its declared Remote-only scope and unverified Local/Project/other-platform/
+launcher/fault/authority fields remain exact and visible. This does not cast
+Native-npm or Python receipts into Node or certify their missing adapters.
 
 The exact supplied plan is recomputed through the existing promotion owner and
 its original raw channel report, retaining expected prior values, source/version,

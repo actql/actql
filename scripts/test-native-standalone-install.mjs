@@ -10,7 +10,7 @@ import {verifyReleaseSet} from './release-set.mjs';
 import {downloadNativeReleaseTarget, observeNpmReleaseTarget} from './release-registry.mjs';
 import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestination, verifyPublicConsumer} from './release-public-install.mjs';
 import {nativeReleaseInstallSelection, nativeStandaloneEnvironment, extractNativeStandaloneDownload,
-  verifyNativeStandaloneInstallation} from './release-native-install.mjs';
+  verifyNativeStandaloneInstallation, nativeStandaloneAcceptanceScope} from './release-native-install.mjs';
 import {platformKey, macOSProductVersion, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
 import {observeChildFds} from './test-python-release-install.mjs';
 
@@ -130,8 +130,7 @@ export async function runNativeStandaloneInstall(args) {
       targetId: target.id, hostTargetId: hostTarget.id, platform, facts, download,
       installed, hostAudit, nodeSupervisor: process.version, nativeEnvironment: env,
       fixtureSha256: sha(await readFile(fixture)), records,
-      acceptedScope: 'only completed direct Native --version/help/refusal and original Remote Host fixture; Node-free Native child PATH; separate public Node Host installation',
-      unverified: ['Local execution/bootstrap/approval', 'standard Project/README CLI', 'other platforms', 'npm Native launcher installation', 'full fault matrix', 'owner approval/publication authority']};
+      ...nativeStandaloneAcceptanceScope()};
     await save('result.json', result); return result;
   } catch (failure) {await save('failure.json', {status: 'incomplete', message: failure.message, records}); throw failure;}
 }

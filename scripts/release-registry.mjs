@@ -305,6 +305,79 @@ export async function observeNativePublicationTarget(directory, expectedSha256, 
   return result;
 }
 
+// A Latest 404 stays unresolved. Conditional initialization is safe only if
+// the complete SAME owner inventory positively confines every eligible full
+// release to the exact already-published immutable candidate. It is not an
+// absence claim, cached permission or an alternative to exclusive execution.
+export async function observeNativeLatestTarget(directory, expectedSha256, targetId,
+  {fetchOwner, fetchCdn = fetch} = {}) {
+  assert.equal(typeof fetchOwner,'function','A protected complete Native owner reader is required');
+  const fixed=await verifyReleaseSet(directory,{expectedSha256});
+  const target=fixed.manifest.request.targets.find(value=>value.id===targetId);
+  assert(target?.ecosystem==='native'&&target.channels.includes('latest'),'Select the explicit Native Latest channel');
+  assert(!fixed.manifest.release.prerelease,'A prerelease cannot become GitHub Latest');
+  const requests=[],result={schemaVersion:'actql-native-latest-observation/0.1',manifestSha256:expectedSha256,targetId,
+    startedAt:new Date().toISOString(),state:'unknown',requests,
+    qualification:'same-owner historical inventory/current/actual-byte DATA only; no approval, public-install acceptance, exclusive lease or CAS'};
+  const publication=async()=>{
+    const value=await observeNativePublicationTarget(directory,expectedSha256,targetId,{fetchOwner,fetchCdn});
+    if(value.state==='conflict')conflict('Original immutable candidate publication conflicts');
+    if(value.state!=='published'||!value.observations.every(item=>item.state==='present'))
+      unavailable('Original immutable candidate and all actual assets are not confirmed');
+    return value;
+  };
+  const inventory=async()=>{
+    const rows=[],ids=new Set();
+    for(let page=1;;page++){
+      if(page>10)unavailable('Complete Latest owner inventory exceeds its finite bound');
+      const batch=await githubMetadata(`/releases?per_page=100&page=${page}`,fetchOwner,requests);
+      if(!Array.isArray(batch)||batch.length>100)unavailable('Complete Latest owner inventory unavailable');
+      for(const value of batch){
+        if(!positiveId(value?.id)||ids.has(value.id)||typeof value.tag_name!=='string'||
+          typeof value.draft!=='boolean'||typeof value.prerelease!=='boolean')unavailable('Malformed or duplicate Latest owner inventory');
+        ids.add(value.id);rows.push({releaseId:value.id,tag:value.tag_name,draft:value.draft,prerelease:value.prerelease});
+      }
+      if(batch.length<100)break;
+    }
+    return rows.sort((a,b)=>a.releaseId-b.releaseId);
+  };
+  const latest=async(rows)=>{
+    const reply=await metadata(`${githubApi}/releases/latest`,fetchOwner,requests,githubGet);
+    if(reply.status===404)return {state:'unresolved',status:404};
+    const value=reply.body;
+    if(!positiveId(value?.id)||typeof value.tag_name!=='string'||value.draft!==false||value.prerelease!==false||typeof value.immutable!=='boolean')
+      unavailable('Latest original full release identity unavailable');
+    if(value.tag_name===fixed.manifest.release.gitTag&&value.immutable!==true)
+      unavailable('Latest candidate metadata contradicts its original immutable publication');
+    if(!rows.some(item=>item.releaseId===value.id&&item.tag===value.tag_name&&!item.draft&&!item.prerelease))
+      unavailable('Latest identity differs from the complete owner inventory');
+    return {state:'present',releaseId:value.id,tag:value.tag_name};
+  };
+  try{
+    const before=await publication(),rows=await inventory(),first=await latest(rows);
+    const after=await publication(),lastRows=await inventory(),last=await latest(lastRows);
+    if(before.releaseId!==after.releaseId)unavailable('Original immutable candidate release was replaced');
+    if(JSON.stringify(rows)!==JSON.stringify(lastRows)||JSON.stringify(first)!==JSON.stringify(last))
+      unavailable('Latest or full owner inventory changed during the original read window');
+    const selected=rows.find(item=>item.releaseId===after.releaseId);
+    if(!selected||selected.tag!==fixed.manifest.release.gitTag||selected.draft||selected.prerelease)
+      unavailable('Exact immutable full candidate is missing from the complete owner inventory');
+    let current=last;
+    if(last.state==='unresolved'){
+      const eligible=rows.filter(item=>!item.draft&&!item.prerelease);
+      if(eligible.length!==1||eligible[0].releaseId!==after.releaseId)
+        unavailable('Latest is unresolved and another eligible full release prevents conditional initialization');
+      current={state:'unassigned-or-selected',releaseId:after.releaseId};
+    }
+    Object.assign(result,{state:'observed',candidate:{releaseId:after.releaseId,tag:fixed.manifest.release.gitTag,
+      source:fixed.manifest.request.source.commit,version:fixed.manifest.release.version},current,inventory:rows,publication:after});
+  }catch(failure){
+    if(!(failure instanceof RegistryUnavailable||failure instanceof RegistryConflict))throw failure;
+    Object.assign(result,{state:failure instanceof RegistryConflict?'conflict':'unknown',reason:failure.message});
+  }
+  await verifyReleaseSet(directory,{expectedSha256});result.endedAt=new Date().toISOString();return result;
+}
+
 async function npmObservation(artifact, fetchResponse, requests) {
   const registry = 'https://registry.npmjs.org/';
   const reply = await metadata(`${registry}${encodeURIComponent(artifact.name)}/${artifact.version}`, fetchResponse, requests);

@@ -12,7 +12,8 @@ const qualification = 'standalone packaging/source-byte correspondence only; run
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
 const json = value => Buffer.from(JSON.stringify(value));
 
-async function fixture(t, local = false, platform = 'darwin-arm64') {
+async function fixture(t, local = false, platform = 'darwin-arm64', selectedVersion = version) {
+  const version = selectedVersion;
   const root = await mkdtemp(join(tmpdir(), 'actql-native-archive-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const input = join(root, 'input'), payload = join(input, 'package'), destination = join(root, 'standalone');
