@@ -193,3 +193,58 @@ test "Calendar Event rows preserve whole page bounds schema and bounded output r
     is Err(EventTime(ResolutionWorkLimit)),
   )
 }
+
+///|
+test "Calendar Event expanded pages refuse recurring masters before row selection" {
+  // These responses contradict the original singleEvents=true request. A
+  // parent recurrence is not one observed occurrence, even if only id is
+  // selected later. Empty/null or malformed recurrence is not omission.
+  for
+    item in [
+      (
+        #|{"id":"series","recurrence":["RRULE:FREQ=DAILY;COUNT=3"]}
+      ),
+      (
+        #|{"id":"series","recurrence":["RDATE:20260301T090000Z,20260302T090000Z"]}
+      ),
+      (
+        #|{"id":"series","recurrence":[]}
+      ),
+      (
+        #|{"id":"series","recurrence":null}
+      ),
+      (
+        #|{"id":"series","recurrence":"RRULE:FREQ=DAILY"}
+      ),
+      (
+        #|{"id":"series","recurrence":false}
+      ),
+    ] {
+    assert_true(events_rows_test("[" + item + "]") is Err(InvalidResponse))
+  }
+  // A valid earlier row must not make a later series a partial page result.
+  assert_true(
+    events_rows_test(
+      (
+        #|[{"id":"one-off"},{"id":"series","recurrence":["RRULE:FREQ=DAILY"]}]
+      ),
+    )
+    is Err(InvalidResponse),
+  )
+}
+
+///|
+test "Calendar Event expanded pages preserve individual instances and deleted originals without recurrence" {
+  let page = events_rows_test(
+    (
+      #|[{"id":"one-off","iCalUID":"one@example.test"},{"id":"series_20260301","iCalUID":"series@example.test","recurringEventId":"series","start":{"dateTime":"2026-03-01T09:00:00Z"},"end":{"dateTime":"2026-03-01T10:00:00Z"},"originalStartTime":{"dateTime":"2026-03-01T09:00:00Z"}},{"id":"series_20260302","iCalUID":"series@example.test","recurringEventId":"series","status":"cancelled","originalStartTime":{"dateTime":"2026-03-02T09:00:00Z"}},{"id":"deleted"}]
+    ),
+  ).unwrap()
+  assert_eq(calendar_events_row_count(page), 4)
+  assert_eq(
+    events_rows_test_wire(page, ["id", "ical_uid", "recurring_event_id"]),
+    (
+      #|[{"id":"one-off","ical_uid":"one@example.test","recurring_event_id":null},{"id":"series_20260301","ical_uid":"series@example.test","recurring_event_id":"series"},{"id":"series_20260302","ical_uid":"series@example.test","recurring_event_id":"series"},{"id":"deleted","ical_uid":null,"recurring_event_id":null}]
+    ),
+  )
+}
