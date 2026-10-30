@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "12c96ec06c4090fee43156015cf679590aeae2e7055701761541a200c016f25e",
+      "sha256": "743a01539c140ce8d784094a8c9c39cedd16371c264b88c5915607b0edc58128",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -27408,6 +27408,10 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "timed original adopted getter checks all first tokens and refuses retired or foreign projections"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual timed invocation module resolves its canonical projection with registered original compilation"
               }
             ]
           }
