@@ -121,8 +121,10 @@ async function executeRead(prepared, received, retainPage, retainExchange) {
     // must agree with the originally selected workspace before any data call.
     let cursor;
     for (let index=0; index<bound.maxPages; index++) {
+      const remaining = bound.maxTotalRows - totalRows;
+      if (remaining <= 0) fail('SlackChannelListRowLimit');
       const query = [['types',prepared.allConversations ? 'public_channel,private_channel,mpim,im' : 'public_channel,private_channel'],
-        ['exclude_archived','false'],['limit',String(bound.pageSize)]];
+        ['exclude_archived','false'],['limit',String(Math.min(bound.pageSize,remaining))]];
       if (cursor !== undefined) query.push(['cursor',cursor]);
       const {response,charge} = await request(SLACK_CHANNEL_LIST_OPERATION,index,'GET','/api/conversations.list',query);
       const page = checked(prepared.projectPage(response.body,bound.maxResponseBytes,

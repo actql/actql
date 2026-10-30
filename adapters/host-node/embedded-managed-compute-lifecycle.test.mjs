@@ -4,7 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
 // counters prove consumer order/custody, not physical admission or a full Host.
@@ -222,7 +222,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 });
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
-  runtime = {}, source, controlClose = async () => ({pending: false})}) {
+  runtime = {}, source, originalRequest = value => value, controlClose = async () => ({pending: false})}) {
   const declarations = declared('connectEmbeddedLocal').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
@@ -232,7 +232,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
     'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
     'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal', 'fundedPreparation',
-    'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun'];
+    'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun',
+    'prepareManagedEffectPlanRun', 'retireManagedComputeRun'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
@@ -246,9 +247,11 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     },
     clientOperationError: code => Object.assign(new Error(code), {code}),
     retirePreparationReferences: retire, controlClose, originals, runtime,
-    checked: value => value, finishInstalledEffectModelScope,
+    checked: value => value, finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun,
+    managedPreparationRetirementContinuation: new Function('checked', 'return ' +
+      text(declared('managedPreparationRetirementContinuation')))(value => value),
     bindInstalledManagedSources,
-    originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return value;},
+    originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
     beforeChild, beforeChildClose, source,
   };
   return new Function(...Object.keys(ports), `
@@ -264,6 +267,85 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     return {preparation,initialControl,record,originals};
   `)(...Object.values(ports));
 }
+
+function sourceFreeRequestCaller(runtime, prepared) {
+  let request, originals;
+  visit(declared('openInstalledHost').body, node => {
+    if (node.type !== 'VariableDeclaration') return;
+    for (const declaration of node.declarations) {
+      if (declaration.id.name === 'requestOf') request = declaration;
+      if (declaration.id.name === 'sourceFreeRequestIdentities') originals = declaration;
+    }
+  });
+  assert(request);
+  Object.assign(runtime, {
+    clientProgramAcquisitionCount: value => {assert.strictEqual(value, prepared);return 0;},
+    clientProgramComposedInferOccurrences: () => [],
+    clientProgramSourceFreeInputIntentCid: () => 'original-input-intent',
+    clientProgramResultCount: () => 1,
+    clientProgramResultName: () => 'answer',
+  });
+  const ports = {moon: runtime, authorityScopeCid: 'original-authority',
+    prepareSubmit: {assertOwned: value => assert.strictEqual(value, prepared),
+      kindOf: () => 'effect_free'}, earlyContentPlans: new WeakMap(),
+    inferSelections: new WeakMap(), runtimeIsOkRequired: () => true,
+    runtimeField: value => value,
+    prepareInferSelection: (_prepared, occurrence) => assert.equal(occurrence, undefined),
+    clientOperationError: code => Object.assign(new Error(code), {code})};
+  return new Function(...Object.keys(ports),
+    (originals === undefined ? '' : `const ${text(originals)};`) +
+    `const ${text(request)};return requestOf;`)(...Object.values(ports));
+}
+
+test('ordinary preadmission and submission reuse the same original Request identity', async () => {
+  const p = managedRunPorts(), prepared = {}, original = {};
+  let identityCalls = 0, runPreparations = 0;
+  p.runtime.clientProgramRequestIdentity = (value, authority, requestId, input) => {
+    assert.strictEqual(value, prepared);assert.equal(authority, 'original-authority');
+    assert.equal(input, 'original-input-intent');identityCalls++;
+    return Object.freeze({requestId});
+  };
+  const requestOf = sourceFreeRequestCaller(p.runtime, prepared);
+  const raw = {prepareRun(value) {
+    assert.strictEqual(value, prepared);runPreparations++;return original;
+  }, close: () => ({pending: false})};
+  const f = lifecycle({runtime: p.runtime, factory: async () => raw});
+  await f.preparation.prepareManagedCompute();
+  const first = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, first.requested), p.value);
+  // The actual two Host entrances use separate submission wrappers but the
+  // same Prepared and original requestId, without another compiler/parent.
+  const second = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, second.requested), p.value);
+  assert.strictEqual(second.requested, first.requested);
+  assert.equal(identityCalls, 1);assert.equal(runPreparations, 1);
+  await f.initialControl.close();
+});
+
+test('ordinary Request identity retention refuses another requestId without replacing its original', () => {
+  const runtime = {}, prepared = {};
+  let calls = 0;
+  runtime.clientProgramRequestIdentity = (_prepared, _authority, requestId) => {
+    calls++;return Object.freeze({requestId});
+  };
+  const requestOf = sourceFreeRequestCaller(runtime, prepared);
+  const first = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.throws(() => requestOf({preparedProgram: prepared, requestId: 'another-request'}),
+    {code: 'ForeignInstalledComputeRun'});
+  assert.strictEqual(requestOf({preparedProgram: prepared, requestId: 'original-request'}).requested,
+    first.requested);
+  assert.equal(calls, 1);
+});
+
+test('ordinary Request identity retention never accepts a missing Core identity', () => {
+  const runtime = {}, prepared = {};
+  let calls = 0;
+  runtime.clientProgramRequestIdentity = () => {calls++;return undefined;};
+  const requestOf = sourceFreeRequestCaller(runtime, prepared);
+  assert.throws(() => requestOf({preparedProgram: prepared, requestId: 'original-request'}),
+    {code: 'ClientProgramNeedsInputs'});
+  assert.equal(calls, 1);
+});
 
 test('actual Host forwards the selected async manager result once without an optional raw fallback', async () => {
   const request={},environment={},result={};let calls=0;
@@ -957,4 +1039,44 @@ test('actual dispatcher refuses foreign or missing preparation custody and retur
       value => value, hasLease ? {} : undefined), /ForeignPreparationHostCustody/u);
     assert.deepEqual(calls, hasLease ? ['borrow', 'read', 'return'] : ['borrow', 'return']);
   }
+});
+
+
+test('actual installed Effect Host forwards original Request input and joins typed retirement before manager close', async () => {
+  const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, log = [];
+  let retireCalls = 0;
+  const runtime = {
+    clientProgramInstalledManagedRunRetire(value) {
+      assert.equal(this, runtime); assert.equal(value, parent); log.push('retire');
+      if (++retireCalls === 1) throw new Error('OriginalBorrowPending');
+    },
+    clientProgramInstalledPreparationPayloadSevered(value, actualIdentity) {
+      assert.equal(value, parent); assert.equal(actualIdentity, identity); return true;
+    },
+    clientProgramInstalledEffectManagedOperationPlan(value, p, actualIdentity) {
+      assert.equal(value, parent); assert.equal(p, prepared); assert.equal(actualIdentity, identity); return plan;
+    },
+  };
+  const manager = {
+    adoptEffectPreparation(p, input, actualIdentity, selected) {
+      assert.equal(this, manager); assert.equal(p, prepared); assert.equal(input, requestInput);
+      assert.equal(actualIdentity, identity); assert.equal(selected, plan); log.push('adopt');
+      return {original, value: parent, operationPlan: plan};
+    },
+    severPreparation(p, actual) {assert.equal(p, prepared); assert.equal(actual, original); log.push('return-original-borrow');},
+    retireSeveredPreparation(actual) {assert.equal(actual, original); log.push('retire-original');},
+    close() {log.push('manager-close'); return {pending: false};},
+  };
+  const f = lifecycle({runtime, factory: async () => manager, originalRequest(value) {
+    assert.equal(value, prepared); return requestInput;
+  }});
+  await f.preparation.prepareManagedCompute();
+  const facts = {prepared, identity}, inputs = {};
+  const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
+    assert.equal(actual, facts); assert.equal(selectedInputs, inputs); return plan;
+  }});
+  assert.equal(f.preparation.prepareManagedEffectPlanRun(runtime, facts, selection, inputs), parent);
+  await f.initialControl.close();
+  assert.deepEqual(log, ['adopt', 'retire', 'return-original-borrow', 'retire', 'retire-original', 'manager-close']);
+  assert.equal(f.record.computeLiveRuns.size, 0);
 });

@@ -39,6 +39,13 @@ Nullable String contracts describe the public columns without inventing grants
 from an observed person/bot label. Metadata, schema and row output use the existing bounded
 writers, and failure returns no partial wire result.
 
+The physical user-list reader supplies all declared columns to Source capture,
+including when the user's selection is a subset or empty. The original id,
+nullable type, name and email therefore remain available to the acquisition
+before the query's projection. Selected names are still validated; they do not
+trim the captured Source row. The lower-level checked-page projection API keeps
+its existing ordered selection contract.
+
 ## Physical caller and retained resources
 
 The private Node bridge forwards the same typed page through compiler-generated
@@ -189,3 +196,15 @@ Account denial, original journal Unknown/nonresend and preserved cleanup debt.
 Normal original capacity supply, installed/public acceptance, same-Run durable
 recovery and the other Notion Source/write/content profiles remain required.
 This factory does not narrow the full public Notion target to users.
+
+
+### Remaining-row request bounds
+
+The original users-list caller subtracts successfully delivered rows from its
+`maxTotalRows` before each next request. It sends the smaller of that remainder
+and `pageSize`; a nonpositive remainder refuses before another indexed
+Credential authorization or send. The database query caller applies the same
+rule to the existing POST body and retains its original query cursor. This does
+not truncate a response, change a declared limit or turn an already delivered
+prefix into a complete Source. Provider over-return, malformed/full-row checks,
+identity/cursor checks, current refusal and original cleanup duties remain.

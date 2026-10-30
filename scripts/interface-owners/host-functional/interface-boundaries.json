@@ -77053,7 +77053,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "1840b14434faca56d29323963b6a2b21926620f21c50c34ee785d8e8aa47532f",
+      "sha256": "37ccdf092ef6dbc1fd2306fdb71296116200d25816c6217a062929192fcd5ce1",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77230,6 +77230,16 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -77353,6 +77363,35 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
           "parameters": [
             "receipt",
@@ -77378,14 +77417,6 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
-          "parameters": [
-            "prepared",
-            "operationPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectPlanRun/init:prepareEffectPlanRun",
           "parameters": [
             "prepared",
             "operationPlan"
@@ -77982,7 +78013,12 @@
             "prepareOrdinaryManagedInstallation/captureReader",
             "prepareOrdinaryManagedInstallation/closeChild/work/work",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-            "prepareOrdinaryProjectSourceManagedInstallation"
+            "prepareOrdinaryProjectSourceManagedInstallation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods"
           ],
           "exports": [
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -77996,6 +78032,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "inputsOutputs": [
@@ -78010,6 +78050,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "identity": [
@@ -78024,6 +78068,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "ownership": [
@@ -78034,6 +78082,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "synchronization": [
@@ -78044,6 +78096,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "failure": [
@@ -78054,6 +78110,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "cancellation": [
@@ -78064,6 +78124,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "resources": [
@@ -78078,6 +78142,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "extension": [
@@ -78088,6 +78156,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "verification": [
@@ -78102,6 +78174,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ]
           }
@@ -78677,8 +78753,7 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectPlanRun/init:prepareEffectPlanRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun"
           ],
           "exports": [],
           "attributes": {
@@ -78703,7 +78778,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78717,7 +78792,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78745,7 +78820,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78759,7 +78834,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78801,7 +78876,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78811,7 +78886,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -82288,7 +82363,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "b6558a85de048fe043dd5e8f04ae1d7117f89854cdee227d5d72e013cad986e9",
+      "sha256": "5605aee6b1f59f35e05a12ae569088067e34685bb309aa4d2e5e5c25dbcc0dd2",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -82330,6 +82405,13 @@
           "parameters": [
             "state",
             "retireInitialPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupRequestInput/retirementStarted/retirementStarted",
+          "parameters": [
+            "holder"
           ],
           "async": false
         },
@@ -82439,7 +82521,8 @@
             "openHostInitializationPreparation",
             "openPreparationAdmission",
             "openPreparationAdmission/openPreparationAdmission",
-            "openPreparationAdmission/openPreparationAdmission#2"
+            "openPreparationAdmission/openPreparationAdmission#2",
+            "cleanupRequestInput/retirementStarted/retirementStarted"
           ],
           "exports": [
             "beginRequestInput",
@@ -82463,6 +82546,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "inputsOutputs": [
@@ -82477,6 +82564,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "identity": [
@@ -82491,6 +82582,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "ownership": [
@@ -82505,6 +82600,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "synchronization": [
@@ -82519,6 +82618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "failure": [
@@ -82533,6 +82636,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "cancellation": [
@@ -82547,6 +82654,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "resources": [
@@ -82561,6 +82672,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "extension": [
@@ -82575,6 +82690,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "verification": [
@@ -82585,6 +82704,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ]
           }
@@ -84536,7 +84659,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
+      "sha256": "39c95f4f6ff5ebac45a7fb6bd01747eacee1bd04a67be8fd47eb1ec67807d70a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -84595,6 +84718,7 @@
             "manager",
             "prepared",
             "request",
+            "requestInput",
             "selection",
             "facts",
             "inputs",
@@ -84635,6 +84759,13 @@
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
           "parameters": [
             "value"
           ],
@@ -84702,7 +84833,8 @@
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
-            "readInstalledEffectManagedPlanRun"
+            "readInstalledEffectManagedPlanRun",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -84718,6 +84850,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "inputsOutputs": [
@@ -84728,6 +84864,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "identity": [
@@ -84738,6 +84878,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "ownership": [
@@ -84748,6 +84892,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "synchronization": [
@@ -84758,6 +84906,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "failure": [
@@ -84768,6 +84920,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "cancellation": [
@@ -84778,6 +84934,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "resources": [
@@ -84788,6 +84948,10 @@
               {
                 "path": "adapters/host-node/installed-effect-managed-run.mjs",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "extension": [
@@ -84798,6 +84962,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ],
             "verification": [
@@ -84808,6 +84976,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Effect Plan completion"
               }
             ]
           }

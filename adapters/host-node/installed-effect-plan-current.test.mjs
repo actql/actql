@@ -51,13 +51,21 @@ function fixture(withModel = false) {
     assert.equal(this, manager); assert.equal(p, prepared); assert.equal(selected, plan);
     controls.quotes++; return original;
   };
-  const manager = {prepareEffectPlanRun: quote, prepareEffectModelPlanRun: quote};
+  const requestInput = {};
+  const manager = {prepareEffectModelPlanRun: quote,
+    adoptEffectPreparation(p, actualInput, identity, selected) {
+      assert.equal(this, manager); assert(!withModel); assert.equal(p, prepared);
+      assert.equal(actualInput, requestInput); assert.equal(identity, request); assert.equal(selected, plan);
+      controls.quotes++;
+      if (controls.failBegin) throw undefined;
+      return {original, value: parent, operationPlan: plan};
+    }};
   const selection = Object.freeze({prepareManagedPlan(f, actualInputs) {
     assert.equal(this, selection); assert.equal(f, facts);
     if (withModel) assert.equal(actualInputs.modelDemand, demand); else assert.equal(actualInputs, inputs);
     controls.selected++; return plan;
   }});
-  const options = {runs, liveRuns, runtime, manager, prepared, request, facts, selection, inputs,
+  const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput: withModel ? undefined : requestInput, facts, selection, inputs,
     sourceProfile, model, checked, assertCurrent() {controls.onCurrent?.(runs.get(prepared));}};
   return {options, runs, liveRuns, prepared, request, plan, parent, scope, model, demand, admission, original, controls};
 }
@@ -112,7 +120,8 @@ test('public partial Record and Model Begin retains an undefined primary without
     const f = fixture(withModel); f.controls.failBegin = true;
     assert.equal(thrown(() => prepare(f.options)), undefined);
     const run = f.runs.get(f.prepared);
-    assert.equal(run.original, f.original); assert.equal(run.admission, f.admission);
+    assert.equal(run.original, withModel ? f.original : undefined);
+    assert.equal(run.admission, withModel ? f.admission : undefined);
     assert(Object.hasOwn(run, 'failure'));
     assert.equal(thrown(() => prepare(f.options)), undefined);
     assert.equal(f.controls.quotes, 1); assert.equal(f.controls.selected, 1);

@@ -95,7 +95,9 @@ async function executeRead(prepared, received) {
     // must agree with the originally selected workspace before any data call.
     let cursor;
     for (let index=0; index<bound.maxPages; index++) {
-      const query = [['limit',String(bound.pageSize)]];
+      const remaining = bound.maxTotalRows - totalRows;
+      if (remaining <= 0) fail('SlackUserListRowLimit');
+      const query = [['limit',String(Math.min(bound.pageSize,remaining))]];
       if (cursor !== undefined) query.push(['cursor',cursor]);
       const {response,charge} = await request(SLACK_USER_LIST_OPERATION,index,'GET','/api/users.list',query);
       const page = checked(provider.slackProjectUserList(response.body,bound.maxResponseBytes,

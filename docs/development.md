@@ -856,9 +856,12 @@ best-effort, not proof that arbitrary application output has no secrets.
 
 The canonical worktree path gets one exclusive lock for every routed
 execution. Classified-heavy work additionally reserves one of at most four
-shared slots across this user's worktrees on this host. Admission checks current
-available memory, disk space and available CPUs against still-held verification
-reservations. The default estimate is 2 GiB memory, 2 GiB disk and two CPU threads
+shared slots across this user's worktrees on this host. Admission checks the new
+job's memory estimate against current available memory, and the sum of all
+memory estimates against physical RAM. Running jobs already affect current
+availability, so their estimates are not subtracted from it again. Disk space
+and available CPUs are checked against still-held verification reservations.
+The default estimate is 2 GiB memory, 2 GiB disk and two CPU threads
 per job, with 256 MiB memory and 128 MiB disk headroom. A `runLocalCheck` caller
 may supply positive integer `heavyResources: {memoryBytes, diskBytes, cpuThreads}`
 estimates for its actual workload; these do not alter product fuel, capacity or

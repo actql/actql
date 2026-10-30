@@ -2309,7 +2309,7 @@ receipt is reset or regranted. The Selecting fence prevents reentrant adoption
 or retirement. No external callback occurs between the admitted grow and these
 synchronous constructors, so per-header, per-type, per-value and reconciliation
 current checks are unnecessary. The old fine-grained declaration controller and
-its public exports are removed; effective supplied-value binding is separate.
+its public exports are removed.
 
 The same existing declaration reader preserves typed first refusals and finite
 node/depth/text limits. Source construction consumes that completed original
@@ -2319,6 +2319,16 @@ Request aliases clear and the same capacity continues to Pure or Effect.
 Clearing immutable aliases neither settles capacity, refunds work nor reports
 physical cleanup. Independently supplied prepared Sources retain their existing
 full correspondence and admission boundaries.
+
+Effective supplied-value binding remains owned by the original Parameter reader
+and topology-selected `LocalProgramBindingInput`. The Source, supplied cursor
+and limits belong to that same immutable input; final assembly consumes its
+completed original bindings. The resource layer has no separate
+`ClientParameterBindingPreparation` controller or per-value binding resource
+API. The Request/checker reservation and original semantic work phase retain
+the live binding result through the normal successor. Removing an unconsumed
+controller neither changes the binding rules nor acknowledges physical cleanup;
+the actual Host supplier still owns backing and retirement.
 
 ### Effect inventory on the same parsed input
 
@@ -3374,3 +3384,31 @@ orders snapshot serialization, intent identity, lexical scanning and Source
 construction in that order. The public phase enumeration and each phase's work
 limit remain unchanged. Finishing an intent does not refund consumed work or
 permit an earlier or repeated phase; narrow and wide receipts share this fence.
+
+## Request-owned Effect Plan completion
+
+The ordinary non-Model Effect caller continues the original SDK Request rather
+than admitting a second managed Root for its selected Plan. The existing
+Effect input-borrow entry reserves the Plan-constructor coexistence and retains
+the same checked `PreparedClientEffectComputation`. Its typed read, sibling,
+retirement and return methods are captured with the original runtime receiver;
+a Program input-borrow method cannot consume that holder.
+
+The installed implementation supplies its complete original operation Plan.
+The manager retains that Plan before calling the existing Request completion
+and adoption entries with the same input receipt and final Request identity.
+Failure remains on that Request and cannot renew compilation, completion or
+admission. The Model-specific Scope path retains its separate existing contract.
+
+After the actual dispatch and physical children have retired, Host cleanup
+starts the same managed Run retirement, observes its original payload-sever
+witness, returns the same Effect input borrow, and completes that retirement
+before closing the manager. Failed construction uses the original Request abort
+and typed-borrow cleanup. Neither a completed Promise nor a terminal provider
+classification acknowledges physical cleanup.
+
+This caller connection supplies no provider permission or physical backing.
+The actual installed Plan and normal Host remain responsible for complete
+request, response, confirmation-read and failed-child overlap. No numeric quote,
+missing inventory, raw Prepared or independently prepared manager Root can
+replace that original connection.

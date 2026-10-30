@@ -8550,7 +8550,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "identity": [
@@ -8560,7 +8560,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "ownership": [
@@ -8580,7 +8580,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "failure": [
@@ -8590,7 +8590,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "cancellation": [
@@ -8620,13 +8620,13 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -10141,7 +10141,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "identity": [
@@ -10151,7 +10151,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "ownership": [
@@ -10171,7 +10171,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "failure": [
@@ -10181,7 +10181,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "cancellation": [
@@ -10211,13 +10211,13 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
               },
               {
                 "path": "docs/design/reference-host.md",

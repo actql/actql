@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "8b36ac261cb0f797269d60004ff5a02f7f1e8cc6fd5a4950bfbf01c2a6c86c59",
+      "sha256": "8797c37fc2805e66c202995c23e8eae421912b1affa26dbd12c68db022442562",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -228,6 +228,10 @@
               {
                 "path": "src/connectors/notion/catalog/users.mbt",
                 "anchor": "pub fn project_notion_user_list("
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The physical user-list reader supplies all declared columns to Source capture,"
               }
             ],
             "identity": [
@@ -288,6 +292,10 @@
               {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "Pending I/O, signing/secret resolution, callback Promises"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "### Remaining-row request bounds"
               }
             ],
             "extension": [
@@ -312,6 +320,14 @@
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
                 "anchor": "Notion aggregate raw bound charges and retains"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               }
             ]
           }
@@ -709,7 +725,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "570f1d2075aaf5fa993624c573027a9e8bb0ddd7081781a08e83e274ec32d4bd",
+      "sha256": "9a26f48c179f0c7704a3e1bf5c44375491aba4e5883fb2b76e7975215613491d",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -1031,6 +1047,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original dependent property authorization"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "### Remaining-row request bounds"
               }
             ],
             "extension": [
@@ -1079,6 +1099,10 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }

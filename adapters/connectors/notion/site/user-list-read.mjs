@@ -44,7 +44,8 @@ function prepareRead({moon, names, initialAuthorization, credential,
   const columns = Object.freeze(provider.notionUserListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name=>!columns.includes(name))) fail('InvalidNotionUserListRead');
-  return Object.freeze({provider,context,names:Object.freeze(names.slice()),signal});
+  // Source capture receives every declared cell; the user's SELECT follows.
+  return Object.freeze({provider,context,names:columns,signal});
 }
 
 async function executeRead(prepared, received) {
@@ -84,7 +85,9 @@ async function executeRead(prepared, received) {
   try {
     let cursor;
     for (let index=0; index<bound.maxPages; index++) {
-      const query = [['page_size',String(bound.pageSize)]];
+      const remaining = bound.maxTotalRows - totalRows;
+      if (remaining <= 0) fail('NotionUserListRowLimit');
+      const query = [['page_size',String(Math.min(bound.pageSize,remaining))]];
       if (cursor !== undefined) query.push(['start_cursor',cursor]);
       const {response,charge} = await request(NOTION_USER_LIST_OPERATION,index,'GET','/v1/users',query);
       const page = checked(provider.notionProjectUserList(response.body,bound.maxResponseBytes,
