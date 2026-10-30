@@ -109,6 +109,9 @@ test('REST normal cohort preserves existing full inventory manifests and refuses
     packages: f.offer.tarballs.map((row, index) => ({name: '@actql/' + row.package, file: row.file,
       bytes: row.bytes, sha256: row.sha256,
       integrity: 'sha512-' + Buffer.from(row.sha512, 'hex').toString('base64'), files: f.expected[index].files}))};
+  // The existing installed-payload verifier compares inventories by path;
+  // their incidental array order is not a new admission rule.
+  full.packages[0].files.reverse();
   const path = join(f.artifacts, 'normal-packages.json');
   const select = async value => {
     const bytes = JSON.stringify(value);await writeFile(path, bytes);

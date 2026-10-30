@@ -82,8 +82,9 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
         join(scratch, pkg.name.slice('@actql/'.length)));
       assert.equal(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).name, pkg.name);
       const files = await inventory(directory);
-      if (pkg.files !== undefined) assert.deepEqual(files, pkg.files);
-      packages.push({...pkg, files});
+      const sorted = rows => rows.toSorted((a, b) => a.path.localeCompare(b.path));
+      if (pkg.files !== undefined) assert.deepEqual(sorted(files), sorted(pkg.files));
+      packages.push({...pkg, files: pkg.files ?? files});
     }
     // Recheck the same archives after inventory construction; no source file,
     // private installation, package lifecycle or product export was executed.
