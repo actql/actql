@@ -737,7 +737,7 @@
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
-                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and the same pending capture"
+                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
