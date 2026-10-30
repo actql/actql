@@ -145,10 +145,11 @@ test('declared read refuses foreign input origin or mixed callback mode before H
   assert.throws(()=>deriveInstalledRowWrite(declaration({check:{...check,http:{...check.http,origin:'https://foreign.test'}}}),'fixture'),{code:'InvalidInstalledRowWrite'});
   let calls=0;
   const driver=deriveInstalledRowWrite(declaration({check}),'fixture'),{request}=driver.prepareRequest({member,value:{}});
-  for(const change of [{request:{...request}},{authorization:authorization('foreign-operation')},
-    {authorization:{...authorization('fixture:form'),scope:{operation:'fixture:form',resourceOrigin:'https://foreign.test'}}}]){
+  for(const [change,code] of [[{request:{...request}},'InvalidInstalledRowWrite'],
+    [{authorization:authorization('foreign-operation')},'InvalidOwnedInvocationContext'],
+    [{authorization:{...authorization('fixture:form'),scope:{operation:'fixture:form',resourceOrigin:'https://foreign.test'}}},'InvalidInstalledRowWrite']]){
     await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
-      callResource(){calls++;return response;},...change}),{code:'InvalidInstalledRowWrite'});
+      callResource(){calls++;return response;},...change}),{code});
   }
   assert.equal(calls,0);
 });
