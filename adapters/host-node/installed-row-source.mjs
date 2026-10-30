@@ -335,9 +335,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
       taskAttempt, dispatchRequestCid,
       expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
     });
-    // Issuance identity is signed independently of the shared binding scope.
-    // Re-admitting a signed grant never refills its durable use inventory.
-    const grant = control.issue(control.prepare(scope), randomUUID());
+    // Re-admitting this signed scope never refills its durable use inventory.
+    const grant = control.prepare(scope);
     journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
       keyId: profile.credentialKeyId, privateKey}), control);
     const authorization = Object.freeze({grant, scope});

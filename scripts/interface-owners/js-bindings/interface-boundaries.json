@@ -69605,7 +69605,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "79c62faa6dfb617c39ec86652895444e1ef999d9c87aac9a7c854e408d3d17c1",
+      "sha256": "80a2b9d4311ced01821eaee8e2cd92196c97efe9520ce50701ed1650a5ac1342",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -72440,6 +72440,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-source-credential-constructor.test.mjs",
+                "anchor": "Source signer uses the original existing native grant constructor and signed scope"
+              },
+              {
+                "path": "adapters/host-node/installed-source-credential-constructor.test.mjs",
+                "anchor": "Source signer re-admission keeps the original signed-scope durable use budget"
               }
             ]
           }
