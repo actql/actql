@@ -645,8 +645,17 @@ pub fn client_program_finish_request_computation(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
-) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.finish_request_computation_preparation(parent, input)
+  environment : @program_check.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_checked_computation(
+    parent, input, environment, publication,
+  ).map(kind => {
+    match kind {
+      @client_local_host.Pure => "effect_free"
+      @client_local_host.Effect => "effectful"
+    }
+  })
 }
 
 ///|
@@ -923,8 +932,8 @@ pub fn client_program_prepare_request_native_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_computation_check(
     parent,
     input,
     captured,
@@ -942,12 +951,7 @@ pub fn client_program_prepare_request_native_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
 }
 
 ///|
@@ -986,8 +990,8 @@ pub fn client_program_prepare_request_source_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_source_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_source_computation_check(
     parent,
     input,
     captured,
@@ -1005,10 +1009,5 @@ pub fn client_program_prepare_request_source_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
 }

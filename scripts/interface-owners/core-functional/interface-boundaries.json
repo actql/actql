@@ -8585,7 +8585,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9384,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28271,7 +28271,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d6642ee41567c5e27404b6f9dfee8ace97854a653cd57f883030f210c7c80e53",
+      "sha256": "3875bb01be86c3349e7714b538d9c3d62ba258d509d55529f156ead3e1875f5e",
       "role": "common-semantics",
       "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
       "exports": [],
@@ -28281,8 +28281,32 @@
           "declaration": "[ I , T ] prepare_request_native_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
         },
         {
+          "name": "[I,T]prepare_request_native_computation_check",
+          "declaration": "[ I , T ] prepare_request_native_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]finish_request_checked_computation",
+          "declaration": "[ I ] finish_request_checked_computation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]finish_request_checked_computation_targets",
+          "declaration": "[ I ] finish_request_checked_computation_targets ( owner : ClientRequestPreparation [ I ] , input : I , update : @ update_targets . UpdateTargetPublication ? , store : @ update_targets . StoreTargetPublication ? , command : @ update_targets . CommandTargetPublication ? , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
           "name": "[I]finish_request_original_computation",
           "declaration": "[ I ] finish_request_original_computation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_original_computation_check",
+          "declaration": "[ I ] prepare_request_original_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_original_computation_check_owned",
+          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]request_preparation_parameters_original",
@@ -28299,7 +28323,13 @@
             "<module>",
             "[I,T]prepare_request_native_computation",
             "[I]request_preparation_parameters_original",
-            "[I]request_prepared_computation_kind"
+            "[I]request_prepared_computation_kind",
+            "[I,T]prepare_request_native_computation_check",
+            "[I,T]prepare_request_native_computation_input",
+            "[I]finish_request_checked_computation",
+            "[I]finish_request_checked_computation_targets",
+            "[I]prepare_request_original_computation_check",
+            "[I]prepare_request_original_computation_check_owned"
           ],
           "exports": [],
           "attributes": {
@@ -28307,54 +28337,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "verification": [
@@ -28369,6 +28435,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal generic Native Request prepares"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"native policy boundary"
               }
             ]
           }
@@ -33611,12 +33685,16 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "c3b0b3826770ec45ec6db943bc3cfe09b64ea5ef9f1bd03cbfc236b0635c23f8",
+      "sha256": "528f1978a5fcd6cb9c1313ec2c04c8f5778e331963da73808fdae9e96a204155",
       "exports": [],
       "operations": [
         {
           "name": "[I,T]prepare_request_native_query_computation",
           "declaration": "[ I , T ] prepare_request_native_query_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_query_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , supplied ? : T ?"
         },
         {
           "name": "[I,T]prepare_request_native_query_input",
@@ -33625,6 +33703,14 @@
         {
           "name": "[I,T]prepare_request_native_source_computation",
           "declaration": "[ I , T ] prepare_request_native_source_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_source_computation_check",
+          "declaration": "[ I , T ] prepare_request_native_source_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_source_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , limits : @ syntax . Limits , supplied ? : T ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -33637,7 +33723,10 @@
             "<module>",
             "[I,T]prepare_request_native_query_computation",
             "[I,T]prepare_request_native_query_input",
-            "[I,T]prepare_request_native_source_computation"
+            "[I,T]prepare_request_native_source_computation",
+            "[I,T]prepare_request_native_query_computation_input",
+            "[I,T]prepare_request_native_source_computation_check",
+            "[I,T]prepare_request_native_source_computation_input"
           ],
           "exports": [],
           "attributes": {
@@ -34164,12 +34253,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_document.mbt",
-      "sha256": "f4ff66c868fe6c040cb6f8679a187ecdb12f09c1e873b24dd67c6fbbe3ccb955",
+      "sha256": "0628e53b68e15d3293e7ec1f92edfad3e7fb897694de50805693eaaf495bea9a",
       "exports": [],
       "operations": [
         {
-          "name": "[I]prepare_request_document_computation",
-          "declaration": "[ I ] prepare_request_document_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+          "name": "[I]prepare_request_document_computation_input",
+          "declaration": "[ I ] prepare_request_document_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , limits : @ syntax . Limits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]prepare_request_document_input",
@@ -34188,9 +34277,9 @@
         {
           "operations": [
             "<module>",
-            "[I]prepare_request_document_computation",
             "[I]prepare_request_document_input",
-            "request_document_parse_bytes"
+            "request_document_parse_bytes",
+            "[I]prepare_request_document_computation_input"
           ],
           "exports": [],
           "attributes": {
@@ -34265,7 +34354,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1378e3f244f984178b2115eba62e7564526135bcfb7e75f8f7a24cf98d433d6f",
+      "sha256": "f14bcf846b9051226aadfc806788a7aa768b70009b6bf81e4a13e8085f5e1401",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -34348,7 +34437,7 @@
         },
         {
           "name": "client_program_finish_request_computation",
-          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_finish_request_submitted_intent",
@@ -34420,7 +34509,7 @@
         },
         {
           "name": "client_program_prepare_request_native_computation",
-          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_prepare_request_native_program_input",
@@ -34440,7 +34529,7 @@
         },
         {
           "name": "client_program_prepare_request_source_computation",
-          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_prepare_request_submitted_intent",

@@ -3642,3 +3642,24 @@ busy controller. This Core continuation does not provide the actual Host's
 subject serialization, verification callback, proof-binding backing or Source
 I/O lifetime; those remain necessary consuming boundaries before removing any
 ordinary Source fallback.
+
+
+### Native check-only input and original publication completion
+
+The installed Native Program and Source entries share their existing input
+construction prefix with the full Core driver, then stop at semantic completion.
+JSON/YAML retain their original document parser, and SQL/Pipe retain their
+original query lowerer and interpreted Catalog. Native Parameters and their
+origin remain on that same Request. Neither entry returns a compiled body or
+selects a Plan merely to expose the verifier boundary.
+
+The installed finish entry consumes that same checked child with the original
+external Environment and prepared publication. It checks the retained Catalog's
+original identity before using the publication's target handles. A shallow
+policy-selected checking Environment remains internal to the same child; it
+neither weakens the external Environment gate nor substitutes an equal Catalog.
+Compilation uses the retained checked facts once, without another input reader,
+parse, lowerer or semantic checker. The existing typed Pure/Effect continuation
+owns the eventual body; domain-specific Plan construction and retirement remain
+separate obligations. This boundary alone does not implement Host subject
+serialization, verifier backing or Model/Content Plan adoption.
