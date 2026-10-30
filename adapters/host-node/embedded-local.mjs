@@ -5872,10 +5872,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     },
     managedComputeInvocationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
-      if (run === undefined || !run.preparationFunded) return undefined;
+      if (run === undefined) return undefined;
       if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
+      if (!run.preparationFunded) return undefined;
       if (run.queryInvocation === undefined) return undefined; // Existing untimed module.
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
         run.value, prepared, run.queryInvocation);
