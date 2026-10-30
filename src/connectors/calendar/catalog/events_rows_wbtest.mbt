@@ -23,6 +23,18 @@ fn events_rows_test_wire(
 }
 
 ///|
+test "Calendar Event schema exposes approved nullable cells and complete nonnull attendee members" {
+  // Independently authored row contract, not reconstructed from the product's
+  // column enumeration or a provider response.
+  assert_eq(
+    calendar_events_schema_wire(16384, 1000, 20).unwrap(),
+    (
+      #|{"all_day":{"nullable":true,"type":"boolean"},"attendees":{"items":{"additional_properties":false,"fields":{"email":{"nullable":false,"type":"string"},"optional":{"nullable":false,"type":"boolean"},"response_status":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"nullable":true,"type":"array"},"calendar_id":{"nullable":false,"type":"string"},"created":{"nullable":true,"type":"timestamp"},"description":{"nullable":true,"type":"string"},"end":{"nullable":true,"type":"timestamp"},"etag":{"nullable":true,"type":"string"},"ical_uid":{"nullable":true,"type":"string"},"id":{"nullable":false,"type":"string"},"location":{"nullable":true,"type":"string"},"organizer":{"nullable":true,"type":"string"},"recurring_event_id":{"nullable":true,"type":"string"},"start":{"nullable":true,"type":"timestamp"},"status":{"nullable":true,"type":"string"},"summary":{"nullable":true,"type":"string"},"updated":{"nullable":true,"type":"timestamp"}}
+    ),
+  )
+}
+
+///|
 test "Calendar Event rows retain complete typed cells original identity and nanosecond timestamps" {
   let query = events_test_query()
   let page = project_calendar_events(
