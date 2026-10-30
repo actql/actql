@@ -9,7 +9,8 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {inventory, publicationPlan, publishedVersion, unpack, verifyPackageRelease} from './package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
-import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet, verifyReleasePromotionReview} from './release-set.mjs';
+import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet, verifyReleasePromotionReview,
+  releaseSetSummary} from './release-set.mjs';
 import {observeNativePublicationTarget, observeNpmStageTarget, observePythonReleaseTarget,
   observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
@@ -215,6 +216,141 @@ export async function stagePackageRelease(options) {
   const summary = {schemaVersion: 'actql-npm-stage-attempt/0.1', manifestSha256: expectedSha256, targetId, attemptId,
     at: new Date().toISOString(), results, qualification: 'same-byte staging protocol outcome only; owner 2FA publication, public install, trust isolation and exclusive execution remain independent'};
   await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
+}
+
+async function stageApprovalSelection(options) {
+  const {directory, expectedSha256, targetId, stages, fetchStage, fetchResponse = fetch} = options;
+  assert.equal(typeof fetchStage, 'function', 'No protected owner stage reader supplied');
+  const selected = await stageSelection(directory, expectedSha256, targetId), ids = new Set();
+  assert(Array.isArray(stages) && stages.length === selected.artifacts.length, 'Select every original stage explicitly');
+  for (const [index, item] of stages.entries()) {
+    assert(item && Object.keys(item).length === 2 && Object.hasOwn(item, 'file') && Object.hasOwn(item, 'stageId'));
+    assert.equal(item.file, selected.artifacts[index].file, 'Original dependency order or file changed');
+    assert(item.stageId === null || stageUuid(item.stageId), 'Select the exact original stage id');
+    if (item.stageId !== null) {assert(!ids.has(item.stageId), 'Duplicate original stage id'); ids.add(item.stageId);}
+  }
+  const observe = async () => ({...await observeNpmStageTarget(directory, expectedSha256, targetId, {fetchStage, fetchResponse}),
+    channelObservation: await observeReleaseChannels(directory, expectedSha256, {fetchResponse})});
+  const snapshot = value => value.observations.map((item, index) => {
+    assert.equal(item.file, selected.artifacts[index].file);
+    assert(['published', 'pending'].includes(item.state), 'Complete original public or pending bytes are unavailable');
+    if (item.state === 'pending') assert.equal(item.stageId, stages[index].stageId, 'Original stage identity was replaced');
+    const tags=value.channelObservation.observations.filter(channel=>channel.targetId===targetId&&
+      channel.name===item.name&&channel.channel===selected.tag);
+    assert(tags.length===1&&tags[0].state!=='unknown','Original staging tag is unavailable');
+    assert(item.state==='pending'?tags[0].state==='absent':tags[0].state==='present'&&tags[0].version===item.version,
+      'Original staging tag is occupied or differs from the published version');
+    return {file: item.file, state: item.state, stageId: item.state === 'pending' ? item.stageId : null};
+  });
+  const initial = await observe(); snapshot(initial);
+  return {selected, observe, snapshot, initial};
+}
+
+export async function npmStageApprovalPlan(options) {
+  const allowed = ['directory', 'expectedSha256', 'targetId', 'stages', 'fetchStage', 'fetchResponse'];
+  assert(options && Object.keys(options).every(key => allowed.includes(key)), 'Unexpected owner stage review fields');
+  const {selected, initial} = await stageApprovalSelection(options), candidate = releaseSetSummary(selected.fixed);
+  const packages = selected.artifacts.map((item, index) => ({...item, tag: selected.tag,
+    stageId: options.stages[index].stageId, action: initial.observations[index].state === 'published'
+      ? 'already-original-public' : 'owner-interactive-approval',
+    arguments: initial.observations[index].state === 'published' ? null
+      : ['stage', 'approve', options.stages[index].stageId, '--registry', selected.registry]}));
+  const escape = value => String(value).replace(/[\\`*_[\]<>|]/gu,'\\$&');
+  const lines = [candidate.markdown, '## Original staged cohort for owner review', '', 'Acceptance: unaccepted', '',
+    'Each approval is a separate publication. Only the owner terminal handles authentication; no OTP or authentication output belongs in this plan.', '',
+    '| Package | Version | Tag | Original stage id | Bytes | SHA256 | Action |', '| --- | --- | --- | --- | ---: | --- | --- |'];
+  for (const item of packages) lines.push(`| ${escape(item.name)} | ${item.version} | ${escape(item.tag)} | ${item.stageId ?? '(none: original already public)'} | ${item.bytes} | ${item.sha256} | ${item.action} |`);
+  return {schemaVersion: 'actql-npm-stage-owner-review/0.1', manifestSha256: selected.fixed.sha256,
+    targetId: options.targetId, source: selected.fixed.manifest.request.source, version: selected.fixed.manifest.release.version,
+    packages, observation: initial, candidate, acceptance: 'unaccepted', markdown: `${lines.join('\n')}\n`,
+    qualification: 'actual reader correspondence DATA only; not owner identity, approval, credential, 2FA, exclusive lease or public-install acceptance'};
+}
+
+// Owner-terminal helper under the SAME publisher/receipt Owner, not a new
+// authority boundary. The externally protected owner process must display the
+// complete review, hold exclusive execution and retain its own session/2FA.
+// Its port receives only explicit stage approve commands in dependency order.
+// Approval terminal I/O stays with that owner; only code/signal may return.
+// No OTP argument, authentication output capture, default runner or CLI route.
+export async function approveStagedPackageRelease(options) {
+  const allowed = ['directory', 'expectedSha256', 'targetId', 'stages', 'fetchStage', 'fetchResponse',
+    'receiptsDirectory', 'npmVersion', 'runNpmOwner'];
+  assert(options && Object.keys(options).every(key => allowed.includes(key)), 'Unexpected owner approval fields');
+  const {directory, expectedSha256, targetId, receiptsDirectory, npmVersion, runNpmOwner} = options;
+  assert.equal(typeof runNpmOwner, 'function', 'No separate protected owner terminal supplied');
+  assert(atLeast(process.versions.node, '22.14.0') && atLeast(npmVersion, '11.15.0'), 'Owner stage tool is below the existing supported minimum');
+  const selectionOptions = Object.fromEntries(['directory','expectedSha256','targetId','stages','fetchStage','fetchResponse']
+    .filter(key => Object.hasOwn(options,key)).map(key => [key,options[key]]));
+  selectionOptions.stages=structuredClone(options.stages);
+  for(const item of selectionOptions.stages)Object.freeze(item);Object.freeze(selectionOptions.stages);Object.freeze(selectionOptions);
+  const review = await npmStageApprovalPlan(selectionOptions), {selected, observe, snapshot, initial} = await stageApprovalSelection(selectionOptions);
+  const ownerPresentation=Object.freeze({json:JSON.stringify(review),markdown:review.markdown});
+  assert.deepEqual(snapshot(initial), snapshot(review.observation), 'Original stages changed during owner review');
+  for (const item of selected.artifacts) await inspectStagePayload(directory, expectedSha256, targetId, item, selected);
+  const version = await runNpmOwner(Object.freeze(['--version']), Object.freeze({phase:'tool-version',manifestSha256:expectedSha256,targetId}));
+  assert(version?.code === 0 && version.signal === null && version.stdout === `${npmVersion}\n` && version.stderr === '',
+    'Owner npm differs from the explicit protected pin');
+  assert(isAbsolute(receiptsDirectory));
+  const root = join(await realpath(dirname(receiptsDirectory)), basename(receiptsDirectory)), original = await realpath(directory);
+  assert(root !== original && !root.startsWith(`${original}${sep}`), 'Owner receipts must be outside the frozen inputs');
+  await privateDirectory(root); const releaseRoot = join(root, expectedSha256); await privateDirectory(releaseRoot);
+  const approvalRoot = join(releaseRoot, 'owner-approval'); await privateDirectory(approvalRoot);
+  const targetRoot = join(approvalRoot, targetId); await privateDirectory(targetRoot);
+  for (const name of await readdir(targetRoot)) {
+    assert(name.startsWith('attempt-') && stageUuid(name.slice(8)), 'Unrecognized original owner approval attempt');
+    const st = await lstat(join(targetRoot,name)); assert(st.isDirectory() && !st.isSymbolicLink());
+  }
+  const attemptId = randomUUID(), attempt = join(targetRoot,`attempt-${attemptId}`);
+  await mkdir(attempt,{mode:0o700}); await syncDirectory(targetRoot);
+  const record = (name,value) => writePrivateOriginal(join(attempt,name),Buffer.from(`${JSON.stringify(value,null,2)}\n`));
+  await record('owner-review.json',review);
+  let current = snapshot(initial), operationCount = 0;
+  const fence = async label => {
+    const fresh = await observe(); await record(`${label}.json`,fresh);
+    assert.deepEqual(snapshot(fresh),current,'Original staged cohort changed across the owner boundary');
+  };
+  const results=[];
+  for (const [index,item] of review.packages.entries()) {
+    await fence(`${index}-before`);
+    if(current[index].state === 'published') {results.push({file:item.file,state:'already-original-public'});continue;}
+    const args=Object.freeze([...item.arguments]);
+    await record(`${index}-intent.json`,{schemaVersion:'actql-npm-stage-approval-intent/0.1',manifestSha256:expectedSha256,
+      targetId,attemptId,artifact:selected.artifacts[index],stageId:item.stageId,tag:item.tag,args,state:'outcome-unknown'});
+    operationCount++;
+    let reply;
+    try {reply=await runNpmOwner(args,Object.freeze({phase:'owner-approval',manifestSha256:expectedSha256,targetId,
+      package:Object.freeze({...selected.artifacts[index],stageId:item.stageId,tag:item.tag}),review:ownerPresentation}));}
+    catch (failure) {
+      // Never serialize an owner authentication exception or prompt into a
+      // receipt or normal Error inspection. Preserve its SAME private object
+      // for the original owner caller, including any child/cleanup duty.
+      const retain = error => Object.defineProperty(error,'originalOwnerFailure',{value:failure,enumerable:false});
+      try {await record(`${index}-unknown.json`,{state:'unknown',reason:'owner-terminal-unobserved',originalIntent:`${index}-intent.json`});}
+      catch(cleanup){throw retain(cleanup);}
+      throw retain(Error(`Original owner approval outcome unknown; preserve ${attempt} and reobserve without resubmission`));
+    }
+    try {
+      assert(reply && Object.keys(reply).length === 2 && Object.hasOwn(reply,'code') && Object.hasOwn(reply,'signal'),
+        'Owner terminal must return only nonsecret code/signal');
+      assert((reply.code === null || (Number.isSafeInteger(reply.code) && reply.code >= 0)) &&
+        (reply.signal === null || (typeof reply.signal === 'string' && /^SIG[A-Z0-9]{1,12}$/u.test(reply.signal))), 'Original owner terminal unavailable');
+      await record(`${index}-terminal.json`,{code:reply.code,signal:reply.signal});
+      assert(reply.code === 0 && reply.signal === null,'Owner approval command did not confirm completion');
+      current=current.map((value,position)=>position===index?{file:value.file,state:'published',stageId:null}:value);
+      await fence(`${index}-after`);
+      await record(`${index}-confirmed.json`,{file:item.file,stageId:item.stageId,state:'original-public-bytes-observed'});
+      results.push({file:item.file,stageId:item.stageId,state:'original-public-bytes-observed'});
+    } catch(failure) {
+      try {await record(`${index}-unknown.json`,{state:'unknown',reason:'terminal-or-public-readback-unconfirmed',originalIntent:`${index}-intent.json`});}
+      catch(cleanup){Object.assign(cleanup,{originalApprovalError:failure,originalAttempt:attempt});throw cleanup;}
+      throw Error(`Original owner approval outcome unknown; preserve ${attempt} and explicitly reobserve`,{cause:failure});
+    }
+  }
+  await fence('final'); await verifyReleaseSet(directory,{expectedSha256});
+  const summary={schemaVersion:'actql-npm-stage-owner-attempt/0.1',manifestSha256:expectedSha256,targetId,attemptId,
+    operationCount,results,state:'original-cohort-public-bytes-observed',
+    qualification:'protocol/public-byte observation only; not proof of owner identity, independent approval, actual 2FA, settings, exclusive execution or installed acceptance'};
+  await record('summary.json',summary);return {...summary,receiptDirectory:attempt};
 }
 
 const pythonProjects = ['actql-sdk', 'actql-local-runtime', 'actql'];
