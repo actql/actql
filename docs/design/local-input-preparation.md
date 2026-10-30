@@ -3675,3 +3675,11 @@ Scope, outstanding borrower, pending child or failed cleanup independently
 keeps the original preparation reservation. No new Model resource, Root,
 compiler, permission, physical acknowledgment or Source read is issued by
 this ownership handoff.
+
+The Node preparation admission has no separate read-bootstrap census
+constructor. Its input-facing owner starts the original Ledger; the atomic
+preparation entrance then retains the census on that first capacity
+reservation. Adoption transfers the same capacity and holders, while a
+separate read-bootstrap state is refused. Census cleanup remains with the
+original preparation retirement and cannot leave another bootstrap token for
+the admission to settle later.

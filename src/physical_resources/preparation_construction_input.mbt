@@ -150,7 +150,7 @@ fn[I, P, D] make_preparation_construction_input_borrow(
     },
     // Constructor DATA cannot stand in for a completed adopted body or
     // obtain publication growth through a matching payload/reference.
-    isolated_usage_original: (_, _) => false,
+    isolated_usage_original: _ => false,
     reserve_publication_original: (_, _, _) => Err(ForeignOriginal),
   })
 }
