@@ -46,7 +46,7 @@ function queryOriginals(){
   const readContracts=checked(provider.notionBindDataSourceReadContracts(declaration,source,...declarationLimits));
   return{declaration,source,readContracts};
 }
-function fixture(family,{maxTotalRows=3,pages}={}){
+function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false}={}){
   const operation=family==='users'?usersOperation:queryOperation,requests=[],grants=[],charges=[],rows=[];
   const bodies=(pages??(family==='users'?[userPage(['one','two'],cursor),userPage(['three'],null)]:
     [queryPage(['one','two'],cursor),queryPage(['three'],null)])).map(page=>Buffer.from(JSON.stringify(page)));
@@ -64,7 +64,7 @@ function fixture(family,{maxTotalRows=3,pages}={}){
     current:verify,authorizationFor(input){grants.push(input);return{grant:{},scope,useId:'page-'+input.index};},
     chargeResponse(body){assert.equal(body,bodies[requests.length-1]);const charge=Object.freeze({body});charges.push(charge);return charge;},
     consumeObservation(){assert.fail('no property response in scalar fixture');},
-    consumePage(page,{charge}){assert.equal(charge,charges.at(-1));rows.push(...page);}});
+    consumePage(page,{charge}){assert.equal(charge,charges.at(-1));rows.push(...page);if(loseCurrentAfterPage)current=false;}});
   return{reader,requests,grants,charges,rows,cause,loseCurrent(){current=false;}};
 }
 for(const family of ['users','query']){
@@ -84,5 +84,22 @@ for(const family of ['users','query']){
     assert.equal(f.grants.length,1);assert.equal(f.requests.length,1);assert.equal(f.charges.length,1);
     assert.equal(f.rows.length,2,'the retained prefix is not a complete Source');
     assert.equal(f.reader.observe().phase,'failed');assert.equal(f.reader.observe().cleanupConfirmed,false);
+  });
+}
+
+
+for(const family of ['users','query']){
+  test('Notion '+family+' over-return remains refused without truncating or delivering the last page',async()=>{
+    const page=family==='users'?userPage:queryPage;
+    const f=fixture(family,{pages:[page(['one','two'],cursor),page(['three','four'],null)]});
+    await assert.rejects(f.reader.read(),error=>error.cause?.code===(family==='users'?'NotionUserListRowLimit':'NotionDataSourceRowLimit'));
+    assert.equal(f.requests.length,2);assert.equal(f.grants.length,2);assert.equal(f.charges.length,2);
+    assert.equal(f.rows.length,2,'only the earlier full page is retained');assert.equal(f.reader.observe().cleanupConfirmed,false);
+  });
+  test('Notion '+family+' original current refusal prevents another authorization or remaining-row request',async()=>{
+    const f=fixture(family,{loseCurrentAfterPage:true});
+    await assert.rejects(f.reader.read(),error=>error.cause===f.cause);
+    assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
+    assert.equal(f.rows.length,2);assert.equal(f.reader.observe().cleanupConfirmed,false);
   });
 }
