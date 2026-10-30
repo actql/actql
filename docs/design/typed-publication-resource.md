@@ -167,6 +167,22 @@ they share a type. Preparation/execution generalization and complete cross-backe
 migration remain explicit completion work; valid existing routes must not be
 rejected just to make an obsolete-path count reach zero.
 
+## Logical Result selection across Source graph views
+
+A compiled Result transformation retains its checked Program and original Result
+occurrence. Supplying a whole Source input creates a physical graph view with new
+target and input-slot vectors; it preserves that checked Program and Result
+occurrence. Selection therefore checks those same originals and the exact Result
+index, rather than requiring the physical graph object to be the original graph
+allocation. Equal Program CIDs, copied occurrences or another Result cannot
+replace either original.
+
+This correspondence does not authorize a Run or supply output custody. The
+existing captured Result borrow, same managed completion, live re-admission
+bridge, output occurrence, limits and retirement checks still apply before an
+export can proceed. The physical graph view supplies neither a fallback export
+nor another publication owner.
+
 ## Verification
 
 Registered tests cover nominal snapshot/validation custody, foreign originals,

@@ -1,7 +1,10 @@
 ///|
 // Actual existing Request check/compiler/adoption, declared Source and RowRun.
 // Physical Account/transport/stop are explicit ports, not normal acceptance.
-test "whole Source executes its authored root and publishes the same original Result before release" {
+fn whole_source_result_publication_fixture(
+  retained_output : Bool,
+  selected_result? : Bool = false,
+) -> Unit raise {
   let declaration = pure_provider_declaration()
   let document =
     #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
@@ -83,7 +86,7 @@ test "whole Source executes its authored root and publishes the same original Re
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
-    retained_output=true,
+    retained_output~,
     provider_factory=_ => [],
   ).unwrap()
   assert_eq(@strategy.graph_captured_prefix(plan.graph), 0)
@@ -341,14 +344,62 @@ test "whole Source executes its authored root and publishes the same original Re
       export_limits,
     )
     .unwrap()
-  let transformation = @publication_host.start_captured_managed_result_publication_export(
-    dag,
-    0,
-    execution.completed,
-    bridge,
-    output,
-    export_limits,
-  ).unwrap()
+  let transformation = if selected_result {
+    let original_graph = @publication_host.prepared_client_graph(prepared)
+    let physical_graph = @strategy.captured_dag_graph(dag)
+    assert_false(physical_equal(original_graph, physical_graph))
+    assert_true(
+      physical_equal(
+        @strategy.graph_program(original_graph),
+        @strategy.graph_program(physical_graph),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @strategy.graph_result_occurrence(original_graph, 0).unwrap(),
+        @strategy.graph_result_occurrence(physical_graph, 0).unwrap(),
+      ),
+    )
+    let selection = @publication_host.prepare_client_compiled_result_transformation(
+      compiled, 0, 65536, 8192, 64,
+    ).unwrap()
+    assert_true(
+      @publication_host.client_result_transformation_matches(
+        selection, prepared, 0,
+      ),
+    )
+    match
+      @publication_host.start_captured_managed_result_transformation(
+        selection,
+        dag,
+        0,
+        execution.completed,
+        bridge,
+        output,
+        export_limits,
+      ) {
+      Ok(value) => value
+      Err(
+        @publication_host.CapturedClientResultTransformationIssue::ForeignSelection
+      ) =>
+        fail(
+          "same original Source Result selection refused as ForeignSelection",
+        )
+      Err(_) =>
+        fail(
+          "same original Source Result selection refused at another boundary",
+        )
+    }
+  } else {
+    @publication_host.start_captured_managed_result_publication_export(
+      dag,
+      0,
+      execution.completed,
+      bridge,
+      output,
+      export_limits,
+    ).unwrap()
+  }
   let mut transformed = false
   for _ in 0..<10000 {
     let (done, work) = transformation.advance(64).unwrap()
@@ -435,4 +486,19 @@ test "whole Source executes its authored root and publishes the same original Re
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "whole Source executes its authored root and publishes the same original Result before release" {
+  whole_source_result_publication_fixture(true)
+}
+
+///|
+test "whole Source ordinary publication completes with non-retained output on the same parent" {
+  whole_source_result_publication_fixture(false)
+}
+
+///|
+test "whole Source compiled Result selection follows its original physical graph view" {
+  whole_source_result_publication_fixture(false, selected_result=true)
 }
