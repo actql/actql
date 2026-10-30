@@ -63685,7 +63685,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f157b39cb13400f84b49645fb60d814a6d4c31c71a836bbb1bd354591ac5bb81",
+      "sha256": "89ec6b2796e840c5b0f208b956bb8933dd2ae3cedaec4e898117445222aef7b0",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -63719,6 +63719,20 @@
         },
         {
           "name": "captureConfigurationReaders/captureConfigurationReaders#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#4",
           "parameters": [
             "args"
           ],
@@ -64405,6 +64419,8 @@
             "captureConfigurationReaders",
             "captureConfigurationReaders/captureConfigurationReaders",
             "captureConfigurationReaders/captureConfigurationReaders#2",
+            "captureConfigurationReaders/captureConfigurationReaders#3",
+            "captureConfigurationReaders/captureConfigurationReaders#4",
             "captureConfigurationReaders/refuse/refuse"
           ],
           "exports": [
@@ -64513,6 +64529,22 @@
               {
                 "path": "adapters/host-node/source-profile-json.test.mjs",
                 "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection retains the original-text method across an awaited JSON read'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses malformed original-text ports without fallback'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection retains original-bytes and text independently before an await'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses malformed original-bytes ports and preserves omission'"
               }
             ]
           }
@@ -88139,7 +88171,7 @@
     {
       "module": "adapters/host-node/rest-source-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1d728422a38a5330622b87ce07da117ee96a00523932b166e2db66f8233282c",
+      "sha256": "7a1615375b50019e675d1b8baf1016cb09e4841a3aa3ebe253fd5037403453cd",
       "role": "public-wire-codec",
       "owner": "Existing installed Source profile/identity and Host configuration-reader Owners; metadata supplies closed DATA and original-string identity, not a declaration issuer or physical reader.",
       "exports": [
@@ -88381,11 +88413,15 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "// Retain both original methods and their receiver before the first read awaits."
+                "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
                 "anchor": "test('REST metadata retains the same Host reader methods and exact original CA without an author bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST CA input retains the original byte reader before configuration await and hashes exact bytes'"
               }
             ],
             "failure": [
@@ -88395,11 +88431,15 @@
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');"
+                "anchor": "if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');"
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "if (typeof reads.readOriginalBytes !== 'function') fail('RestSourceTlsAuthorityPolicyUnavailable');"
               }
             ],
             "cancellation": [
@@ -88419,7 +88459,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "// The original Host reader owns the selected bound and physical read."
+                "anchor": "// The original Host reader owns the observed FD extent and physical read."
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -88451,7 +88491,23 @@
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST configured CA refuses a missing actual-FD byte reader without a text fallback'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST CA uses only the captured actual-FD byte method and original receiver'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST without CA preserves its original identity and absent byte-reader path'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST factory forwards the same managed CA bytes to its original Site service'"
               }
             ]
           }

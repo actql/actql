@@ -73,22 +73,26 @@ export function createRestSourceMetadata(definition) {
     const reads = captureConfigurationReaders(configurationReader, undefined,
       () => fail('RestSourceConfigurationReaderUnavailable'));
     const site = checkSite(await reads.readJson(installed.siteProfilePath));
-    // The original Host reader owns the selected bound and physical read.
-    // Keep its exact CA text; no author limit or unrelated secret bound is used.
-    const ca = site.caPath === undefined ? undefined : await reads.readText(site.caPath);
-    if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');
+    // The original Host reader owns the observed FD extent and physical read.
+    // Retain the same CA Buffer; no text projection or unrelated bound is used.
+    let ca;
+    if (site.caPath !== undefined) {
+      if (typeof reads.readOriginalBytes !== 'function') fail('RestSourceTlsAuthorityPolicyUnavailable');
+      ca = await reads.readOriginalBytes(site.caPath);
+      if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');
+    }
     return Object.freeze({installed, site, ca, definition: original,
       // Canonical configuration identities alone normalize descriptive text.
       // Keep exact original strings too, including the Account wire, so that
       // physically distinct provider bindings cannot become Saved aliases.
       originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),
-        ...siteKeys.map(name => site[name]), site.caPath, ca]))});
+        ...siteKeys.map(name => site[name]),
+        ...(site.caPath === undefined ? [] : ['tls-ca', site.caPath, hash(ca)])]))});
   }
   async function identityParts(profile, providerProfile, _readJson, _installation, context) {
     const input = await readInputs(providerProfile, {configurationReader: context?.configurationReader});
     return [Object.freeze({...profile, accountConfigurationWire: JSON.parse(input.installed.accountConfigurationWire)}),
-      input.site, original, Object.freeze({originalStringsCid: input.originalStringsCid,
-        ...(input.ca === undefined ? {} : {ca: input.ca})})];
+      input.site, original, Object.freeze({originalStringsCid: input.originalStringsCid})];
   }
   function reportPrepared(input, declared) {
     return Object.freeze({connectorId: input.installed.connectorId,
