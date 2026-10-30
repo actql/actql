@@ -3371,6 +3371,17 @@ separately selected Model admission/Scope remains until its own original first
 census and preparation connection are installed; it cannot use an ordinary
 purpose or a later reconstructed census as a substitute.
 
+### Imported Run cleanup uses the shared pending observation
+
+Before reporting or stopping an imported managed Run, its existing cleanup
+owner uses `ledger_usage_has_pending_resources` on the original Ledger usage.
+Live zero-byte reservations, attempts and holdings remain pending just like
+nonzero backing. A settled unused reservation follows its existing return law;
+actually consumed work, attempts and transfer remain in the final report and
+do not prevent cleanup. The original delegation, parked-state, bootstrap,
+uncertain-report and physical-stop obligations remain separate. This observation
+neither resets history nor acknowledges a physical child.
+
 
 ## Source-free Tasks publication
 
