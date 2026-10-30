@@ -2617,7 +2617,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "bd6d2fd6c64c6460a1e972c8345f165d8c4f3497561f313e99cca0f637086056",
+      "sha256": "3c12cd1b5e59b8e74955cc0539b2725e0ccd2a976c7acf83bef6727202b83eb8",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2991,6 +2991,10 @@
               {
                 "path": "packages/node/project-profile.typecheck.mts",
                 "anchor": "const opened={stateDir:'.actql',profile:'mock'} satisfies OpenOptions;"
+              },
+              {
+                "path": "packages/node/host-policy.typecheck.mts",
+                "anchor": "async verifyRequestValuePolicy(subject, {signal})"
               }
             ]
           }
