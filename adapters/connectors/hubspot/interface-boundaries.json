@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
-      "sha256": "eca674fee3e08c3ada6b81f20649c91a1c05cab4e1fc9be72bdd82c3eb5362af",
+      "sha256": "0160982a25c49430385f0f5f66aea70527c81e22130e569e774ef66e10501133",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode projection and Credential/Account/RowRun owners",
@@ -178,6 +178,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/account_identity_wbtest.mbt",
                 "anchor": "test \"account identity rejects numeric rounding"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-account-response-facts.test.mjs",
+                "anchor": "test(`HubSpot account preserves original"
               }
             ]
           }
