@@ -397,154 +397,15 @@ fn[I] prepare_request_program_module_body_owned(
           },
         )
       }
-      let limits = compilation_limits
-      let sequence = @publication_host.prepared_client_values_sequence_limits(
-        prepared,
-      )
-      let geometry = match owner.program_artifact_geometry {
-        Some(original) => original
-        None => {
-          let capacity = owner.program_capacity.unwrap()
-          let (r, e) = match owner.program_measurement_quote {
-            Some(original) => original
-            None => {
-              // This is the actual measurement's variable returned storage,
-              // not codec headroom, fixed call wrappers or its nested helpers.
-              let units = match
-                @publication_host.prepared_client_pure_measurement_storage(
-                  prepared, limits,
-                ) {
-                Err(issue) => return Err(Construction(issue))
-                Ok(value) => value
-              }
-              guard @execution.preparation_representation_cost(units)
-                is Some(bytes) else {
-                return Err(Preparation(Policy))
-              }
-              let (r, e) = match
-                @resources.preparation_capacity_working_extents(capacity, input) {
-                Err(issue) => return Err(Preparation(Capacity(issue)))
-                Ok(value) => value
-              }
-              guard @execution.checked_preparation_add_product(r, bytes, 1L)
-                is Some(r) &&
-                @execution.checked_preparation_add_product(e, bytes, 1L)
-                is Some(e) else {
-                return Err(Preparation(Policy))
-              }
-              owner.program_measurement_quote = Some((r, e))
-              (r, e)
-            }
-          }
-          match
-            @resources.reserve_working_preparation_phase(capacity, input, r, e) {
-            Err(issue) => {
-              owner.phase = ProgramPlanReserved
-              return Err(Preparation(Capacity(issue)))
-            }
-            Ok(_) => ()
-          }
-          match
-            @publication_host.measure_prepared_client_pure_compilation_construction(
-              prepared,
-              manifests,
-              sequence,
-              limits.max_facts,
-              limits.max_witnesses,
-              limits.max_wire_bytes,
-              limits.max_nodes,
-              limits.max_depth,
-            ) {
-            Err(issue) => return Err(Construction(issue))
-            Ok(value) => {
-              owner.program_artifact_geometry = Some(value)
-              value
-            }
-          }
-        }
-      }
-      let capacity = owner.program_capacity.unwrap()
-      let (r, e) = match owner.program_artifact_quote {
-        Some(original) => original
-        None => {
-          guard program_artifact_construction_cost(geometry) is Some(bytes) else {
-            return Err(Preparation(Policy))
-          }
-          let (r, e) = match
-            @resources.preparation_capacity_working_extents(capacity, input) {
-            Err(issue) => return Err(Preparation(Capacity(issue)))
-            Ok(value) => value
-          }
-          guard @execution.checked_preparation_add_product(r, bytes, 1L)
-            is Some(r) &&
-            @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
-            return Err(Preparation(Policy))
-          }
-          owner.program_artifact_quote = Some((r, e))
-          (r, e)
-        }
-      }
-      match
-        @resources.reserve_working_preparation_phase(capacity, input, r, e) {
-        Err(issue) => {
-          // The original module, immutable measurement and absolute quote
-          // survive a declined grow. Never repeat its factory on continuation.
-          owner.phase = ProgramPlanReserved
-          return Err(Preparation(Capacity(issue)))
-        }
-        Ok(_) => ()
-      }
-      // The original hash and text writers each visit at most the quoted
-      // complete Plan value nodes. This bounds only this known dimension;
-      // string, parser, contract and other compiler work is not inferred here.
-      let work = match
-        @resources.begin_preparation_phase_work64(
-          capacity,
+      let artifact = match
+        prepare_request_compilation_owned(
+          owner,
           input,
-          @resources.ExecutionPlan,
-          2L * geometry.executable_plan.1.to_int64(),
+          prepared,
+          manifests,
+          compilation_limits,
+          None,
         ) {
-        Err(issue) => return Err(Preparation(Work(issue)))
-        Ok(value) => value
-      }
-      owner.program_artifact_work = Some(work)
-      let attempted : Result[
-        @publication_host.ClientRunCompilation,
-        ClientRequestProgramPlanIssue,
-      ] = if geometry.tasks {
-        @publication_host.observe_prepared_client_task_plan_encoding(
-          prepared,
-          manifests,
-          sequence,
-          limits.max_facts,
-          limits.max_witnesses,
-          limits.max_wire_bytes,
-          limits.max_nodes,
-          limits.max_depth,
-          nodes_out=owner.program_artifact_plan_encoding_nodes,
-        )
-        .map(value => @publication_host.ClientRunCompilation::Tasks(value))
-        .map_err(issue => TaskCompilation(issue))
-      } else {
-        @publication_host.observe_prepared_client_values_plan_encoding(
-          prepared,
-          manifests,
-          sequence,
-          limits.max_facts,
-          limits.max_witnesses,
-          limits.max_wire_bytes,
-          limits.max_nodes,
-          limits.max_depth,
-          nodes_out=owner.program_artifact_plan_encoding_nodes,
-        )
-        .map(value => @publication_host.ClientRunCompilation::Values(value))
-        .map_err(issue => ValuesCompilation(issue))
-      }
-      match finish_request_program_artifact_work(owner) {
-        Err(issue) => return Err(Preparation(issue))
-        Ok(_) => ()
-      }
-      let artifact = match attempted {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
@@ -569,6 +430,8 @@ fn[I] prepare_request_program_module_body_owned(
         owner.program_artifact_geometry = None
         owner.program_artifact_quote = None
         owner.program_artifact_inputs = None
+        owner.program_model_compilation = None
+        owner.program_model_compilation_inputs = None
       }
       completed.map_err(issue => Preparation(issue))
     },
@@ -582,6 +445,213 @@ fn[I] prepare_request_program_module_body_owned(
       }
     },
   )
+}
+
+///|
+// SAME measure/absolute grow/work receipt for ordinary and selected Model
+// compilers. Callers retain their original module or Graph before entry.
+fn[I] prepare_request_compilation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  manifests : @publication_host.ClientCompilationManifests,
+  compilation_limits : @publication_host.ClientPureCompilationLimits,
+  model : @publication_host.ClientInferPlanGraph?,
+) -> Result[
+  @publication_host.ClientRunCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  let limits = compilation_limits
+  let sequence = @publication_host.prepared_client_values_sequence_limits(
+    prepared,
+  )
+  let geometry = match owner.program_artifact_geometry {
+    Some(original) => original
+    None => {
+      let capacity = owner.program_capacity.unwrap()
+      let (r, e) = match owner.program_measurement_quote {
+        Some(original) => original
+        None => {
+          // This is the actual measurement's variable returned storage,
+          // not codec headroom, fixed call wrappers or its nested helpers.
+          let units = match
+            (match model {
+              Some(graph) =>
+                @publication_host.prepared_client_model_measurement_storage(
+                  prepared,
+                  [graph],
+                  limits,
+                )
+              None =>
+                @publication_host.prepared_client_pure_measurement_storage(
+                  prepared, limits,
+                )
+            }) {
+            Err(issue) => return Err(Construction(issue))
+            Ok(value) => value
+          }
+          guard @execution.preparation_representation_cost(units) is Some(bytes) else {
+            return Err(Preparation(Policy))
+          }
+          let (r, e) = match
+            @resources.preparation_capacity_working_extents(capacity, input) {
+            Err(issue) => return Err(Preparation(Capacity(issue)))
+            Ok(value) => value
+          }
+          guard @execution.checked_preparation_add_product(r, bytes, 1L)
+            is Some(r) &&
+            @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+            return Err(Preparation(Policy))
+          }
+          owner.program_measurement_quote = Some((r, e))
+          (r, e)
+        }
+      }
+      match
+        @resources.reserve_working_preparation_phase(capacity, input, r, e) {
+        Err(issue) => {
+          owner.phase = if model is Some(_) {
+            ModelPlanReserved
+          } else {
+            ProgramPlanReserved
+          }
+          return Err(Preparation(Capacity(issue)))
+        }
+        Ok(_) => ()
+      }
+      match
+        (match model {
+          Some(graph) =>
+            @publication_host.measure_prepared_client_model_compilation_construction(
+              prepared,
+              [graph],
+              manifests,
+              sequence,
+              limits.max_facts,
+              limits.max_witnesses,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            )
+          None =>
+            @publication_host.measure_prepared_client_pure_compilation_construction(
+              prepared,
+              manifests,
+              sequence,
+              limits.max_facts,
+              limits.max_witnesses,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            )
+        }) {
+        Err(issue) => return Err(Construction(issue))
+        Ok(value) => {
+          owner.program_artifact_geometry = Some(value)
+          value
+        }
+      }
+    }
+  }
+  let capacity = owner.program_capacity.unwrap()
+  let (r, e) = match owner.program_artifact_quote {
+    Some(original) => original
+    None => {
+      guard program_artifact_construction_cost(geometry) is Some(bytes) else {
+        return Err(Preparation(Policy))
+      }
+      let (r, e) = match
+        @resources.preparation_capacity_working_extents(capacity, input) {
+        Err(issue) => return Err(Preparation(Capacity(issue)))
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Preparation(Policy))
+      }
+      owner.program_artifact_quote = Some((r, e))
+      (r, e)
+    }
+  }
+  match @resources.reserve_working_preparation_phase(capacity, input, r, e) {
+    Err(issue) => {
+      // The original module, immutable measurement and absolute quote
+      // survive a declined grow. Never repeat its factory on continuation.
+      owner.phase = if model is Some(_) {
+        ModelPlanReserved
+      } else {
+        ProgramPlanReserved
+      }
+      return Err(Preparation(Capacity(issue)))
+    }
+    Ok(_) => ()
+  }
+  // The original hash and text writers each visit at most the quoted
+  // complete Plan value nodes. This bounds only this known dimension;
+  // string, parser, contract and other compiler work is not inferred here.
+  let work = match
+    @resources.begin_preparation_phase_work64(
+      capacity,
+      input,
+      @resources.ExecutionPlan,
+      2L * geometry.executable_plan.1.to_int64(),
+    ) {
+    Err(issue) => return Err(Preparation(Work(issue)))
+    Ok(value) => value
+  }
+  owner.program_artifact_work = Some(work)
+  let attempted : Result[
+    @publication_host.ClientRunCompilation,
+    ClientRequestProgramPlanIssue,
+  ] = if model is Some(graph) {
+    @publication_host.observe_prepared_client_multi_infer_plan_encoding(
+      prepared,
+      [graph],
+      manifests,
+      sequence,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      nodes_out=owner.program_artifact_plan_encoding_nodes,
+    )
+    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+    .map_err(issue => TaskCompilation(issue))
+  } else if geometry.tasks {
+    @publication_host.observe_prepared_client_task_plan_encoding(
+      prepared,
+      manifests,
+      sequence,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      nodes_out=owner.program_artifact_plan_encoding_nodes,
+    )
+    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+    .map_err(issue => TaskCompilation(issue))
+  } else {
+    @publication_host.observe_prepared_client_values_plan_encoding(
+      prepared,
+      manifests,
+      sequence,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      nodes_out=owner.program_artifact_plan_encoding_nodes,
+    )
+    .map(value => @publication_host.ClientRunCompilation::Values(value))
+    .map_err(issue => ValuesCompilation(issue))
+  }
+  match finish_request_program_artifact_work(owner) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  attempted
 }
 
 ///|
@@ -686,6 +756,8 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None
       owner.program_artifact_inputs = None
+      owner.program_model_compilation = None
+      owner.program_model_compilation_inputs = None
       owner.program_source_free = None
       owner.native_parameters = None
       owner.native_query_declarations = None

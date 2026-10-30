@@ -4225,3 +4225,35 @@ Normal Host selection, complete initial/provider/codec/output backing and
 removal of still-used legacy Model callers are separate migration work. This
 connection does not turn the fixed Mock purpose into a generic Model/Content
 or serialized-Model fallback.
+
+
+### Model compilation on the original Request
+
+The selected Model construction input also owns its actual composed Task
+compiler. `prepare_request_model_compilation` retains the exact Graph,
+compiler manifests, sequence contracts and codec configuration before a grow
+callback. Its measurement visits the issuer's original canonical component
+arrays, the checked task/data-edge/Result inventory and the same final Plan
+emitters used by ordinary compilation. Model input-fragment parses remain
+separate live values; pre-existing component trees remain backed by their
+original owner. Neither a possible Result projection nor a codec ceiling is
+an independent capacity allowance.
+
+The ordinary and Model callers share the same measurement-storage debit,
+absolute artifact grow and `ExecutionPlan` work receipt. A declined grow keeps
+its original geometry, quote and input snapshot. A foreign input, changed
+Graph/configuration or reentrant constructor cannot replace them. The final
+Plan hash and text writers report their own consumed value-node prefix to the
+original receipt on success, typed failure and synchronous unwind. This
+specific work dimension does not count earlier parsing, lowering, contracts,
+template issuance, strings or physical Model work.
+
+The returned original Task compilation is retained by that Request until the
+actual module and Model Plan bind it. Model Scope construction checks that
+same compiled artifact; an independently recompiled equivalent is not a
+substitute. Completion drops the now-unused measurement and argument aliases
+only after the actual selected Plan owns its artifact. This does not complete
+the body early or bypass the original Scope, currentness, transfer, outstanding
+borrow or physical cleanup requirements. Normal Host forwarding, complete
+initial/Model/provider/codec/output backing and removal of still-used raw
+callers remain separate obligations.

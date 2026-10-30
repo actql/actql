@@ -14,6 +14,7 @@ pub fn[I] borrow_request_model_plan_input(
     owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
+    owner.program_model_compilation_inputs is Some(_) ||
     owner.program_body_attempted {
     return Err(WrongPhase)
   }
@@ -55,6 +56,88 @@ pub fn[I] borrow_request_model_plan_input(
 }
 
 ///|
+/// Compile the selected fixed Model profile on the original Request. The
+/// existing construction borrow keeps Graph and output live through this
+/// call and until the actual module/Plan/Scope has retained them. Provider,
+/// codec and complete Model construction backing still belongs to the caller.
+pub fn[I] prepare_request_model_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  graph : @publication_host.ClientInferPlanGraph,
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(graph.owner, prepared) &&
+    owner.program_model_compilation is None &&
+    owner.program_model is None &&
+    !owner.program_body_attempted &&
+    owner.program_artifact_work is None &&
+    owner.program_artifact_work_issue is None else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  if !installed_managed_run_shape_supported(prepared, true) {
+    return Err(Installed(Unsupported))
+  }
+  if owner.program_model_compilation_inputs
+    is Some((old_manifests, old_limits, old_contracts, old_model)) {
+    guard physical_equal(old_manifests, manifests) &&
+      old_limits == compilation_limits &&
+      physical_equal(old_contracts, contracts) &&
+      physical_equal(old_model, graph) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+  } else {
+    owner.program_model_compilation_inputs = Some(
+      (manifests, compilation_limits, contracts, graph),
+    )
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          contracts.original.value.ordered_contract,
+        ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
+      let result = prepare_request_compilation_owned(
+        owner,
+        input,
+        prepared,
+        manifests,
+        compilation_limits,
+        Some(graph),
+      )
+      match result {
+        Err(issue) => return Err(issue)
+        Ok(@publication_host.Tasks(compilation)) => {
+          owner.program_model_compilation = Some(compilation)
+          owner.phase = ModelPlanReserved
+          Ok(compilation)
+        }
+        _ => Err(Preparation(ForeignOriginal))
+      }
+    },
+    () => {
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
+  )
+}
+
+///|
 /// Bind this actual Model Plan before completing the original Prepared body.
 /// The caller has backed and retained its complete selected Model/read/module
 /// overlap at the current extents. This call does not derive backing from a
@@ -71,6 +154,12 @@ pub fn[I] prepare_request_model_read_scope(
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_model is None &&
+    owner.program_model_compilation is Some(compilation) &&
+    @publication_host.client_compiled_run_matches_tasks(
+      plan.compiled,
+      prepared,
+      compilation,
+    ) &&
     !owner.program_body_attempted &&
     physical_equal(plan.prepared, prepared) &&
     owner.input is Some(original) &&
@@ -154,6 +243,15 @@ pub fn[I] complete_request_model_preparation(
   if owner.phase == ProgramPlanReserved {
     owner.phase = ModelPlanReserved
   }
+  if result is Ok(_) {
+    // The selected module/Plan owns this SAME artifact; no sizing inventory
+    // has a later consumer. Keep the peak debit until construction unwinds.
+    owner.program_model_compilation = None
+    owner.program_model_compilation_inputs = None
+    owner.program_artifact_geometry = None
+    owner.program_artifact_quote = None
+    owner.program_measurement_quote = None
+  }
   result
 }
 
@@ -216,6 +314,12 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_source_free = None
       owner.program_captured = None
       owner.program_model = None
+      owner.program_model_compilation = None
+      owner.program_model_compilation_inputs = None
+      owner.program_artifact_inputs = None
+      owner.program_artifact_geometry = None
+      owner.program_artifact_quote = None
+      owner.program_measurement_quote = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false

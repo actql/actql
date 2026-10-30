@@ -20,6 +20,33 @@ pub fn client_program_borrow_request_model_plan_input(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelCompilation")
+pub fn client_program_prepare_request_model_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  graph : @publication_host.ClientInferPlanGraph,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_compilation(
+    parent,
+    input,
+    graph,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPreparedInstalledManagedModelRequirements")
 pub fn client_program_prepared_installed_managed_model_requirements(
   original : @client_local_host.ClientInstalledManagedModelPlan,

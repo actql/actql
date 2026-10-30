@@ -988,3 +988,146 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
     is Err(UnknownClassification),
   )
 }
+
+///|
+test "composed Model construction geometry covers original repeated edges Results and final writer work" {
+  for
+    prepared in [
+      client_infer_prefix_test_program(),
+      client_composed_infer_test_program(),
+      client_two_independent_infer_test_program(),
+    ] {
+    let bounds = run_materials_limits()
+    let components = prepared_client_composed_infer_occurrences(prepared)
+      .unwrap()
+      .map(occurrence => {
+        issue_installed_client_composed_infer_plan_graph(
+          occurrence,
+          client_infer_graph_test_execution(
+            prepared,
+            occurrence=Some(occurrence),
+          ),
+          bounds.sequence,
+          bounds.max_evidence_bytes,
+          bounds.max_evidence_nodes,
+          bounds.max_evidence_depth,
+        ).unwrap()
+      })
+    let geometry = measure_prepared_client_model_compilation_construction(
+      prepared,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+    ).unwrap()
+    let count = Ref(-1L)
+    let compiled = observe_prepared_client_multi_infer_plan_encoding(
+      prepared,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+      nodes_out=count,
+    ).unwrap()
+    let parsed = @source.parse_json_bytes_measured(
+      @utf8.encode(compiled.plan.plan.wire),
+      {
+        max_input_bytes: bounds.max_evidence_bytes,
+        max_nodes: bounds.max_evidence_nodes,
+        max_depth: bounds.max_evidence_depth,
+      },
+    ).unwrap()
+    assert_eq(count.val, 2L * parsed.usage.nodes.to_int64() - 1L)
+    assert_true(parsed.usage.input_bytes <= geometry.executable_plan.0)
+    assert_true(parsed.usage.nodes <= geometry.executable_plan.1)
+    assert_true(parsed.usage.depth <= geometry.executable_plan.2)
+    assert_eq(geometry.borrowed_inputs.length(), components.length())
+    assert_eq(
+      geometry.fragments.length() + components.length(),
+      @strategy.graph_task_count(prepared.graph),
+    )
+    for index in 0..<components.length() {
+      assert_true(physical_equal(compiled.infers[index], components[index]))
+    }
+    let limits = client_standard_pure_compilation_limits()
+    let units = prepared_client_model_measurement_storage(
+      prepared, components, limits,
+    ).unwrap()
+    assert_true(
+      units ==
+      prepared_client_model_measurement_storage(prepared, components, {
+        ..limits,
+        max_wire_bytes: 2000000,
+        max_nodes: 200000,
+        max_depth: 200,
+      }).unwrap(),
+    )
+  }
+}
+
+///|
+test "composed Model measurement retains foreign inventory refusal and bounded compiler failure prefix" {
+  let (prepared, component) = original_infer_graph_parts_fixture()
+  let bounds = run_materials_limits()
+  let measure = (value, components) => {
+    measure_prepared_client_model_compilation_construction(
+      value,
+      components,
+      run_materials_manifests(),
+      bounds.sequence,
+      bounds.max_sequence_steps,
+      bounds.max_sequence_work,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+    )
+  }
+  assert_true(
+    measure(client_infer_prefix_test_program(), [component]) is Err(_),
+  )
+  assert_true(measure(prepared, [component, component]) is Err(_))
+  measure(prepared, [component]).unwrap() |> ignore
+  let successful = issue_prepared_client_multi_infer_compilation(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  let original = @source.parse_json_bytes_measured(
+    @utf8.encode(successful.plan.plan.wire),
+    {
+      max_input_bytes: bounds.max_evidence_bytes,
+      max_nodes: bounds.max_evidence_nodes,
+      max_depth: bounds.max_evidence_depth,
+    },
+  ).unwrap()
+  let one_short = original.usage.nodes - 1
+  let count = Ref(-1L)
+  let result = observe_prepared_client_multi_infer_plan_encoding(
+    prepared,
+    [component],
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    one_short,
+    bounds.max_evidence_depth,
+    nodes_out=count,
+  )
+  assert_true(result is Err(_))
+  assert_true(count.val >= 0L && count.val <= 2L * one_short.to_int64())
+}

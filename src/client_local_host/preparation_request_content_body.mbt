@@ -16,6 +16,7 @@ pub fn[I] borrow_request_content_plan_input(
     owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
+    owner.program_model_compilation_inputs is Some(_) ||
     owner.program_body_attempted {
     return Err(WrongPhase)
   }

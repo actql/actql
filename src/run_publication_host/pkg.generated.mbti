@@ -1665,6 +1665,8 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedCl
 
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
+pub fn measure_prepared_client_model_compilation_construction(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
+
 pub fn measure_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFactGeometry, ClientPublicationPlanFactIssue]
 
 pub fn measure_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnessGeometry, ClientPublicationWitnessIssue]
@@ -1696,6 +1698,8 @@ pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectCo
 pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
 
 pub fn observe_prepared_client_infer_plan_encoding(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
+
+pub fn observe_prepared_client_multi_infer_plan_encoding(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
 pub fn observe_prepared_client_task_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
@@ -1980,6 +1984,8 @@ pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 pub fn prepared_client_infer_target_name(PreparedClientProgram, Int) -> String?
 
 pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, ClientLocalNormalization) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
+pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
@@ -3661,6 +3667,7 @@ pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
   tasks : Bool
   fragments : Array[ClientTaskFragmentConstruction]
+  borrowed_inputs : Array[(Int, Int, Int)]
   results : Array[(Int, Int, Int)]
   projections : Array[ClientResultGraphConstruction]
   nodes : (Int, Int, Int)
