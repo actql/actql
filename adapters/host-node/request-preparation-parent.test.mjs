@@ -1468,3 +1468,16 @@ test('timed Request original refuses malformed time requirement before selecting
   try{await assert.rejects(f.view.fundedPreparation(f.request,undefined),{code:'InvalidHostRuntimeResult'});assert.deepEqual(f.events,['check','borrow']);}
   finally{await f.failedCleanup();}
 });
+
+
+test('timed whole Source manager hands the same opaque invocation to Plan before Module and adoption',async()=>{
+  const f=await originalTimedRequest({captured:true});let run;
+  try{
+    await f.view.fundedPreparation(f.request,undefined);
+    run=f.view.adoptCapturePreparation(f.prepared,f.request,f.identity,invocation=>{
+      assert.equal(invocation,f.option);f.events.push('exact-timed-plan');return f.plan;
+    },f.construct);
+    assert.equal(run.value,f.value);
+    assert.deepEqual(f.events,['check','borrow','requires-time','artifact','bind-original','exact-timed-plan','timed-module','adopt']);
+  }finally{if(run)await f.retireAdopted();else await f.failedCleanup();}
+});

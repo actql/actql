@@ -252,8 +252,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     managedPreparationRetirementContinuation: new Function('checked', 'return ' +
       text(declared('managedPreparationRetirementContinuation')))(value => value),
     bindInstalledManagedSources,
-    prepareManagedComputeCapturePlan(held, run) {
-      assert.strictEqual(held, originals); return capturePlan(run);
+    prepareManagedComputeCapturePlan(held, run, invocation) {
+      assert.strictEqual(held, originals); return capturePlan(run, invocation);
     },
     originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
     runtimeCore(actual) {assert.equal(actual,runtime);return {publicationControl:invocationControl};},
@@ -1311,7 +1311,8 @@ function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) 
     clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
   const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
     '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
-  return {prepare: () => prepare(originals, run), calls, plan, run, runtime};
+  return {prepare: invocation => prepare(originals, run, invocation), calls, plan, run, runtime,
+    expectedArgs: [prepared,request,capacity,17n,29n,admission,contracts.values,contracts.expression,contracts.ordered,true]};
 }
 
 test('whole Source Host constructor retains the original typed input without a Query or zero-prefix classifier', () => {
@@ -1583,4 +1584,42 @@ test('timed installing fixed Host callback forwards actual Request header and or
   const journal={resolveDefinition(r,scope,m,c){assert.equal(r,request);assert.deepEqual(scope,{namespaceId});assert.equal(m,moon);assert.equal(c,control);calls.push('lookup-original');return retained;}};
   const callback=Function('journal','namespaceId','moon','control','prepareTimedClientInvocation','authorityScopeCid','now','return '+text(declaration.init))(journal,namespaceId,moon,control,options=>{assert.equal(options.control,control);assert.equal(options.preparedProgram,prepared);assert.equal(options.requestIdentity,request);assert.equal(options.compilationOriginal,artifact);assert.equal(options.now,now);assert.equal(options.retainedDefinitionWire,retained.runDefinition.wire);return options;},authorityScopeCid,now);
   assert.equal(callback(prepared,request,artifact).kind,'values');task=true;assert.equal(callback(prepared,request,artifact).kind,'tasks');task=false;captured=true;assert.equal(callback(prepared,request,artifact).kind,'tasks');assert.equal(calls.length,3);
+});
+
+
+test('timed whole Source caller uses the exact transient Core Option at the matching typed port',()=>{
+  const f=wholeSourcePlanConstructor(),time={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
+  f.run.queryTimePreparation=time;
+  f.runtime.clientProgramPrepareInstalledManagedWholeSourcePlan=()=>assert.fail('No legacy whole plan for timed input');
+  f.runtime.clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime=function(...args){
+    assert.equal(this,f.runtime);assert.equal(args.length,11);assert.deepEqual(args.slice(0,10),f.expectedArgs);assert.equal(args[10],opaque);
+    f.calls.push('timed-whole-plan');return f.plan;
+  };
+  assert.equal(f.prepare(opaque),f.plan);assert.equal(f.run.queryTimePreparation,time);
+  assert.equal(Object.values(f.run).includes(opaque),false);
+  assert.deepEqual(f.calls,['original-prefix','select-original','whole-capacity','timed-whole-plan']);
+});
+
+test('timed whole Source caller refuses an absent typed port and retains exact Core refusal or retirement',()=>{
+  const unavailable=wholeSourcePlanConstructor();unavailable.run.queryTimePreparation={};
+  unavailable.runtime.clientProgramPrepareInstalledManagedWholeSourcePlan=()=>assert.fail('No old whole or Query fallback');
+  assert.throws(()=>unavailable.prepare({}),{code:'NodeManagedRunRuntimeUnavailable'});
+  for(const retired of [false,true]){
+    const f=wholeSourcePlanConstructor(),opaque={},original=Object.assign(Error('same typed constructor refusal'),{cleanupPending:true});f.run.queryTimePreparation={};
+    f.runtime.clientProgramPrepareInstalledManagedWholeSourcePlan=()=>assert.fail('No old fallback');
+    f.runtime.clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime=function(...args){assert.equal(this,f.runtime);assert.equal(args[10],opaque);if(retired){f.run.closed=true;return f.plan;}throw original;};
+    if(retired)assert.throws(()=>f.prepare(opaque),{code:'ForeignInstalledComputeRun'});
+    else assert.throws(()=>f.prepare(opaque),e=>e===original);
+  }
+});
+
+test('timed whole Source installing closure forwards manager Option transiently without retaining a second carrier',async()=>{
+  const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},scope={},time={},view=Object.freeze({queryTimePreparation:time}),opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
+  let planCalls=0;
+  const manager={adoptCapturePreparation(a,b,c,plan,construct){assert.equal(a,prepared);assert.equal(b,sdkRequest);assert.equal(c,request);const invocation=construct(artifact);assert.equal(invocation,opaque);assert.equal(plan(invocation),scope);return {original,value:p.value};},severPreparation(){},retireSeveredPreparation(){},close(){return {pending:false};}};
+  const f=lifecycle({runtime:p.runtime,factory:async()=>manager,originalRequest:a=>{assert.equal(a,prepared);return sdkRequest;},capturePlan(run,invocation){planCalls++;assert.equal(run.queryTimePreparation,time);assert.equal(invocation,opaque);return scope;}});
+  await f.preparation.prepareManagedCompute();
+  assert.equal(f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,scope,(a,b,c)=>{assert.equal(a,prepared);assert.equal(b,request);assert.equal(c,artifact);return {original:opaque,retained:view};}),p.value);
+  const run=f.record.computeRuns.get(prepared);assert.equal(run.queryInvocation,view);assert.equal(Object.values(run).includes(opaque),false);assert.equal(planCalls,1);
+  const finish=f.preparation.retireManagedComputeRun(prepared);assert.equal(run.queryInvocation,undefined);finish();await f.initialControl.close();
 });
