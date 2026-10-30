@@ -610,9 +610,18 @@ backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
 
-If the supplied stage runner throws, the generic returned error retains its
+If the supplied stage or Python project runner throws, the generic returned
+error retains its
 SAME private exception as non-enumerable `originalPublisherFailure`. If
 recording Unknown also fails, that original physical write error is returned
 with the same private runner exception. Neither normal error inspection nor
 receipts serialize the private exception; the original caller still owns its
 process/session and cleanup duties.
+
+Python's [exact-byte publication protocol](python-local.md#exact-byte-python-publication-protocol)
+uses `release.mjs python-publish-plan` and the same publisher/receipt Owner.
+It prepares one project per protected job, keeps the facade behind exact public
+SDK/runtime bytes, and distinguishes lost response, terminal success, raw
+attestation output and public confirmation. No executable CLI, configured
+workflow, OIDC credential, owner approval or actual publication is supplied by
+that plan or its inert component controls.
