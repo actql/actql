@@ -18,6 +18,7 @@ struct ClientInstalledManagedCapturePlan {
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
+  mut compilation : @publication_host.ClientRunCompilation?
   limits : @resources.LedgerLimits
 }
 
@@ -126,6 +127,7 @@ pub fn prepare_installed_managed_capture_plan(
     compute_sequences: compute.sequences,
     capacity_plan: compute.capacity_plan,
     configuration: compute.configuration,
+    compilation: None,
     limits: compute.limits,
   })
 }

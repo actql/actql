@@ -1529,6 +1529,8 @@ pub fn client_program_installed_managed_capture_plan_prepare(@run_publication_ho
 
 pub fn client_program_installed_managed_capture_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_managed_capture_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_managed_keyed_content_check_preparation(@client_local_host.ClientInstalledManagedKeyedPreparation, @run_publication_host.PreparedClientProgram) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_content_prepare(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, Int, Int, Int, Array[Int64], Array[Int64], Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledManagedKeyedPreparation, @client_local_host.ClientInstalledManagedRunIssue]
@@ -2492,6 +2494,8 @@ pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedCl
 pub fn client_program_prepare_query_acquisition_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_prepare_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, String) -> Result[@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientQueryTimeIssue]
+
+pub fn client_program_prepare_request_capture_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedCapturePlan) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_computation_check(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, @program_check.PreparedSourceCatalog?, @stage_parameters.Source?) -> Result[@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
