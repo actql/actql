@@ -69,6 +69,7 @@ fn publication_custody_fixture_originals(
     publication_definition: None,
     publication_invocation: None,
     row_bound: None,
+    snapshot_prequoted: true,
     retained_quote: 1000000L,
     execution_quote: publication_projection_execution,
     holder,

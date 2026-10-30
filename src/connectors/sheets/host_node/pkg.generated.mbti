@@ -36,6 +36,8 @@ pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int
 
 pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 
+pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]
+
 pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]
 
 pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
@@ -59,6 +61,14 @@ pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) ->
 pub fn sheets_range_request_json(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool
+
+pub fn sheets_tabs_column_names() -> Array[String]
+
+pub fn sheets_tabs_row_count(@catalog.SheetTabsPage) -> Int
+
+pub fn sheets_tabs_rows_wire(@catalog.SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]
+
+pub fn sheets_tabs_schema_wire(Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]
 
 pub fn sheets_target_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 

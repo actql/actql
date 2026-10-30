@@ -7,11 +7,11 @@ import {copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, packClientPackages, packedClientPackage} from './packed-client-packages.mjs';
+import {releaseVersion} from './release-version.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
 const exact = (object, keys) => assert.deepEqual(Object.keys(object).sort(), [...keys].sort());
-const versionPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[a-zA-Z0-9.-]+)?$/u;
 const packageName = name => `@actql/${name}`;
 const run = (command, args, cwd) => execFileSync(command, args, {
   cwd, encoding: 'utf8', timeout: 600_000, maxBuffer: 16 * 1024 * 1024});
@@ -19,7 +19,7 @@ const run = (command, args, cwd) => execFileSync(command, args, {
 export function admitCohort(value) {
   exact(value, ['version', 'packageVersion', 'registry', 'access', 'tag', 'packages']);
   assert(['actql-package-release-cohort/0.1', 'actql-explorer-release-cohort/0.1'].includes(value.version));
-  assert.match(value.packageVersion, versionPattern);
+  releaseVersion(value.packageVersion);
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
   assert.match(value.tag, /^[a-z][a-z0-9-]*$/u);
@@ -118,7 +118,8 @@ export async function stagePackage({archive, destination, name, cohort, license}
   } finally {await rm(scratch, {recursive: true});}
 }
 
-export async function preparePackageRelease({repository = root, destination, cohortPath = join(repository, 'release/client-cohort.json')}) {
+export async function preparePackageRelease({repository = root, destination, cohortPath}) {
+  assert(typeof cohortPath === 'string' && cohortPath.length, 'Supply an explicit cohort file; no default release version');
   const cohort = admitCohort(JSON.parse(await readFile(cohortPath, 'utf8')));
   const source = checkoutState(repository);
   assert(source.clean, 'Release needs clean source HEAD');
@@ -211,10 +212,11 @@ export async function publicationPlan(manifest, fetchMetadata = fetch) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [command, directory, cohortPath] = process.argv.slice(2);
   assert(directory && ['prepare', 'verify', 'plan'].includes(command),
-    'usage: package-release.mjs prepare|verify|plan <unique-directory> [cohort-json]');
+    'usage: package-release.mjs prepare <unique-directory> <explicit-cohort-json> | verify|plan <directory>');
   assert(process.argv.length <= 5 && (cohortPath === undefined || command === 'prepare'));
+  if (command === 'prepare') assert(cohortPath, 'Supply an explicit cohort file; no default release version');
   const manifest = command === 'prepare' ? await preparePackageRelease({destination: directory,
-    ...(cohortPath === undefined ? {} : {cohortPath: resolve(cohortPath)})}) : await verifyPackageRelease(resolve(directory));
+    cohortPath: resolve(cohortPath)}) : await verifyPackageRelease(resolve(directory));
   console.log(JSON.stringify(command === 'plan' ? await publicationPlan(manifest) : {
     sourceSha: manifest.sourceSha, manifest: join(resolve(directory), 'release.json'),
     packages: manifest.packages.map(({name, version, file, sha256, integrity}) => ({name, version, file, sha256, integrity}))}, null, 2));

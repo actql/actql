@@ -8,6 +8,8 @@ import test from 'node:test';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleasePolicy, admitReleaseRequest, releasePlan} from './release-policy.mjs';
 import {runReleasePlan} from './release.mjs';
+import {admitCohort, preparePackageRelease, releasePackageMetadata} from './package-release.mjs';
+import {admitNativeReleaseCohort, nativeReleaseMetadata, prepareNativeCliRelease} from './native-cli-release.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const policy = JSON.parse(await readFile(new URL('../release/policy.json', import.meta.url), 'utf8'));
@@ -111,6 +113,77 @@ test('real legacy CLI publication refuses before credential or upload subprocess
     assert.equal(child.error, undefined);
     assert.notEqual(child.status, 0);
     assert.match(child.stderr, /Direct publication is disabled/u);
+  }
+  await assert.rejects(readFile(marker), {code: 'ENOENT'});
+});
+
+test('release preparation: Node and Native consume the same explicit version grammar', async () => {
+  const node = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
+  const native = {registry: node.registry, access: node.access, tag: 'candidate-synthetic-only'};
+  for (const version of ['0.0.7', '0.0.7-alpha.0', '0.0.7-beta.2', '0.0.7-rc.3']) {
+    assert.equal(admitCohort({...node, packageVersion: version}).packageVersion, version);
+    assert.equal(admitNativeReleaseCohort({...native, packageVersion: version}).packageVersion, version);
+  }
+  for (const packageVersion of [undefined, 'patch', '0.0.7-preview.1', '0.0.7-rc.01', '0.0.7+build.1', '0.0.7\n']) {
+    assert.throws(() => admitCohort({...node, packageVersion}));
+    assert.throws(() => admitNativeReleaseCohort({...native, packageVersion}));
+  }
+  assert.throws(() => admitNativeReleaseCohort({...native, packageVersion: '0.0.1'}), /placeholder/u);
+  for (const tag of [undefined, '', 'latest\n']) {
+    assert.throws(() => admitNativeReleaseCohort({...native, tag, packageVersion: '0.0.7'}));
+  }
+});
+
+test('release preparation: isolated Node and Native metadata preserves explicit RC and original source', async () => {
+  const original = JSON.parse(await readFile(new URL('../packages/native-cli/package.json', import.meta.url)));
+  const before = structuredClone(original);
+  const native = {packageVersion: '0.0.7-rc.3', registry: 'https://registry.npmjs.org/',
+    access: 'public', tag: 'candidate-synthetic-only'};
+  const cli = nativeReleaseMetadata(original, native);
+  assert.equal(cli.version, '0.0.7-rc.3');
+  assert.deepEqual(cli.bin, original.bin);
+  assert.deepEqual(cli.exports, original.exports);
+  assert.deepEqual(cli.publishConfig, {registry: native.registry, access: native.access});
+  assert.deepEqual(original, before);
+  cli.files.push('not-an-original');
+  assert.deepEqual(original, before);
+  const base = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
+  const node = admitCohort({...base, packageVersion: native.packageVersion, tag: native.tag});
+  const sdk = {name: '@actql/node', version: '0.0.0-development', dependencies: {'@actql/sdk': '0.0.0-development'}};
+  const staged = releasePackageMetadata(sdk, 'node', node);
+  assert.equal(staged.version, native.packageVersion);
+  assert.equal(staged.dependencies['@actql/sdk'], native.packageVersion);
+  assert.equal(sdk.version, '0.0.0-development');
+  assert.equal(sdk.dependencies['@actql/sdk'], '0.0.0-development');
+  assert.equal(releaseVersion(staged.version).pythonVersion, '0.0.7rc3');
+});
+
+test('release preparation: omitted selections refuse before source, artifact or output work', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'actql-release-no-default-'));
+  t.after(() => rm(dir, {recursive: true, force: true}));
+  const destination = join(dir, 'must-not-exist');
+  await assert.rejects(preparePackageRelease({repository: join(dir, 'absent-source'), destination}), /explicit cohort/u);
+  await assert.rejects(prepareNativeCliRelease(destination, [join(dir, 'absent-artifact')]), /explicit Native/u);
+  await assert.rejects(readFile(join(destination, 'release.json')), {code: 'ENOENT'});
+});
+
+test('release preparation: real Node and Native CLI cannot silently use source version or latest', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'actql-release-cli-no-default-'));
+  t.after(() => rm(dir, {recursive: true, force: true}));
+  const marker = join(dir, 'subprocess-called');
+  for (const command of ['npm', 'moon', 'git']) {
+    const path = join(dir, command);
+    await writeFile(path, '#!/bin/sh\nprintf called >> "$ACTQL_RELEASE_TEST_MARKER"\nexit 77\n');
+    await chmod(path, 0o755);
+  }
+  for (const script of ['package-release.mjs', 'native-cli-release.mjs']) {
+    const destination = join(dir, script);
+    const child = spawnSync(process.execPath, [resolve(root, 'scripts', script), 'prepare', destination],
+      {cwd: root, env: {...process.env, PATH: dir, ACTQL_RELEASE_TEST_MARKER: marker}, encoding: 'utf8', timeout: 20_000});
+    assert.equal(child.error, undefined);
+    assert.notEqual(child.status, 0);
+    assert.match(child.stderr, /explicit cohort/u);
+    await assert.rejects(readFile(join(destination, 'release.json')), {code: 'ENOENT'});
   }
   await assert.rejects(readFile(marker), {code: 'ENOENT'});
 });

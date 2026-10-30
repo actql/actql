@@ -701,6 +701,33 @@ pub fn completed_relation_export_field_names(
 }
 
 ///|
+/// Observe the finished original logical writer, not a new traversal or a
+/// policy ceiling. The receipt and stream must be the same completed export.
+/// The existing writer retains peak open-container depth even after finish.
+pub fn completed_relation_export_snapshot_extent(
+  stream : CompletedOutputExport,
+  receipt : CompletedRelationExportReceipt,
+) -> Result[(Int, Int, Int, Int), CompletedExportIssue] {
+  if !physical_equal(stream.export_identity, receipt.rows.export_identity) {
+    return Err(ForeignMaterial)
+  }
+  guard completed_relation_export_receipt_live(receipt) &&
+    stream.source is None &&
+    stream.row == IndexedRows::row_count(stream.rows) &&
+    stream.logical_writer is Some(writer) else {
+    return Err(NotFinished)
+  }
+  let (bytes, nodes, depth) = @encode.observed_writer_usage(writer)
+  let (original_bytes, original_nodes, rows) = logical_relation_usage(
+    receipt.logical,
+  )
+  if bytes != original_bytes || nodes != original_nodes {
+    return Err(ForeignMaterial)
+  }
+  Ok((bytes, nodes, rows, depth))
+}
+
+///|
 /// An export receipt attests only to its exact immutable completed source.
 /// Equal content or an independently reconstructed completion is insufficient.
 /// Upstream liveness is not rechecked after completion.

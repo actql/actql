@@ -41,26 +41,20 @@ pub suberror ClientRequestTerminalIssue {
 }
 
 ///|
-/// Complete the retained remaining checker and compiler once, then continue
-/// the SAME capacity to its real Pure/Effect body type. Unit is intentional:
-/// the normal Node caller receives no raw Prepared. A separate same-reservation
-/// constructor-input borrow can retain immutable DATA before Plan completion,
-/// but cannot replace the actual Plan/body or admit a Run. No second parse/check,
-/// no-plan preparation, caller
-/// mode/Bool, new Resource owner or per-operation current callback is used.
-pub fn[I] finish_request_computation_preparation(
+/// Complete only the original semantic checker. The original Request remains
+/// on its Unit reservation before Pure/Effect body selection, so a trusted
+/// installation can inspect its checked request subjects before compilation.
+/// This issues no Prepared body, Plan, Run, permission or cleanup witness.
+pub fn[I] finish_request_computation_check(
   owner : ClientRequestPreparation[I],
   input : I,
-  update_targets? : @update_targets.UpdateTargetPublication? = None,
-  store_targets? : @update_targets.StoreTargetPublication? = None,
-  command_targets? : @update_targets.CommandTargetPublication? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == ProgramCheck &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.program_check is Some(child) &&
     !child.busy &&
-    owner.computation_limits is Some(limits) else {
+    owner.computation_limits is Some(_) else {
     return Err(Preparation(WrongPhase))
   }
   if child.phase == RequestsPrepared ||
@@ -91,6 +85,30 @@ pub fn[I] finish_request_computation_preparation(
     child.phase != CompilationComplete {
     return Err(Preparation(WrongPhase))
   }
+  Ok(())
+}
+
+///|
+/// Complete the retained remaining checker and compiler once, then continue
+/// the SAME capacity to its real Pure/Effect body type. Unit is intentional:
+/// the normal Node caller receives no raw Prepared. A separate same-reservation
+/// constructor-input borrow can retain immutable DATA before Plan completion,
+/// but cannot replace the actual Plan/body or admit a Run. No second parse/check,
+/// no-plan preparation, caller
+/// mode/Bool, new Resource owner or per-operation current callback is used.
+pub fn[I] finish_request_computation_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
+) -> Result[Unit, ClientRequestTerminalIssue] {
+  match finish_request_computation_check(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let child = owner.program_check.unwrap()
+  let limits = owner.computation_limits.unwrap()
   if child.effect_limits is Some(_) {
     if child.phase != CompilationComplete {
       match

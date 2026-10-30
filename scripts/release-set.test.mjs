@@ -100,6 +100,28 @@ test('actual Python wheel metadata checker uses the common RC version and preser
   assert.deepEqual(await verifyReleaseSet(destination, {expectedSha256: fixed.sha256}), fixed);
 });
 
+test('versioned Python metadata lineage feeds the fixed release set without granting runtime acceptance', async t => {
+  const path = join(pythonDirectory, 'cohort.json'), original = await readFile(path);
+  const child = JSON.parse(original);
+  child.release_metadata = {version: '0.0.7-rc.1', source_package_version: '0.0.0.dev0',
+    source_artifact_sha256: 'a'.repeat(64), transforms: [
+      'stages/python-product/pyproject.toml', 'stages/python-sdk/pyproject.toml',
+      'stages/python-local-runtime/pyproject.toml',
+      'stages/python-local-runtime/src/actql_local_runtime/artifact.json',
+    ].map(file => ({file, before_sha256: 'a'.repeat(64), after_sha256: 'b'.repeat(64)}))};
+  try {
+    const wire = Buffer.from(JSON.stringify(child)); await writeFile(path, wire);
+    const {destination, fixed} = await freeze(t, true);
+    assert.equal(fixed.manifest.cohorts[0].sha256, sha(wire));
+    assert.deepEqual(await readFile(join(destination, fixed.manifest.cohorts[0].path)), wire);
+    assert.equal(fixed.manifest.acceptance, 'unaccepted');
+    assert.deepEqual(await verifyReleaseSet(destination, {expectedSha256: fixed.sha256}), fixed);
+    child.release_metadata.version = '0.0.7-rc.2';
+    await writeFile(path, JSON.stringify(child));
+    await assert.rejects(freeze(t, true));
+  } finally {await writeFile(path, original);}
+});
+
 test('wrong source or incomplete target cohort refuses before creating output', async () => {
   const value = request(); value.source.commit = 'b'.repeat(40);
   const destination = join(scratch, 'must-not-create');

@@ -5,9 +5,14 @@
     {
       "id": "A01",
       "required": "Merge/Conventional Commit cannot select a version, create tags or publish",
-      "currentSlice": "No automatic bump in new planner; existing workflow audit pending",
+      "currentSlice": "Node and Native preparation require explicit cohort inputs; no source version/latest default; workflow/authority audit pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: real Node and Native CLI cannot silently use source version or latest"
+        }
+      ]
     },
     {
       "id": "A02",
@@ -197,12 +202,16 @@
     {
       "id": "A19",
       "required": "Python entry works without Node/npm/ActQL CLI",
-      "currentSlice": "Existing Python cohort/build paths inventoried; candidate-specific acceptance pending",
+      "currentSlice": "Existing actual Python builder now requires explicit shared version projection; original/full staged component readers and fixed version/byte-bound wheel checks remain; product candidate/Node-free installation/public acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        },
+        {
+          "kind": "Inert packaging and metadata-component evidence, not product runtime/install acceptance",
+          "test": "test_full_original_and_staged_component_readers_keep_exact_binary_and_recipe_identity"
         }
       ]
     },
@@ -232,7 +241,7 @@
     {
       "id": "A22",
       "required": "RC and final require separate metadata/artifacts/approval",
-      "currentSlice": "Shared explicit SemVer/PEP440 conversion; artifact gate pending",
+      "currentSlice": "Node/Native/Python preparation shares one explicit SemVer-to-PEP440 projection; isolated Python metadata records source and release context, with distinct actual inert RC/final wheels. Product candidate/artifact acceptance and owner approval pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -242,6 +251,18 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        },
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: isolated Node and Native metadata preserves explicit RC and original source"
+        },
+        {
+          "kind": "Inert packaging/metadata only; full release acceptance remains pending",
+          "test": "test_real_rc_and_final_wheels_have_separate_metadata_names_and_exact_internal_pins"
+        },
+        {
+          "kind": "Inert packaging/metadata only; full release acceptance remains pending",
+          "test": "versioned Python metadata lineage feeds the fixed release set without granting runtime acceptance"
         }
       ]
     },
