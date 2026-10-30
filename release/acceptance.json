@@ -369,12 +369,16 @@
     {
       "id": "A21",
       "required": "Unaccepted Linux runtime/profile cannot be declared supported",
-      "currentSlice": "Request plan explicitly leaves platform acceptance pending; publication gate pending",
+      "currentSlice": "Read-only packaging now uses the same full selected-target component/recipe predicate independently of preparation host. Installed inspectors retain early actual-host refusal; producer ABI/source/copy/final checks and Darwin-only target/tag remain. Unsupported Linux runtime targets refuse before pack. Host-override/inert controls are not actual Linux build/runtime or release acceptance; publication gate and real platform evidence remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "Python has an explicit package/platform/profile selection and no npm-style channel"
+        },
+        {
+          "kind": "Inert selected-target bytes and controlled preparation-host observations only; no Linux runtime, engine load, real product build or ordinary install acceptance",
+          "test": "test_full_same_target_predicate_is_host_independent_without_loading_or_changing_bytes"
         },
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
