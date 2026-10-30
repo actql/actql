@@ -8585,7 +8585,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9384,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -42503,6 +42503,351 @@
         {
           "name": "client_program_installed_json_effect_response_construction_capacity",
           "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_model_demand.mbt",
+      "sha256": "c3246fc55e5ae3938174ef24868b9181ec9a3539e0536621e39fa165896acca8",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_plan_matches_model_demand",
+          "declaration": "installed_effect_plan_matches_model_demand ( plan : ClientInstalledEffectManagedPlan , model : ClientInstalledEffectModelDemand , ) - > Bool"
+        },
+        {
+          "name": "prepare_installed_effect_model_demand",
+          "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledEffectModelDemand , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_plan_matches_model_demand",
+            "prepare_installed_effect_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+      "sha256": "8a579eae450a09878f0c7965991b2f9e38e97adb2558c7e3df5f4c0e6fa251d0",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_model_demand_prepare",
+          "declaration": "client_program_installed_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_model_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_plan_matches_model_demand",
+          "declaration": "client_program_installed_effect_plan_matches_model_demand ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , model : @ client_local_host . ClientInstalledEffectModelDemand , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_model_demand_prepare",
+            "client_program_installed_effect_model_managed_plan_prepare",
+            "client_program_installed_effect_plan_matches_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
         }
       ]
     }

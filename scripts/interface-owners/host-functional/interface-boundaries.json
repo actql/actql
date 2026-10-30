@@ -19617,7 +19617,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19780,7 +19780,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -77061,7 +77061,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8a46764a5609a320554ec989315a52a01d37a34f83510dae36a2c3773cebc6e7",
+      "sha256": "deca3238bc79e0c441992302fcfe5c8e83c9bef02b5b6538e554a38b711449cd",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77248,6 +77248,17 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan",
+            "retainedRun"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
           "parameters": [
             "prepared",
@@ -77430,14 +77441,6 @@
           "parameters": [
             "prepared",
             "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
-          "parameters": [
-            "prepared",
-            "operationPlan"
           ],
           "async": false
         },
@@ -77634,7 +77637,8 @@
         "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -78771,14 +78775,14 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun"
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -78792,7 +78796,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78806,7 +78810,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78820,7 +78824,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -78834,7 +78838,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78880,7 +78884,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78890,7 +78894,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -84563,7 +84567,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -84809,10 +84813,10 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "39c95f4f6ff5ebac45a7fb6bd01747eacee1bd04a67be8fd47eb1ec67807d70a",
+      "sha256": "063db24be83ee159521053b837813154aaa616207739c065a2e526acc1d5725f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84839,7 +84843,8 @@
             "demand",
             "scope",
             "admission",
-            "original"
+            "original",
+            "beginOperations"
           ],
           "async": false
         },
@@ -84915,13 +84920,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectManagedPlanRun/same/same",
           "parameters": [
             "run"
@@ -84964,7 +84962,6 @@
         }
       ],
       "imports": [
-        "../host-common/compiler-binding.generated.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -84983,8 +84980,7 @@
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
-            "readInstalledEffectManagedPlanRun",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6"
+            "readInstalledEffectManagedPlanRun"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -85013,7 +85009,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85027,7 +85023,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85055,7 +85051,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85069,7 +85065,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85111,7 +85107,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85121,7 +85117,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -85170,7 +85166,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-managed-run.mjs",
-                "anchor": "run.admission !== admission || run.original !== original)"
+                "anchor": "run.admission !== admission || run.original !== original || run.beginOperations !== beginOperations ||"
               }
             ],
             "synchronization": [
@@ -85226,7 +85222,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

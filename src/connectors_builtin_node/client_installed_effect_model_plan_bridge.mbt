@@ -98,36 +98,10 @@ pub fn client_program_installed_effect_model_managed_plan_prepare(
 }
 
 ///|
-#export_name("clientProgramNodeEffectModelManagedPlanPrepare")
-pub fn client_program_node_effect_model_managed_plan_prepare(
-  original : @resources.OriginalNodeManagedRunReference,
+#export_name("clientProgramInstalledEffectPlanMatchesModelDemand")
+pub fn client_program_installed_effect_plan_matches_model_demand(
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  @resources.ImportedChildLedgerIssue,
-] {
-  @resources.prepare_node_local_mock_model_run_admission(original, plan)
-}
-
-///|
-#export_name("clientProgramInstalledEffectModelManagedPlanBegin")
-pub fn client_program_installed_effect_model_managed_plan_begin(
-  admission : @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  prepared : @publication_host.PreparedClientEffectComputation,
-  request : @publication_host.ClientRequestIdentity,
-  plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  (
-    @client_local_host.ClientInstalledManagedRun,
-    @publication_host.ClientModelReadScope,
-  ),
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_prepared_installed_effect_mock_model_managed_run(
-    admission, prepared, request, plan,
-  )
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+) -> Bool {
+  @client_local_host.installed_effect_plan_matches_model_demand(plan, model)
 }

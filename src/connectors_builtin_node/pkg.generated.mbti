@@ -1520,8 +1520,6 @@ pub fn client_program_installed_effect_mock_model_managed_run_requirements(@run_
 
 pub fn client_program_installed_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
-pub fn client_program_installed_effect_model_managed_plan_begin(@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), @client_local_host.ClientInstalledManagedRunIssue]
-
 pub fn client_program_installed_effect_model_managed_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], Array[@execution_relation.ExecutionCapacity]?, String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand], @client_local_host.ClientInstalledEffectModelDemand, Array[@local.ManagedProvider], @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_borrow(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1547,6 +1545,8 @@ pub fn client_program_installed_effect_operation_retire(@client_local_host.Clien
 pub fn client_program_installed_effect_operation_start(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_transfer_uncertain(@client_local_host.ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_plan_matches_model_demand(@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledEffectModelDemand) -> Bool
 
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
@@ -2337,8 +2337,6 @@ pub fn client_program_node_effect_managed_plan_cleanup(@physical_resources.NodeM
 pub fn client_program_node_effect_managed_run_cleanup(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_effect_managed_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientEffectComputation) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation], @physical_resources.ImportedChildLedgerIssue]
-
-pub fn client_program_node_effect_model_managed_plan_prepare(@physical_resources.OriginalNodeManagedRunReference, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan], @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_local_content_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientProgram) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @physical_resources.ImportedChildLedgerIssue]
 

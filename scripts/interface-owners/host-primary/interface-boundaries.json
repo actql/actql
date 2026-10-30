@@ -5004,7 +5004,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9ece5971833e72e215f8f8906df790840974280090345240c8951e09c843bd3c",
+      "sha256": "61a1c47fa2fd1e92b8788f61f94a7a78e91bf8ae57adde719bf3f2ffac2a622e",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5200,7 +5200,7 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun",
           "parameters": [
             "runtime",
             "prepared",
@@ -5209,8 +5209,17 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
           "async": false
         },
         {
@@ -9064,7 +9073,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9481,7 +9490,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -12263,7 +12272,7 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
-            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
@@ -12486,10 +12495,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ]
+          }
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -12597,13 +12713,15 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -14181,7 +14299,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -14299,7 +14417,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }

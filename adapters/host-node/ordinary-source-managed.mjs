@@ -1,6 +1,7 @@
 import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
+import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
@@ -404,8 +405,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               'clientProgramCompleteRequestEffectPreparation', 'clientProgramAdoptRequestEffectPreparation'];
             const methods = names.map(name => moon[name]);
             if (methods.some(method => typeof method !== 'function')) fail('NodeManagedRunRuntimeUnavailable');
+            // Model is optional for a non-Model installation. Capture each
+            // selected original once; later namespace replacement cannot supply
+            // a different Scope constructor or adoption method.
+            for (const name of ['clientProgramPrepareRequestEffectModelReadScope',
+              'clientProgramAdoptRequestEffectModelPreparation']) {
+              names.push(name);
+              methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
+            }
             state.effectBorrowMethods = Object.freeze(Object.fromEntries(names.map((name, index) =>
-              [name, (...args) => Reflect.apply(methods[index], moon, args)])));
+              [name, typeof methods[index] === 'function'
+                ? (...args) => Reflect.apply(methods[index], moon, args) : undefined])));
             state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
               state.parent, producer.receipt));
           } else if (state.compilationKind === 'effect_free') {
@@ -580,6 +590,57 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.holder === undefined ||
+          state.compilationKind !== 'effectful' || state.effectBorrowMethods === undefined ||
+          state.adopting || runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
+          liveRuns.size >= 4096 || operationPlan === null || typeof operationPlan !== 'object' ||
+          retainedRun === null || typeof retainedRun !== 'object' || types.isProxy(retainedRun)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const fields = Object.getOwnPropertyDescriptors(retainedRun);
+      for (const [name, original] of [['manager', view], ['runtime', state.context.runtime],
+        ['preparationKind', 'effect-plan'], ['prepared', prepared], ['request', identity],
+        ['requestInput', request], ['operationPlan', operationPlan], ['original', undefined],
+        ['modelScope', undefined], ['value', undefined], ['closed', false]]) {
+        if (!Object.hasOwn(fields[name] ?? {}, 'value') ||
+            fields[name]?.value !== original) fail('ForeignInstalledSourceProducer');
+      }
+      const methods = state.effectBorrowMethods;
+      if (typeof methods.clientProgramPrepareRequestEffectModelReadScope !== 'function' ||
+          typeof methods.clientProgramAdoptRequestEffectModelPreparation !== 'function') {
+        fail('NodeManagedRunRuntimeUnavailable');
+      }
+      if (methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      // The existing outer Run already owns this construction. Store its SAME
+      // Scope before completion/adoption can fail; no cleanup callback, new
+      // manager admission or second Scope owner is introduced.
+      retainedRun.original = state.original;
+      state.effectPlan = operationPlan;
+      state.adopting = true;
+      try {
+        retainedRun.modelScope = checked(methods.clientProgramPrepareRequestEffectModelReadScope(
+          state.parent, producer.receipt, operationPlan));
+        checked(methods.clientProgramCompleteRequestEffectPreparation(state.parent, producer.receipt, operationPlan));
+        const value = checked(methods.clientProgramAdoptRequestEffectModelPreparation(
+          state.parent, identity, retainedRun.modelScope));
+        const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
+          effectful: true, content: undefined, operationPlan, original: state.original,
+          children: [], fileIdentity: undefined, value};
+        producer.liveRuns++;
+        runs.set(prepared, run); liveRuns.add(run);
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      }
+    },
     severPreparation(prepared, original) {
       const run = runs.get(prepared), producer = run?.producer, state = producer?.preparation;
       if (run === undefined || run.original !== original || state === undefined || !state.adopting) {
@@ -709,10 +770,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return prepareRun(prepared, 'local-content', undefined, false, selected);
     },
     prepareEffectRun() {fail('InstalledEffectPlanUnavailable');},
-    prepareEffectModelPlanRun(prepared, operationPlan) {
-      if (operationPlan === null || typeof operationPlan !== 'object') fail('InstalledEffectPlanUnavailable');
-      return prepareRun(prepared, 'local-mock-model', undefined, true, undefined, operationPlan);
-    },
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);
     },

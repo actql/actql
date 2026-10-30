@@ -5213,7 +5213,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     for (const run of record.computeLiveRuns ?? []) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
-      if (run.preparationKind === 'effect-plan' && run.preparationFunded) {
+      if (run.preparationKind === 'effect-plan' && (run.preparationFunded || run.requestInput !== undefined)) {
         const finish = preparation.retireManagedComputeRun(run.prepared);
         finish?.();
         continue;
@@ -5561,7 +5561,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       originalInstallation.computeRuns = runs;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
-        requestInput: model === undefined ? originalSourceManagedHostRequest(originals, facts.prepared) : undefined,
+        requestInput: originalSourceManagedHostRequest(originals, facts.prepared),
         selection, facts, inputs: Object.freeze({...inputs,
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
         sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
@@ -5671,11 +5671,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
       if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
+      finishInstalledEffectModelScope(run, true, checked);
       if (run.preparationFunded) {
         try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
         catch (cause) {
           if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
         }
+        // The Scope's census has acknowledged physical retirement. Cut its
+        // raw compiler/definition/graph aliases before returning the original
+        // typed preparation borrower and completing that same parent debit.
+        run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+        run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
         run.manager.severPreparation(prepared,run.original);
         run.prepared=undefined;run.closed=true;
         // Keep a weak-key tombstone but no Prepared in this continuation.
@@ -5686,7 +5692,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       finishInstalledEffectModelScope(run, true, checked);
       if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
       else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
-      if (run.original !== undefined) run.manager.retireRun(prepared, run.original);
+      // A failed same-Request Model constructor has no adopted manager Run.
+      // Its existing producer/input cleanup owns that original initial parent.
+      if (run.original !== undefined && !(run.preparationKind === 'effect-plan' &&
+          run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun(prepared, run.original);
       run.closed = true;
       record.computeRuns.delete(prepared);
       record.computeLiveRuns.delete(run);

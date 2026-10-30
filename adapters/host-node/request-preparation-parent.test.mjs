@@ -783,7 +783,7 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramRequestParametersOriginal = () => ok(undefined);
   moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt); assert.equal(actualPlan, plan);
-    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
+    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
@@ -795,7 +795,7 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
     assert.equal(owner, f.parent); retiring = true;
     return returned ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalEffectBorrowPending')};
   };
-  return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, receipt, events,
+  return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, requestParent: f.parent, receipt, events,
     markRetiring() {retiring = true;}, finishPhysicalRetirement() {return Reflect.apply(abort, moon, [f.parent]);}, async failedCleanup() {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();}};
 }
 
@@ -805,6 +805,7 @@ test('installed Effect caller consumes actual Request manager adoption and same 
   const selected = await f.view.fundedPreparation(f.sdkRequest, undefined);
   const facts = {prepared: selected.prepared, identity: f.identity}, runs = new WeakMap(), liveRuns = new Set();
   f.moon.clientProgramInstalledManagedRunRetire = () => ok(undefined);
+  f.moon.clientProgramInstalledEffectOperationControlsBegin = () => ok(undefined);
   f.moon.clientProgramInstalledEffectManagedOperationPlan = function(value, prepared, identity) {
     assert.equal(this, f.moon); assert.equal(value, f.parent); assert.equal(prepared, f.prepared); assert.equal(identity, f.identity); return ok(f.plan);
   };
@@ -827,7 +828,7 @@ test('installed Effect caller consumes actual Request manager adoption and same 
 });
 
 test('failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission', async () => {
-  for (const phase of ['moduleFailure', 'adoptFailure']) {
+  for (const phase of ['completeFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalEffectRequest({[phase]: failure});
     await f.view.fundedPreparation(f.sdkRequest, undefined);
     assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
@@ -944,7 +945,7 @@ async function originalCapturedRequest({moduleFailure, adoptFailure} = {}) {
   moon.clientProgramAdoptRequestProgramPreparation = () => assert.fail('no Source-free adoption for captured Program');
   moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt); assert.equal(selected, plan);
-    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
+    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestCapturePreparation = function(parent, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(selected, identity);
@@ -998,7 +999,7 @@ test('captured Request completes one original Plan and adopts its same parent wi
 });
 
 test('captured Request keeps original failed completion or adoption without replaying its constructor', async () => {
-  for (const phase of ['moduleFailure', 'adoptFailure']) {
+  for (const phase of ['completeFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalCapturedRequest({[phase]: failure});
     await f.view.fundedPreparation(f.request, undefined);
     let constructors = 0;
@@ -1177,4 +1178,97 @@ test('Compute-only and absent Request facade keep their existing original select
   assert.equal(absent.view.fundedPreparation(absent.request, absent.environment), undefined);
   assert.equal(absent.view.borrowManagedPreparation(absent.prepared, absent.request), undefined);
   assert.deepEqual(absent.calls, []);
+});
+
+
+// Actual Request/SDK snapshot manager and Resource original, with explicit
+// typed Scope/compiler/adoption ports. No Model permission or normal backing
+// is inferred from these ports or from their successful cleanup observations.
+async function originalEffectModelRequest(options = {}) {
+  const f = await originalEffectRequest(), scope = {};
+  const outer = {manager: f.view, runtime: f.moon, preparationKind: 'effect-plan',
+    prepared: f.prepared, request: f.identity, requestInput: f.sdkRequest,
+    operationPlan: f.plan, original: undefined, modelScope: undefined, value: undefined, closed: false};
+  let scopeFinished = false;
+  const complete = f.moon.clientProgramCompleteRequestEffectPreparation;
+  f.moon.clientProgramPrepareRequestEffectModelReadScope = function(parent, receipt, plan) {
+    assert.equal(this, f.moon); assert.equal(parent, f.requestParent);
+    assert.equal(receipt, f.receipt); assert.equal(plan, f.plan);
+    assert.equal(outer.original, f.original); assert.equal(outer.modelScope, undefined);
+    f.events.push('scope'); return ok(scope);
+  };
+  f.moon.clientProgramCompleteRequestEffectPreparation = function(...args) {
+    assert.equal(this, f.moon); assert.equal(outer.modelScope, scope);
+    if (options.phase === 'complete') {f.events.push('complete-failed'); throw options.failure;}
+    return Reflect.apply(complete, f.moon, args);
+  };
+  f.moon.clientProgramAdoptRequestEffectModelPreparation = function(parent, identity, originalScope) {
+    assert.equal(this, f.moon); assert.equal(parent, f.requestParent);
+    assert.equal(identity, f.identity); assert.equal(originalScope, scope);
+    assert.equal(outer.modelScope, scope); f.events.push('adopt-model');
+    if (options.phase === 'adopt') throw options.failure;
+    return ok(f.parent);
+  };
+  f.moon.clientProgramAdoptRequestEffectPreparation = () => assert.fail('no non-Model adoption');
+  const abort = f.moon.clientProgramAbortRequestPreparation;
+  f.moon.clientProgramAbortRequestPreparation = function(parent) {
+    assert.equal(parent, f.requestParent);
+    if (!scopeFinished && outer.modelScope !== undefined) return {$tag: 0, _0: new Error('OriginalScopePending')};
+    return Reflect.apply(abort, f.moon, [parent]);
+  };
+  return {...f, scope, outer, finishScope() {scopeFinished = true;}};
+}
+
+test('Request Model Scope is retained before same Plan completion and captured original adoption', async () => {
+  const f = await originalEffectModelRequest();
+  await f.view.fundedPreparation(f.sdkRequest, undefined);
+  f.moon.clientProgramPrepareRequestEffectModelReadScope =
+    f.moon.clientProgramAdoptRequestEffectModelPreparation = () => assert.fail('use captured originals');
+  const actual = f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer);
+  assert.equal(actual.original, f.original); assert.equal(actual.value, f.parent);
+  assert.equal(actual.operationPlan, f.plan); assert.equal(f.outer.modelScope, f.scope);
+  assert.equal(f.view.prepareEffectModelPlanRun, undefined);
+  assert.deepEqual(f.events, ['compile', 'borrow', 'scope', 'complete', 'adopt-model']);
+  assert.throws(() => f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer),
+    {code: 'ForeignInstalledSourceProducer'});
+  // The real physical cleanup witness is an explicit port in this component.
+  f.finishScope(); f.outer.modelScope = undefined;
+  f.markRetiring(); f.view.severPreparation(f.prepared, f.original);
+  f.finishPhysicalRetirement(); f.view.retireSeveredPreparation(f.original);
+  f.view.finishSourceProducer(f.receipt, 'returned'); await f.view.close();
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('Request Model partial completion and adoption retain Scope and original thrown undefined until cleanup', async () => {
+  for (const [phase, failure] of [['complete', new Error('ExactModelCompletionFailure')], ['adopt', undefined]]) {
+    const f = await originalEffectModelRequest({phase, failure});
+    await f.view.fundedPreparation(f.sdkRequest, undefined);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let thrown = false;
+      try {f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer);}
+      catch (cause) {thrown = true; assert.equal(cause, failure);}
+      assert.equal(thrown, true);
+    }
+    assert.equal(f.outer.modelScope, f.scope); assert.equal(f.outer.original, f.original);
+    assert.equal(f.events.filter(value => value === 'scope').length, 1);
+    await assert.rejects(f.failedCleanup());
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+    assert.equal(f.events.includes('return'), false);
+    f.finishScope(); f.outer.modelScope = undefined;
+    await f.failedCleanup();
+    assert.equal(f.events.filter(value => value === 'return').length, 1);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
+test('Request Model refuses foreign input Run Plan and accessor carrier before Scope', async () => {
+  const f = await originalEffectModelRequest(); await f.view.fundedPreparation(f.sdkRequest, undefined);
+  for (const [request, plan, outer] of [
+    [{}, f.plan, f.outer], [f.sdkRequest, {}, f.outer],
+    [f.sdkRequest, f.plan, {...f.outer, manager: {}}],
+    [f.sdkRequest, f.plan, {...f.outer, get request() {assert.fail('no accessor read');}}],
+  ]) assert.throws(() => f.view.adoptEffectModelPreparation(f.prepared, request, f.identity, plan, outer),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.events.includes('scope'), false);
+  await f.failedCleanup();
 });

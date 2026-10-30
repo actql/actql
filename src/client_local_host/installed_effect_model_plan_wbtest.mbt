@@ -262,3 +262,22 @@ test "Model Effect plan retains exact checked binding and one provider selection
   )
   assert_eq(calls.val, 1)
 }
+
+///|
+test "Model Effect Plan projection refuses a copied or foreign selected demand" {
+  let (prepared, request, contracts, model) = effect_model_plan_inputs()
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    model,
+    Ref(0),
+  )
+  assert_true(installed_effect_plan_matches_model_demand(plan, model))
+  let copied = { ..model, }
+  assert_false(installed_effect_plan_matches_model_demand(plan, copied))
+  let (_, _, _, foreign) = effect_model_plan_inputs()
+  assert_false(installed_effect_plan_matches_model_demand(plan, foreign))
+  let without_model = { ..plan, model: None, }
+  assert_false(installed_effect_plan_matches_model_demand(without_model, model))
+}

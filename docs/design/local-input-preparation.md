@@ -3346,7 +3346,12 @@ The installed implementation supplies its complete original operation Plan.
 The manager retains that Plan before calling the existing Request completion
 and adoption entries with the same input receipt and final Request identity.
 Failure remains on that Request and cannot renew compilation, completion or
-admission. The Model-specific Scope path retains its separate existing contract.
+admission. For a Model Plan, the existing outer Run first retains the Scope
+constructed from that same Request input and exact Plan, then completion and
+Model adoption consume the same originals. Partial completion/adoption keeps
+that Scope attached for the existing physical cleanup, without a second Node
+admission. The generic initial envelope must already admit the selected Model
+and its simultaneous constructor/read holdings.
 
 After the actual dispatch and physical children have retired, Host cleanup
 starts the same managed Run retirement, observes its original payload-sever

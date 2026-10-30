@@ -172,20 +172,11 @@ test('ordinary Effect preparation uses its original typed quote and cannot switc
   assert.equal((await f.view.close()).pending, false);
 });
 
-test('Effect Model Plan retains the same Root purpose and Plan identity before admission', async () => {
-  const f = await fixture(), plan = {};
-  const original = f.view.prepareEffectModelPlanRun(f.prepared, plan);
-  assert.equal(f.view.prepareEffectModelPlanRun(f.prepared, plan), original);
-  assert.deepEqual(f.quotes, {pure: 0, effect: 1});
-  assert.equal(f.view.prepareEffectPlanRun, undefined, 'ordinary Effect adopts its original Request instead');
-  assert.equal(runtime.prepareOriginalManagedRunPorts(original, plan), null);
-  assert.equal(runtime.prepareOriginalLocalMockModelRunPorts(original, f.prepared), null);
-  const ports = runtime.prepareOriginalLocalMockModelRunPorts(original, plan);
-  assert.notEqual(ports, null);
-  assert.equal(ports.status(0), 0);
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
-  assert.equal(ports.status(2), 0);
-  f.view.retireRun(f.prepared, original);
+test('Effect Model Plan has no standalone manager Root constructor after Request adoption', async () => {
+  const f = await fixture();
+  assert.equal(f.view.prepareEffectModelPlanRun, undefined);
+  assert.equal(typeof f.view.adoptEffectModelPreparation, 'function');
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });
