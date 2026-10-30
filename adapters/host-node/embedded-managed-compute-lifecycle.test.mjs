@@ -386,32 +386,35 @@ test('funded policy Host keeps its original context before snapshot instead of s
 });
 
 test('funded policy installer forwards the exact verifier to its original preparation', async () => {
-  const request = {}, environment = {}, result = {};
+  const request = {}, environment = {}, result = {}, signal = new AbortController().signal;
   let calls = 0, expectedVerifier;
-  const preparation = {fundedPreparation(actual, selected, verifier) {
+  const preparation = {fundedPreparation(actual, selected, verifier, actualSignal) {
     assert.strictEqual(this, preparation);
     assert.strictEqual(actual, request);
     assert.strictEqual(selected, environment);
     assert.strictEqual(verifier, expectedVerifier);
+    assert.strictEqual(actualSignal, signal);
     calls++;
     return Promise.resolve(result);
   }};
   const f = preparedEnvironmentLifetime({preparation});
   expectedVerifier = f.fixture.options.verifyRequestValuePolicy;
   assert.equal(typeof expectedVerifier, 'function');
-  assert.strictEqual(await f.fixture.options.getFundedPreparation(request, environment, expectedVerifier), result);
+  assert.strictEqual(await f.fixture.options.getFundedPreparation(request, environment, expectedVerifier, signal), result);
   assert.equal(calls, 1);
   f.fixture.retire();
 });
 
 test('funded policy manager forwarding preserves the same callback and original request mapping', async () => {
   const request = {}, originalRequest = {}, environment = {}, verifier = () => {}, result = {};
+  const signal = new AbortController().signal;
   let calls = 0, mappings = 0;
-  const manager = {fundedPreparation(actual, selected, originalVerifier) {
+  const manager = {fundedPreparation(actual, selected, originalVerifier, actualSignal) {
     assert.strictEqual(this, manager);
     assert.strictEqual(actual, originalRequest);
     assert.strictEqual(selected, environment);
     assert.strictEqual(originalVerifier, verifier);
+    assert.strictEqual(actualSignal, signal);
     calls++;
     return Promise.resolve(result);
   }, close() {return {pending: false};}};
@@ -419,7 +422,7 @@ test('funded policy manager forwarding preserves the same callback and original 
     assert.strictEqual(value, request); mappings++; return originalRequest;
   }});
   await f.preparation.prepareManagedCompute();
-  assert.strictEqual(await f.preparation.fundedPreparation(request, environment, verifier), result);
+  assert.strictEqual(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
   assert.equal(calls, 1);
   assert.equal(mappings, 1);
   await f.initialControl.close();
