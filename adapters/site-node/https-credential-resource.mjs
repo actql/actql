@@ -710,7 +710,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         // reader's selected representation to B+1 even when its protocol body
         // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
         // offending byte is included, never silently counted as zero.
-        response.on('readable', () => {
+        const readObservedResponse = () => {
           if (settled || observerPending || response.destroyed) return;
           try {
             let chunk;
@@ -736,7 +736,8 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
               chunks.push(Buffer.from(chunk));
             }
           } catch (error) { response.destroy(error); }
-        });
+        };
+        response.on('readable', readObservedResponse);
       }
       response.once('error', error => finish(reject, error));
       response.once('end', () => finish(resolve, Object.freeze({
