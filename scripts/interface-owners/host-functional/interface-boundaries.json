@@ -77053,7 +77053,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "37ccdf092ef6dbc1fd2306fdb71296116200d25816c6217a062929192fcd5ce1",
+      "sha256": "2cc19685664d9b8d9b7949a1bbfd2aea49dd91abb239556d7d4fbc14ac9bb038",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77227,6 +77227,16 @@
         {
           "name": "prepareOrdinaryManagedInstallation/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan"
+          ],
           "async": false
         },
         {
@@ -79003,6 +79013,114 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              }
+            ]
+          }
+        },
+        {
+          "exports": [],
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Request completes one original Plan and adopts its same parent without an independent Run'"
               }
             ]
           }
@@ -82363,7 +82481,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "5605aee6b1f59f35e05a12ae569088067e34685bb309aa4d2e5e5c25dbcc0dd2",
+      "sha256": "b6c327e12489f15b637126bab36eeb538bb23c58b854225a821e054fa6a47bab",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -82568,6 +82686,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
               }
             ],
             "identity": [
@@ -82708,6 +82830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Pure Request keeps its original compiler input before Source Plan construction'"
               }
             ]
           }
@@ -83840,7 +83966,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d96082d8108c422fb64b3a699752455a7d39ca6215618b814bdd9fdb5f5d3bb",
+      "sha256": "30ad3707c73dc65d9b89756db50bb692b0d56bd8edbcaaa1e9e4512ed4b6c46a",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -83943,6 +84069,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Source readers receive the same checked Run"
               }
             ],
             "identity": [
@@ -83991,6 +84121,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Plural installations forward the same parent through every selected capacity;"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('Pure Source preparation receives its same original managed Run before reader construction'"
               }
             ]
           }
