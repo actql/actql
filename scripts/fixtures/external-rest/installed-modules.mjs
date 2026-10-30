@@ -2,7 +2,7 @@
 // authority or package installation, and never falls back to checkout code.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {realpath, readFile} from 'node:fs/promises';
+import {realpath, readFile, lstat} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {dirname, isAbsolute, join, relative, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -33,7 +33,12 @@ export async function verifyExternalRestTarballs(manifest, manifestPath) {
 export async function resolveExternalRestModules({consumerRoot, connectorPackage}) {
   assert(isAbsolute(consumerRoot), 'An actual installed consumer root is required');
   assert(/^@actql-connectors\/[a-z][a-z0-9-]*$/u.test(connectorPackage), 'An explicit generated connector package is required');
-  const modules = await realpath(join(consumerRoot, 'node_modules'));
+  const moduleRoot = join(consumerRoot, 'node_modules');
+  const moduleStat = await lstat(moduleRoot);
+  assert(moduleStat.isDirectory() && !moduleStat.isSymbolicLink(),
+    'StandardRestWorkspaceAliasRefused:node_modules');
+  const modules = await realpath(moduleRoot);
+  assert.equal(modules, moduleRoot, 'StandardRestWorkspaceAliasRefused:node_modules');
   const consumer = createRequire(join(consumerRoot, 'package.json'));
   const resolveNormal = async (require, name) => {
     const path = await realpath(require.resolve(name));

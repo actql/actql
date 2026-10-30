@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdtemp, mkdir, writeFile, rm, symlink, realpath} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm, symlink, realpath, rename} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {resolveExternalRestModules, verifyExternalRestTarballs} from './installed-modules.mjs';
@@ -80,6 +80,16 @@ test('REST ordinary preflight refuses a second SDK namespace or workspace entry 
   await symlink(outside, join(f.modules, '@actql/node'));
   await assert.rejects(resolveExternalRestModules({consumerRoot: f.consumerRoot, connectorPackage: '@actql-connectors/acme'}),
     /StandardRestWorkspaceAliasRefused/u);
+});
+
+test('REST ordinary preflight refuses a symlinked module root before any product import', async t => {
+  const f = await fixture(t), workspace = join(f.root, 'workspace');
+  await mkdir(workspace);
+  const shared = join(workspace, 'node_modules');
+  await rename(f.modules, shared);
+  await symlink(shared, f.modules);
+  await assert.rejects(resolveExternalRestModules({consumerRoot: f.consumerRoot,
+    connectorPackage: '@actql-connectors/acme'}), /StandardRestWorkspaceAliasRefused/u);
 });
 
 test('REST application DATA preserves explicit Account and original CA/key paths without tuning or service ports', () => {
