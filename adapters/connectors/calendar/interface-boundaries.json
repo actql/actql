@@ -1580,58 +1580,59 @@
             "responsibility": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## One compiler namespace"
+                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "src/connectors/calendar/host_node/pkg.generated.mbti",
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
                 "anchor": "pub fn calendar_events_schema_wire"
               }
             ],
             "identity": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "the exact Profile retained by the supplied original CheckEnvironment"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "pub fn calendar_events_facts_wire"
               }
             ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The Profile's zone Map must be consumed by the same compiler namespace"
-              }
-            ],
+            "ownership": {
+              "notApplicable": "Returns bounded wire Strings or fresh column-name DATA; no original Profile/query/page, Source or Account is transferred by these stateless provider exports."
+            },
             "synchronization": {
-              "notApplicable": "Synchronous typed DATA exports or pure provider callbacks; the original shared Host sequences actual currentness, constructor backing and physical exchange. A function name, CID or seed is not authority."
+              "notApplicable": "Synchronous pure schema/facts/column projections. Actual reader sequencing/currentness stays with the shared Host."
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
-                "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event rows preserve whole page bounds schema and bounded output refusal"
               }
             ],
             "cancellation": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## Shared custody boundary"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "@encode.cancel_writer(writer)"
               }
             ],
             "resources": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "complete parent and original environment delivery must be connected by their"
+                "path": "src/connectors/calendar/catalog/events_request.mbt",
+                "anchor": "max_name_bytes=36"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
+                "anchor": "## One compiler namespace"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
                 "anchor": "Calendar Event schema exposes approved nullable cells"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/events_request_wbtest.mbt",
+                "anchor": "Calendar Events Source request schema is one closed required object"
               }
             ]
           }
@@ -1647,58 +1648,59 @@
             "responsibility": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## One compiler namespace"
+                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "src/connectors/calendar/host_node/pkg.generated.mbti",
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
                 "anchor": "pub fn calendar_events_schema_wire"
               }
             ],
             "identity": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "the exact Profile retained by the supplied original CheckEnvironment"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "pub fn calendar_events_facts_wire"
               }
             ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The Profile's zone Map must be consumed by the same compiler namespace"
-              }
-            ],
+            "ownership": {
+              "notApplicable": "Returns bounded wire Strings or fresh column-name DATA; no original Profile/query/page, Source or Account is transferred by these stateless provider exports."
+            },
             "synchronization": {
-              "notApplicable": "Synchronous typed DATA exports or pure provider callbacks; the original shared Host sequences actual currentness, constructor backing and physical exchange. A function name, CID or seed is not authority."
+              "notApplicable": "Synchronous pure schema/facts/column projections. Actual reader sequencing/currentness stays with the shared Host."
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
-                "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event rows preserve whole page bounds schema and bounded output refusal"
               }
             ],
             "cancellation": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## Shared custody boundary"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "@encode.cancel_writer(writer)"
               }
             ],
             "resources": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "complete parent and original environment delivery must be connected by their"
+                "path": "src/connectors/calendar/catalog/events_request.mbt",
+                "anchor": "max_name_bytes=36"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
+                "anchor": "## One compiler namespace"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
                 "anchor": "Calendar Event schema exposes approved nullable cells"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/events_request_wbtest.mbt",
+                "anchor": "Calendar Events Source request schema is one closed required object"
               }
             ]
           }
@@ -3995,58 +3997,59 @@
             "responsibility": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## One compiler namespace"
+                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "src/connectors/calendar/host_node/events_bridge.mbt",
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
                 "anchor": "pub fn calendar_events_schema_wire"
               }
             ],
             "identity": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "the exact Profile retained by the supplied original CheckEnvironment"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "pub fn calendar_events_facts_wire"
               }
             ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The Profile's zone Map must be consumed by the same compiler namespace"
-              }
-            ],
+            "ownership": {
+              "notApplicable": "Returns bounded wire Strings or fresh column-name DATA; no original Profile/query/page, Source or Account is transferred by these stateless provider exports."
+            },
             "synchronization": {
-              "notApplicable": "Synchronous typed DATA exports or pure provider callbacks; the original shared Host sequences actual currentness, constructor backing and physical exchange. A function name, CID or seed is not authority."
+              "notApplicable": "Synchronous pure schema/facts/column projections. Actual reader sequencing/currentness stays with the shared Host."
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
-                "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event rows preserve whole page bounds schema and bounded output refusal"
               }
             ],
             "cancellation": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "## Shared custody boundary"
+                "path": "src/connectors/calendar/catalog/events_rows.mbt",
+                "anchor": "@encode.cancel_writer(writer)"
               }
             ],
             "resources": [
               {
-                "path": "docs/design/calendar-event-projection.md",
-                "anchor": "complete parent and original environment delivery must be connected by their"
+                "path": "src/connectors/calendar/catalog/events_request.mbt",
+                "anchor": "max_name_bytes=36"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/calendar-event-projection.md",
-                "anchor": "The separate Calendar provider retains stateless schema/facts/column wire"
+                "anchor": "## One compiler namespace"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
                 "anchor": "Calendar Event schema exposes approved nullable cells"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/events_request_wbtest.mbt",
+                "anchor": "Calendar Events Source request schema is one closed required object"
               }
             ]
           }
