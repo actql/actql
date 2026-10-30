@@ -88065,7 +88065,7 @@
     {
       "module": "adapters/host-node/rest-source-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1d728422a38a5330622b87ce07da117ee96a00523932b166e2db66f8233282c",
+      "sha256": "de5ff20691b560ca105f2e4aae2ea012ab70e0afc8417938dc0fb5251e3933de",
       "role": "public-wire-codec",
       "owner": "Existing installed Source profile/identity and Host configuration-reader Owners; metadata supplies closed DATA and original-string identity, not a declaration issuer or physical reader.",
       "exports": [
@@ -88326,6 +88326,10 @@
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "if (typeof reads.readOriginalText !== 'function') fail('RestSourceConfigurationReaderUnavailable');"
               }
             ],
             "cancellation": [
@@ -88345,7 +88349,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "// The original Host reader owns the selected bound and physical read."
+                "anchor": "// The original Host reader owns the observed FD extent and physical read."
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -88378,6 +88382,14 @@
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST configuration refuses a missing actual-FD text reader before any JSON read'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST CA uses only the captured actual-FD text method and original receiver'"
               }
             ]
           }
