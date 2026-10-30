@@ -780,6 +780,8 @@ pub fn start_program_capture(ClientProgramCapture) -> Result[ClientProgramCaptur
 
 pub fn start_program_validation(ClientProgramValidation) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
 
+pub fn[I] supplement_request_computation_policies(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> Result[@program_check.CheckEnvironment, ClientRequestTerminalIssue]
+
 pub fn[I] take_host_initialization_preparation_capacity(ClientHostInitializationPreparation[I]) -> Result[(I, @physical_resources.PreparationCapacity[I, Unit]), ClientHostInitializationIssue]
 
 pub fn[I, P] take_program_check_input(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckInput, ClientProgramCheckPreparationIssue]

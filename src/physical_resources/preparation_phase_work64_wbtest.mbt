@@ -137,3 +137,48 @@ test "original snapshot intent and lexical work retain ordered single claims acr
   abort_preparation_capacity_after_cleanup(owner, input).unwrap() |> ignore
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+test "policy continuation is one later original phase without replay or work refill" {
+  let ledger = create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let input = [1]
+  let owner : PreparationCapacity[Array[Int], Unit] = reserve_preparation_capacity(
+    ledger,
+    input,
+    40L,
+    40L,
+    max_borrowers=1,
+  ).unwrap()
+  let semantic = begin_preparation_phase_work64(owner, input, SemanticCheck, 5L).unwrap()
+  spend_preparation_phase_work64(semantic, 3L).unwrap()
+  assert_eq(finish_preparation_phase_work64(semantic), Ok(3L))
+  let policy = begin_preparation_phase_work64(
+    owner,
+    input,
+    RequestValuePolicyCheck,
+    4L,
+  ).unwrap()
+  spend_preparation_phase_work64(policy, 4L).unwrap()
+  assert_eq(spend_preparation_phase_work64(policy, 1L), Err(WorkLimit))
+  assert_eq(finish_preparation_phase_work64(policy), Ok(4L))
+  assert_true(
+    begin_preparation_phase_work64(owner, input, SemanticCheck, 5L)
+    is Err(AlreadyClaimed),
+  )
+  assert_true(
+    begin_preparation_phase_work64(owner, input, RequestValuePolicyCheck, 4L)
+    is Err(AlreadyClaimed),
+  )
+  let compile = begin_preparation_phase_work64(owner, input, LowerAndGraph, 2L).unwrap()
+  spend_preparation_phase_work64(compile, 1L).unwrap()
+  assert_eq(finish_preparation_phase_work64(compile), Ok(1L))
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 40L)
+  abort_preparation_capacity_after_cleanup(owner, input).unwrap() |> ignore
+}

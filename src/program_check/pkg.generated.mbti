@@ -137,6 +137,8 @@ pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.
 
 pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileSelection
 
+pub fn checking_environment_request_value_policies_match(CheckEnvironment, Array[HostRequestValuePolicyEvidence]) -> Bool
+
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn checking_environment_with_calendar_artifact(CheckEnvironment, Bytes, @calendar_profile.Limits, max_selection_work~ : Int) -> Result[CheckEnvironment, CalendarEnvironmentIssue]
@@ -494,6 +496,10 @@ pub fn observe_parsed_check_views(ParsedViewsInput) -> (Result[Unit, ParsedCatal
 pub fn observe_parsed_source_context_input_geometry(ParsedSourceRegistration) -> @pipeline_check_context.SourceViewContextInputGeometry?
 
 pub fn observe_prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> (Result[ParsedCheckInput, EffectComputationIssue], Int)
+
+pub fn observe_supplement_checked_request_value_policies(CheckedProgram, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[CheckOutcome, LocalConstructionFailure], Int, Bool)
+
+pub fn observe_supplement_effect_request_value_policies(EffectComputationCandidate, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
 
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 

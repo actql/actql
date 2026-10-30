@@ -3618,3 +3618,25 @@ parent through the required supplemental semantic phase before final compiler
 and body selection. Neither an absent verifier result nor this Unit return is
 permission to serialize again, substitute a Source publication, skip policy
 verification or manufacture an unowned fallback preparation.
+
+The supplemental Request-value policy phase preserves the same checked Program
+identity, Parameters and their origins, interpreted Catalog, typed pipelines,
+requirements, contracts, capacity limits and converted proofs. Only the opaque
+policy evidence is selected into a shallow checking configuration; the existing
+full provenance matcher binds it to each original checked request. Source
+response-policy admission and hashing are retained, not repeated. The same
+policy constructors derive dependent publication policies in producer order,
+including imported Results. Keyed execution keeps its original producer bounds
+and converted proof, while independent correlation provenance remains separate.
+
+This is one named work phase after semantic checking and before lowering. Its
+additional configuration and semantic construction envelope is backed on the
+same original working reservation before construction, while the old facts are
+still retained. No phase ordinal or spent work is reset. Exact already-selected
+proofs and empty supplements do not start another phase; a selected failed
+supplement prevents compiling the prior verdict and keeps original cleanup
+ownership. Reentrant current callbacks cannot replace the Request or clear its
+busy controller. This Core continuation does not provide the actual Host's
+subject serialization, verification callback, proof-binding backing or Source
+I/O lifetime; those remain necessary consuming boundaries before removing any
+ordinary Source fallback.
