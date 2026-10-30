@@ -478,7 +478,7 @@ test('composed INFER consumes original captured evidence without serializing or 
   });
   await assert.rejects(run({
     moon: {clientProgramResultCount: () => 0, clientProgramInferPlanBoundary: () => [0],
-      strategyRunEvidenceJson() {assert.fail('live logical input serialized again');},
+      strategyRunEvidenceJson() {assert.fail('live logical input projected back to wire for readmission');},
       clientProgramAdmitComposedInferSources() {assert.fail('raw wire admission');}},
     control: {admitComposedInferSources(actual, captures, evidenceValues, authority, start, end) {
       assert.equal(actual, occurrence); assert.deepEqual(captures, [captured]);
