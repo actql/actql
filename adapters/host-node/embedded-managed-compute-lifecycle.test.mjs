@@ -4,7 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
 // counters prove consumer order/custody, not physical admission or a full Host.
@@ -222,7 +222,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 });
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
-  runtime = {}, source, controlClose = async () => ({pending: false})}) {
+  runtime = {}, source, originalRequest = value => value, controlClose = async () => ({pending: false})}) {
   const declarations = declared('connectEmbeddedLocal').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
@@ -232,7 +232,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
     'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
     'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal', 'fundedPreparation',
-    'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun'];
+    'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun',
+    'prepareManagedEffectPlanRun', 'retireManagedComputeRun'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
@@ -246,9 +247,11 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     },
     clientOperationError: code => Object.assign(new Error(code), {code}),
     retirePreparationReferences: retire, controlClose, originals, runtime,
-    checked: value => value, finishInstalledEffectModelScope,
+    checked: value => value, finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun,
+    managedPreparationRetirementContinuation: new Function('checked', 'return ' +
+      text(declared('managedPreparationRetirementContinuation')))(value => value),
     bindInstalledManagedSources,
-    originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return value;},
+    originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
     beforeChild, beforeChildClose, source,
   };
   return new Function(...Object.keys(ports), `
@@ -957,4 +960,44 @@ test('actual dispatcher refuses foreign or missing preparation custody and retur
       value => value, hasLease ? {} : undefined), /ForeignPreparationHostCustody/u);
     assert.deepEqual(calls, hasLease ? ['borrow', 'read', 'return'] : ['borrow', 'return']);
   }
+});
+
+
+test('actual installed Effect Host forwards original Request input and joins typed retirement before manager close', async () => {
+  const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, log = [];
+  let retireCalls = 0;
+  const runtime = {
+    clientProgramInstalledManagedRunRetire(value) {
+      assert.equal(this, runtime); assert.equal(value, parent); log.push('retire');
+      if (++retireCalls === 1) throw new Error('OriginalBorrowPending');
+    },
+    clientProgramInstalledPreparationPayloadSevered(value, actualIdentity) {
+      assert.equal(value, parent); assert.equal(actualIdentity, identity); return true;
+    },
+    clientProgramInstalledEffectManagedOperationPlan(value, p, actualIdentity) {
+      assert.equal(value, parent); assert.equal(p, prepared); assert.equal(actualIdentity, identity); return plan;
+    },
+  };
+  const manager = {
+    adoptEffectPreparation(p, input, actualIdentity, selected) {
+      assert.equal(this, manager); assert.equal(p, prepared); assert.equal(input, requestInput);
+      assert.equal(actualIdentity, identity); assert.equal(selected, plan); log.push('adopt');
+      return {original, value: parent, operationPlan: plan};
+    },
+    severPreparation(p, actual) {assert.equal(p, prepared); assert.equal(actual, original); log.push('return-original-borrow');},
+    retireSeveredPreparation(actual) {assert.equal(actual, original); log.push('retire-original');},
+    close() {log.push('manager-close'); return {pending: false};},
+  };
+  const f = lifecycle({runtime, factory: async () => manager, originalRequest(value) {
+    assert.equal(value, prepared); return requestInput;
+  }});
+  await f.preparation.prepareManagedCompute();
+  const facts = {prepared, identity}, inputs = {};
+  const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
+    assert.equal(actual, facts); assert.equal(selectedInputs, inputs); return plan;
+  }});
+  assert.equal(f.preparation.prepareManagedEffectPlanRun(runtime, facts, selection, inputs), parent);
+  await f.initialControl.close();
+  assert.deepEqual(log, ['adopt', 'retire', 'return-original-borrow', 'retire', 'retire-original', 'manager-close']);
+  assert.equal(f.record.computeLiveRuns.size, 0);
 });

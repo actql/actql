@@ -742,3 +742,91 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
   assert.throws(() => f.view.adoptEffectPreparation(prepared, sdkRequest, identity, plan),
     {code: 'ForeignInstalledSourceProducer'});
 });
+
+async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
+  const f = await fixture(), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
+  const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: input()}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, sdkRequest);
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const events = []; let retiring = false, returned = false;
+  moon.clientProgramPrepareRequestNativeComputation = () => {events.push('compile'); return ok('effectful');};
+  moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
+    events.push('borrow'); return ok(holder);
+  };
+  moon.clientProgramEffectPreparationInputRead = function(value) {assert.equal(this, moon); assert.equal(value, holder); return returned ? undefined : prepared;};
+  moon.clientProgramEffectPreparationInputSibling = function(value) {assert.equal(this, moon); assert.equal(value, holder); events.push('sibling'); return ok({});};
+  moon.clientProgramEffectPreparationInputRetirementStarted = function(value) {assert.equal(this, moon); assert.equal(value, holder); return retiring;};
+  moon.clientProgramEffectPreparationInputReturn = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); assert(retiring); assert(!returned);
+    events.push('return'); returned = true; return ok(true);
+  };
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt); assert.equal(actualPlan, plan);
+    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+  };
+  moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
+    events.push('adopt'); if (adoptFailure) throw adoptFailure; return ok(parent);
+  };
+  moon.clientProgramPreparationBorrowRead = moon.clientProgramPreparationBorrowReturn = () => assert.fail('no Program-holder cast');
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = function(owner) {
+    assert.equal(owner, f.parent); retiring = true;
+    return returned ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalEffectBorrowPending')};
+  };
+  return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, receipt, events,
+    markRetiring() {retiring = true;}, finishPhysicalRetirement() {return Reflect.apply(abort, moon, [f.parent]);}, async failedCleanup() {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();}};
+}
+
+test('installed Effect caller consumes actual Request manager adoption and same Plan with no independent admission', async () => {
+  const f = await originalEffectRequest();
+  const {prepareInstalledEffectManagedPlanRun: prepare, readInstalledEffectManagedPlanRun: read} = await import('./installed-effect-managed-run.mjs');
+  const selected = await f.view.fundedPreparation(f.sdkRequest, undefined);
+  const facts = {prepared: selected.prepared, identity: f.identity}, runs = new WeakMap(), liveRuns = new Set();
+  f.moon.clientProgramInstalledManagedRunRetire = () => ok(undefined);
+  f.moon.clientProgramInstalledEffectManagedOperationPlan = function(value, prepared, identity) {
+    assert.equal(this, f.moon); assert.equal(value, f.parent); assert.equal(prepared, f.prepared); assert.equal(identity, f.identity); return ok(f.plan);
+  };
+  f.moon.clientProgramNodeEffectManagedPlanPrepare = f.moon.clientProgramInstalledEffectManagedPlanBegin = () => assert.fail('no independent admission');
+  const options = {runs, liveRuns, runtime: f.moon, manager: f.view, prepared: f.prepared,
+    request: f.identity, requestInput: f.sdkRequest, facts, inputs: {},
+    selection: Object.freeze({prepareManagedPlan(actual) {assert.equal(actual, facts); f.events.push('select'); return f.plan;}}),
+    assertCurrent() {}, checked: value => {if (value.$tag !== 1) throw value._0; return value._0;}};
+  assert.equal(prepare(options), f.parent); assert.equal(prepare(options), f.parent);
+  assert.equal(read(options).operationPlan, f.plan);
+  assert.deepEqual(f.events, ['compile', 'borrow', 'select', 'complete', 'adopt']);
+  assert.throws(() => prepare({...options, requestInput: {}}), {code: 'ForeignInstalledEffectManagedRun'});
+  // Original Scope/parent retirement is an explicit Core port, never implied
+  // by preparation completion or a terminal provider classification.
+  f.markRetiring(); f.view.severPreparation(f.prepared, f.original);
+  f.finishPhysicalRetirement();
+  f.view.retireSeveredPreparation(f.original);
+  f.view.finishSourceProducer(f.receipt, 'returned'); await f.view.close();
+  assert.equal(f.events.at(-1), 'return');
+});
+
+test('failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission', async () => {
+  for (const phase of ['completeFailure', 'adoptFailure']) {
+    const failure = new Error(phase), f = await originalEffectRequest({[phase]: failure});
+    await f.view.fundedPreparation(f.sdkRequest, undefined);
+    assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
+    assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
+    await f.failedCleanup();
+    assert.equal(f.events.filter(x => x === 'compile').length, 1);
+    assert.equal(f.events.filter(x => x === 'complete').length, 1);
+    assert.equal(f.events.filter(x => x === 'return').length, 1);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
+test('Request Effect borrowed methods keep original receiver and reject foreign input before completion', async () => {
+  const f = await originalEffectRequest(); await f.view.fundedPreparation(f.sdkRequest, undefined);
+  f.moon.clientProgramEffectPreparationInputRead = () => assert.fail('do not replace captured typed method');
+  f.view.borrowPreparation(f.prepared, f.sdkRequest);
+  assert.throws(() => f.view.adoptEffectPreparation(f.prepared, {}, f.identity, f.plan), {code: 'ForeignInstalledSourceProducer'});
+  assert(!f.events.includes('complete')); await f.failedCleanup();
+  assert.deepEqual(f.events, ['compile', 'borrow', 'sibling', 'return']);
+});

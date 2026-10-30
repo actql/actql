@@ -5159,6 +5159,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     for (const run of record.computeLiveRuns ?? []) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
+      if (run.preparationKind === 'effect-plan' && run.preparationFunded) {
+        const finish = preparation.retireManagedComputeRun(run.prepared);
+        finish?.();
+        continue;
+      }
       // Dispatch has closed its actual children before this initial duty.
       // Source-free Runs on either joint Source/Compute or Compute-only
       // installations retire before their same parent service can close.
@@ -5498,8 +5503,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
-        prepared: facts.prepared, request: facts.identity, selection, facts, inputs,
-        sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
+        prepared: facts.prepared, request: facts.identity,
+        requestInput: model === undefined ? originalSourceManagedHostRequest(originals, facts.prepared) : undefined,
+        selection, facts, inputs, sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');

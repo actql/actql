@@ -3322,3 +3322,31 @@ orders snapshot serialization, intent identity, lexical scanning and Source
 construction in that order. The public phase enumeration and each phase's work
 limit remain unchanged. Finishing an intent does not refund consumed work or
 permit an earlier or repeated phase; narrow and wide receipts share this fence.
+
+## Request-owned Effect Plan completion
+
+The ordinary non-Model Effect caller continues the original SDK Request rather
+than admitting a second managed Root for its selected Plan. The existing
+Effect input-borrow entry reserves the Plan-constructor coexistence and retains
+the same checked `PreparedClientEffectComputation`. Its typed read, sibling,
+retirement and return methods are captured with the original runtime receiver;
+a Program input-borrow method cannot consume that holder.
+
+The installed implementation supplies its complete original operation Plan.
+The manager retains that Plan before calling the existing Request completion
+and adoption entries with the same input receipt and final Request identity.
+Failure remains on that Request and cannot renew compilation, completion or
+admission. The Model-specific Scope path retains its separate existing contract.
+
+After the actual dispatch and physical children have retired, Host cleanup
+starts the same managed Run retirement, observes its original payload-sever
+witness, returns the same Effect input borrow, and completes that retirement
+before closing the manager. Failed construction uses the original Request abort
+and typed-borrow cleanup. Neither a completed Promise nor a terminal provider
+classification acknowledges physical cleanup.
+
+This caller connection supplies no provider permission or physical backing.
+The actual installed Plan and normal Host remain responsible for complete
+request, response, confirmation-read and failed-child overlap. No numeric quote,
+missing inventory, raw Prepared or independently prepared manager Root can
+replace that original connection.

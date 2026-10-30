@@ -177,7 +177,7 @@ test('Effect Model Plan retains the same Root purpose and Plan identity before a
   const original = f.view.prepareEffectModelPlanRun(f.prepared, plan);
   assert.equal(f.view.prepareEffectModelPlanRun(f.prepared, plan), original);
   assert.deepEqual(f.quotes, {pure: 0, effect: 1});
-  assert.throws(() => f.view.prepareEffectPlanRun(f.prepared, plan), {code: 'ForeignInstalledModelPreparation'});
+  assert.equal(f.view.prepareEffectPlanRun, undefined, 'ordinary Effect adopts its original Request instead');
   assert.equal(runtime.prepareOriginalManagedRunPorts(original, plan), null);
   assert.equal(runtime.prepareOriginalLocalMockModelRunPorts(original, f.prepared), null);
   const ports = runtime.prepareOriginalLocalMockModelRunPorts(original, plan);
