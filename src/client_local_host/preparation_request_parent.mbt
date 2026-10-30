@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
+  ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
   Selected
@@ -87,6 +88,8 @@ struct ClientRequestPreparation[I] {
   )?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_keyed : ClientInstalledManagedKeyedPreparation?
+  mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -192,7 +195,9 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    reference_slots: js_refs +
+    // Resident Content Plan and original Request links; neither is selected yet.
+    reference_slots: 2L +
+    js_refs +
     import_refs +
     ledger_refs +
     12L +
@@ -309,6 +314,8 @@ pub fn[I] begin_request_preparation(
     program_artifact_inputs: None,
     program_source_free: None,
     program_captured: None,
+    program_keyed: None,
+    program_content_request: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -613,6 +620,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_keyed = None
+  owner.program_content_request = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if owner.effect_capacity is Some(capacity) {

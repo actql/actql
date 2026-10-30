@@ -68,7 +68,8 @@ fn[I] request_program_plan_quote(
   guard (
       owner.phase == ProgramCompiled ||
       owner.phase == ProgramPlanQuoted ||
-      owner.phase == ProgramPlanReserved
+      owner.phase == ProgramPlanReserved ||
+      owner.phase == ContentPlanReserved
     ) &&
     owner.program_capacity is Some(capacity) &&
     owner.program_data is Some(data) else {
@@ -125,6 +126,9 @@ pub fn[I] borrow_request_program_plan_input(
   @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
   ClientRequestPreparationIssue,
 ] {
+  if owner.phase == ContentPlanReserved {
+    return Err(WrongPhase)
+  }
   let (r, e) = match request_program_plan_quote(owner, input) {
     Err(issue) => return Err(issue)
     Ok(value) => value

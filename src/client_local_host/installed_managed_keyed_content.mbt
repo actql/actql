@@ -427,3 +427,32 @@ pub fn retire_installed_keyed_source_read(
   // parent retirement; a closed child is not a fresh request allowance.
   Ok(())
 }
+
+///|
+pub fn installed_keyed_row_limits(
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  max_work : Int,
+) -> @row_source_host.RowKeyedLimits {
+  {
+    page: {
+      max_bytes: max_page_bytes,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_rows: 100,
+    },
+    retention: { max_nodes: 100000, max_depth: 100, max_work, max_text_bytes, },
+    request: {
+      max_work,
+      max_pairs: 100,
+      values: { max_nodes: 10000, max_depth: 100, max_text_bytes, },
+    },
+    wire: {
+      max_columns: 100,
+      max_order_work: max_work,
+      max_bytes: max_text_bytes,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+  }
+}

@@ -3865,3 +3865,39 @@ Model constructor adopts an already inventoried preparation, the existing
 `bind_client_model_read_scope` binds that same original census. Calling the
 pristine-bootstrap `begin_client_model_read_scope` would select a different
 lifecycle and is not a substitute for this binding.
+
+
+### Keyed Content construction on the original Request
+
+A keyed Content constructor selects `borrow_request_content_plan_input` before
+allocating its original installed preparation. This borrows the same compiled
+Program and reservation as other Request constructors. The distinct
+`ContentPlanReserved` phase prevents a later ordinary Source-free constructor
+from replacing that choice. Repeated Content borrows retain the actual current
+extent, including any domain growth, without charging the selected Plan/Request link carriers
+again. Both resident optional fields are included in entry controls.
+
+The existing `prepare_installed_managed_keyed_content` still owns the actual
+keyed declaration, row capacity, transport and serialization requirements. Its
+selected provider, parser/codec, response, output and constructor overlap must
+be funded on the same parent before construction. The Content borrow's fixed
+control quote alone does not establish any of that backing or admit a physical
+provider. The existing domain constructor's schema, Infer exclusion and
+serialization guards remain unchanged.
+
+`complete_request_content_preparation` retains that exact selected preparation
+against the same compiled Program and retains the original Request token.
+`begin_request_content_managed_run` requires that exact token and transfers
+the original admission, capacity and two body holders to the Run. Its private
+Content owner case distinguishes this preparation-owned route from the legacy
+independent Content admission; the latter retains its original purpose guard.
+The Run keeps the selected keyed Plan until its existing read/output/physical
+cleanup boundaries permit generic preparation retirement. An outstanding
+constructor or manager borrow keeps the same debit alive; cancellation neither
+acknowledges those duties nor obtains a replacement reservation.
+
+The typed Node and RelA ports forward the same original parent/input/selected
+preparation. Host constructor selection and full domain backing remain separate
+connections. This interface does not create a Model Scope, broaden ordinary
+Source-free or captured-purpose predicates, or authorize a caller to omit a
+serialized output's real configuration and retirement.

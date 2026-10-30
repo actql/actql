@@ -344,6 +344,8 @@ pub fn client_program_adopt_reconciled_infer_response(@model_execution.ModelResp
 
 pub fn client_program_adopt_request_capture_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_adopt_request_content_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_adopt_request_effect_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_adopt_request_program_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
@@ -533,6 +535,8 @@ pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffec
 pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy_host.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_borrow_installed_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)]) -> Result[@physical_resources.PreparationBodyBorrow[(ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], @physical_resources.PreparationCapacityIssue]
+
+pub fn client_program_borrow_request_content_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
 
@@ -761,6 +765,8 @@ pub fn client_program_complete_infer_original_journal_invalidation(@client_infer
 pub fn client_program_complete_installed_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_complete_request_content_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_complete_request_effect_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
