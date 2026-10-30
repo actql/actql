@@ -8,7 +8,7 @@ import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inventory, unpack} from './package-release.mjs';
 import {verifyNativeCliRelease, admitNativeReleaseManifest} from './native-cli-release.mjs';
-import {admitInstalledNativeArtifact} from './native-cli-artifact-reader.mjs';
+import {admitInstalledNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {nativeCliPlatforms} from './native-cli-package-inputs.mjs';
@@ -61,6 +61,7 @@ function instructions(version, platform, profiles) {
 export async function stageNativeStandaloneArchive({archive, destination, source, version, item, artifact, profiles, cohortSha256}) {
   releaseVersion(version); assert.match(source, /^[a-f0-9]{40}$/u); assert.match(cohortSha256, /^[a-f0-9]{64}$/u);
   assert(Object.hasOwn(nativeCliPlatforms, artifact.platform), 'Unknown standalone Native platform'); profilesFor(profiles, artifact);
+  requireNativePackageVersion(artifact, version);
   assert.equal(item.name, `@actql/cli-${artifact.platform}`); assert.equal(item.version, version);
   const original = await readFile(await regular(archive));
   assert.equal(original.length, item.bytes); assert.equal(hash(original), item.sha256);
@@ -104,6 +105,7 @@ export async function prepareNativeStandalone({cohortDirectory, destination, req
     const artifact = npm.artifacts.find(value => value.platform === platform);
     const item = npm.packages.find(value => value.name === `@actql/cli-${platform}`);
     assert(artifact && item && Object.hasOwn(nativeCliPlatforms, platform), 'Selected Native platform has no original artifact');
+    requireNativePackageVersion(artifact, selected.version.version);
     profilesFor(target.profiles, artifact); return {artifact, item};
   });
   destination = resolve(destination); await mkdir(destination);

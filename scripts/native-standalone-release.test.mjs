@@ -31,6 +31,11 @@ async function fixture(t, local = false, platform = 'darwin-arm64') {
     binarySha256: hash(binary), binaryBytes: binary.length, generatedCSha256: 'b'.repeat(64), toolchainPinSha256: 'c'.repeat(64),
     notices: {}, toolchain: {fixture: 'Not a compiler receipt'}, abi: {format: 'Mach-O', minimumMacOS: '11.0'},
     testedHost: {}, generation: ['inert fixture; never executed']};
+  // Declared metadata oracle only, not an observed compiler/CLI receipt. The
+  // separate Native mechanism case exercises actual compiled version bytes.
+  record.packageVersion = version;
+  record.packageVersionObservation = {argv: ['--version'], stdout: `${version}\n`, code: 0, signal: null,
+    binarySha256: record.binarySha256, binaryBytes: record.binaryBytes, buildInputSha256: 'e'.repeat(64)};
   if (platform === 'linux-x64-gnu') record.abi = {format: 'ELF', minimumGlibc: '2.17'};
   for (const name of ['LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']) {
     const bytes = Buffer.from('Independent inert fixture notice ' + name); await writeFile(join(payload, name), bytes);
@@ -90,6 +95,14 @@ test('standalone archive retains every original OS payload byte and mode with no
   const info = JSON.parse(await readFile(join(unpacked, 'build-info.json')));
   assert.equal(info.packageVersion, version); assert.equal(Object.hasOwn(info, 'archiveSha256'), false);
   assert.equal(JSON.parse(await readFile(join(unpacked, 'package.json'))).scripts, undefined);
+  assert.deepEqual(await readFile(f.archive), original);
+});
+
+test('standalone release requires the original matching compiled-version observation without rewriting a legacy artifact', async t => {
+  const f = await fixture(t), original = await readFile(f.archive);
+  const legacy = {...f.record}; delete legacy.packageVersion; delete legacy.packageVersionObservation;
+  await assert.rejects(stageNativeStandaloneArchive({...f.options, artifact: legacy}), /explicitly versioned/u);
+  await assert.rejects(stageNativeStandaloneArchive({...f.options, version: '0.0.7'}), /explicitly versioned/u);
   assert.deepEqual(await readFile(f.archive), original);
 });
 

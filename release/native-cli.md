@@ -10,7 +10,8 @@ Build from a clean fixed HEAD with the repository-pinned MoonBit compiler,
 under the existing local heavy guard. On each actual candidate platform:
 
 ```sh
-node scripts/native-cli-artifact.mjs .artifacts/native-cli-<platform>-<sha>
+node scripts/native-cli-artifact.mjs .artifacts/native-cli-<platform>-<sha> \
+  --package-version "$ACTQL_VERSION"
 ```
 
 The producer records the source SHA, compiler/toolchain pin, generated C
@@ -20,6 +21,40 @@ must be disclosed. Host-side package-selection simulation is not acceptance.
 Set `MOON_HOME` to the pinned toolchain. Each binary package preserves its
 Core license/notice files verbatim, checked against that compiler's installed
 Core and bound to the artifact record.
+Set `ACTQL_VERSION` to the complete explicitly selected candidate version before
+this build. The shared package-version parser is the only grammar owner; the
+Native literal has a 128-character initial-control bound. No source package
+number, environment variable at runtime, argv value or adjacent metadata file
+chooses the compiled banner. Unselected diagnostic builds display
+`0.0.0-development` and have no release-version observation.
+
+The existing argparse command retains its original help/version/error parsing
+and no-Host-acquisition behavior. Its version text comes from one bounded
+ordinary managed String containing immutable compiled DATA. The original
+Command constructor copies it into the retained initial parser graph; no Read,
+physical holding, Owner or permission is created by that text.
+
+The ordinary explicit-version producer uses a fresh target directory and an
+isolated compiler shim that changes only the original version stub's literal.
+The scoped Local producer adds the same explicit literal to its existing exact
+C plan. Completed-provider adoption checks that original C step, helpers and
+source before consuming the existing completion; it cannot relabel an older
+provider or start a replacement compilation. Compiler flags, allocator, ABI,
+engine settings, physical/current and cleanup protocols otherwise stay selected
+by their original owners.
+
+Before writing a version-bound artifact receipt, the producer executes that
+same binary's `--version` with no runtime/Node path and requires the exact
+selected banner, exit0 and no stderr. It binds the observation to the original
+binary length/SHA256 and version-build input digest. Historical artifacts remain
+readable in their old byte-only scope. New npm preparation, standalone staging,
+fixed-set admission and npm staging require the matching observed version;
+metadata-only renaming cannot supply it. Inert observation records are only
+component fixtures, never evidence that a real command ran.
+
+Protect the Native version helper/stub, artifact readers and both compiler
+connections alongside the existing version/policy/publisher controls. These
+source checks do not configure that protection or establish owner approval.
 The executable's greatest required GLIBC symbol version is its minimum bound,
 not a guarantee for arbitrary separately installed libcurl/transitive libraries.
 The tested OS/glibc/library set and an older untested bound are distinct.
@@ -111,9 +146,10 @@ route. Linux Remote packaging does not qualify Linux Local. The separate
 Native installation/bootstrap connection, actual CLI/README entry, real
 `--version`, successful Local/Remote behavior, close/failure handling and a
 Node-free environment must be accepted from the actual selected artifacts.
-The current compiled command version is not rewritten to the distribution
-version by packaging. Local asset presence does not supply a new bootstrap or
-fallback engine.
+Packaging does not rewrite the executable. Its matching build-time version
+observation remains distinct from the actual Node-free installed command,
+Local/Remote behavior and cleanup acceptance. Local asset presence does not
+supply a new bootstrap or fallback engine.
 
 This wrapper does not perform signing, notarization or publication. If signing
 is selected, the final signed input bytes and their verification must precede

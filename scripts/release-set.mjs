@@ -9,6 +9,7 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
+import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -62,6 +63,7 @@ async function readCohort(descriptor, target, request, python) {
     manifest = descriptor.kind === 'node-npm'
       ? await (await import('./package-release.mjs')).verifyPackageRelease(directory)
       : await (await import('./native-cli-release.mjs')).verifyNativeCliRelease(directory);
+    if (descriptor.kind === 'native-npm') requireNativeCohortPackageVersions(manifest);
     assert.deepEqual(await readFile(await originalFile(directory, manifestFile)), bytes, 'Cohort changed during its existing verifier');
     assert.equal(manifest.sourceSha, request.source.commit);
     assert.equal(manifest.cohort.packageVersion, request.version);
@@ -84,6 +86,7 @@ async function readCohort(descriptor, target, request, python) {
   } else if (descriptor.kind === 'native-standalone') {
     assert.equal(target.ecosystem, 'native'); manifestFile = 'native-standalone.json';
     manifest = await (await import('./native-standalone-release.mjs')).verifyNativeStandalone(directory);
+    requireNativeCohortPackageVersions(JSON.parse(manifest.origin.manifest));
     assert.equal(manifest.sourceSha, request.source.commit); assert.equal(manifest.packageVersion, request.version);
     assert.deepEqual(manifest.platforms, target.platforms); assert.deepEqual(manifest.requestedProfiles, target.profiles);
     records = [...manifest.archives, manifest.checksums].map(item => ({name: item.name, version: item.version,

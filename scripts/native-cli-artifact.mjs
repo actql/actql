@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {chmod, copyFile, mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {join, resolve, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
@@ -13,11 +13,12 @@ import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 import {assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
 import {assertNativeLocalFreshRuntimeRecipe} from './native-cli-default-assets.mjs';
 import {admitCompletedNativeLocalProvider} from './native-cli-completed-provider.mjs';
+import {prepareNativeVersionCompiler, observeNativePackageVersion, nativePackageVersion} from './native-cli-version.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const run = (command, args, {timeout = 300_000} = {}) => execFileSync(command, args, {cwd: repository,
-  encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024});
+const run = (command, args, {timeout = 300_000, env = process.env} = {}) => execFileSync(command, args, {cwd: repository,
+  encoding: 'utf8', timeout, env, maxBuffer: 8 * 1024 * 1024});
 
 export function inspectNativeAbi(binary, platform, execute = execFileSync) {
   const inspect = (tool, args) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
@@ -50,7 +51,8 @@ export function nativeCliCompileBudget(compileSeconds, scoped = false) {
 }
 
 export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime, compileSeconds,
-  completedLocalProvider = false} = {}) {
+  completedLocalProvider = false, packageVersion} = {}) {
+  const selectedVersion = packageVersion === undefined ? undefined : nativePackageVersion(packageVersion);
   const budget = nativeCliCompileBudget(compileSeconds, localRuntime !== undefined);
   assert.equal(typeof verbose, 'boolean', 'verbose must be an explicit Boolean');
   assert.equal(typeof completedLocalProvider, 'boolean');
@@ -68,7 +70,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
   destination = resolve(destination);
   const completed = completedLocalProvider ? await admitCompletedNativeLocalProvider(
-    destination, source.revision, repository, await realpath(process.env.MOON_HOME)) : undefined;
+    destination, source.revision, repository, await realpath(process.env.MOON_HOME), {packageVersion: selectedVersion}) : undefined;
   let localMetadata;
   if (localRuntime !== undefined) {
     assert.equal(localRuntime.sourceSha, source.revision, 'Local runtime must belong to this exact source');
@@ -82,10 +84,21 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   }
   const buildArgs = ['build', ...(verbose ? ['--verbose'] : []),
     '--target', 'native', '--release', '-j', '1', 'src/cmd/native_client'];
-  let buildCommand = 'moon', selectedBuildArgs = buildArgs;
+  let buildCommand = 'moon', selectedBuildArgs = buildArgs, buildEnvironment = process.env, versionCompiler;
   let built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
   let c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
   let scopedReceipt = completed?.receipt;
+  if (selectedVersion !== undefined && localMetadata === undefined) {
+    await mkdir(destination);
+    versionCompiler = await prepareNativeVersionCompiler(join(destination, 'version-compiler'), repository, selectedVersion);
+    // A fresh target directory prevents an older macro/object from being
+    // silently reused when only the explicitly selected package version changes.
+    const emission = join(destination, 'native-build');
+    selectedBuildArgs = [...buildArgs.slice(0, -1), '--target-dir', emission, buildArgs.at(-1)];
+    built = join(emission, 'native/release/build/cmd/native_client/native_client.exe');
+    c = join(emission, 'native/release/build/cmd/native_client/native_client.c');
+    buildEnvironment = {...process.env, PATH: `${versionCompiler.directory}${delimiter}${process.env.PATH ?? ''}`};
+  }
   if (localMetadata !== undefined) {
     assert.equal(platform, 'darwin-arm64', 'Initial Local Crypto requires its selected physical provider');
     assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
@@ -95,7 +108,8 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     selectedBuildArgs = [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
       '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME),
       '--clang', clang, '--sdk', sdk, '--destination', join(destination, 'native-producer'),
-      '--seconds', String(budget.seconds), '--entry', 'src/cmd/native_client'];
+      '--seconds', String(budget.seconds), '--entry', 'src/cmd/native_client',
+      ...(selectedVersion === undefined ? [] : ['--package-version', selectedVersion])];
     built = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.exe');
     c = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.c');
   }
@@ -109,7 +123,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     sourceSha: source.revision, command: [buildCommand, ...selectedBuildArgs], timeoutMs: budget.timeoutMs}));
   try {
     const output = completed ? '' : run(buildCommand, selectedBuildArgs,
-      {timeout: budget.timeoutMs});
+      {timeout: budget.timeoutMs, env: buildEnvironment});
     if (localMetadata !== undefined && !completed) {
       scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8'));
       assert.equal(scopedReceipt.source, source.revision);
@@ -118,6 +132,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
       assert.equal(scopedReceipt.providers, 1);
       assert.equal(scopedReceipt.moon_build_exit, 0);
       assert.equal(scopedReceipt.executable.path, built);
+      if (selectedVersion !== undefined) assert.equal(scopedReceipt.package_version, selectedVersion);
     }
     if (verbose) {
       process.stdout.write(output);
@@ -138,13 +153,22 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     throw error;
   }
   assert.deepEqual(checkoutState(repository), source);
-  if (localMetadata === undefined) await mkdir(destination);
+  if (localMetadata === undefined && selectedVersion === undefined) await mkdir(destination);
   const binary = join(destination, 'actql-native-client');
   await copyFile(built, binary); await chmod(binary, 0o755);
   const bytes = await readFile(binary);
   if (scopedReceipt !== undefined) {
     assert.equal(bytes.length, scopedReceipt.executable.bytes);
     assert.equal(hash(bytes), scopedReceipt.executable.sha256);
+  }
+  let versionObservation;
+  if (selectedVersion !== undefined) {
+    if (versionCompiler) assert.equal(hash(await readFile(versionCompiler.path)), versionCompiler.sha256,
+      'Original version compiler input changed during the build');
+    const observed = observeNativePackageVersion(binary, selectedVersion);
+    const buildInputSha256 = versionCompiler?.sha256 ?? hash(await readFile(join(destination, 'native-producer/commands.json')));
+    versionObservation = {...observed, binarySha256: hash(bytes), binaryBytes: bytes.length, buildInputSha256};
+    assert.deepEqual(await readFile(binary), bytes, 'Version observation cannot change the selected executable');
   }
   const notices = {};
   for (const [filename, coreFile] of [['MOONBIT-CORE-LICENSE', 'LICENSE'], ['MOONBIT-CORE-NOTICE', 'NOTICE']]) {
@@ -178,26 +202,28 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     generatedCSha256, toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
     abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
-    generation: [buildCommand, ...selectedBuildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {})};
+    generation: [buildCommand, ...selectedBuildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {}),
+    ...(selectedVersion === undefined ? {} : {packageVersion: selectedVersion, packageVersionObservation: versionObservation})};
   await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
   return record;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [destination, ...options] = process.argv.slice(2);
-  let verbose = false, recipe, compileSeconds, completedLocalProvider = false;
+  let verbose = false, recipe, compileSeconds, completedLocalProvider = false, packageVersion;
   while (options.length) {
     const option = options.shift();
     if (option === '--verbose' && !verbose) verbose = true;
     else if (option === '--complete-local-provider' && !completedLocalProvider) completedLocalProvider = true;
     else if (option === '--local-runtime-recipe' && recipe === undefined && options.length) recipe = options.shift();
+    else if (option === '--package-version' && packageVersion === undefined && options.length) packageVersion = nativePackageVersion(options.shift());
     else if (option === '--compile-seconds' && compileSeconds === undefined && options.length) {
       const value = options.shift();
       assert.match(value, /^[1-9][0-9]*$/u, 'compile-seconds must be a positive integer');
       compileSeconds = Number(value);
       nativeCliCompileBudget(compileSeconds);
     }
-    else assert.fail('usage: native-cli-artifact.mjs <artifact-directory> [--verbose] [--local-runtime-recipe <selected-recipe>] [--compile-seconds <positive-integer> | --complete-local-provider]');
+    else assert.fail('usage: native-cli-artifact.mjs <artifact-directory> [--verbose] [--package-version <explicit-full-version>] [--local-runtime-recipe <selected-recipe>] [--compile-seconds <positive-integer> | --complete-local-provider]');
   }
   assert(destination);
   let wire;
@@ -218,7 +244,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       wire = bytes.subarray(0, offset);
     } finally {await descriptor.close();}
   }
-  const record = await buildNativeCliArtifact(destination, {verbose, compileSeconds, completedLocalProvider,
+  const record = await buildNativeCliArtifact(destination, {verbose, compileSeconds, completedLocalProvider, packageVersion,
     ...(wire ? {localRuntime: JSON.parse(wire.toString('utf8'))} : {})});
   console.log(JSON.stringify({sourceSha: record.sourceSha, platform: record.platform,
     binarySha256: record.binarySha256, abi: record.abi.sharedLibraries}, null, 2));
