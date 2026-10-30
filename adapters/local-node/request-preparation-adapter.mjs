@@ -147,13 +147,13 @@ export function closeHostInitializationPreparation(state) {
 
 // General Request admission observes no caller options, Parameters or source.
 // Actual SDK capture below grows this same parent before its detached data.
-export function beginRequestInput(state, receipt, connection, assertCurrent) {
+export function beginRequestInput(state, receipt, connection, assertCurrent, childrenPending = noPhysicalChildren) {
   const moon=state.context.runtime;
   if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
   if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
       connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
       !Array.isArray(connection.runners)) return false;
-  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
+  openRequestPreparation(state,receipt,assertCurrent,childrenPending);
   return true;
 }
 

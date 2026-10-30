@@ -302,17 +302,7 @@ test "preparation census and bootstrap transfer with the same original child and
   let child = preparation_adoption_child()
   let input = [1]
   let body = [2]
-  let initial : NodePreparationAdmission[Array[Int]] = {
-    admission: Some(
-      prepare_node_managed_run_original(
-        child,
-        input,
-        () => Ok(()),
-        purpose=LocalMockModel,
-      ),
-    ),
-    transitioning: false,
-  }
+  let initial = prepare_node_preparation_original(child, input, () => Ok(()))
   let ledger = start_node_preparation_admission(initial).unwrap()
   let identity = begin_node_preparation_inventory(
     initial, input, 10L, 10L, 2, 0, 0,
@@ -335,7 +325,9 @@ test "preparation census and bootstrap transfer with the same original child and
   assert_true(physical_equal(ledger, same))
   assert_true(physical_equal(run.child, child))
   assert_true(physical_equal(run.read_bootstrap.unwrap(), bootstrap))
-  check_node_local_mock_model_run_preparation(run, body).unwrap()
+  assert_true(
+    check_node_local_mock_model_run_preparation(run, body) is Err(Unavailable),
+  )
   assert_true(
     check_node_source_compute_run_preparation(run, body) is Err(Unavailable),
   )
@@ -607,4 +599,108 @@ test "node preparation adopted body carries publication without recovering its i
   assert_eq(ledger_usage(ledger).live_reservations, 0)
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "local preparation never impersonates a preselected Run domain before or after adoption" {
+  let input = [1]
+  let body = [2]
+  let child = preparation_adoption_child()
+  let initial = prepare_node_preparation_original(child, input, () => Ok(()))
+  let original = initial.admission.unwrap()
+  assert_true(
+    check_node_source_compute_run_preparation(original, input)
+    is Err(Unavailable),
+  )
+  assert_true(
+    check_node_local_mock_model_run_preparation(original, input)
+    is Err(Unavailable),
+  )
+  assert_true(
+    check_node_local_content_run_preparation(original, input)
+    is Err(Unavailable),
+  )
+  let ledger = start_node_preparation_admission(initial).unwrap()
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+    ledger,
+    input,
+    40L,
+    60L,
+    max_borrowers=2,
+  ).unwrap()
+  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  let (run, same, retirement, run_holder) = adopt_node_preparation_admission(
+    initial, input, capacity, body,
+  ).unwrap()
+  assert_true(physical_equal(same, ledger))
+  assert_true(physical_equal(run.child, child))
+  assert_true(
+    check_node_source_compute_run_preparation(run, body) is Err(Unavailable),
+  )
+  assert_true(
+    check_node_local_mock_model_run_preparation(run, body) is Err(Unavailable),
+  )
+  assert_true(
+    check_node_local_content_run_preparation(run, body) is Err(Unavailable),
+  )
+  assert_false(retire_transferred_preparation(retirement).unwrap())
+  assert_false(return_preparation_body_borrow(run_holder).unwrap())
+  assert_true(release_node_preparation_holder(run).unwrap())
+  cleanup_node_managed_run_admission(run).unwrap()
+}
+
+///|
+test "local preparation limits reuse immutable original DATA without a current callback" {
+  let admits = Ref(0)
+  let currents = Ref(0)
+  let child = prepare_imported_child_port(
+    1L,
+    _ => {
+      admits.val += 1
+      0
+    },
+    _ => {
+      currents.val += 1
+      0
+    },
+    (_, _) => 1000L,
+    (_, _) => 0L,
+    (_, _) => 0,
+    _ => 0,
+    fixed_capacities=false,
+  ).unwrap()
+  let input = [1]
+  let initial = prepare_node_preparation_original(child, input, () => Ok(()))
+  assert_true(node_local_preparation_limits(initial, input) is Err(Unavailable))
+  let ledger = start_node_preparation_admission(initial).unwrap()
+  let before = currents.val
+  let first = node_local_preparation_limits(initial, input).unwrap()
+  let second = node_local_preparation_limits(initial, input).unwrap()
+  assert_true(physical_equal(first, ledger_limits(ledger)))
+  assert_true(physical_equal(first, second))
+  assert_true(
+    node_local_preparation_limits(initial, [1]) is Err(ForeignOriginal),
+  )
+  assert_eq(currents.val, before)
+  assert_eq(admits.val, 1)
+  cleanup_node_preparation_admission(initial).unwrap()
+  assert_true(
+    node_local_preparation_limits(initial, input) is Err(AlreadyConsumed),
+  )
+
+  // A legacy Run purpose cannot stand in for the selected input supplier,
+  // even with the same receipt and equal callback limits. Cleanup still owns
+  // its original unpublished child; no admission or current call is made.
+  let foreign : NodePreparationAdmission[Array[Int]] = {
+    admission: Some(
+      prepare_node_managed_run_original(child, input, () => Ok(())),
+    ),
+    transitioning: false,
+  }
+  let before = currents.val
+  assert_true(start_node_preparation_admission(foreign) is Err(Unavailable))
+  assert_true(check_node_preparation_input(foreign, input) is Err(Unavailable))
+  assert_true(node_local_preparation_limits(foreign, input) is Err(Unavailable))
+  assert_eq(currents.val, before)
+  assert_eq(admits.val, 1)
 }

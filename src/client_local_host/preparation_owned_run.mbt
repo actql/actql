@@ -86,8 +86,7 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     !physical_equal(plan.request, request) {
     return Err(ForeignOriginal)
   }
-  let limits = match
-    @resources.node_source_compute_preparation_limits(initial, input) {
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
@@ -130,8 +129,7 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   if plan.model is Some(_) {
     return Err(Unsupported)
   }
-  let limits = match
-    @resources.node_source_compute_preparation_limits(initial, input) {
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }

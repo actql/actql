@@ -5079,7 +5079,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "037d8b1b1c7e37fee24004d4731fe444a0c6f190fbb2897ad7a6bf191d5a1b69",
+      "sha256": "94433c83d7e186bfb6b3c42b63fa214436b397a630141824d96d13cc02330de2",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5462,6 +5462,22 @@
             "authorizationFor"
           ],
           "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
@@ -9168,7 +9184,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -10687,6 +10703,75 @@
         },
         {
           "operations": [
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
@@ -11952,7 +12037,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -12765,7 +12850,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -14339,7 +14424,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -14637,7 +14722,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }

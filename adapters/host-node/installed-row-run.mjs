@@ -96,6 +96,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let closed = false;
   let sourceEvidenceOriginal, sourceEvidenceCapture;
   let sourceEvidencePreparing = false;
+  let nativeRecoveryCleanup, nativeRecoveryPending, nativeRecoveryFlight;
   let readerPrepared = false, readerStarted = false, readerReadPending = false;
   let readerStopRequested = false;
   let reader, readerRead, readerStop, readerObserve, readerRetry;
@@ -124,6 +125,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   };
   const close = () => {
     if (closed) return;
+    if (!keyed && transportRecovery !== undefined && !transportStopped) fail('InstalledSourceCleanupPending');
     if (providerCapacity !== undefined) stopReader();
     if (ledger === undefined) moon.clientProgramRowSourceClose(run);
     else checked(moon.clientProgramRowSourceCloseAccounted(run));
@@ -135,6 +137,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     closed = true;
     sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
+    if (!keyed) {
+      // Only after external ACK and Core capture/read retirement. A closed
+      // cleanup handle keeps terminal state, not the original native owner.
+      transportRecovery = nativeRecoveryCleanup = nativeRecoveryPending = nativeRecoveryFlight = undefined;
+    }
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
@@ -351,6 +358,22 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
 
   async function cleanup() {
     if (closed) return true;
+    if (!keyed && transportRecovery !== undefined && !transportStopped) {
+      if (typeof nativeRecoveryCleanup !== 'function' || typeof nativeRecoveryPending !== 'function') return false;
+      if (nativeRecoveryFlight === undefined) {
+        // Keep the same operation before invoking an external cleanup. Other
+        // callers await it; a later retry is possible only after it settles.
+        nativeRecoveryFlight = Promise.resolve().then(async () => {
+          const stopped = await Reflect.apply(nativeRecoveryCleanup, transportRecovery, []);
+          if (stopped !== true || Reflect.apply(nativeRecoveryPending, transportRecovery, []) !== false) return false;
+          transportStopped = true; return true;
+        });
+      }
+      const work = nativeRecoveryFlight;
+      try {if (await work !== true) return false;}
+      finally {if (nativeRecoveryFlight === work) nativeRecoveryFlight = undefined;}
+      if (closed) return true;
+    }
     if (providerCapacity !== undefined) {
       stopReader();
       if (!readerRetired()) return false;
@@ -381,6 +404,17 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
 
   function closeAfterFailure(state, recovery) {
     if (keyed) transportRecovery = recovery;
+    else if (recovery !== undefined && transportRecovery === undefined) {
+      // The same RowRun owns the recovery and its Core retirement. Retain the
+      // original receiver before method getters can throw or reenter.
+      transportRecovery = recovery; transportStopped = false;
+      try {
+        nativeRecoveryCleanup = recovery.cleanup;
+        nativeRecoveryPending = recovery.cleanupPending;
+      } catch {
+        nativeRecoveryCleanup = nativeRecoveryPending = undefined;
+      }
+    }
     try { close(); }
     catch {
       state.closeFailed = true;

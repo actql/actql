@@ -1216,7 +1216,7 @@ export async function createInstalledRowSource({moon, declaration,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
-  prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
+  prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
   originalKeyedTransport, readAsset, originalPageLimits}) {
   const readerDemand = sourceInitialization === undefined ? undefined
     : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader);
@@ -1269,6 +1269,8 @@ export async function createInstalledRowSource({moon, declaration,
       ['clientProgramInstalledSourceReadCheckCurrent', 'clientProgramInstalledSourceReadBindProgram',
         'clientProgramInstalledSourceReadBindEffectProgram', 'clientProgramInstalledSourceReadAttachAcquisition']
         .some(name => typeof moon?.[name] !== 'function'))) fail('InstalledSourceReadUnavailable');
+  if (closeSourceRead !== undefined && (typeof closeSourceRead !== 'function' ||
+      prepareSourceRead === undefined)) fail('InstalledSourceReadUnavailable');
   // Only the original local Source consumer can borrow these private
   // installation inputs. Neither option is a public packet or a capacity
   // issuer; the same RowRun still admits its actual original child below.
@@ -1441,6 +1443,7 @@ export async function createInstalledRowSource({moon, declaration,
       }
       return owner.providerCaptureCapacity;
     }
+    if (owner.providerCaptureCapacity !== undefined) return owner.providerCaptureCapacity;
     return listingReportCapacity !== undefined &&
         moon.clientProgramRowSourceIsListing(owner.acquisition)
       ? moon.clientProgramInstalledListingRowCaptureCapacity(owner.acquisition, listingReportCapacity)
@@ -1667,6 +1670,11 @@ export async function createInstalledRowSource({moon, declaration,
           managedRun, checkedOwner, requestIdentity, declaration))
         : checked(moon.clientProgramInstalledManagedCaptureSourceRead(
           managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
+    } else if (managedRun !== undefined && prepareSourceRead !== undefined) {
+      // This original getter binds Prepared/Request/declaration and crosses
+      // current itself. It retains the same base Row Plan's partial read.
+      planned = checked(moon.clientProgramInstalledManagedCaptureSourceRead(
+        managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
     }
     const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
       preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
@@ -1723,9 +1731,13 @@ export async function createInstalledRowSource({moon, declaration,
     const originalRead = planned !== undefined ? runtimeField(planned, 0)
       : prepareSourceRead === undefined ? undefined :
         prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
+    if (planned !== undefined && prepareSourceRead !== undefined &&
+        prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement,
+          occurrence, managedRun, originalRead})) !== originalRead) fail('InstalledSourceReadUnavailable');
     if (originalRead !== undefined) {
       if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
-      checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));
+      // Bind includes the same current check. No external operation occurs
+      // between a separate check and this original-owner binding.
       checked(effectful
         ? moon.clientProgramInstalledSourceReadBindEffectProgram(originalRead, checkedOwner)
         : moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner));
@@ -2343,6 +2355,20 @@ export async function createInstalledRowSource({moon, declaration,
     const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,
       originalRead: owner.originalRead, wholeInput: owner.wholeInput});
     const {run} = session;
+    let externalClosed = closeSourceRead === undefined || owner.managedRun === undefined;
+    let externalCloseAttempted = false;
+    let nativeReadPending = false;
+    const closeOriginal = async () => {
+      if (externalClosed) return;
+      externalCloseAttempted = true;
+      const observed = await closeSourceRead(owner.originalRead);
+      const pending = observed !== null && typeof observed === 'object'
+        ? Object.getOwnPropertyDescriptor(observed, 'pending') : undefined;
+      if (!pending || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        fail('InstalledSourceCleanupPending');
+      }
+      externalClosed = true;
+    };
     const complete = async () => {
       const verifyRead = () => currentRead(prepared, access, signal);
       // The completed Direct prefix owns its own logical input and Source
@@ -2384,6 +2410,7 @@ export async function createInstalledRowSource({moon, declaration,
       // paths=[] is already typed and complete. Do not issue a read grant or
       // enter a Site driver merely to manufacture an empty transport result.
       if (isListing && moon.clientProgramRowSourceListingComplete(run)) {
+        await closeOriginal();
         return await complete();
       }
       if (credentialRead && !grantBeforeBegin) grant = issueGrant();
@@ -2485,11 +2512,40 @@ export async function createInstalledRowSource({moon, declaration,
             ? moon.clientProgramRowSourceAcceptPage(run, bytes)
             : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
         }};
-      if (originalReader === undefined) await readPages(readerOptions);
+      if (originalReader === undefined) {
+        nativeReadPending = true;
+        await readPages(readerOptions);
+        nativeReadPending = false;
+      }
       else await session.readProvider({prepare: originalReader.prepare,
         receiver: originalReader.receiver, options: Object.freeze(readerOptions)});
+      await closeOriginal();
       return await complete();
     } catch (error) {
+      if (nativeReadPending && !externalClosed && closeSourceRead !== undefined && owner.managedRun !== undefined &&
+          error instanceof AcquisitionOpenError && error.outcome === 'unknown') {
+        // The native adapter already attempted cleanup. Preserve its original
+        // recovery instead of immediately asking another helper to close it.
+        // An absent owner cannot be replaced by a different close's success.
+        const original = error.recovery ?? Object.freeze({
+          async cleanup() {return false;}, cleanupPending: () => true,
+        });
+        session.closeAfterFailure(state, original);
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
+      }
+      if (!externalClosed && !externalCloseAttempted) {
+        try {await closeOriginal();} catch { /* Same cleanup remains pending. */ }
+      }
+      if (!externalClosed) {
+        // The original external child still owns its backing. Do not close
+        // the Core RowRun or release that capacity ahead of its actual ACK.
+        const recovery = Object.freeze({close() {}, async cleanup() {
+          try {await closeOriginal();} catch {return false;}
+          return true;
+        }, cleanupPending: () => !externalClosed});
+        session.closeAfterFailure(state, recovery);
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
+      }
       session.closeAfterFailure(state);
       throw error;
     }

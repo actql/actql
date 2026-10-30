@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4570,7 +4570,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4824,7 +4824,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5077,7 +5077,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -5929,7 +5929,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8511,7 +8511,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10169,7 +10169,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "eb81ffdafaae658b50714ba81985105d94841ec0ff42e623149fbdfe494c79c1",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceWriteDriver"
@@ -11229,7 +11229,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11493,7 +11493,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "readSalesforceManagedQuery",
         "readSalesforceQuery"
@@ -12822,7 +12822,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -14669,7 +14669,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15166,7 +15166,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -15417,7 +15417,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "227bf702e294d3689d807eedd4d6bd1dc8fdb18561a763ea02d8777c0c3eea7f",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
@@ -22794,7 +22794,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25095,7 +25095,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -27302,7 +27302,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -27554,7 +27554,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -27813,7 +27813,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "354b24e37d70dc1ec122fa6b7c3e2aac4f60dad7a293cd2553e8ec45e2de5ab4",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -28658,7 +28658,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -29682,7 +29682,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -31143,7 +31143,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -33744,7 +33744,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -33896,7 +33896,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -34020,7 +34020,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -36989,7 +36989,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -37411,7 +37411,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -39693,9 +39693,9 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "037d8b1b1c7e37fee24004d4731fe444a0c6f190fbb2897ad7a6bf191d5a1b69",
+      "sha256": "94433c83d7e186bfb6b3c42b63fa214436b397a630141824d96d13cc02330de2",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -40078,6 +40078,22 @@
             "authorizationFor"
           ],
           "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
@@ -43047,7 +43063,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -45423,6 +45439,75 @@
               {
                 "path": "adapters/host-node/local-file-effect-host-original.test.mjs",
                 "anchor": "test('Local Effect Host binds the winning original Journal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
               }
             ]
           }
@@ -48175,7 +48260,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -50295,7 +50380,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -50972,7 +51057,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -52088,7 +52173,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4a4fe5df15808b3926f5d587c062374ff6d7f0725f0063e8c08239b2a74f2ebf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
@@ -54929,7 +55014,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A \u2014 existing Model raw custody projection",
+      "owner": "A — existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -56000,7 +56085,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -56233,7 +56318,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -57036,7 +57121,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -57543,7 +57628,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -58260,7 +58345,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -60227,7 +60312,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -62085,7 +62170,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -68219,9 +68304,9 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6baff730040d10323c57864698d2df98aa696b6bed6e6033721d8705c1c0f7c9",
+      "sha256": "14e886f3bc62e5ce5627d1461de0ad51f9c5829e81ba17f8d44aec539a9b5dbb",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -68258,6 +68343,11 @@
         },
         {
           "name": "startInstalledRowRun/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/cleanup/cleanup",
           "parameters": [],
           "async": true
         },
@@ -68742,10 +68832,10 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/readProvider",
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
-            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
@@ -68823,6 +68913,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
@@ -68841,6 +68935,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
@@ -68855,6 +68953,10 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -68891,6 +68993,10 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -68931,6 +69037,322 @@
               {
                 "path": "adapters/host-node/installed-row-run.test.mjs",
                 "anchor": "original Source evidence is issued once then consumed from the same live capture without wire admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/cleanup/cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#10"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#11"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
               }
             ]
           }
@@ -69117,254 +69539,6 @@
               }
             ]
           }
-        },
-        {
-          "operations": [
-            "startInstalledRowRun/run/run#10"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "fail('InstalledSourceReadUnavailable')"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "fail('InstalledSourceReadUnavailable')"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "startInstalledRowRun/run/run#11"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Whole-input publication binds the same adopted Run"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "typed Source evidence and the same native capture"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact Run association"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same retained inventory and admitted row bound"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before issuance and again before retaining the completed invocation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "one-shot invocation slot remains consumed on semantic failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before capacity construction, so Result-publication reservation reuses that"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "the Query issuer keeps its original QueryRequirement array"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
-                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
-              }
-            ]
-          }
         }
       ],
       "imports": [
@@ -69378,9 +69552,9 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "313a95890b72783fbd2ed065a26def64a39b032f901c9533a7bfe1603a614b0d",
+      "sha256": "0e5fcd4a0bffeadd893f64ae934b3fa2632f6872759e1497cd223046c4df82f5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -69452,6 +69626,7 @@
             "originalSourceAccess",
             "providerReader",
             "prepareSourceRead",
+            "closeSourceRead",
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
@@ -69482,6 +69657,11 @@
           "async": true
         },
         {
+          "name": "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createInstalledRowSource/acquire/complete/complete",
           "parameters": [],
           "async": true
@@ -69493,6 +69673,16 @@
         },
         {
           "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/original/original",
           "parameters": [],
           "async": false
         },
@@ -69550,6 +69740,21 @@
             "rows",
             "charge"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/recovery",
+          "parameters": [],
           "async": false
         },
         {
@@ -70918,6 +71123,37 @@
           "async": false
         }
       ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/checkpoint-approval.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/owned-invocation-context.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "../site-node/remote-credential-signature.mjs",
+        "../site-node/sqlite-credential-journal.mjs",
+        "./client-source-operation.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
+        "./installed-row-listing.mjs",
+        "./installed-row-run.mjs",
+        "./installed-source.mjs",
+        "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs",
+        "./original-query-preparation.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:perf_hooks",
+        "node:timers/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
@@ -71413,6 +71649,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
@@ -71434,11 +71674,19 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));"
+                "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
@@ -71453,6 +71701,10 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -71493,6 +71745,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -73058,7 +73314,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "clientProgramInstalledSourceReadCheckCurrent(originalRead)"
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               }
             ],
             "failure": [
@@ -73129,7 +73389,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
               }
             ],
             "identity": [
@@ -73142,18 +73406,30 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const rowRecovery = state.recovery;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -73166,72 +73442,10 @@
               {
                 "path": "src/client_local_host/installed_managed_keyed_content.mbt",
                 "anchor": "pub fn check_installed_keyed_source_read_ledger("
-              }
-            ],
-            "extension": [
+              },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "other unsupported backend shapes remain separate connections, not language"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
-                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const rowRecovery = state.recovery;"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const closeOriginal = async () => {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
-                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -73643,46 +73857,171 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+            "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+            "createInstalledRowSource/acquire/recovery/init:close/init:close",
+            "createInstalledRowSource/acquire/recovery/recovery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
+            "createInstalledRowSource/acquire/original/original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ]
+          }
         }
-      ],
-      "imports": [
-        "../../packages/sdk/host-port.mjs",
-        "../host-common/acquisition-outcome.mjs",
-        "../host-common/authorization-gate.mjs",
-        "../host-common/checkpoint-approval.mjs",
-        "../host-common/compiler-binding.generated.mjs",
-        "../host-common/owned-invocation-context.mjs",
-        "../host-common/runtime-core.mjs",
-        "../host-common/runtime-result.mjs",
-        "../site-node/https-credential-resource.mjs",
-        "../site-node/remote-credential-signature.mjs",
-        "../site-node/sqlite-credential-journal.mjs",
-        "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
-        "./installed-host-services.mjs",
-        "./installed-row-listing.mjs",
-        "./installed-row-run.mjs",
-        "./installed-source.mjs",
-        "./local-account-config.mjs",
-        "./ordinary-source-binding.mjs",
-        "./original-query-preparation.mjs",
-        "./source-profile-json.mjs",
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "node:perf_hooks",
-        "node:timers/promises",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
+      ]
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "90247d18abc6db953b021cc7efa9191bbcbbbb3dbd70b80c34b9b62f8af0f15b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -75489,7 +75828,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -76202,7 +76541,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -78470,7 +78809,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -79977,7 +80316,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -80744,7 +81083,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -81124,7 +81463,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -81542,7 +81881,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -82907,7 +83246,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -83452,7 +83791,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -84671,7 +85010,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -86518,7 +86857,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -97134,7 +97473,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -98981,7 +99320,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -100828,7 +101167,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -102675,7 +103014,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -128566,7 +128905,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -129840,7 +130179,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -130091,7 +130430,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -131938,7 +132277,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",

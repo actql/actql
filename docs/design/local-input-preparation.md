@@ -3780,3 +3780,88 @@ Both Node and RelA receive the one original capture opener through their existin
 shared bridge mirror. Typed interfaces and explicit-port caller tests establish
 only their declared boundaries; matching installed ordinary Source/REST,
 release and separate-process Saved remain necessary consuming evidence.
+
+### Project Local Files original Run and physical retirement
+
+An ordinary Project Local Files source delegates Run preparation to the Host's
+original managed Source service. The installed profile retains a weak original
+lookup, not a second Resource Root, admission, reservation, or strong Run-count
+inventory. Effect and keyed Content retain their separate purpose-specific
+constructors until those actual consumers migrate. Ordinary adoption does not
+confer either purpose or a Source permission.
+
+The same Request Root observes the physical children retained on its original
+producer/Run inventory, including children acquired after adoption. Retirement
+fences new reads before cutting the heavy Prepared/Request aliases; existing
+physical children keep their original close methods and receivers until their
+own acknowledgment. A terminal handler or severed preparation is not a physical
+stop acknowledgment.
+
+The original captured Plan supplies one tuple containing its read, checked
+requirement, acquisition and capacity. The native Source retains that same read
+before fallible callbacks and does not prepare another query, acquisition or
+capacity. Binding the original Program already checks currentness; a separate
+check immediately before the same binding adds no external-state boundary.
+Account authorization, actual native Root/FD custody, selector/version checks,
+page/byte admission and the independent post-await current fences still apply.
+
+The native Source's internal closeSourceRead callback closes only its original
+external child. It is not a Core read-retirement issuer. Empty listings close
+that same control without opening a native reader or issuing a credential grant.
+The RowRun/session remains the Core read/capture owner. External cleanup must
+acknowledge before the session can release its backing. A pending or failed
+close retains the same cleanup continuation; another internal helper does not
+immediately repeat it. Concurrent closes await the same in-flight operation.
+Once acknowledged, the Local lookup keeps only weak close and consumed-occurrence
+tombstones, with no closed reader or heavy Prepared graph. Spent attempts and
+work are never refunded and a consumed occurrence cannot reopen.
+
+### Native Source original unknown recovery
+
+When a native page driver has already reported an uncertain physical end, the
+shared Source caller retains that driver's original recovery on the existing
+RowRun cleanup owner. It does not immediately ask another helper to close the
+same child. The original recovery methods and receiver are captured before any
+later await; replacing those properties cannot substitute another operation.
+A throwing/missing method or an unknown without a recovery remains pending.
+
+Core RowRun close and read retirement remain blocked until the original native
+cleanup returns a strict acknowledgment and its original pending observation is
+false. Concurrent cleanup calls await the same in-flight operation. An explicit
+later cleanup may retry that same owner after a pending result; spent work and
+attempts are not reset. The existing RowRun continues its own capture cleanup
+only after this external boundary is acknowledged.
+
+This rule applies to the failure of the actual native read callback. Account or
+completion uncertainty after the external close acknowledgment retains its own
+original outcome; it does not fabricate a pending native child or block cleanup
+of already stopped native backing. Existing provider-reader and keyed-transport
+owners retain their separate cleanup rules. None of these observations changes
+Run acceptance, authorizes a Source, confirms a business write, or turns Unknown
+into a known terminal result.
+
+
+### Local preparation purpose and domain adoption
+
+The fixed `prepareOriginalLocalPreparationPorts` supplier selects the
+`local-preparation` purpose before the input has a checked execution domain.
+Its Core admission retains that same purpose before and after adoption. It is
+not a preselected Source/Compute, Mock Model or Content admission. Equal limits
+or a completed Plan do not convert it to one of those legacy purposes.
+
+`node_local_preparation_limits` reads only the immutable limits of the original
+started input admission. It checks the original input and preparation purpose,
+but performs no current callback, new reservation or domain admission. The
+adoption boundary retains its existing current callback and post-callback
+state fence. The original reservation, census, child and work history survive
+the transfer; cleanup keeps its actual holders and independent physical duties.
+
+Each installed domain still needs its own same-parent constructor and retained
+Plan/materials before adoption. The ordinary Source-free and captured-purpose
+predicates do not become Model or serialization predicates. The old Model and
+Content entry points remain confined to their independently selected purposes;
+neither accepts the original preparation admission as a replacement. When a
+Model constructor adopts an already inventoried preparation, the existing
+`bind_client_model_read_scope` binds that same original census. Calling the
+pristine-bootstrap `begin_client_model_read_scope` would select a different
+lifecycle and is not a substitute for this binding.
