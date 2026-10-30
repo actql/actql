@@ -1445,3 +1445,37 @@ test('whole Source ledger selection consumes only its same original Run and type
   const original = new Error('original current refused');
   await assert.rejects(wholeSourceLedgerBlock({currentFailure: original}), error => error === original);
 });
+
+test('whole Source Result-placement guard reads only its original adopted physical Plan and preserves refusal', () => {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'}), matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && actual.slice(node.consequent.start, node.consequent.end)
+      .includes('const requiresAcquisitionResult =')) matches.push(node);
+  });
+  assert.equal(matches.length, 1);
+  const owner = {}, prepared = {}, request = {}, original = new Error('original Plan current refused');
+  const moon = {clientProgramInstalledManagedRequiresAcquisitionResultPublication(parent, p, r) {
+    assert.equal(this, moon); assert.equal(parent, owner); assert.equal(p, prepared); assert.equal(r, request); return false;
+  }, clientProgramRequiresAcquisitionResultPublication() {assert.fail('Original prefix1 is not the selected whole Plan graph');}};
+  const ports = {inferring: false, serializing: false, generatingContent: false,
+    held: {managedRun: owner}, moon, preparedProgram: prepared, requested: request, checked: value => value};
+  const run = () => new Function(...Object.keys(ports), actual.slice(matches[0].start, matches[0].end))(...Object.values(ports));
+  run();
+  moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication = () => true;
+  assert.throws(run, {message: 'InstalledAcquisitionResultPublicationUnsupported'});
+  moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication = () => {throw original;};
+  assert.throws(run, error => error === original);
+  delete moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication;
+  assert.throws(run, {message: 'InstalledManagedSourcePlanUnavailable'});
+});
+
+test('whole Source capacity facade captures the original method and receiver without issuing a new Run', () => {
+  const selection = {}, prepared = {}, contracts = {}, selected = {};
+  const facts = {preparedProgram: prepared, sourceSelection: selection, installedContracts: contracts};
+  const source = {prepare() {}, ledgerCapacity() {}, managedCaptureCapacity() {},
+    managedWholeSourceCapacity(value) {assert.equal(this, source); assert.equal(value, facts); return selected;}};
+  const bound = bindInstalledManagedSources(source, () => assert.fail('Pre-Plan capacity cannot issue/adopt a Run'));
+  source.managedWholeSourceCapacity = () => assert.fail('Original fixed method must be retained');
+  assert.equal(bound.managedWholeSourceCapacity(facts), selected);
+});
