@@ -13707,6 +13707,16 @@
         },
         {
           "async": false,
+          "name": "_inspect_local_components_for_packaging",
+          "parameters": [
+            "root",
+            "target_platform",
+            "package_version",
+            "artifact_sha256"
+          ]
+        },
+        {
+          "async": false,
           "name": "_pairs",
           "parameters": [
             "pairs"
@@ -13754,7 +13764,7 @@
           ]
         }
       ],
-      "sha256": "08f246d8ae61fa23f2cd414ee29f9bf3fae07988a6a89ab5c869f34611c16256",
+      "sha256": "d22b730553bef0148c6cd26a41039b8f9fc77927520180e3da2d1fe0f465480d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -15544,6 +15554,122 @@
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
                 "anchor": "def test_public_factory_keeps_original_component_fd_cleanup_failure("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_inspect_local_components_for_packaging"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "def _inspect_local_components_for_packaging("
+              },
+              {
+                "path": "release/README.md",
+                "anchor": "## Prepare a selected Python target on another host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_release_packaging_target.py",
+                "anchor": "def test_full_same_target_predicate_is_host_independent_without_loading_or_changing_bytes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_release_packaging_target.py",
+                "anchor": "def test_both_installed_entry_points_keep_early_host_refusal_before_input_or_metadata_io("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_release_packaging_target.py",
+                "anchor": "def test_original_pending_descriptor_record_propagates_without_replacement("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_release_packaging_target.py",
+                "anchor": "def test_packaging_keeps_original_producer_library_target_and_abi_refusal("
               }
             ]
           }

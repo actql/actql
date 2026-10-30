@@ -239,6 +239,11 @@ jobs:
       - name: Test explicit release policy and publication refusal
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs
+      - name: Test cross-host Python release preparation without runtime loading
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: |
+          python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
+          python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs

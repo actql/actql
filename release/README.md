@@ -286,6 +286,43 @@ consumer acceptance must verify actual built asset delivery, original refs/ports
 unavailable capability states and closure without cancelling borrowed work.
 It does not complete the Cloud adapter, Full Explorer or formal npm publication.
 
+## Prepare a selected Python target on another host
+
+Release preparation reads fixed artifact bytes; it does not need to execute
+that target. The existing Python component owner now keeps the full shared
+byte/recipe predicate separate from the installed host check. Maintainer
+preparation and wheel staging use that predicate with an explicit target:
+
+```sh
+python scripts/prepare-python-local-runtime.py \
+  --artifact-directory <original-artifact-directory> --destination <new-stage> \
+  --target-platform darwin-arm64
+python scripts/build-python-product-wheels.py \
+  --artifact-directory <original-artifact-directory> --destination <new-cohort> \
+  --version <complete-SemVer> --target-platform darwin-arm64
+```
+
+The original allocation-specific binding/native-library arguments still apply.
+Omitting the target preserves the existing Darwin-only preparation selection;
+it does not detect or adopt the preparation host. No implicit release version
+is added. Both real CLI parsers refuse unqualified Linux/other target choices.
+
+The current artifact target and wheel tag remain Darwin arm64. All original
+source, component hashes, recipe, image/fuel/limits, notices, library format/ABI,
+copy and final reobservation duties remain. The target namespace is selected
+from the existing component owner, never expanded from an artifact's claim.
+No library/engine is loaded, image deserialized or capacity/current authority
+granted by packaging. Fixed artifact and source correspondence still precede
+any final pack; no old artifact is retagged to a new source.
+
+`inspect_local_components` and the installed normal resolver retain the early
+actual-host refusal before component or installed metadata I/O. The private
+packaging reader is not a user execution option. Linux runtime support still
+requires its actual library names/dependencies, engine target/image, ABI,
+platform definition, wheel and ordinary install acceptance. It cannot be
+created by changing a tag or passing this target argument. Cross-host inert
+component tests do not establish that runtime or a real Linux build.
+
 ## Sharing one normal prepack across exact cohorts
 
 A normal Explorer six-package cohort and a normal Node four-package cohort

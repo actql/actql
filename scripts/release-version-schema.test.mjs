@@ -50,3 +50,14 @@ test('dotted channel schema and shared owner match independent literal channel o
     assert.equal(pattern.test(channel), false); assert.throws(() => admitReleaseChannel(channel));
   }
 });
+
+test('existing public lint gate selects cross-host packaging controls without runtime or publisher setup', () => {
+  const workflow=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+  const job=workflow.jobs.lint;
+  assert.equal(job.steps.find(step=>step.uses==='./.github/actions/setup-toolchain').with.python,'true');
+  const selected=job.steps.filter(step=>step.name==='Test cross-host Python release preparation without runtime loading');
+  assert.deepEqual(selected,[{name:'Test cross-host Python release preparation without runtime loading',
+    if:"${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
+    run:'python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk\npython3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py\n'}]);
+  assert(!job.environment);assert(!job.permissions?.['id-token']);
+});

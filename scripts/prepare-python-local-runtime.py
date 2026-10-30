@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_distribution import LocalComponents, WASMTIME_VERSION, inspect_local_components, _read_file  # noqa: E402
+from actql_sdk._local_distribution import (LocalComponents, WASMTIME_VERSION, inspect_local_components,
+    _LOCAL_COMPONENT_PLATFORM, _inspect_local_components_for_packaging, _read_file)  # noqa: E402
 if TYPE_CHECKING:
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
@@ -200,13 +201,13 @@ def image_recipe_original(root: Path, source: str, *, runtime_allocation: str = 
         'Selected source-original image recipe')
 
 
-def verify_artifact(artifact: Path) -> LocalComponents:
+def verify_artifact(artifact: Path, *, target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> LocalComponents:
     """Reuse the fixed-source, component, target and original-notice checks."""
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Use committed clean Python Local recipe source')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     version = read_cohort(ROOT)
-    components = inspect_local_components(artifact, package_version=version)
+    components = _inspect_local_components_for_packaging(artifact, target_platform=target_platform, package_version=version)
     if components.source_sha != head:
         raise ValueError('Python Local producer source does not match the recipe source')
     with components.module.open('rb') as source:
@@ -226,8 +227,9 @@ def verify_artifact(artifact: Path) -> LocalComponents:
 
 
 def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None = None,
-            native_libraries: Path | None = None) -> dict[str, object]:
-    components = verify_artifact(artifact)
+            native_libraries: Path | None = None,
+            target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> dict[str, object]:
+    components = verify_artifact(artifact, target_platform=target_platform)
     platform_runtime = components.image_recipe.runtime_allocation == 'platform'
     if (platform_runtime and (bindings_source is not None or native_libraries is not None)
             or not platform_runtime and (bindings_source is None or native_libraries is None)):
@@ -255,7 +257,7 @@ def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None =
         assert bindings_source is not None and native_libraries is not None
         private_runtime = stage_private_runtime(components, bindings_source, native_libraries, target)
     shutil.copyfile(target / 'WASMTIME-LICENSE', destination / 'WASMTIME-LICENSE')
-    staged = inspect_local_components(target, package_version=components.package_version)
+    staged = _inspect_local_components_for_packaging(target, target_platform=target_platform, package_version=components.package_version)
     if ((staged.source_sha, staged.package_version, staged.module_sha256,
          staged.duckdb_sha256, staged.duckdb_version, staged.image_sha256,
          staged.image_bytes, staged.engine_recipe_sha256) !=
@@ -289,6 +291,8 @@ if __name__ == '__main__':
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
+    parser.add_argument('--target-platform', choices=[_LOCAL_COMPONENT_PLATFORM], default=_LOCAL_COMPONENT_PLATFORM,
+                        help='Original artifact target; does not enable execution on the preparation host')
     args = parser.parse_args()
     print(json.dumps(prepare(args.artifact_directory, args.destination,
-        bindings_source=args.bindings_source, native_libraries=args.native_libraries)))
+        bindings_source=args.bindings_source, native_libraries=args.native_libraries, target_platform=args.target_platform)))
