@@ -112,7 +112,7 @@
             "uniqueItems": true,
             "items": {
               "type": "string",
-              "pattern": "^[a-z][a-z0-9-]*$"
+              "pattern": "^[a-z][a-z0-9.-]*(?![\\s\\S])"
             }
           }
         }

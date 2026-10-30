@@ -126,13 +126,15 @@ export async function readHubSpotObjects({moon, originalPortalId, originalCatalo
     let after;
     do {
       if (pages >= bound.maxPages) fail('HubSpotReadPageLimit');
-      const query = [['archived', 'false'], ['limit', String(bound.perPage)],
+      const pageRows = Math.min(bound.perPage, bound.maxRows - rowCount);
+      if (pageRows <= 0) fail('HubSpotReadRowLimit');
+      const query = [['archived', 'false'], ['limit', String(pageRows)],
         ['properties', selected.join(',')]];
       if (after !== undefined) query.push(['after', after]);
       const {response, charge} = await receive(HUBSPOT_OBJECT_LIST_OPERATION, base, query);
       const page = checked(provider.hubspotProjectObjectPage(response.body,
         originalCatalog, selected, bound.maxResponseBytes, bound.maxNodes,
-        bound.maxDepth, Math.min(bound.perPage, bound.maxRows - rowCount),
+        bound.maxDepth, pageRows,
         bound.maxColumns, bound.maxCursorUnits, bound.maxValueNodes, bound.maxValueTextBytes));
       const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(page));
       if (rowCount + metadata.rowCount > bound.maxRows) fail('HubSpotReadRowLimit');
