@@ -1480,7 +1480,7 @@ test('whole Source capacity facade captures the original method and receiver wit
   assert.equal(bound.managedWholeSourceCapacity(facts), selected);
 });
 
-test('funded policy Source original wins over compute while preserving the same request verifier and signal', async () => {
+test('funded policy Source original preserves the same request verifier and signal without compute fallback', async () => {
   const request = {}, originalRequest = {}, environment = {}, result = {}, verifier = () => {};
   const signal = new AbortController().signal, events = [];
   const source = {fundedPreparation(value, selected, callback, actualSignal) {
@@ -1493,7 +1493,8 @@ test('funded policy Source original wins over compute while preserving the same 
   const f = lifecycle({source, factory: async () => compute,
     originalRequest(value) {assert.equal(value, request); events.push('same-request'); return originalRequest;},
     current(manager) {if (manager !== undefined) events.push(manager === source ? 'source-current' : 'compute-current');}});
-  await f.preparation.prepareManagedCompute(); events.length = 0;
+  // Actual Source mode already has its original manager and refuses opening a separate compute manager.
+  events.length = 0;
   try {
     assert.equal(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
     assert.deepEqual(events, ['source-current', 'same-request', 'source']);
@@ -1510,7 +1511,7 @@ test('funded policy Source current refusal keeps its original cause before mappi
   const f = lifecycle({source, factory: async () => compute,
     originalRequest() {mapped++; assert.fail('Refuse before original request projection');},
     current(manager) {if (refuse && manager === source) throw cause;}});
-  await f.preparation.prepareManagedCompute(); refuse = true;
+  refuse = true;
   try {
     assert.throws(() => f.preparation.fundedPreparation({}, {}, () => {}, undefined), error => error === cause);
     assert.equal(mapped, 0); assert.equal(calls, 0);
