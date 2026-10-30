@@ -2775,6 +2775,29 @@ failure also leaves the read retained for the same cleanup retry. Cleanup does
 not acquire a new Root, permission or current-state admission, and an absent,
 inherited or accessor `pending` field is not an acknowledgment.
 
+### Adopted Local Effect Source correlation
+
+An adopted Effect Source forwards the Host's existing Prepared, Request and
+Core Run originals. Local correlation is weak and indexed by both Prepared and
+Core Run; distinct Core-admitted Runs cannot replace each other's association.
+The original typed Run check remains responsible for their binding and current
+state. Correlation records grant no permission or capacity.
+
+The native Source hook receives its already selected typed read and returns
+that same read without issuing another. The raw managed child receives the
+same adopted Core Run and unchanged declaration and occurrence. Its Local
+physical inventory retains partial children before fallible method capture.
+Individual Site and installation cleanup use the original child closes and
+typed read retirement; they never retire the shared Host Run. Closed read
+history remains associated with its original occurrence and cannot refill
+consumed work or attempts.
+
+The same Plan must back these correlation containers, per-original records,
+native children, forwarded frame, constructor overlap and failed cleanup before
+they are constructed. A matching tuple or Source-only callback cannot supply
+that backing. The original parent and Source service retain their own checked
+inventories and physical current/retirement responsibilities.
+
 ### Normal SQL and AQL Request continuation
 
 SQL and Pipe Source inputs retain the same SDK snapshot and Request as native

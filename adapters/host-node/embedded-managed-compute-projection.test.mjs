@@ -430,9 +430,9 @@ test('retired raw LocalFiles Effect constructor refuses before a replacement Roo
   const runs = new Map(); let calls = 0;
   const no = () => {calls++; assert.fail('No legacy LocalFiles Effect admission');};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun', 'sharedRuns',
     text.slice(node.start, node.end) + ';return prepareRun;')(
-    no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no);
+    no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no, new WeakMap());
   assert.throws(() => prepare({}, {}, true), {code: 'InstalledEffectPlanUnavailable'});
   assert.equal(calls, 0); assert.equal(runs.size, 0);
 });
@@ -456,9 +456,9 @@ test('LocalFiles Pure admission preserves original identity and Effect read cann
     clientProgramInstalledManagedRunCheck(p, owner, r) {assert.equal(p, parent); assert.equal(owner, prepared); assert.equal(r, request); calls.push('check');},
   };
   const sourceManaged = {prepareRun(p) {assert.equal(p, prepared); calls.push('original'); return original;}};
-  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun', 'sharedRuns',
     text.slice(node.start, node.end) + ';return prepareRun;')(
-    current, runs, value => value, moon, sourceManaged, fail, sameRun);
+    current, runs, value => value, moon, sourceManaged, fail, sameRun, new WeakMap());
   prepare(prepared, request, false); prepare(prepared, request, false);
   assert.equal(runs.get(prepared).value, parent); assert.equal(runs.get(prepared).original, original);
   assert.equal(calls.filter(x => x === 'original').length, 1); assert.equal(calls.filter(x => x === 'begin').length, 1);
@@ -517,10 +517,10 @@ function localReadCleanupFixture({keyed = false, physical = false} = {}) {
       state.parentRetireCalls++; events.push('parent');
     }, clientProgramNodeManagedRunCleanup() {assert.fail('No replacement parent cleanup');}};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const cleanup = new Function('runs', 'moon', 'checked', 'fail',
+  const cleanup = new Function('runs', 'moon', 'checked', 'fail', 'sharedReads',
     text.slice(acknowledgment.start, acknowledgment.end) + ';let closing=false;\n' +
     functions.map(node => text.slice(node.start, node.end)).join('\n') +
-    ';return {close,closeRead};')(runs, moon, value => value, fail);
+    ';return {close,closeRead};')(runs, moon, value => value, fail, new Set());
   return {...cleanup, state, read, raw, run, runs, moon, events};
 }
 
@@ -579,4 +579,203 @@ test('Local cleanup never treats absent inherited or accessor stop DATA as ackno
     assert.equal(f.state.readRetireCalls, 1);
   }
   assert.equal(getters, 0);
+});
+
+// Held same-Request Local caller fixture. The C child port below implements its
+// frozen source contract (third argument is the adopted Core Run), not the
+// older public manager implementation. No matching runtime or funding is used.
+function localAdoptedEffectFixture() {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const nodes = [];
+  const visit = node => {if (!node || typeof node !== 'object') return; nodes.push(node);
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(visit);
+      else if (child && typeof child === 'object') visit(child);
+    }};
+  visit(install);
+  const variable = name => nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === name);
+  const property = name => {
+    const found = nodes.filter(node => node.type === 'Property' && node.key?.name === name && node.method);
+    assert.equal(found.length, 1, name); return found[0];
+  };
+  const prepare = property('prepare'), nativeRead = property('prepareSourceRead');
+  const sourceFactory = nodes.find(node => node.type === 'CallExpression' &&
+    node.callee.name === 'createInstalledRowSource');
+  const site = sourceFactory.arguments[0].properties.find(node => node.key?.name === 'site');
+  const closeSite = site.value.arguments[0].properties.find(node => node.key?.name === 'close');
+  const sameRun = variable('sameRun'), current = variable('current');
+  const functions = install.body.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['captureClose', 'closeRead', 'close', 'retainedRun', 'prepareRun', 'prepareContentRun'].includes(node.id.name));
+  assert.equal(functions.length, 6);
+  const acknowledgment = tree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'acknowledged'));
+  const prepared = {}, request = {}, parent = {}, originalRead = {}, declaration = {}, sourcePrepared = {};
+  const acceptedParents = new WeakMap([[parent, request]]), sourceResults = new WeakMap([[parent, sourcePrepared]]);
+  const occurrence = Object.freeze({task: 0, stage: 0, input: 0});
+  const entry = {declaration}, bundle = {}, runs = new Map(), reads = new WeakMap(), preparedRuns = new WeakMap();
+  const sharedRuns = new WeakMap(), sharedReads = new Set();
+  const state = {adapterCalls: 0, rawFactories: 0, rawCloses: 0, readRetires: 0,
+    parentRetires: 0, rawAck: {pending: false}, adapterThrows: false, adapterFailure: undefined,
+    closeGetterThrows: false, closeGetterFailure: undefined, closeGetterCalls: 0, reenter: undefined, skipRead: false};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  let api;
+  const rawClose = function() {assert.strictEqual(this, raw); state.rawCloses++; return state.rawAck;};
+  const raw = Object.defineProperties({retainChild() {assert.strictEqual(this, raw);}}, {close: {
+    configurable: true, get() {
+      state.closeGetterCalls++; assert.equal(sharedReads.size, 1, 'Retain the raw child before reading its methods');
+      if (state.closeGetterThrows) throw state.closeGetterFailure;
+      return rawClose;
+    }}});
+  const sourceManaged = {assertCurrent() {assert.strictEqual(this, sourceManaged);},
+    prepareRead(p, d, actualParent, actualOccurrence) {
+      assert.strictEqual(this, sourceManaged); assert.strictEqual(p, prepared);
+      assert.strictEqual(d, declaration); assert.strictEqual(actualParent, parent);
+      assert.strictEqual(actualOccurrence, occurrence); state.rawFactories++; return raw;
+    }};
+  for (const name of ['prepareRun', 'prepareEffectRun']) Object.defineProperty(sourceManaged, name,
+    {get() {assert.fail(`No replacement Local Root: ${name}`);}});
+  const moon = {clientProgramInstalledEffectManagedRunCheck(value, p, r) {
+    assert.strictEqual(this, moon);
+    if (!acceptedParents.has(value) || p !== prepared || r !== acceptedParents.get(value)) fail('ForeignOriginal');
+    state.reenter?.();
+  }, clientProgramInstalledManagedRunCheck() {assert.fail('No Pure Run check for the shared Effect');},
+  clientProgramInstalledEffectManagedSourceRead() {assert.fail('Local must not issue a second typed read');},
+  clientProgramInstalledManagedRunSourceRead() {assert.fail('Local must not issue an ordinary replacement read');},
+  clientProgramInstalledSourceReadRetire(value) {
+    assert.strictEqual(this, moon); assert.strictEqual(value, originalRead); state.readRetires++;
+  }, clientProgramInstalledManagedRunRetire() {state.parentRetires++; assert.fail('Host owns the shared Run');}};
+  const preparation = {originalsForRuntime(value) {assert.strictEqual(value, moon); return bundle;}};
+  const adapter = {async prepare(facts) {
+    state.adapterCalls++;
+    assert(sharedRuns.get(prepared)?.has(facts.managedRun), 'Retain the adopted Host tuple before the Source constructor');
+    assert(acceptedParents.has(facts.managedRun));
+    assert.strictEqual(facts.requestIdentity, acceptedParents.get(facts.managedRun));
+    if (state.adapterThrows) throw state.adapterFailure;
+    if (state.skipRead) return sourceResults.get(facts.managedRun);
+    assert.strictEqual(api.nativeRead({checkedOwner: prepared, effectful: true, declaration,
+      occurrence, managedRun: parent, originalRead}), originalRead);
+    return sourcePrepared;
+  }};
+  api = new Function('moon', 'sourceManaged', 'preparation', 'bundle', 'entry', 'runs', 'reads',
+    'sharedRuns', 'sharedReads', 'preparedRuns', 'adapter', 'checked', 'fail',
+    text.slice(acknowledgment.start, acknowledgment.end) + ';let closing=false;\n' +
+    'const current=' + text.slice(current.init.start, current.init.end) + ';\n' +
+    'const sameRun=' + text.slice(sameRun.init.start, sameRun.init.end) + ';\n' +
+    functions.map(node => text.slice(node.start, node.end)).join('\n') +
+    ';const nativeRead=({' + text.slice(nativeRead.start, nativeRead.end) + '}).prepareSourceRead;' +
+    'const prepare=({' + text.slice(prepare.start, prepare.end) + '}).prepare;' +
+    'const closeSite=({' + text.slice(closeSite.start, closeSite.end) + '}).close;' +
+    'return {prepare,nativeRead,close,closeRead,closeSite,prepareOwnedRun:prepareRun,prepareContentRun};')(moon, sourceManaged, preparation, bundle, entry,
+      runs, reads, sharedRuns, sharedReads, preparedRuns, adapter, value => value, fail);
+  const facts = Object.freeze({preparedEffect: prepared, managedRun: parent, requestIdentity: request});
+  return {...api, state, facts, prepared, request, parent, originalRead, declaration, occurrence,
+    sourcePrepared, sharedRuns, sharedReads, runs, reads, preparedRuns, raw,
+    acceptParent(value, identity, result) {acceptedParents.set(value, identity); sourceResults.set(value, result);}};
+}
+
+test('Local Effect Source retains the adopted Host tuple and forwards its original read without a new Root', async () => {
+  const f = localAdoptedEffectFixture();
+  assert.strictEqual(await f.prepare(f.facts), f.sourcePrepared);
+  assert.equal(f.runs.size, 0); assert.equal(f.state.rawFactories, 1);
+  assert.strictEqual(f.preparedRuns.get(f.sourcePrepared), f.sharedRuns.get(f.prepared).get(f.parent));
+  assert.equal(f.sharedReads.size, 1);
+  f.state.rawAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError', message: 'LocalFilesCleanupPending'});
+  assert.equal(f.sharedReads.size, 1); assert.equal(f.state.readRetires, 0);
+  f.state.rawAck = {pending: false}; await f.close();
+  assert.equal(f.sharedReads.size, 0); assert.equal(f.state.readRetires, 1);
+  assert.equal(f.state.parentRetires, 0); assert.equal(f.state.closeGetterCalls, 1);
+});
+
+test('Local adopted Effect rejects absent inherited accessor and foreign parent originals', async () => {
+  let getters = 0;
+  for (const kind of ['absent', 'inherited', 'accessor', 'foreign-parent', 'foreign-request']) {
+    const f = localAdoptedEffectFixture(); let facts = {...f.facts};
+    if (kind === 'absent') delete facts.managedRun;
+    else if (kind === 'inherited') {
+      delete facts.managedRun; Object.setPrototypeOf(facts, {managedRun: f.parent});
+    } else if (kind === 'accessor') Object.defineProperty(facts, 'managedRun', {
+      get() {getters++; return f.parent;}});
+    else if (kind === 'foreign-parent') facts.managedRun = {};
+    else facts.requestIdentity = {};
+    await assert.rejects(f.prepare(facts), {code: kind.startsWith('foreign-') ? 'ForeignOriginal' : 'ForeignLocalFilesPreparation'});
+    assert.equal(f.state.adapterCalls, 0); assert.equal(f.state.rawFactories, 0);
+    assert.equal(f.state.parentRetires, 0); await f.close();
+  }
+  assert.equal(getters, 0);
+});
+
+test('Local adopted Effect refuses changed originals without replacing its valid association', async () => {
+  const f = localAdoptedEffectFixture(); await f.prepare(f.facts);
+  const original = f.sharedRuns.get(f.prepared).get(f.parent);
+  for (const changed of [{...f.facts, managedRun: {}}, {...f.facts, requestIdentity: {}}]) {
+    await assert.rejects(f.prepare(changed), {code: changed.managedRun === f.parent ? 'ForeignLocalFilesPreparation' : 'ForeignOriginal'});
+    assert.strictEqual(f.sharedRuns.get(f.prepared).get(f.parent), original); assert.equal(original.failed, false);
+  }
+  assert.equal(f.state.adapterCalls, 1); await f.close();
+});
+
+test('Local adopted Effect fences reentrant close before entering the Source constructor', async () => {
+  const f = localAdoptedEffectFixture(); let closed;
+  f.state.reenter = () => {f.state.reenter = undefined; closed = f.close();};
+  await assert.rejects(f.prepare(f.facts), {code: 'LocalFilesSourcePreparationMismatch'});
+  await closed;
+  assert.equal(f.state.adapterCalls, 0); assert.equal(f.state.rawFactories, 0);
+  assert.equal(f.state.parentRetires, 0);
+});
+
+test('Local adopted Effect retains an original thrown undefined without retrying another Source', async () => {
+  const f = localAdoptedEffectFixture(); f.state.adapterThrows = true;
+  for (let index = 0; index < 2; index++) {
+    let rejected = false;
+    try {await f.prepare(f.facts);} catch (cause) {rejected = true; assert.strictEqual(cause, undefined);}
+    assert(rejected);
+  }
+  assert.equal(f.state.adapterCalls, 1); assert.equal(f.state.rawFactories, 0); await f.close();
+});
+
+test('Local adopted Effect retains a partial raw child before its method capture fails', async () => {
+  const f = localAdoptedEffectFixture(); f.state.closeGetterThrows = true;
+  let rejected = false;
+  try {await f.prepare(f.facts);} catch (cause) {rejected = true; assert.strictEqual(cause, undefined);}
+  assert(rejected); assert.equal(f.sharedReads.size, 1); assert.equal(f.state.rawFactories, 1);
+  f.state.closeGetterThrows = false; await f.close();
+  assert.equal(f.sharedReads.size, 0); assert.equal(f.state.readRetires, 1);
+  assert.equal(f.state.parentRetires, 0);
+});
+
+test('Local adopted Effect keeps consumed read history after the individual Site closes', async () => {
+  const f = localAdoptedEffectFixture(); await f.prepare(f.facts);
+  await f.closeSite(); assert.equal(f.sharedReads.size, 0);
+  assert.throws(() => f.nativeRead({checkedOwner: f.prepared, effectful: true,
+    declaration: f.declaration, occurrence: f.occurrence, managedRun: f.parent, originalRead: f.originalRead}),
+  {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.equal(f.state.rawFactories, 1); assert.equal(f.state.readRetires, 1);
+  await f.close(); assert.equal(f.state.parentRetires, 0);
+});
+
+test('Local correlation separates distinct Core-accepted Runs sharing one immutable Prepared', async () => {
+  const f = localAdoptedEffectFixture(), otherParent = {}, otherRequest = {}, otherSource = {};
+  f.state.skipRead = true; f.acceptParent(otherParent, otherRequest, otherSource);
+  assert.strictEqual(await f.prepare(f.facts), f.sourcePrepared);
+  const first = f.preparedRuns.get(f.sourcePrepared);
+  assert.strictEqual(await f.prepare({...f.facts, managedRun: otherParent, requestIdentity: otherRequest}), otherSource);
+  const second = f.preparedRuns.get(otherSource);
+  assert.notStrictEqual(first, second); assert.strictEqual(first.value, f.parent);
+  assert.strictEqual(second.value, otherParent); assert.strictEqual(first.request, f.request);
+  assert.strictEqual(second.request, otherRequest); assert.equal(f.state.adapterCalls, 2);
+  await f.close(); assert.equal(f.state.parentRetires, 0);
+});
+
+test('Local adopted Effect cannot acquire independent Pure or Content parents', async () => {
+  const f = localAdoptedEffectFixture(); await f.prepare(f.facts);
+  assert.throws(() => f.prepareOwnedRun(f.prepared, f.request, false),
+    {code: 'ForeignLocalFilesPreparation'});
+  assert.throws(() => f.prepareContentRun(f.prepared, f.request, {}),
+    {code: 'ForeignLocalFilesContentPreparation'});
+  assert.equal(f.runs.size, 0); assert.equal(f.state.rawFactories, 1);
+  await f.close(); assert.equal(f.state.parentRetires, 0);
 });

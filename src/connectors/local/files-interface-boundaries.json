@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21f8bcffb2583dd50299b01f845b3427a472e7e616e1ca6d9828bd6c56a90205",
+      "sha256": "ed3b89a72a4ee68db569e4ebf114bef676453cfee623071603b6984e4782b4c8",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -500,7 +500,9 @@
             "checkedOwner",
             "effectful",
             "declaration",
-            "occurrence"
+            "occurrence",
+            "managedRun",
+            "originalRead"
           ],
           "async": false
         },
@@ -747,9 +749,18 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/retainedRun",
+          "parameters": [
+            "prepared",
+            "parent"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/sameRun/sameRun",
           "parameters": [
-            "prepared"
+            "prepared",
+            "parent"
           ],
           "async": false
         },
@@ -1027,6 +1038,7 @@
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
             "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+            "installPreparedProjectLocalFiles/retainedRun",
             "installPreparedProjectLocalFiles/sameRun/sameRun",
             "ownLimits",
             "ownLimits/ownLimits",
@@ -1107,6 +1119,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "ownership": [
@@ -1129,6 +1145,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "synchronization": [
@@ -1143,6 +1163,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "failure": [
@@ -1165,6 +1189,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "cancellation": [
@@ -1183,6 +1211,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "resources": [
@@ -1205,6 +1237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Local native read retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Local Effect Source correlation"
               }
             ],
             "extension": [
@@ -1249,6 +1285,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local Effect Source retains the adopted Host tuple and forwards its original read without a new Root'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local correlation separates distinct Core-accepted Runs sharing one immutable Prepared'"
               }
             ]
           }
