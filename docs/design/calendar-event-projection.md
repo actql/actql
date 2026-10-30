@@ -42,6 +42,15 @@ and CalendarProfile; copied row IDs and column-name arrays cannot mutate them.
 
 The provider's pure fetch/decode hooks preserve the original query bounds and
 opaque cursor, expand recurring instances and check cross-page IDs/cursor cycles.
+The original Events request selects `singleEvents=true`. The
+[API's expanded list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
+contains one-off events and individual instances, while their
+[`recurrence` field is omitted](https://developers.google.com/workspace/calendar/api/v3/reference/events).
+The envelope therefore refuses a present recurrence before returning any page,
+including an empty, null or malformed field. A series is not one observed row;
+the adapter neither expands it locally nor returns an earlier partial prefix.
+Original instance IDs, recurring-event IDs and id-only deleted rows remain
+unchanged when the recurrence field is absent.
 Short or empty pages with a cursor are not completion. These hooks do not own
 authorization, row/body charging, managed response custody or cleanup, and they
 are not a normal installation factory. A matching original Profile getter and
