@@ -80,3 +80,48 @@ for (const field of ['accepted', 'statusCode']) {
     assert.deepEqual(f.events, ['current', 'current', 'response', 'charge', 'charged', 'current']);
   });
 }
+
+test('HubSpot account keeps original accounting failure ahead of HTTP classification', async () => {
+  const cause = new Error('Original accounting failure');
+  const f = fixture({accepted: false, statusCode: 503, accounting() {throw cause;}});
+  await assert.rejects(f.run(), error => {
+    assert.ok(error instanceof HubSpotAccountObservationFailure);
+    assert.strictEqual(error.cause, cause);
+    assert.strictEqual(error.observation, f.response);
+    return true;
+  });
+  assert.equal(f.requests, 1); assert.equal(f.projections, 0); assert.equal(f.consumptions, 0);
+  assert.deepEqual(f.events, ['current', 'current', 'response', 'charge']);
+});
+
+test('HubSpot account keeps current refusal separate from the received successful HTTP outcome', async () => {
+  const cause = Object.assign(new Error('Original current refusal'), {code: 'ComponentCurrentRefusal'});
+  const f = fixture({accepted: true, statusCode: 200});
+  let checks = 0;
+  f.options.current = async () => {
+    f.events.push('current');
+    if (++checks === 3) throw cause;
+  };
+  await assert.rejects(f.run(), error => {
+    assert.strictEqual(error.cause, cause);
+    assert.equal(error.code, cause.code);
+    assert.strictEqual(error.observation, f.response);
+    return true;
+  });
+  assert.equal(f.requests, 1); assert.equal(f.projections, 0); assert.equal(f.consumptions, 0);
+  assert.deepEqual(f.events, ['current', 'current', 'response', 'charge', 'charged', 'current']);
+});
+
+test('HubSpot account retains cancellation and original response custody after accounting', async () => {
+  const controller = new AbortController(), cause = new Error('Original cancellation');
+  const f = fixture({accepted: true, statusCode: 200, accounting() {controller.abort(cause);}});
+  f.options.signal = controller.signal;
+  await assert.rejects(f.run(), error => {
+    assert.strictEqual(error.cause, cause);
+    assert.strictEqual(error.observation, f.response);
+    assert.strictEqual(error.observation.body, f.body);
+    return true;
+  });
+  assert.equal(f.requests, 1); assert.equal(f.projections, 0); assert.equal(f.consumptions, 0);
+  assert.deepEqual(f.events, ['current', 'current', 'response', 'charge', 'charged', 'current']);
+});
