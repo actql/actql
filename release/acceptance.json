@@ -204,6 +204,10 @@
         {
           "kind": "Full original inert archives/readers with injected terminal/status ports; no registry, credential, provenance, approval or actual stage acceptance",
           "test": "npm stage terminal: signalled original send stops once with raw status and explicit no-resend recovery"
+        },
+        {
+          "kind": "Inert injected runner and physical receipt-write refusal controls only; no live child settlement, credentials, actual registry or publication",
+          "test": "npm stage failure custody: Unknown receipt write refusal retains BOTH original failure and physical write error"
         }
       ]
     },

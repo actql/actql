@@ -13,6 +13,12 @@ import {readFrozenReleaseArtifact, verifyReleaseSet} from './release-set.mjs';
 import {observeNpmStageTarget} from './release-registry.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+// Preserve the SAME original exception and its cleanup duty for the caller,
+// without exposing authentication or child output in receipts/normal inspect.
+function retainOriginalPublisherFailure(error, failure, property = 'originalPublisherFailure') {
+  return Object.defineProperty(error, property, {value: failure, enumerable: false});
+}
+
 const stageUuid = value => typeof value === 'string' && value.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
 const stableTool = value => {
   assert(typeof value === 'string' && value.length <= 64 && value === value.trim());
@@ -188,7 +194,11 @@ export async function stagePackageRelease(options) {
       npmVersion, args, outcome: 'unknown-until-original-response-and-owner-readback'});
     let reply;
     try {reply = await execute(args, {manifestSha256: expectedSha256, targetId, artifact: structuredClone(item), namespace: current.namespace});}
-    catch {await record(`${index}-unknown.json`, {state: 'unknown', reason: 'runner-threw', originalIntent: `${index}-intent.json`}); throw Error(`Original stage outcome unknown; preserve ${attempt} and reobserve with the original owner reader`);}
+    catch (failure) {
+      try {await record(`${index}-unknown.json`, {state: 'unknown', reason: 'runner-threw', originalIntent: `${index}-intent.json`});}
+      catch (cleanup) {throw retainOriginalPublisherFailure(cleanup, failure);}
+      throw retainOriginalPublisherFailure(Error(`Original stage outcome unknown; preserve ${attempt} and reobserve with the original owner reader`), failure);
+    }
     if (!reply || typeof reply.stdout !== 'string' || Buffer.byteLength(reply.stdout) > 1024 * 1024) {
       await record(`${index}-unknown.json`, {state: 'unknown', reason: 'invalid-or-oversized-runner-response'});
       throw Error(`Original stage outcome unknown; preserve ${attempt}`);

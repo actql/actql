@@ -8,6 +8,7 @@ import {chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test, {before, after} from 'node:test';
+import {inspect} from 'node:util';
 import {admitCohort, stagePackage} from './package-release.mjs';
 import {freezeReleaseSet, prepareReleaseReview, verifyReleaseSet} from './release-set.mjs';
 import {publicConsumerEnvironment} from './release-public-install.mjs';
@@ -353,4 +354,40 @@ test('npm stage terminal: missing send status stays Unknown without a successful
     await assert.rejects(readFile(join(target,attempt,'0-command.json')),{code:'ENOENT'});
     assert.equal(JSON.parse(await readFile(join(target,attempt,'0-stdout.json')))[f.artifacts[0].name].stageId,uuid(0));
   }
+});
+
+test('npm stage failure custody: SAME private runner failure reaches caller without receipt or normal error-output leakage',async t=>{
+  const f=await fixture(t),original=f.options.runNpm;
+  const failure=Object.assign(Error('PRIVATE-INERT-STAGE-RUNNER-MARKER'),{originalCleanup:{inertIdentityOnly:true}});
+  let caught;
+  try{await f.stage({runNpm:async(args,context)=>{
+    const reply=await original(args,context);if(args[0]!=='--version')throw failure;return reply;
+  }});}catch(error){caught=error;}
+  assert(caught);assert.equal(caught.originalPublisherFailure,failure);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalPublisherFailure').enumerable,false);
+  assert(!String(caught).includes('PRIVATE-INERT'));assert(!inspect(caught).includes('PRIVATE-INERT'));
+  assert.equal(f.commands.length,1);assert.equal(f.pending.size,1);
+  const target=join(f.options.receiptsDirectory,reviewed.sha256,'node'),[attempt]=await readdir(target);
+  const path=join(target,attempt);
+  assert.equal(JSON.parse(await readFile(join(path,'0-unknown.json'))).reason,'runner-threw');
+  for(const file of await readdir(path))if((await lstat(join(path,file))).isFile())
+    assert(!(await readFile(join(path,file),'utf8')).includes('PRIVATE-INERT'));
+});
+
+test('npm stage failure custody: Unknown receipt write refusal retains BOTH original failure and physical write error',async t=>{
+  const f=await fixture(t),original=f.options.runNpm;
+  const failure=Object.assign(Error('PRIVATE-INERT-STAGE-WRITE-MARKER'),{originalCleanup:{inertIdentityOnly:true}});
+  let attempt,caught;
+  try{await f.stage({runNpm:async(args,context)=>{
+    const reply=await original(args,context);
+    if(args[0]!=='--version'){attempt=dirname(dirname(args[2]));await chmod(attempt,0o500);throw failure;}
+    return reply;
+  }});}catch(error){caught=error;}
+  finally{if(attempt)await chmod(attempt,0o700);}
+  assert(caught);assert.equal(caught.code,'EACCES');assert.notEqual(caught,failure);
+  assert.equal(caught.originalPublisherFailure,failure);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalPublisherFailure').enumerable,false);
+  assert(!inspect(caught).includes('PRIVATE-INERT'));assert.equal(f.commands.length,1);
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-intent.json'))).outcome,'unknown-until-original-response-and-owner-readback');
+  await assert.rejects(readFile(join(attempt,'0-unknown.json')),{code:'ENOENT'});
 });

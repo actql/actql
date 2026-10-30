@@ -601,3 +601,10 @@ evidence and compatibility. A self-authored bugfix label, evidence hash or
 backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
+
+If the supplied stage runner throws, the generic returned error retains its
+SAME private exception as non-enumerable `originalPublisherFailure`. If
+recording Unknown also fails, that original physical write error is returned
+with the same private runner exception. Neither normal error inspection nor
+receipts serialize the private exception; the original caller still owns its
+process/session and cleanup duties.
