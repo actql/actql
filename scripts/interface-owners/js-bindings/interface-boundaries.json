@@ -62233,9 +62233,9 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
+      "sha256": "00010a124069b93d81587b9ba2b2a08ca82de52d781bad2e3423a4a5d82e6237",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -62259,6 +62259,28 @@
           "parameters": [
             "kind",
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureBeforeSendCheck",
+          "parameters": [
+            "driver",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureBeforeSendCheck/captureBeforeSendCheck",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureBeforeSendCheck/selected/selected",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -62503,7 +62525,8 @@
             "suppliedLimits",
             "effectResources",
             "issueOriginalCollectionReference",
-            "managedPlanDefinition"
+            "managedPlanDefinition",
+            "managedPlanRecipe"
           ],
           "async": true
         },
@@ -62810,6 +62833,7 @@
             "signal",
             "targetReads",
             "contentOwner",
+            "managedEffect",
             "own",
             "ownInputs",
             "ownChildren",
@@ -62827,13 +62851,23 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage",
-          "parameters": [
-            "member"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage/captureStage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
           "parameters": [
             "change",
             "row"
@@ -62841,21 +62875,65 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#4",
           "parameters": [
             "claim"
           ],
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/captureStage#10",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#11",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#12",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#13",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/captureStage/captureStage#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#3",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#4",
+          "parameters": [
+            "member",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#3",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "entry",
             "row"
@@ -62863,36 +62941,26 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
-            "member"
+            "rows"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#8",
-          "parameters": [],
-          "async": true
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#9",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/childrenPending/childrenPending",
@@ -62942,20 +63010,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/entries/entries",
-          "parameters": [
-            "rows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/entries/entries/entries",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/footprints/footprints",
           "parameters": [
             "member",
@@ -62971,9 +63025,41 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
+          "parameters": [
+            "memberIndex",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact",
+          "parameters": [
+            "artifact",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "proposal"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/payloads/payloads",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/physicalOperations/physicalOperations",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -62990,7 +63076,7 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/proposals/proposals",
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
           "parameters": [],
           "async": false
         },
@@ -63005,49 +63091,14 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/route/route",
-          "parameters": [
-            "member"
-          ],
+          "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
+          "parameters": [],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/rows/rows",
           "parameters": [
             "proposal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
-          "parameters": [
-            "memberIndex",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact",
-          "parameters": [
-            "artifact",
-            "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
-          "parameters": [
-            "memberIndex",
-            "rowIndex",
-            "proposal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/sourceSet",
-          "parameters": [
-            "member",
-            "memberIndex"
           ],
           "async": false
         },
@@ -63074,9 +63125,20 @@
             "dispatches",
             "subjectOf",
             "signal",
-            "assertCurrent"
+            "assertCurrent",
+            "physicalOperations",
+            "operationPhase"
           ],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/checkRows/checkRows/checkRows",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/checkSubject/checkSubject",
@@ -63318,7 +63380,9 @@
             "ledger",
             "targetReads",
             "assertCurrent",
-            "dispatchIndexes"
+            "dispatchIndexes",
+            "physicalOperations",
+            "operationPhase"
           ],
           "async": false
         },
@@ -63331,7 +63395,7 @@
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
           "parameters": [
             "claims",
-            "active",
+            "activeSubject",
             "signal",
             "decisions"
           ],
@@ -63357,6 +63421,32 @@
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
           "async": false
         },
         {
@@ -63395,6 +63485,23 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/requireOpen/requireOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareCaptured",
           "parameters": [
             "facts"
@@ -63425,7 +63532,8 @@
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#3",
           "parameters": [
-            "release"
+            "release",
+            "finish"
           ],
           "async": false
         },
@@ -63433,6 +63541,61 @@
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [
+            "member",
+            "rowIndex",
+            "phase",
+            "operation",
+            "site",
+            "originalAuthorization",
+            "useId",
+            "resource",
+            "purpose",
+            "invoke",
+            "managedEffect",
+            "requestChildren",
+            "retireRequestAliases",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
+          "parameters": [
+            "facts",
+            "inputs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
+          "parameters": [
+            "member"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/prepareRecovered",
@@ -63950,7 +64113,9 @@
         },
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -63960,6 +64125,11 @@
         },
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
           "parameters": [
             "request"
           ],
@@ -63993,6 +64163,17 @@
             "index"
           ],
           "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:checkRequest/init:checkRequest",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
@@ -65289,15 +65470,15 @@
             "createRowEffectStage/canonicalRows/canonicalRows/inventory/inventory",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
-            "createRowEffectStage/captureStage/captureStage#7",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
+            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/captureStage#9",
+            "createRowEffectStage/captureStage/captureStage#11",
+            "createRowEffectStage/captureStage/captureStage#12",
+            "createRowEffectStage/captureStage/captureStage/captureStage#3",
+            "createRowEffectStage/captureStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -65305,21 +65486,21 @@
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
-            "createRowEffectStage/captureStage/entries/entries",
-            "createRowEffectStage/captureStage/entries/entries/entries",
+            "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/proposals/proposals",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
-            "createRowEffectStage/captureStage/route/route",
+            "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/rows/rows",
-            "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
-            "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
-            "createRowEffectStage/captureStage/sourceSet/sourceSet",
+            "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
+            "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
+            "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/checkRows/checkRows",
             "createRowEffectStage/checkSubject/checkSubject",
@@ -67491,7 +67672,7 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact"
+            "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact"
           ],
           "exports": [],
           "attributes": {
@@ -67859,7 +68040,7 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/captureStage#13",
             "createRowEffectStage/captureStage/targets/targets"
           ],
           "exports": [],
@@ -67943,7 +68124,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "ownInputs(releaseInputs);"
+                "anchor": "ownInputs(releaseInputs, () => { captureOpen = false; });"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -68335,6 +68516,176 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "captureBeforeSendCheck",
+            "captureBeforeSendCheck/captureBeforeSendCheck",
+            "captureBeforeSendCheck/selected/selected",
+            "createRowEffectStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/physicalOperations/physicalOperations",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
+            "createRowEffectStage/checkRows/checkRows/checkRows",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
+            "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
+            "createRowEffectStage/physicalRoute/physicalRoute/requireOpen/requireOpen",
+            "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
+            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
+            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
+            "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/captureStage#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate coordinates, even when they share an immutable extent or index."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "keeps the original input pin until child retirement, including failure before"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "capacity reservation settles. The installation's full selected extent must"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('original member capture reservation precedes exported proposal rows and retains their prefix until release'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('capture construction selects its original member extent without consuming a per-row slot'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -68354,7 +68705,9 @@
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./installed-connectors.mjs",
+        "./installed-effect-plan.mjs",
         "./installed-row-capture-cleanup.mjs",
+        "./installed-row-source.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
         "./table-write-binding.mjs",

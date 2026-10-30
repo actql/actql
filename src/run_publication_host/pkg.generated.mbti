@@ -367,6 +367,10 @@ pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> 
 
 pub fn client_compiled_run_matches_effect(ClientCompiledRun, PreparedClientEffectComputation, ClientEffectCompilation) -> Bool
 
+pub fn client_compiled_run_matches_pure_compilation(ClientCompiledRun, PreparedClientProgram, ClientRunCompilation) -> Bool
+
+pub fn client_compiled_run_matches_tasks(ClientCompiledRun, PreparedClientProgram, ClientTaskCompilation) -> Bool
+
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
@@ -865,6 +869,8 @@ pub fn client_model_read_preparation_available(ClientModelReadPreparation, Clien
 
 pub fn client_model_read_scope_live(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
+pub fn client_model_read_scope_original_inventory(ClientModelReadScope, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Bool
+
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
 
 pub fn client_model_resource_invalidation_current(@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin]?
@@ -955,7 +961,11 @@ pub fn client_query_requirement_matches_program(PreparedClientProgram, Int, Int,
 
 pub fn client_query_time_preparation_context(ClientQueryTimePreparation) -> @run_publication.QueryEvaluationTime?
 
+pub fn client_query_time_preparation_context_for_run(ClientQueryTimePreparation, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, ClientQueryTimeIssue]
+
 pub fn client_query_time_preparation_created_at(ClientQueryTimePreparation) -> String
+
+pub fn client_query_time_preparation_invocation(ClientQueryTimePreparation, PreparedClientProgram) -> (ClientQueryTimePreparation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract)?
 
 pub fn client_remote_effect_task_progress_computation_complete(ClientRemoteEffectTaskProgress) -> Bool
 
@@ -1663,6 +1673,8 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedCl
 
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
+pub fn measure_prepared_client_model_compilation_construction(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
+
 pub fn measure_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFactGeometry, ClientPublicationPlanFactIssue]
 
 pub fn measure_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnessGeometry, ClientPublicationWitnessIssue]
@@ -1692,6 +1704,8 @@ pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) ->
 pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> (Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64)
 
 pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
+
+pub fn observe_prepared_client_multi_infer_plan_encoding(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
 pub fn observe_prepared_client_task_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
@@ -1974,6 +1988,8 @@ pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 pub fn prepared_client_infer_target_name(PreparedClientProgram, Int) -> String?
 
 pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, ClientLocalNormalization) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
+pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
@@ -2987,6 +3003,7 @@ pub struct ClientInferPlanGraph {
   occurrence : ClientInferOccurrence
   result_producers : Array[(Int, String, String, String)]
   serialization : ClientSerializationPlanGraph?
+  // private fields
 }
 
 pub(all) enum ClientInferPlanGraphIssue {
@@ -3654,6 +3671,7 @@ pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
   tasks : Bool
   fragments : Array[ClientTaskFragmentConstruction]
+  borrowed_inputs : Array[(Int, Int, Int)]
   results : Array[(Int, Int, Int)]
   projections : Array[ClientResultGraphConstruction]
   nodes : (Int, Int, Int)

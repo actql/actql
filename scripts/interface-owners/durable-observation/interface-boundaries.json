@@ -5510,7 +5510,8 @@
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
         "retainHttpsCredentialBindingReadChild",
-        "withHttpsCredentialRunResponseOriginal"
+        "withHttpsCredentialRunResponseOriginal",
+        "httpsCredentialResponseWindowBytes"
       ],
       "operations": [
         {
@@ -6020,6 +6021,31 @@
           "name": "withHttpsCredentialRunResponseOriginal/withHttpsCredentialRunResponseOriginal",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "httpsCredentialResponseWindowBytes",
+          "parameters": [
+            "maxResponseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -6118,6 +6144,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -6160,6 +6190,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "responseRepresentation: response.responseRepresentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
               }
             ],
             "identity": [
@@ -6194,6 +6228,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
               }
             ],
             "ownership": [
@@ -6224,6 +6262,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
               }
             ],
             "synchronization": [
@@ -6254,6 +6296,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
               }
             ],
             "failure": [
@@ -6284,6 +6330,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
               }
             ],
             "cancellation": [
@@ -6314,6 +6364,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
               }
             ],
             "resources": [
@@ -6352,6 +6406,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
               }
             ],
             "extension": [
@@ -6382,6 +6440,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
               }
             ],
             "verification": [
@@ -6460,6 +6522,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
                 "anchor": "Account target original rejects missing weak wildcard"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
               }
             ]
           }
@@ -6571,64 +6637,105 @@
             "retainHttpsCredentialBindingReadChild",
             "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
             "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
-            "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire"
+            "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
+            "httpsCredentialResponseWindowBytes",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined"
           ],
           "exports": [
-            "retainHttpsCredentialBindingReadChild"
+            "retainHttpsCredentialBindingReadChild",
+            "httpsCredentialResponseWindowBytes"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
               }
             ],
             "verification": [
@@ -6639,12 +6746,16 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
               }
             ]
           }
         }
       ],
-      "sha256": "c4fa821e26793b7295cfa17def801872b40f30065b20d00aa22a33a1837ab9b9",
+      "sha256": "883363c11c928d18c6491f41b0411cff944e4aa036f90863dc70185761f9ff77",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

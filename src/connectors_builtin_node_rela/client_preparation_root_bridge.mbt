@@ -8,6 +8,97 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+#export_name("clientProgramBorrowRequestModelPlanInput")
+pub fn client_program_borrow_request_model_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_model_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelCompilation")
+pub fn client_program_prepare_request_model_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  graph : @publication_host.ClientInferPlanGraph,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_model_compilation(
+    parent,
+    input,
+    graph,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPreparedInstalledManagedModelRequirements")
+pub fn client_program_prepared_installed_managed_model_requirements(
+  original : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Array[Int64] {
+  @client_local_host.prepared_installed_managed_model_requirements(original)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelReadScope")
+pub fn client_program_prepare_request_model_read_scope(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_read_scope(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramCompleteRequestModelPreparation")
+pub fn client_program_complete_request_model_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_model_preparation(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramAdoptRequestModelPreparation")
+pub fn client_program_adopt_request_model_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_model_managed_run(parent, request, scope)
+}
+
+///|
 /// The fixed manager stores this unstarted admission before calling the
 /// separate phase driver. A later rejection/unknown outcome must clean this
 /// same original and cannot acquire another child for the same receipt.
@@ -667,6 +758,36 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
 }
 
 ///|
+/// Same Request artifact before module construction; existing original-sum
+/// Run issuers consume it without a second compiler or a mode classifier.
+#export_name("clientProgramPrepareRequestProgramCompilation")
+pub fn client_program_prepare_request_program_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+) -> Result[
+  @publication_host.ClientRunCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_program_compilation(
+    parent,
+    input,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestProgramModuleBody")
 pub fn client_program_prepare_request_program_module_body(
   parent : @client_local_host.ClientRequestPreparation[
@@ -675,6 +796,12 @@ pub fn client_program_prepare_request_program_module_body(
   input : ClientLocalPreparationInputOriginal,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   retained_output : Bool,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
@@ -688,6 +815,7 @@ pub fn client_program_prepare_request_program_module_body(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output~,
     provider_factory=installed_client_family_providers,
+    invocation~,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -1074,5 +1202,131 @@ pub fn client_program_finish_request_policy_subjects(
 ) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
   @client_local_host.finish_request_computation_policy_subjects(
     parent, input, environment,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelReadScope")
+pub fn client_program_prepare_request_effect_model_read_scope(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_effect_model_read_scope(
+    parent, input, plan,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestEffectModelPreparation")
+pub fn client_program_adopt_request_effect_model_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_effect_model_managed_run(
+    parent, request, scope,
+  )
+}
+
+///|
+#export_name("clientProgramBorrowRequestContentPlanInput")
+pub fn client_program_borrow_request_content_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_content_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramCompleteRequestContentPreparation")
+pub fn client_program_complete_request_content_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_content_preparation(
+    parent, input, request, selected,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestContentPreparation")
+pub fn client_program_adopt_request_content_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_content_managed_run(parent, request)
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentPrepare")
+pub fn client_program_installed_managed_keyed_content_prepare(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : @client_local_host.ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  row_work : Int,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task : Int,
+  step : Int,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+) -> Result[
+  @client_local_host.ClientInstalledManagedKeyedPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_keyed_content(
+    prepared,
+    direct,
+    keyed,
+    declaration,
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, row_work,
+    ),
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task,
+    step,
+    prefix_retained_bytes,
+    prefix_execution_bytes,
   )
 }

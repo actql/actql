@@ -1583,6 +1583,155 @@ identity, changed policy selection and stale current checks cannot substitute
 for any of these originals.
 
 
+The installed Row Effect retains its implementation's original typed operation
+recipe before Request completion/adoption. An optional internal
+`requestConstruction.operationIndex` selects one declared per-row occurrence;
+it neither derives a slot from a row number nor provides a complete recipe by
+itself. The enclosing checked preparation and request must be the same originals
+as the selected managed Run. Its native occurrence reservation precedes the
+provider constructor, and the existing capture retains the same request child
+before awaiting preparation. Constructor-only bounds do not fund metadata,
+transport, response, recovery or failed physical children.
+
+Request construction returning does not retire its output. The same capture
+keeps the debit while its apply route, refresh, dispatch or original request
+aliases can still use it. Original cleanup first closes that route to new work,
+waits for active calls to finish, and severs its captured request/current arrays;
+only then can the existing child settle its body reservation. Its spent
+occurrence/control inventory remains on the original Run until that Run retires.
+A forbidden asynchronous constructor remains joined through settlement before
+refusal and cleanup; neither Promise settlement nor a numeric quote is a
+physical cleanup acknowledgement.
+
+The same implementation recipe can select bounded `credentialOperations` by
+the fixed phases `capture-check`, `apply-check`, `resume-check`, `write-check`
+and `write`.
+Each selects its own declared row operation index; the constructor and other
+phases cannot share that index, even when their operation names match. These
+descriptors retain original typed extents and rejection bounds, not capacity
+or permission inferred from names. Missing complete phase supply refuses.
+
+After adopting the original Request parent, the Host reserves the Plan's
+operation-control inventory on that same Ledger before returning the parent
+to its variable child consumer. A getter does not start this reservation. A
+physical child then reserves its selected occurrence before credential binding,
+and the existing capture retains it before preparation. The original Site
+issuer receives its unchanged authorization; an invocation's separate `useId`
+does not create another grant. CREATE checks, refreshed checks and the claimed
+write remain independently authorized operations. The durable dispatch claim
+still precedes the write child, and raw response custody precedes projection.
+
+Transport accounting observes exact outbound body bytes and every consumed
+binary response chunk before copying or protocol refusal. A response body
+bound and its one-byte refusal window describe a funded read extent, not an
+observed transfer. A failed debit, pending socket/binding close or live request
+alias prevents settlement. A provider's omitted await cannot detach its
+original physical call from the child. Saved recovery needs its actual original
+parent and child retainer; a saved recipe or CID cannot select fresh backing or
+silently restore the legacy physical route.
+
+A managed capture selects its fixed `captureConstruction` member occurrence
+before Source export can append proposal rows, expand JSON or derive canonical
+CREATE identities. The original Plan reserves that body and the existing
+capture retainer holds its same per-member proposal vector. A missing selected
+extent refuses before export; no empty capacity or per-row constructor token
+substitutes for this enclosing prefix. Native member and row occurrences have
+separate coordinates, even when they share an immutable extent or index.
+The row limit still bounds exported proposals; member/control children do not
+consume row slots. Early failure retains every already-created sibling and
+keeps the original input pin until child retirement, including failure before
+a Source set exists. Current/capture/route aliases must retire before the same
+capacity reservation settles. The installation's full selected extent must
+still cover this prefix, its failed construction and simultaneous outputs;
+reserving an unqualified numeric bound supplies none of those facts.
+
+The standard CREATE declaration can express a read check as fixed `http`
+method/path/headers/bounds plus synchronous `body` and Unit `project`
+callbacks. These callbacks receive original provider request/response DATA
+only; the common adapter owns the scoped HTTP invocation. The legacy
+`check.request` callback remains a separate consuming form and cannot be mixed
+with that declaration. An invalid async projection remains joined through
+settlement, with its original rejection preserved, before the same child can
+finish. A body or projection supplies no grant, current decision or ACK.
+
+An optional fixed `check.beforeSend` additionally requires a distinct
+`write-check` occurrence. The constructor captures the original check method
+and receiver and refuses missing/incompatible recipe supply. Inside the same
+durable dispatch, the Host obtains a fresh acquisition decision and its own
+original read grant, awaits that retained read child, then selects the separate
+write child. The commit decision never authorizes the read. A rejected read
+leaves the original claim in place without a mutation response or settlement;
+it cannot authorize resend or manufacture a terminal failure. Kintone supplies
+only the exact original App request and complete Form correspondence, keeping
+its native request/Mapping distinct from permission and physical custody.
+
+The captured CREATE frame retains the original bounded Common `changesWire`
+beside its mapped value and canonical occurrence. The existing Core CREATE
+inventory consumes that same wire, rather than re-encoding a decoded JavaScript
+Number. A pure standard mapper may consume this `proposalWire` DATA; other
+request callback contexts keep their absent form. Shared read body/projection
+callbacks receive the same independently retained mapped value, never another
+read grant or an input inferred from the physical request body.
+
+The Kintone standard CREATE declaration supplies only its fixed endpoint,
+native proposal/body admission, Form request/correspondence and native response
+classification. It selects the original Mapping resource and captures original
+runtime methods with their namespace receiver. Input String units and UTF8 bytes
+are checked before encoding into Bytes. No mapped-JS-row JSON encoder is used:
+the existing native parser admits exactly the complete `state:present`/`value`
+envelope under the same Form and Mapping, with independent input/output bounds.
+Its selected one-record body is not a restriction on the Program's row count.
+The shared owner retains exact request DATA/CID and its whole saved envelope.
+Cold native correspondence consumes that saved proposal wire and complete
+physical body through the comparison serializer, without fresh prepare, a new
+tag/CID or another provider read. Native protocol success remains DATA; the
+original Preview/claim/current/permission and settlement duties remain outside.
+This declaration creates no Account, Site, operation reservation or cleanup
+owner and cannot stand in for full constructor/Host/secret/failed-child overlap
+or the actual initializer and cold parent.
+
+Saved Kintone CREATE restoration re-admits the complete checked value rows
+under the same original Mapping/Form and compares the saved physical body
+through the original serializer's bounded comparison sink. Only complete byte
+correspondence can retain that immutable saved String in the private native
+request. It neither emits a replacement physical document nor issues a new
+tag, CID, permission or dispatch. The same native serializer serves fresh
+emission and saved comparison; a text-equivalent alternate JSON spelling
+refuses. Generic encoded-document ownership is unchanged. The caller must
+still authenticate its saved description, original row/key/occurrence, selected
+Form/Mapping, current scope and exact provider CID. This DATA restoration does
+not construct a cold parent, reacquire backing, renew a lifetime or authorize a
+send. Parser/cell construction, comparison controls and retained saved inputs
+need the caller's complete overlap quotation before normal restoration.
+
+Native Kintone CREATE constructor inventories retain the original Mapping and
+Form as borrows. Mapped value construction, complete current Form projection
+and acknowledgement/outcome construction are separate components. Each
+composes the existing collection, decoder, SHA and writer owners' logical
+representation units with the existing execution-capacity arithmetic. Bounds
+and returned capacity remain DATA until the same Request Plan reserves them;
+there is no connector-specific byte tariff or additional admission.
+
+Form correspondence compares every immutable original field path in place.
+It keeps App/revision, complete field count, exact paths, options, calculation
+and lookup facts; it makes no detached original or observed path catalogue.
+Projection still bounds the whole observed response, including nested metadata
+which a CREATE Mapping may later refuse. Response acknowledgement inventory
+bounds unknown-field refusal by the possible supplied object width, never by
+the two permitted `ids` and `revisions` keys. Wide digit strings keep their
+original spelling and request correlation. Missing/foreign originals, invalid
+bounds, batch substitution and arithmetic overflow refuse without a fallback.
+
+These synchronous metadata constructors perform no I/O, clock read, read/write
+authorization, cancellation acknowledgement or outcome settlement. Received
+Bytes stay with the physical child; the shared response decoder accounts its
+own parser/index/key-normalization buffers without encoding another input
+String or Bytes. Full Host request/response/secret/failed-child controls, saved
+custody and simultaneous lifetimes remain required additional components.
+Native constructor tests with an explicit initial carrier demonstrate only
+their stated same-parent reservation and original projection boundaries, not
+complete ordinary installation backing or physical provider acceptance.
+
 ## Model demand on the original installed Effect Plan
 
 The Node bridge obtains Model/read/bootstrap bounds through the same checked
@@ -1653,3 +1802,51 @@ A selected Source's currentness or preparation refusal cannot switch to a
 Compute manager. Compute-only and unselected installations keep their existing
 selection behavior; this correspondence creates no parent, allowance or read
 authority.
+
+## Kintone proposal constructor quantities
+
+The native Kintone proposal constructor quote includes the complete outer
+Common change envelope in addition to the existing mapped CREATE value and
+request constructors. The closed-object key-check inventory uses the supplied
+node bound, not the two allowed field names, so an unknown or duplicate key
+cannot make its failed prefix disappear from the quotation. The two original
+cursor lookups, state check and one-record carrier stay explicit.
+
+The same quote co-counts fresh text emission and cold comparison controls.
+Cold restoration borrows the saved body, checks its UTF8 bound at both existing
+entries, and uses the original comparison sink and complete serializer. It
+does not emit a replacement request, issue a tag or renew a lifetime. The
+saved String itself remains with the caller's separately backed material.
+
+These are native constructor quantities only. Input parser/index/String/Bytes,
+the enclosing capture prefix, Host request and response storage, credentials,
+failed children and all retained overlap must be composed and admitted on the
+same actual parent before construction. Quote construction also needs its
+original backing. A nonempty quantity does not select a Plan, provide a grant,
+acknowledge cleanup or enable an ordinary execution path.
+
+## Effect response buffer backing
+
+The observed binary HTTPS receiver retains its copied chunk prefix beside the
+concatenated body at successful end. A body bound B permits at most B nonempty
+one-byte chunk copies; the original current read is bounded by B+1, including
+the byte which causes refusal. Its constructor inventory co-counts those three
+byte families, the chunk Buffer headers and the shared Array growth inventory.
+It holds that whole envelope through original output retirement rather than
+inferring early release from a response Promise or copied body.
+
+Before borrowing or binding a physical occurrence, the shared Effect child
+checks the capacity of that same original selected extent against this buffer
+inventory. A declared attempt or sufficient transfer amount cannot replace
+retained/execution backing. Missing native support or an insufficient extent
+refuses before binding, grant consumption or a physical call. This check
+creates no new reservation: the existing original Plan and parent own the
+later borrow and its retirement.
+
+The buffer inventory is one necessary component, not the complete physical
+operation. Native quotation, the request, receiver/control frames, headers,
+secret/current/Journal material, provider parsing and saved response envelopes
+need their own backing and retained overlap before normal execution. Node's
+stream, Buffer-pool, TLS and runtime implementation storage is not measured by
+these logical quantities. No receiver check supplies authority or a cleanup
+acknowledgement, and no old compiled runtime gains the new native predicates.

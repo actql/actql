@@ -33,7 +33,7 @@ test "construction input uses the same slots across working complete Run retirem
   assert_true(
     physical_equal(preparation_body_borrow_value(holder).unwrap(), data),
   )
-  assert_false((holder.isolated_usage_original)(ledger, None))
+  assert_false(preparation_body_usage_isolated(holder, ledger))
   assert_true(
     (holder.reserve_publication_original)(data, 100L, 80L)
     is Err(ForeignOriginal),

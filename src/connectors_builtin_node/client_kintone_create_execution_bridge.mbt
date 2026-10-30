@@ -137,3 +137,137 @@ pub fn client_program_kintone_create_preview_outcome_matches(
     value, mapping, request, preview, member_index, row_index,
   )
 }
+
+///|
+// Standard Row Effect already binds its original mapped row, Preview and claim.
+// These are the existing Catalog's same-request provider DATA projections;
+// no Preview/authority object is passed into the standard classify callback.
+#export_name("clientProgramKintoneCreateEffectOutcome")
+pub fn client_program_kintone_create_effect_outcome(
+  request : @kintone_catalog.RecordCreateRequest,
+  response : @kintone_catalog.RecordCreateAcknowledgement,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateEffectOutcome,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_create_effect_outcome(
+    request, response, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeWire")
+pub fn client_program_kintone_create_effect_outcome_wire(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_create_effect_outcome_wire(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeResponseSha256")
+pub fn client_program_kintone_create_effect_outcome_response_sha256(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_create_effect_outcome_response_sha256(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreateEffectOutcomeMatchesRequest")
+pub fn client_program_kintone_create_effect_outcome_matches_request(
+  value : @kintone_catalog.RecordCreateEffectOutcome,
+  request : @kintone_catalog.RecordCreateRequest,
+) -> Bool {
+  @kintone_catalog.record_create_effect_outcome_matches_request(value, request)
+}
+
+///|
+#export_name("clientProgramKintoneCreateRequestConstructionCapacity")
+pub fn client_program_kintone_create_request_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_request_construction_capacity(
+    mapping, max_input_bytes, write, request,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateProposalConstructionCapacity")
+pub fn client_program_kintone_create_proposal_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_proposal_construction_capacity(
+    mapping, max_input_bytes, write, request,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateFormRecheckConstructionCapacity")
+pub fn client_program_kintone_create_form_recheck_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_form_recheck_construction_capacity(
+    mapping, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateResponseConstructionCapacity")
+pub fn client_program_kintone_create_response_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_response_construction_capacity(
+    mapping, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateMappingResource")
+pub fn client_program_kintone_create_mapping_resource(
+  mapping : @kintone_host.RecordCreateMapping,
+) -> Result[String, @kintone_host.RecordCreateExecutionIssue] {
+  @kintone_host.record_create_mapping_resource(mapping)
+}
+
+///|
+#export_name("clientProgramKintonePrepareCreateExecutionProposal")
+pub fn client_program_kintone_prepare_create_execution_proposal(
+  mapping : @kintone_host.RecordCreateMapping,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  request_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateRequest,
+  @kintone_host.RecordCreateExecutionIssue,
+] {
+  @kintone_host.prepare_record_create_execution_proposal(
+    mapping, bytes, max_input_bytes, write_limits, request_limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneRestoreCreateExecutionProposal")
+pub fn client_program_kintone_restore_create_execution_proposal(
+  mapping : @kintone_host.RecordCreateMapping,
+  bytes : Bytes,
+  original_body : String,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  request_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateRequest,
+  @kintone_host.RecordCreateExecutionIssue,
+] {
+  @kintone_host.restore_record_create_execution_proposal(
+    mapping, bytes, original_body, max_input_bytes, write_limits, request_limits,
+  )
+}

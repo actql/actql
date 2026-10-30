@@ -127,41 +127,6 @@ pub fn issue_prepared_client_direct_task_result_root(
 }
 
 ///|
-// Query capture publishes its checked acquisition port. Whole input leaves
-// the original authored computation pending, so its Result uses that task's
-// checked output. The original graph's captured prefix remains unchanged.
-fn client_publication_task_target(
-  value : PreparedClientProgram,
-  task : Int,
-) -> @pipeline.Target? {
-  let graph = value.graph
-  match @strategy.graph_task_target(graph, task) {
-    Some(target) => Some(target)
-    None => {
-      if task != 0 || @strategy.graph_captured_prefix(graph) != 1 {
-        return None
-      }
-      guard @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
-        return None
-      }
-      guard @context.program_identity_stage_requests(
-          @checked.source_identity(@strategy.graph_program(graph)),
-          stage,
-        )
-        is Some(requests) else {
-        return None
-      }
-      match @acquisition.select_source_acquisition_route(requests, 0, 1000000) {
-        Ok(QueryRoute(acquisition)) =>
-          Some(@acquisition.query_acquisition_capture(acquisition))
-        Ok(WholeInputRoute(_)) => client_task_output_target(graph, task)
-        Err(_) => None
-      }
-    }
-  }
-}
-
-///|
 fn issue_prepared_client_direct_result_root_for_output(
   value : PreparedClientProgram,
   result : Int,
@@ -178,7 +143,9 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(MissingResult)
   }
   let port = @execution.managed_result_occurrence_port(occurrence)
-  guard client_publication_task_target(value, task) is Some(target) &&
+  // Use the exact checked output emitted by the original fragment. Rebuilding
+  // an untimed acquisition can select an earlier capture before its suffix.
+  guard client_task_output_target(graph, task) is Some(target) &&
     @results.port_target(port) == target else {
     return Err(RequiresResultTransformation)
   }
@@ -191,8 +158,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard client_task_output_target(graph, task) is Some(output_target) &&
-    @lower.preparation_schema_at(prepared, output_target) is Some(task_schema) else {
+  guard @lower.preparation_schema_at(prepared, target) is Some(task_schema) else {
     return Err(RequiresResultTransformation)
   }
   let names = @results.fields(@results.port_result(port))

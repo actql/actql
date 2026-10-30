@@ -66,15 +66,13 @@ fn create_json_values(
 }
 
 ///|
-/// Exact mapped value rows, not fabricated provider records. The original
-/// Form supplies every carrier; defaults, IDs and revision are not injected.
-pub fn prepare_record_create_request_json(
+fn create_json_records(
   catalog : FormFieldCatalog,
   bytes : Bytes,
   max_input_bytes : Int,
   write_limits : RecordWriteLimits,
   request_limits : RecordMutationLimits,
-) -> Result[RecordCreateRequest, RecordCreateJsonIssue] {
+) -> Result[Array[RecordWriteValues], RecordCreateJsonIssue] {
   if max_input_bytes <= 0 ||
     !create_json_write_limits_valid(write_limits) ||
     !mutation_limits_valid(request_limits) {
@@ -129,7 +127,64 @@ pub fn prepare_record_create_request_json(
       Err(issue) => return Err(issue)
     }
   }
+  Ok(records)
+}
+
+///|
+/// Exact mapped value rows, not fabricated provider records. The original
+/// Form supplies every carrier; defaults, IDs and revision are not injected.
+pub fn prepare_record_create_request_json(
+  catalog : FormFieldCatalog,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  write_limits : RecordWriteLimits,
+  request_limits : RecordMutationLimits,
+) -> Result[RecordCreateRequest, RecordCreateJsonIssue] {
+  let records = match
+    create_json_records(
+      catalog, bytes, max_input_bytes, write_limits, request_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   match prepare_record_create_request(catalog, records, request_limits) {
+    Ok(request) => Ok(request)
+    Err(issue) => Err(Request(issue))
+  }
+}
+
+///|
+/// Same checked values and original Form, plus exact saved physical bytes.
+/// Parsing admits values only; comparison emits no new request document.
+pub fn restore_record_create_request_json(
+  catalog : FormFieldCatalog,
+  bytes : Bytes,
+  original_body : String,
+  max_input_bytes : Int,
+  write_limits : RecordWriteLimits,
+  request_limits : RecordMutationLimits,
+) -> Result[RecordCreateRequest, RecordCreateJsonIssue] {
+  if !mutation_limits_valid(request_limits) {
+    return Err(InvalidLimits)
+  }
+  guard @scalar.admit_utf8_length(
+      original_body,
+      request_limits.max_output_bytes,
+    )
+    is Ok(_) else {
+    return Err(BudgetExceeded)
+  }
+  let records = match
+    create_json_records(
+      catalog, bytes, max_input_bytes, write_limits, request_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    restore_record_create_request(
+      catalog, records, original_body, request_limits,
+    ) {
     Ok(request) => Ok(request)
     Err(issue) => Err(Request(issue))
   }

@@ -126,18 +126,10 @@ pub fn[I, P] adopt_node_preparation_admission(
     child.origin.stopping {
     return Err(Unavailable)
   }
-  // Bootstrap may have been installed before preparation. Transfer its
-  // actual recorded census, never reinitialize it from equal aggregate bytes.
-  match admission.read_bootstrap {
-    None => if admission.read_bootstrap_attempted { return Err(Unavailable) }
-    Some(bootstrap) => {
-      guard admission.read_bootstrap_attempted &&
-        ledger.original_inventory is Some(inventory) &&
-        physical_equal(inventory.bootstrap, bootstrap) &&
-        original_ledger_inventory_available(inventory.identity) else {
-        return Err(Unavailable)
-      }
-    }
+  // The census belongs to the original preparation capacity. A separate
+  // read-bootstrap owner cannot be transferred as a compatibility path.
+  if admission.read_bootstrap_attempted || admission.read_bootstrap is Some(_) {
+    return Err(Unavailable)
   }
   if !physical_equal(capacity.ledger, ledger) ||
     !(capacity.input is Some(original) && physical_equal(original, input)) ||
@@ -203,9 +195,6 @@ pub fn[I, P] adopt_node_preparation_admission(
   next.attempted = true
   next.ledger = Some(ledger)
   next.preparation_holder = Some(holder)
-  next.read_bootstrap_attempted = admission.read_bootstrap_attempted
-  next.read_bootstrap = admission.read_bootstrap
-  admission.read_bootstrap = None
   admission.prepared = None
   owner.admission = None
   owner.transitioning = false

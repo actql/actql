@@ -84,8 +84,14 @@ fn program_artifact_construction_cost(
   // graph. Its canonical envelope covers their simultaneously held trees;
   // do not multiply full initial pipeline trees by the number of tasks.
   let held_values = [value.graph, value.material]
+  for input in value.borrowed_inputs {
+    held_values.push(input)
+  }
   let active_values : Array[(Int, Int, Int)] = []
   let wires : Array[(Int, Int, Int)] = []
+  for input in value.borrowed_inputs {
+    active_values.push(input)
+  }
   for fragment in value.fragments {
     active_values.push(fragment.initial_pipeline)
     active_values.push(fragment.pipeline)

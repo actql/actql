@@ -373,14 +373,15 @@ fn recheck_original_record_form(
     Ok(value) => value
     Err(issue) => return Err(Form(issue))
   }
-  let paths = form_field_paths(original)
   if original.app_id != observed.app_id ||
     original.revision != observed.revision ||
-    paths.length() != form_field_paths(observed).length() {
+    original.fields.length() != observed.fields.length() {
     return Err(ForeignCatalog)
   }
-  for path in paths {
-    if !form_field_definition_matches(original, observed, path) {
+  // Both Catalogs privately retain immutable original paths. Comparison owns
+  // no detached snapshots; later limits never stand in for original geometry.
+  for field in original.fields {
+    if !form_field_definition_matches(original, observed, field.path) {
       return Err(ForeignCatalog)
     }
   }

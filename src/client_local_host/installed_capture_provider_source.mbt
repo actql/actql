@@ -17,6 +17,11 @@ pub fn begin_installed_managed_capture_source_read(
   ),
   ClientInstalledManagedRunIssue,
 ] {
+  if owner.preparation is Some(PreparationContentManaged(_, _)) {
+    return begin_installed_content_original_source_read(
+      owner, prepared, request, declaration, occurrence,
+    )
+  }
   guard owner.preparation is Some(PureManaged(_, original)) &&
     physical_equal(original, prepared) &&
     physical_equal(owner.request, request) &&
@@ -65,6 +70,69 @@ pub fn begin_installed_managed_capture_source_read(
     physical_equal(original_capacity, capacity) else {
     return Err(ForeignOriginal)
   }
+  read.declaration = Some(declaration)
+  Ok((read, requirement, acquisition, capacity))
+}
+
+///|
+/// The selected Content Plan already owns this original Direct acquisition
+/// and capacity. Keep the existing Source read slot/current/retirement owner;
+/// no new query, source declaration or quote is produced here.
+fn begin_installed_content_original_source_read(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @planning.QueryRequirement,
+    @row_source_host.RowAcquisition,
+    ClientInstalledCaptureCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.preparation is Some(PreparationContentManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    physical_equal(owner.request, request) &&
+    owner.keyed is Some(selected) &&
+    physical_equal(selected.prepared, prepared) &&
+    occurrence == selected.direct_stage &&
+    selected.direct_input == 0 &&
+    selected.direct.original_input &&
+    selected.direct.provider is None &&
+    selected.direct.acquisition is Some(acquisition) else {
+    return Err(ForeignOriginal)
+  }
+  let capacity = selected.direct
+  let requirement = capacity.requirement
+  match
+    @row_source_host.check_row_acquisition_original(
+      acquisition, declaration, requirement,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(_) => ()
+  }
+  let read = match begin_installed_managed_run_source_read(owner, occurrence) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  // Current may synchronously retire or replace the selected Run payload.
+  // Preserve the original read on refusal, but publish no stale tuple.
+  guard owner.preparation is Some(PreparationContentManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    physical_equal(owner.request, request) &&
+    owner.keyed is Some(original) &&
+    physical_equal(original, selected) &&
+    owner.reads.get(occurrence) is Some(Some(original_read)) &&
+    physical_equal(original_read, read) else {
+    return Err(ForeignOriginal)
+  }
+  read.requirement = Some(requirement)
+  read.acquisition = Some(acquisition)
   read.declaration = Some(declaration)
   Ok((read, requirement, acquisition, capacity))
 }

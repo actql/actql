@@ -4,7 +4,9 @@ package "actql/actql/connectors/kintone/host"
 import {
   "actql/actql/client_row_source_host",
   "actql/actql/connectors/kintone/catalog",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
+  "actql/actql/execution_relation",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -18,6 +20,8 @@ pub fn bind_record_read_cleanup(RecordRead, () -> Bool) -> Result[Unit, RecordRe
 pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int) -> Result[RecordRead, RecordReadIssue]
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
+
+pub fn prepare_record_create_execution_proposal(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn prepare_record_create_execution_request(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
@@ -37,6 +41,22 @@ pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.Recor
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
+pub fn record_create_mapped_form_recheck_construction_capacity(RecordCreateMapping, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_form_recheck_construction_inventory(RecordCreateMapping, @catalog.FormFieldLimits) -> RecordCreateProtocolConstructionInventory?
+
+pub fn record_create_mapped_proposal_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_proposal_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
+pub fn record_create_mapped_request_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_request_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
+pub fn record_create_mapped_response_construction_capacity(RecordCreateMapping, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_response_construction_inventory(RecordCreateMapping, @catalog.RecordMutationLimits) -> RecordCreateProtocolConstructionInventory?
+
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
 
 pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
@@ -44,6 +64,8 @@ pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
 pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
 
 pub fn record_create_mapping_matches_request(RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool
+
+pub fn record_create_mapping_resource(RecordCreateMapping) -> Result[String, RecordCreateExecutionIssue]
 
 pub fn record_create_preview_outcome_matches(RecordCreatePreviewOutcome, RecordCreateMapping, @catalog.RecordCreateRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
 
@@ -105,6 +127,10 @@ pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDecl
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
 
+pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
+pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Errors
@@ -133,6 +159,17 @@ pub enum RecordCreateOutcomeIssue {
 
 pub struct RecordCreatePreviewOutcome {
   // private fields
+}
+
+pub(all) struct RecordCreateProtocolConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+}
+
+pub(all) struct RecordCreateRequestConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
 }
 
 pub struct RecordDeclaration {
