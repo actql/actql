@@ -162,6 +162,14 @@ binds the original parent and checks currentness before and after preparation.
 An error cannot select another route, and neither the identity cache nor a
 selection's reference DATA grants a read or replaces the parent's cleanup.
 
+The normal Source service retains the selected reader's node and depth bounds
+in the same immutable reader demand as its response and row bounds. Whole-input
+capacity construction and RowRun Begin consume that same demand. The legacy
+`originalPageLimits` option still requires its original preparer; a managed
+provider does not supply a dummy preparer or a second page-limit option. Query
+acquisition keeps its existing page selection. These bounds do not reserve
+capacity or override the complete same-parent Plan admission.
+
 The focused Core and explicit-port Node cases exercise full input beyond a
 Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.
