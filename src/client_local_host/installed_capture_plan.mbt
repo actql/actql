@@ -8,6 +8,8 @@ struct ClientInstalledManagedCapturePlan {
   // context while this original also retains the definition/sample binding.
   _observed_query_time : @publication_host.ClientQueryTimePreparation?
   captures : Array[ClientInstalledCaptureCapacity]
+  whole_input : ClientInstalledWholeSourceCapacity?
+  graph : @strategy.CheckedDAG
   transport_bytes : Array[Int64]
   transport_execution_bytes : Array[Int64]
   installed_contracts : ClientInstalledSequenceContracts
@@ -117,6 +119,8 @@ pub fn prepare_installed_managed_capture_plan(
     request,
     _observed_query_time: query_time,
     captures: captures.copy(),
+    whole_input: None,
+    graph: @publication_host.prepared_client_graph(prepared),
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),
     installed_contracts,
@@ -261,7 +265,8 @@ pub fn open_installed_managed_capture_host(
     return Err(Managed(AlreadyBound))
   }
   guard value.captured_preparation is Some(plan) &&
-    sources.length() == plan.captures.length() else {
+    sources.length() ==
+    (if plan.whole_input is Some(_) { 1 } else { plan.captures.length() }) else {
     return Err(Managed(ForeignOriginal))
   }
   // Bound the snapshot by the retained original occurrence inventory before
@@ -296,8 +301,12 @@ fn open_installed_managed_capture_host_owned(
     physical_equal(plan.request, request) else {
     return Err(Managed(ForeignOriginal))
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
-  let first = @strategy.graph_captured_prefix(graph)
+  let graph = plan.graph
+  let first = if plan.whole_input is Some(_) {
+    1
+  } else {
+    @strategy.graph_captured_prefix(graph)
+  }
   if first < 1 ||
     sources.length() != first ||
     !client_local_capacity_plan_matches(
@@ -311,7 +320,15 @@ fn open_installed_managed_capture_host_owned(
     Err(issue) => return Err(Managed(issue))
     Ok(ledger) => ledger
   }
-  let opened = if first == 1 {
+  let opened = if plan.whole_input is Some(source) {
+    if !@query.captured_source_matches_input_acquisition(
+        sources[0],
+        source.original,
+      ) {
+      return Err(Managed(ForeignOriginal))
+    }
+    @strategy.open_source_input_dag(graph, sources[0], ledger)
+  } else if first == 1 {
     @strategy.open_captured_dag(graph, sources[0], ledger)
   } else {
     @strategy.open_multi_captured_dag(

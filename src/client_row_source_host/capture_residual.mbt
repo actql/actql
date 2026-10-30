@@ -22,6 +22,9 @@ fn row_capture_input_live(run : RowRun, receipt : @query.QueryReceipt) -> Bool {
 /// Prepare only the original checked acquisition prefix after physical stop.
 /// No downstream JOIN, Model or Effect can execute through this handle.
 pub fn begin_row_capture(run : RowRun) -> Result[Unit, RowHostIssue] {
+  if run.configuration is InputConfiguration(_) {
+    return begin_input_row_capture(run)
+  }
   guard !run.closed &&
     run.residual is None &&
     run.configuration is DirectConfiguration(configuration) &&
@@ -89,6 +92,9 @@ pub fn advance_row_capture(
   run : RowRun,
   quantum : Int,
 ) -> Result[(Bool, Int64), RowHostIssue] {
+  if run.configuration is InputConfiguration(_) {
+    return advance_input_row_capture(run, quantum)
+  }
   guard run.residual is Some(residual) else { return Err(InvalidState) }
   let execution = @local.guarded_relation_execution(residual.execution)
   let poll = match @local.advance_managed_provider(execution, quantum) {
@@ -126,6 +132,9 @@ pub fn advance_row_capture(
 /// A failed or stopped child remains owned and retryable until cleanup confirms.
 /// Do not return its reservation merely because the physical reader has stopped.
 pub fn cleanup_row_capture(run : RowRun) -> Result[Bool, RowHostIssue] {
+  if run.configuration is InputConfiguration(_) {
+    return Ok(cleanup_input_row_capture(run, 64))
+  }
   guard run.residual is Some(residual) else { return Ok(true) }
   guard run.closed else { return Ok(false) }
   let result = @local.cleanup_managed_provider(
@@ -147,6 +156,9 @@ pub fn advance_row_capture_cleanup(
 ) -> Result[Bool, RowHostIssue] {
   if !run.closed || quantum <= 0 {
     return Err(InvalidState)
+  }
+  if run.configuration is InputConfiguration(_) {
+    return Ok(cleanup_input_row_capture(run, quantum))
   }
   match cleanup_row_capture(run) {
     Ok(true) => return Ok(true)

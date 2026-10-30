@@ -7925,7 +7925,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "c40d77cb047c742a707397980de2f9453a8d2a0759e400926e8d99ccfb9c3e0d",
+      "sha256": "e3038050302aabaef1c63c211601fe5a70ff75874e0fd8d3a3a261c32a8529b8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -7950,7 +7950,8 @@
             "capacity",
             "keyed",
             "originalRead",
-            "originalKeyedRead"
+            "originalKeyedRead",
+            "wholeInput"
           ],
           "async": false
         },
@@ -8103,27 +8104,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/run/run#11",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run#2",
-          "parameters": [],
+          "parameters": [
+            "attempt"
+          ],
           "async": false
         },
         {
           "name": "startInstalledRowRun/run/run#3",
-          "parameters": [
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "startInstalledRowRun/run/run#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/run/run#5",
+          "name": "startInstalledRowRun/run/run#4",
           "parameters": [
             "attempt"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#5",
+          "parameters": [],
           "async": false
         },
         {
@@ -8493,7 +8501,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead}) {"
+                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {"
               }
             ],
             "identity": [
@@ -8650,6 +8658,74 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#11"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
               }
             ]
           }
@@ -10454,9 +10530,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/managedWholeSourceCapacity",
+            "createInstalledRowSource/prepare/prepare#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "0aa3ff8724d640b61f14487cd366c1a3d25fd7a5cfc815627f52e8108cbdccf4",
+      "sha256": "d9f8763c0ce51a19fad50e03ba63ed61815f57400a75b1d4cb53851c0ac4a2c2",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10781,6 +10926,15 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/managedWholeSourceCapacity",
+          "parameters": [
+            "preparedProgram",
+            "sourceSelection",
+            "installedContracts"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/open",
           "parameters": [
             "options"
@@ -11068,6 +11222,13 @@
         },
         {
           "name": "createInstalledRowSource/prepare/prepare",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepare/prepare#2",
           "parameters": [
             "value"
           ],

@@ -48,6 +48,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_multi_source_host_bridge.mbt',
     'client_single_source_host_bridge.mbt',
     'client_source_capture_bridge.mbt',
+    'client_whole_source_capture_bridge.mbt',
     'client_pending_capture_capacity_bridge.mbt',
     'client_published_store_target_bridge.mbt',
     'client_effect_phase_bridge.mbt',

@@ -19,6 +19,9 @@ pub(all) enum RowHostIssue {
   Physical(@resources.LedgerIssue)
   Residual(@connector.FixedComputeIssue)
   ResidualWork(@local.ManagedProviderWorkIssue)
+  InputValidationWork(@bounded.Issue)
+  InputKeys(@execution.InputKeyIssue)
+  InputScores(@execution.InputScoreIssue)
   InvalidState
 }
 
@@ -452,6 +455,7 @@ struct RowRun {
 ///|
 priv enum RowRunConfiguration {
   DirectConfiguration(RowHostConfiguration)
+  InputConfiguration(RowInputAcquisition)
   KeyedConfiguration(RowKeyedAcquisition)
   // Same Row owner and payload shape; only this checked receiver installs
   // original Scope liveness that must be detached after actual physical close.
@@ -461,6 +465,7 @@ priv enum RowRunConfiguration {
 ///|
 priv enum RowRunIssuer {
   DirectIssuer(RowIssuer)
+  InputIssuer(RowInputIssuer)
   KeyedIssuer(RowKeyedIssuer)
 }
 
@@ -670,6 +675,11 @@ pub fn begin_row_run_with_page_limits(
 ) -> Result[Unit, RowHostIssue] {
   if run.closed {
     return Err(InvalidState)
+  }
+  if run.configuration is InputConfiguration(acquisition) {
+    return begin_input_row_run(
+      run, acquisition, page_limits, max_capture_rows, reference_issuer,
+    )
   }
   if run.physical is Some(physical) &&
     page_limits.max_bytes.to_int64() > physical.execution_scratch {
@@ -941,7 +951,11 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
   }
   match finished {
     Ok(scan) => {
-      run.attempt.state = AwaitingCleanup(scan)
+      run.attempt.state = if run.configuration is InputConfiguration(_) {
+        InputAwaitingCleanup(scan, read.input)
+      } else {
+        AwaitingCleanup(scan)
+      }
       Ok(())
     }
     Err(issue) => {
@@ -972,6 +986,8 @@ pub fn close_row_run(run : RowRun) -> Unit {
     abort_row_run(run)
     match run.issuer {
       DirectIssuer(issuer) =>
+        @planning.close_query_evidence_registration(issuer.registration)
+      InputIssuer(issuer) =>
         @planning.close_query_evidence_registration(issuer.registration)
       KeyedIssuer(issuer) =>
         @planning.close_query_evidence_registration(issuer.registration)
@@ -1064,12 +1080,21 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 /// One exact completed observation and its live captured source.
 struct RowSourceCapture {
   run : RowRun
-  observation : RowObservation
+  observation : RowCaptureObservation
   source : @query.CapturedInputSource
 }
 
 ///|
+priv enum RowCaptureObservation {
+  QueryObservation(RowObservation)
+  InputObservation(RowInputObservation)
+}
+
+///|
 pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
+  if run.configuration is InputConfiguration(_) {
+    return capture_input_row_run(run)
+  }
   guard !run.closed &&
     run.issuer is DirectIssuer(issuer) &&
     run.configuration is DirectConfiguration(configuration) else {
@@ -1139,7 +1164,7 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
       Err(issue) => return Err(issue)
     }
   }
-  Ok({ run, observation, source, })
+  Ok({ run, observation: QueryObservation(observation), source, })
 }
 
 ///|
@@ -1187,6 +1212,13 @@ pub fn row_capture_source(
 pub fn row_capture_original_read(
   capture : RowSourceCapture,
 ) -> @execution.SuppliedRelationRead? {
+  if capture.observation is InputObservation(original) {
+    return if row_capture_source(capture) is Ok(_) {
+      Some(original.read)
+    } else {
+      None
+    }
+  }
   guard row_capture_source(capture) is Ok(_) &&
     capture.run.residual is Some(residual) &&
     capture.run.configuration is DirectConfiguration(configuration) else {

@@ -36,11 +36,16 @@ pub fn start_captured_file_locator(
 ) -> CapturedFileLocator? {
   if !captured_source_available(source) ||
     !@execution.supplied_relation_read_available(read) ||
-    !@execution.supplied_relation_read_matches_input(
-      read,
-      query_sequence_owner(source.owner),
-      query_receipt_input_index(source.owner),
-    ) ||
+    !(match source.owner {
+      QueryCapture(query) =>
+        @execution.supplied_relation_read_matches_input(
+          read,
+          query_sequence_owner(query),
+          query_receipt_input_index(query),
+        )
+      InputCapture(input) =>
+        @execution.supplied_relation_read_same_binding(read, input.read)
+    }) ||
     !@value.reference_available(resource) ||
     version.is_empty() ||
     max_path_units < 1 {

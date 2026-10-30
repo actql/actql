@@ -3,10 +3,26 @@
 /// No raw output getter: all handoff retains the exact observation's liveness.
 struct CapturedInputSource {
   program : @context.ProgramSourceIdentity
-  owner : QuerySequence
+  owner : CapturedSourceOwner
   output : @execution.CompletedOutput
   live : () -> Bool
   wire_bytes : Int
+}
+
+///|
+priv enum CapturedSourceOwner {
+  QueryCapture(QuerySequence)
+  InputCapture(SourceInputCapture)
+}
+
+///|
+fn captured_source_bound_owner(
+  source : CapturedInputSource,
+) -> @lower.BoundPrepared {
+  match source.owner {
+    QueryCapture(query) => query_sequence_owner(query)
+    InputCapture(input) => @lower.sequence_owner(input.context.sequence)
+  }
 }
 
 ///|
@@ -118,15 +134,25 @@ pub fn prepare_captured_source_relation_export(
   if !(source.live)() {
     return Err(Unavailable)
   }
-  @execution.prepare_completed_relation_export(
-    @execution.restrict_completed_output(source.output, source.live),
-    max_rows,
-    values,
-    payload_wire,
-    logical_wire,
-    schema_limits,
-    max_batch_bytes,
-  ).map_err(issue => Export(issue))
+  let output = @execution.restrict_completed_output(source.output, source.live)
+  let exported = match source.owner {
+    QueryCapture(_) =>
+      @execution.prepare_completed_relation_export(
+        output, max_rows, values, payload_wire, logical_wire, schema_limits, max_batch_bytes,
+      )
+    InputCapture(input) =>
+      @execution.prepare_completed_source_input_relation_export(
+        output,
+        input.read,
+        max_rows,
+        values,
+        payload_wire,
+        logical_wire,
+        schema_limits,
+        max_batch_bytes,
+      )
+  }
+  exported.map_err(issue => Export(issue))
 }
 
 ///|
@@ -284,7 +310,7 @@ pub fn captured_source_matches(
 ) -> Bool {
   (source.live)() &&
   physical_equal(source.program, program) &&
-  physical_equal(query_sequence_owner(source.owner), owner)
+  physical_equal(captured_source_bound_owner(source), owner)
 }
 
 ///|
@@ -297,7 +323,9 @@ pub fn captured_source_matches_query(
   source : CapturedInputSource,
   query : QuerySequence,
 ) -> Bool {
-  (source.live)() && physical_equal(source.owner, query)
+  (source.live)() &&
+  source.owner is QueryCapture(original) &&
+  physical_equal(original, query)
 }
 
 ///|
@@ -337,7 +365,7 @@ pub fn bind_captured_source(
   @execution.bind_live_completed_input(
     receiver,
     input,
-    query_sequence_owner(source.owner),
+    captured_source_bound_owner(source),
     source.output,
     source.live,
   ).map_err(issue => Binding(issue))
@@ -356,11 +384,20 @@ pub fn bind_captured_source_operation(
   if !(source.live)() {
     return Err(Unavailable)
   }
+  if source.owner is InputCapture(capture) {
+    return @execution.bind_completed_source_input_operation(
+      receiver,
+      step,
+      input,
+      @execution.restrict_completed_output(source.output, source.live),
+      capture.read,
+    ).map_err(issue => Binding(issue))
+  }
   @execution.bind_completed_operation_input(
     receiver,
     step,
     input,
-    query_sequence_owner(source.owner),
+    captured_source_bound_owner(source),
     @execution.restrict_completed_output(source.output, source.live),
   ).map_err(issue => Binding(issue))
 }
@@ -440,5 +477,11 @@ pub fn[P] capture_verified_source(
       None => false
     }
   }
-  Ok({ owner: port.owner, program: port.program, output, live, wire_bytes, })
+  Ok({
+    owner: QueryCapture(port.owner),
+    program: port.program,
+    output,
+    live,
+    wire_bytes,
+  })
 }

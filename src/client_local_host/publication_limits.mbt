@@ -59,6 +59,18 @@ fn client_node_publication_limits(
     !(original.graph is Some(owner) && physical_equal(owner, graph)) {
     return None
   }
+  client_node_publication_limits_original(max_payload_bytes, original)
+}
+
+///|
+/// Only the existing immutable Plan has checked its graph and row domain.
+fn client_node_publication_limits_original(
+  max_payload_bytes : Int,
+  original : ClientLocalCapacityPlan,
+) -> @publication_host.PublicationOutputExportLimits? {
+  if max_payload_bytes < 1 {
+    return None
+  }
   guard original.publication is Some(publication) else { return None }
   let rows = publication.rows
   let envelope = publication.envelope
