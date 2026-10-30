@@ -273,7 +273,7 @@
     {
       "id": "A18",
       "required": "Exact public Node entry installs outside repository",
-      "currentSlice": "Existing Node install harness has explicit digest-bound public mode: full original cohort and remote-byte preflight, isolated npm/HOME, exact one-entry install and original payload/lock audit. Inert components only; actual selected public candidate/runtime/platform acceptance pending",
+      "currentSlice": "Existing Node public install harness can bind its full original development/final cohort to an explicitly supplied upper release-set digest and target, preserving clean-source/interface/business checks. Initial/final public bytes and original upper/child inputs are reobserved. Inert components only; actual selected public candidate/runtime/platform acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -283,6 +283,10 @@
         {
           "kind": "Inert archive/injected-HTTP/installed-tree component only; not actual public npm or runtime acceptance",
           "test": "public consumer: real original cohort verifier and existing npm identity/byte reader precede installation, without changing fixed bytes"
+        },
+        {
+          "kind": "Original inert archive/fixed-set byte-lineage component only; no real public npm install, business execution, platform or owner acceptance",
+          "test": "fixed Node public consumer: full original cohort binds the same fixed child and upper without copying or changing files"
         }
       ]
     },

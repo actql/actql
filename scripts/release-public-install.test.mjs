@@ -3,17 +3,18 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, writeFile, rm, rename, symlink} from 'node:fs/promises';
+import {cp, mkdir, mkdtemp, readFile, writeFile, rm, rename, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test, {before, after} from 'node:test';
 import {admitCohort, stagePackage, unpack, inventory} from './package-release.mjs';
 import {observeNpmPackageRelease} from './release-registry.mjs';
+import {freezeReleaseSet} from './release-set.mjs';
 import {releaseInstallSelection, publicNpmRegistry, publicConsumerEnvironment,
-  publicInstallCommand, verifyPublicConsumer} from './release-public-install.mjs';
+  publicInstallCommand, verifyPublicConsumer, verifyPublicNodeReleaseBinding} from './release-public-install.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
-let root, directory, manifest, original, manifestSha256;
+let root, directory, manifest, original, manifestSha256, fixedDirectory, fixedSet;
 
 before(async () => {
   root = await mkdtemp(join(tmpdir(), 'actql-public-consumer-component-')); directory = join(root, 'cohort');
@@ -47,6 +48,14 @@ before(async () => {
     generation: 'normal-prepack-then-metadata-and-license-only', packages};
   original = Buffer.from(JSON.stringify(manifest)); manifestSha256 = sha(original);
   await writeFile(join(directory, 'release.json'), original);
+  fixedDirectory = join(root, 'fixed');
+  fixedSet = await freezeReleaseSet({request: {schemaVersion: 'actql-release-request/0.1', releaseId: 'inert-node-install-binding',
+    version: manifest.cohort.packageVersion, source: {repository: 'https://github.com/actql/actql', commit: manifest.sourceSha, branch: 'main'},
+    targets: [{id: 'node', ecosystem: 'npm', packages: manifest.packages.map(value => value.name), platforms: ['darwin-arm64'],
+      profiles: ['local', 'remote'], destination: publicNpmRegistry, channels: [manifest.cohort.tag]}],
+    notes: {summary: 'Inert upper binding only', breakingChanges: [], migration: [], knownLimitations: ['No product/runtime/publication']}},
+    policy: {schemaVersion: 'actql-release-policy/0.1', allowedLines: ['0.0'], publicationAuthority: 'external-owner-approval-required'},
+    cohorts: [{targetId: 'node', kind: 'node-npm', directory}], destination: fixedDirectory});
 });
 after(async () => {if (root) await rm(root, {recursive: true, force: true});});
 
@@ -90,6 +99,61 @@ test('public consumer: mode is explicit, digest-bound and never falls back to lo
   for (const args of [[], ['rc', '--public-registry'], ['rc', '--public-registry', 'HEAD'],
     ['rc', '--registry', 'http://127.0.0.1:9'], ['rc', '--public-registry', 'a'.repeat(64), '--fallback']])
     assert.throws(() => releaseInstallSelection(args));
+});
+
+const upperSelection = (originalDirectory = directory, fixed = fixedDirectory, digest = fixedSet.sha256) =>
+  releaseInstallSelection([originalDirectory, '--public-registry', manifestSha256, '--release-set', fixed, digest, '--target', 'node']);
+
+test('fixed Node public consumer: both exact digests and original target are explicit with no fallback', () => {
+  const selected = upperSelection();
+  assert.equal(selected.kind, 'public-npm'); assert.equal(selected.manifestSha256, manifestSha256);
+  assert.deepEqual(selected.releaseSet, {directory: fixedDirectory, manifestSha256: fixedSet.sha256, targetId: 'node'});
+  const args = [directory, '--public-registry', manifestSha256, '--release-set', fixedDirectory, fixedSet.sha256, '--target', 'node'];
+  for (const [index, value] of [[3, '--fallback'], [5, 'HEAD'], [6, '--package'], [7, '../other']]) {
+    const changed = [...args]; changed[index] = value; assert.throws(() => releaseInstallSelection(changed));
+  }
+  assert.throws(() => releaseInstallSelection([...args, '--approve']));
+});
+
+test('fixed Node public consumer: full original cohort binds the same fixed child and upper without copying or changing files', async () => {
+  const before = [await readFile(join(directory, 'release.json')), await readFile(join(fixedDirectory, 'release-set.json'))];
+  const value = await verifyPublicNodeReleaseBinding(upperSelection());
+  assert.equal(value.manifestSha256, fixedSet.sha256); assert.equal(value.cohortManifestSha256, manifestSha256);
+  assert.equal(value.sourceSha, manifest.sourceSha); assert.equal(value.targetId, 'node'); assert.equal(value.artifacts.length, 4);
+  assert(value.qualification.includes('not runtime'));
+  assert.deepEqual([await readFile(join(directory, 'release.json')), await readFile(join(fixedDirectory, 'release-set.json'))], before);
+  assert.equal(await verifyPublicNodeReleaseBinding(releaseInstallSelection([directory, '--public-registry', manifestSha256])), null);
+});
+
+test('fixed Node public consumer: flat final artifacts cannot replace missing original development lineage', async () => {
+  await assert.rejects(verifyPublicNodeReleaseBinding(upperSelection(join(fixedDirectory, 'node'))), {code: 'ENOENT'});
+});
+
+test('fixed Node public consumer: wrong upper child digest or target refuses before consumer execution', async () => {
+  await assert.rejects(verifyPublicNodeReleaseBinding(upperSelection(directory, fixedDirectory, 'f'.repeat(64))), /externally retained digest/u);
+  const child = upperSelection(); child.manifestSha256 = 'f'.repeat(64);
+  await assert.rejects(verifyPublicNodeReleaseBinding(child), /child digest differs/u);
+  const target = upperSelection(); target.releaseSet.targetId = 'other';
+  await assert.rejects(verifyPublicNodeReleaseBinding(target), /original Node npm target/u);
+});
+
+test('fixed Node public consumer: unchanged final manifest cannot hide changed final or original supplier archive', async t => {
+  for (const originalArchive of [false, true]) {
+    const own = await mkdtemp(join(root, 'changed-lineage-')); t.after(() => rm(own, {recursive: true}));
+    const copy = join(own, 'original'); await cp(directory, copy, {recursive: true});
+    const item = manifest.packages[0], path = originalArchive ? join(copy, 'development', item.originalFile) : join(copy, item.file);
+    const bytes = await readFile(path); await writeFile(path, Buffer.alloc(bytes.length, 65));
+    await assert.rejects(verifyPublicNodeReleaseBinding(upperSelection(copy)));
+  }
+});
+
+test('fixed Node public consumer: later original upper changes are reobserved rather than returning an earlier tuple', async t => {
+  const own = await mkdtemp(join(root, 'changed-upper-')); t.after(() => rm(own, {recursive: true}));
+  const copy = join(own, 'fixed'); await cp(fixedDirectory, copy, {recursive: true});
+  const selected = upperSelection(directory, copy); await verifyPublicNodeReleaseBinding(selected);
+  const path = join(copy, 'node', manifest.packages[0].file), bytes = await readFile(path);
+  await writeFile(path, Buffer.alloc(bytes.length, 65));
+  await assert.rejects(verifyPublicNodeReleaseBinding(selected));
 });
 
 test('public consumer: fresh configuration excludes publisher/source injection and requests only one exact entry without scripts', () => {
