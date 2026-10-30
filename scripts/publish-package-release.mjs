@@ -7,6 +7,7 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {publicationPlan, publishedVersion, verifyPackageRelease} from './package-release.mjs';
+import {refuseUnconfiguredPublication} from './release-authority.mjs';
 
 export async function publishPackageRelease({directory, executePublish, fetchMetadata = fetch, verify = verifyPackageRelease}) {
   const manifest = await verify(directory);
@@ -41,6 +42,7 @@ export async function publishPackageRelease({directory, executePublish, fetchMet
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [permission, input] = process.argv.slice(2);
   assert(permission === '--publish' && input, 'usage after release GO: publish-package-release.mjs --publish <RC-directory>');
+  refuseUnconfiguredPublication();
   const directory = resolve(input);
   const manifest = await verifyPackageRelease(directory);
   const identity = execFileSync('npm', ['whoami', '--registry', manifest.cohort.registry,

@@ -3,5 +3,6 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/calendar_profile",
   "actql/actql/connectors/calendar/catalog",
 }

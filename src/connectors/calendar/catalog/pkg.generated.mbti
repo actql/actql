@@ -2,10 +2,37 @@
 package "actql/actql/connectors/calendar/catalog"
 
 import {
+  "actql/actql/calendar_profile",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn calendar_events_column_names() -> Array[String]
+
+pub fn calendar_events_envelope_calendar_id(CalendarEventsEnvelope) -> String
+
+pub fn calendar_events_envelope_count(CalendarEventsEnvelope) -> Int
+
+pub fn calendar_events_envelope_ids(CalendarEventsEnvelope) -> Array[String]
+
+pub fn calendar_events_envelope_profile_cid(CalendarEventsEnvelope) -> String
+
+pub fn calendar_events_facts_wire() -> String
+
+pub fn calendar_events_ids(CalendarEventsPage) -> Array[String]
+
+pub fn calendar_events_matches_query(CalendarEventsPage, CalendarEventsQuery) -> Bool
+
+pub fn calendar_events_metadata_wire(CalendarEventsPage, Int, Int, Int) -> Result[String, CalendarEventsIssue]
+
+pub fn calendar_events_query_wire(CalendarEventsQuery, Int, Int, Int) -> Result[String, CalendarEventsIssue]
+
+pub fn calendar_events_row_count(CalendarEventsPage) -> Int
+
+pub fn calendar_events_rows_wire(CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, CalendarEventsIssue]
+
+pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, CalendarEventsIssue]
+
 pub fn calendar_free_busy_column_names() -> Array[String]
 
 pub fn calendar_free_busy_facts_wire() -> String
@@ -38,9 +65,17 @@ pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo
 
 pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool
 
+pub fn prepare_calendar_events_query(String, String, String, String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]
+
 pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]
 
 pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]
+
+pub fn project_calendar_event_times(Bytes, String, @calendar_profile.Profile, CalendarEventTimeLimits) -> Result[CalendarEventTimes, CalendarEventTimeIssue]
+
+pub fn project_calendar_events(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsPage, CalendarEventsIssue]
+
+pub fn project_calendar_events_envelope(Bytes, CalendarEventsQuery, CalendarEventsLimits) -> Result[CalendarEventsEnvelope, CalendarEventsIssue]
 
 pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]
 
@@ -49,6 +84,77 @@ pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPa
 // Errors
 
 // Types and methods
+pub(all) enum CalendarEventTimeIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidEvent
+  InvalidTime
+  MixedTimeKinds
+  ReversedInterval
+  TimeZoneUnavailable
+  TimeZoneCoverage
+  ResolutionWorkLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarEventTimeLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_resolution_work : Int
+}
+
+pub struct CalendarEventTimes {
+  start : String
+  end : String
+  all_day : Bool
+  response_sha256 : String
+  calendar_profile_cid : String
+}
+
+pub struct CalendarEventsEnvelope {
+  response_sha256 : String
+  next_page_token : String?
+  // private fields
+}
+
+pub(all) enum CalendarEventsIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidQuery
+  TimeZoneUnavailable
+  InvalidResponse
+  ForeignTimeZone
+  InvalidCursor
+  DuplicateEvent(String)
+  InvalidCell(String)
+  IncompleteAttendees
+  InvalidSelection(String)
+  EventTime(CalendarEventTimeIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarEventsLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_identity_bytes : Int
+  max_cursor_bytes : Int
+  max_attendees : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+  max_resolution_work : Int
+}
+
+pub struct CalendarEventsPage {
+  response_sha256 : String
+  next_page_token : String?
+  // private fields
+}
+
+pub struct CalendarEventsQuery {
+  // private fields
+}
+
 pub(all) enum CalendarFreeBusyIssue {
   InvalidLimits
   InvalidQuery
