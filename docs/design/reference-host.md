@@ -1604,7 +1604,8 @@ refusal and cleanup; neither Promise settlement nor a numeric quote is a
 physical cleanup acknowledgement.
 
 The same implementation recipe can select bounded `credentialOperations` by
-the fixed phases `capture-check`, `apply-check`, `resume-check` and `write`.
+the fixed phases `capture-check`, `apply-check`, `resume-check`, `write-check`
+and `write`.
 Each selects its own declared row operation index; the constructor and other
 phases cannot share that index, even when their operation names match. These
 descriptors retain original typed extents and rejection bounds, not capacity
@@ -1628,6 +1629,26 @@ alias prevents settlement. A provider's omitted await cannot detach its
 original physical call from the child. Saved recovery needs its actual original
 parent and child retainer; a saved recipe or CID cannot select fresh backing or
 silently restore the legacy physical route.
+
+The standard CREATE declaration can express a read check as fixed `http`
+method/path/headers/bounds plus synchronous `body` and Unit `project`
+callbacks. These callbacks receive original provider request/response DATA
+only; the common adapter owns the scoped HTTP invocation. The legacy
+`check.request` callback remains a separate consuming form and cannot be mixed
+with that declaration. An invalid async projection remains joined through
+settlement, with its original rejection preserved, before the same child can
+finish. A body or projection supplies no grant, current decision or ACK.
+
+An optional fixed `check.beforeSend` additionally requires a distinct
+`write-check` occurrence. The constructor captures the original check method
+and receiver and refuses missing/incompatible recipe supply. Inside the same
+durable dispatch, the Host obtains a fresh acquisition decision and its own
+original read grant, awaits that retained read child, then selects the separate
+write child. The commit decision never authorizes the read. A rejected read
+leaves the original claim in place without a mutation response or settlement;
+it cannot authorize resend or manufacture a terminal failure. Kintone supplies
+only the exact original App request and complete Form correspondence, keeping
+its native request/Mapping distinct from permission and physical custody.
 
 Native Kintone CREATE constructor inventories retain the original Mapping and
 Form as borrows. Mapped value construction, complete current Form projection
