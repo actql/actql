@@ -150,3 +150,22 @@ test('constructor selection stays on its exact declared original row occurrence'
   const selected=captureInstalledEffectPlanRecipe(Object.freeze({...base,requestConstruction:Object.freeze({operationIndex:0})}),1);
   assert.equal(selected.rowOperations[0].extent,row.extent);assert.equal(selected.requestConstruction.operationIndex,0);
 });
+
+test('physical recipe snapshots distinct phase occurrences without sharing the constructor or write slot',()=>{
+  const rows=Object.freeze(Array.from({length:5},()=>Object.freeze({operation:'same read name',extent:{}})));
+  const phases=['capture-check','apply-check','resume-check','write'];
+  const entries=Object.freeze(phases.map((phase,index)=>Object.freeze({phase,operationIndex:index+1,maxRequestBytes:64,maxResponseBytes:128})));
+  const original=Object.freeze({memberOperations:Object.freeze([]),rowOperations:rows,
+    requestConstruction:Object.freeze({operationIndex:0}),credentialOperations:entries});
+  const selected=captureInstalledEffectPlanRecipe(original,5);
+  assert.notEqual(selected.credentialOperations,entries);assert(Object.isFrozen(selected.credentialOperations));
+  assert.deepEqual(selected.credentialOperations.map(value=>value.operationIndex),[1,2,3,4]);
+  for(const changes of [
+    [entries[0],entries[0],entries[3]],
+    [entries[0],Object.freeze({...entries[3],operationIndex:1})],
+    [Object.freeze({...entries[3],operationIndex:0})],
+    [entries[0]],
+    [Object.freeze({...entries[3],maxRequestBytes:0})],
+  ])assert.throws(()=>captureInstalledEffectPlanRecipe(Object.freeze({...original,credentialOperations:Object.freeze(changes)}),5),
+    {code:'InvalidInstalledEffectPlanRecipe'});
+});

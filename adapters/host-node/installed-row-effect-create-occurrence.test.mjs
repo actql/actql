@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
-import {prepareInstalledEffectRequestChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -251,4 +251,58 @@ test('actual create check forwards the same issued authorization into its select
   assert.equal(forwarded.member,selected);assert.equal(forwarded.rowIndex,0);
   assert.equal(forwarded.operation,'form-read');assert.equal(forwarded.purpose,'read');
   assert.equal(forwarded.useId,'dispatch-check-subject-0');
+});
+
+test('actual capture operation retains the original bound child before invoking its separately selected read',async()=>{
+  const selected={memberIndex:2},credential={},binding={},control={},journal={},resolveSecret=()=>{},token={},extent={};
+  const parent={},prepared={},identity={},plan={},grant={},children=[],events=[];
+  const scope=Object.freeze({runtimeBundleCid:'runtime',connectorRegistration:'connector',connectorRevision:'revision',
+    runInvocationCid:'run',dispatchRequestCid:'dispatch',operation:'form-read'});
+  const raw=Object.freeze({grant,scope});let retired=false;
+  const moon={clientProgramInstalledEffectManagedPlanCaptureChildren:original=>{assert.equal(original,plan);return 1;},
+    clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    clientProgramInstalledEffectManagedPlanOperation:(original,memberIndex,perRow,index,operation)=>{
+      assert.equal(original,plan);assert.deepEqual([memberIndex,perRow,index,operation],[2,true,3,'form-read']);return {$tag:1,_0:extent};},
+    clientProgramInstalledEffectOperationExtentPhysical:()=>true,
+    clientProgramInstalledEffectOperationExtentTransfer:()=>129n,
+    clientProgramInstalledEffectOperationBorrow(){events.push('borrow');return {$tag:1,_0:token};},
+    clientProgramInstalledEffectOperationStart:()=>({$tag:1,_0:undefined}),
+    clientProgramInstalledEffectOperationCharge:()=>({$tag:1,_0:undefined}),
+    clientProgramInstalledEffectOperationRetire:()=>({$tag:1,_0:true})};
+  const managedEffect={runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
+    readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+  const originalSite=Object.freeze({runtimeBundleCid:'runtime',connectorRegistration:'connector',connectorRevision:'revision',
+    referenceCurrent:()=>true,authorizationPurpose(original){assert.equal(original,raw);return {kind:'read',resource:'rows'};},
+    bindRunAcquisition(original){assert.equal(original,raw);assert.equal(children.length,1);events.push('bind');
+      return {credential:{binding,control,journal,resolveSecret},close:()=> 'closed'};},
+    callResource(){events.push('read');return Promise.resolve({originalResponse:true});}});
+  const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
+    {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
+  const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
+    installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
+    prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
+  const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
+    useId:'use',resource:'rows',purpose:'read',managedEffect,requestChildren:children,retireRequestAliases:()=>retired,
+    runInvocationCid:'run',dispatchRequestCid:'dispatch',assertCurrent(){},
+    invoke:({authorization,credential:bound,callResource})=>{
+      assert.equal(children.length,1);assert.equal(authorization.grant,grant);assert.equal(authorization.useId,'use');
+      return callResource({grant,scope,useId:'use',...bound,operations:new Map([['form-read',Object.freeze({method:'GET',path:'/form'})]]),
+        maxRequestBytes:64,maxResponseBytes:64});}};
+  assert.deepEqual(await actual(input),{originalResponse:true});
+  assert.deepEqual(events,['borrow','bind','read']);
+  await children[0].prepared.release();assert.equal(children[0].prepared.status().pending,true);
+  retired=true;await children[0].prepared.retry();assert.equal(children[0].prepared.status().pending,false);
+  await assert.rejects(actual(input),{code:'InstalledEffectPhysicalChildLimit'});
+});
+
+test('managed create checks and cold routes refuse missing original parent retention before grant or provider entry',async()=>{
+  let entered=0;
+  const selected={kind:'create'},owner={managedPlanRecipe:{credentialOperations:[]},
+    owned:{check:{resource:'rows',operation:'form-read'}},site:{issueReadGrant:()=>{entered++;}}};
+  const checkRows=expression('checkRows',{ownerOf:()=>owner,readDecision:async()=>{entered++;},fail});
+  await assert.rejects(checkRows({members:[selected],entries:[[]],dispatches:[],subjectOf:()=> 'subject'}),
+    {code:'InstalledEffectPhysicalPlanUnavailable'});
+  const physicalRoute=expression('physicalRoute',{ownerOf:()=>owner,fail});
+  assert.throws(()=>physicalRoute({members:[selected],operationPhase:'resume'}),{code:'InstalledEffectPhysicalPlanUnavailable'});
+  assert.equal(entered,0);
 });
