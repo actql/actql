@@ -63685,7 +63685,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02891cc441d8acae6109a2f3a74535a53c3f63a0327902411a8b079ebcdbc736",
+      "sha256": "89ec6b2796e840c5b0f208b956bb8933dd2ae3cedaec4e898117445222aef7b0",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -63726,6 +63726,13 @@
         },
         {
           "name": "captureConfigurationReaders/captureConfigurationReaders#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#4",
           "parameters": [
             "args"
           ],
@@ -64413,6 +64420,7 @@
             "captureConfigurationReaders/captureConfigurationReaders",
             "captureConfigurationReaders/captureConfigurationReaders#2",
             "captureConfigurationReaders/captureConfigurationReaders#3",
+            "captureConfigurationReaders/captureConfigurationReaders#4",
             "captureConfigurationReaders/refuse/refuse"
           ],
           "exports": [
@@ -64529,6 +64537,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.test.mjs",
                 "anchor": "test('configuration reader selection refuses malformed original-text ports without fallback'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection retains original-bytes and text independently before an await'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses malformed original-bytes ports and preserves omission'"
               }
             ]
           }
