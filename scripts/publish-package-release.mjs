@@ -144,7 +144,7 @@ export async function stagePackageRelease(options) {
   assert(atLeast(process.versions.node, '22.14.0'), 'Selected stage runner needs Node22.14 or newer');
   assert(atLeast(npmVersion, '11.15.0'), 'Selected stage runner needs npm11.15 or newer');
   const tool = await runNpm(['--version']);
-  assert(tool?.code === 0 && typeof tool.stdout === 'string' && tool.stdout === `${npmVersion}\n`, 'Actual npm differs from the explicit protected pin');
+  assert(tool?.code === 0 && tool.signal === null && typeof tool.stdout === 'string' && tool.stdout === `${npmVersion}\n`, 'Actual npm differs from the explicit protected pin');
   const observe = file => observeNpmStageTarget(directory, expectedSha256, targetId, {fetchStage, fetchResponse, file});
   const initial = await observe(null);
   assert(initial.observations.every(value => ['published', 'pending', 'missing'].includes(value.state)), 'Stage preflight is unknown or conflicting');
@@ -177,7 +177,7 @@ export async function stagePackageRelease(options) {
     assert.equal(typeof execute, 'function', 'Initial-name owner operation unavailable at the actual boundary');
     if (current.namespace === 'absent') {
       const initialTool = await execute(['--version']);
-      assert(initialTool?.code === 0 && initialTool.stdout === `${npmVersion}\n`, 'Initial-name owner tool differs from the explicit pin');
+      assert(initialTool?.code === 0 && initialTool.signal === null && initialTool.stdout === `${npmVersion}\n`, 'Initial-name owner tool differs from the explicit pin');
     }
     const captured = await readFrozenReleaseArtifact(directory, expectedSha256, targetId, item.file);
     const payloadRoot = join(attempt, `payload-${index}`); await mkdir(payloadRoot, {mode: 0o700}); await syncDirectory(attempt);
@@ -193,12 +193,21 @@ export async function stagePackageRelease(options) {
       await record(`${index}-unknown.json`, {state: 'unknown', reason: 'invalid-or-oversized-runner-response'});
       throw Error(`Original stage outcome unknown; preserve ${attempt}`);
     }
-    const raw = await record(`${index}-stdout.json`, Buffer.from(reply.stdout));
+    const output = Buffer.from(reply.stdout), code = reply.code, signal = reply.signal;
+    const raw = await record(`${index}-stdout.json`, output);
+    const terminal = {};
+    if (code === null || Number.isInteger(code)) terminal.code = code;
+    else terminal.unreportedOrInvalidCode = true;
+    if (signal === null || (typeof signal === 'string' && Buffer.byteLength(signal) <= 64)) terminal.signal = signal;
+    else terminal.unreportedOrInvalidSignal = true;
+    // Keep original bounded terminal DATA separately from success and remote
+    // readback. A receipt/descriptor failure retains its original cleanup duty.
+    await record(`${index}-terminal.json`, terminal);
     let id;
-    try {assert.equal(reply.code, 0); id = stageResponse(Buffer.from(reply.stdout), item);}
+    try {assert.equal(code, 0); assert.equal(signal, null); id = stageResponse(output, item);}
     catch {await record(`${index}-unknown.json`, {state: 'unknown', reason: 'command-or-original-response-unconfirmed', raw}); throw Error(`Original stage outcome unknown; preserve ${attempt}`);}
     await record(`${index}-command.json`, {schemaVersion: 'actql-npm-stage-command/0.1', manifestSha256: expectedSha256,
-      targetId, commandSucceeded: true, stageId: id, raw, confirmation: 'unobserved'});
+      targetId, code, signal, commandSucceeded: true, stageId: id, raw, confirmation: 'unobserved'});
     const after = await observe(item.file); await record(`${index}-after.json`, after);
     const confirmed = after.observations[0];
     assert(confirmed.state === 'published' || (confirmed.state === 'pending' && confirmed.stageId === id),

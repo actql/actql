@@ -456,7 +456,12 @@ and target. The exact artifact is copied into a private read-only payload;
 the intent is synced before the send. Only `npm stage publish` with explicit
 registry/access/tag/provenance and ignored lifecycle scripts is issued. Raw
 command output and command success remain distinct from owner byte readback.
-A lost reply or unavailable confirmation remains unknown. Later recovery
+A successful tool probe or stage send requires the original terminal result
+with exit code `0` and an explicitly reported `signal: null`. A signal or missing
+status is not success even when stdout contains a valid stage ID. The bounded
+original stdout and terminal status remain separate receipts; malformed or
+unreported status is marked without inventing a successful terminal. A lost
+reply or unavailable confirmation remains unknown. Later recovery
 reobserves the originals, reuses an exact public/pending version without sending
 again, and sends only missing bytes within the separately approved scope.
 

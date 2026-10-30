@@ -178,7 +178,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Original fixed bytes, durable intent, raw command response and separate complete owner pending-stage byte readback support the reusable npm protocol. Lost replies stay Unknown and exact pending/public versions are not resent; actual protected staging/publication/recovery remains pending",
+      "currentSlice": "Original fixed bytes, durable intent, raw command response and separate complete owner pending-stage byte readback support the reusable npm protocol. Lost replies stay Unknown and exact pending/public versions are not resent; actual protected staging/publication/recovery remains pending. npm staging now requires explicit original code0/signalnull on tool probes and sends; signalled or unreported terminal state stays Unknown with original stdout/status, no next send and explicit same-byte recovery. Registry bytes do not replace the terminal duty.",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -200,6 +200,10 @@
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: partial lost response preserves Unknown intent and resumes original pending bytes without sending them again"
+        },
+        {
+          "kind": "Full original inert archives/readers with injected terminal/status ports; no registry, credential, provenance, approval or actual stage acceptance",
+          "test": "npm stage terminal: signalled original send stops once with raw status and explicit no-resend recovery"
         }
       ]
     },

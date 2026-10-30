@@ -104,7 +104,7 @@ async function fixture(t) {
     return parsed.pathname.endsWith('/tarball') ? new Response(stage.bytes) : Response.json(stage.body);
   };
   const run = role => async (args, context) => {
-    if (args.length === 1 && args[0] === '--version') return {code: 0, stdout: control.wrongTool ? '10.9.4\n' : '11.15.0\n'};
+    if (args.length === 1 && args[0] === '--version') return {code: 0, signal: null, stdout: control.wrongTool ? '10.9.4\n' : '11.15.0\n'};
     const item = artifacts.find(value => value.name === context.artifact.name); assert(item);
     assert.deepEqual(args.slice(0, 2), ['stage', 'publish']);
     assert.deepEqual(args.slice(3), ['--ignore-scripts', '--json', '--registry', registry, '--access', 'public', '--tag', 'candidate-synthetic', '--provenance']);
@@ -117,7 +117,7 @@ async function fixture(t) {
     const id = uuid(index); pending.set(item.name, {body: {id, packageName: item.name, version: item.version,
       tag: 'candidate-synthetic', status: 'awaiting_approval', shasum: 'not-a-reuse-proof'}, bytes}); namesAbsent.delete(item.name);
     if (control.throwAfterSend) {control.throwAfterSend = false; throw Error('Independent lost stage response');}
-    return {code: 0, stdout: control.malformedReply ? '{' : JSON.stringify({[item.name]: {id: `${item.name}@${item.version}`,
+    return {code: 0, signal: null, stdout: control.malformedReply ? '{' : JSON.stringify({[item.name]: {id: `${item.name}@${item.version}`,
       name: item.name, version: item.version, size: item.bytes, integrity: item.integrity, stageId: id + control.stageIdSuffix}})};
   };
   const receiptsDirectory = join(own, 'receipts');
@@ -213,7 +213,7 @@ test('npm stage: a newly absent namespace still checks the separate initial owne
     return f.options.fetchResponse(url, options);
   };
   const executeInitialStage = async args => {
-    assert.deepEqual(args, ['--version']); initialProbes++; return {code: 0, stdout: '11.16.0\n'};
+    assert.deepEqual(args, ['--version']); initialProbes++; return {code: 0, signal: null, stdout: '11.16.0\n'};
   };
   await assert.rejects(f.stage({fetchResponse, executeInitialStage}), /Initial-name owner tool differs/u);
   assert.equal(initialProbes, 1); assert.deepEqual(f.commands, []);
@@ -292,4 +292,65 @@ test('npm stage: final stable channels cannot be applied through stage approval 
   const destination = join(f.own, 'latest-review'), fixed = await prepareReleaseReview({directory: base, expectedSha256: sha256, reviewFile: file, destination});
   await assert.rejects(npmStagePlan(destination, fixed.sha256, 'node'), /separate staging tag/u);
   assert.deepEqual(f.commands, []);
+});
+
+test('npm stage terminal: signalled or unreported main tool probe refuses before any registry read',async t=>{
+  for(const signal of ['SIGTERM',undefined]){
+    const f=await fixture(t);
+    const runNpm=async(args,context)=>{
+      const reply=await f.options.runNpm(args,context);
+      if(args[0]==='--version'){if(signal===undefined)delete reply.signal;else reply.signal=signal;}
+      return reply;
+    };
+    await assert.rejects(f.stage({runNpm}),/Actual npm differs from the explicit protected pin/u);
+    assert.deepEqual(f.calls,[]);assert.deepEqual(f.commands,[]);
+  }
+});
+
+test('npm stage terminal: initial owner probe cannot bypass explicit terminal status',async t=>{
+  for(const signal of ['SIGTERM',undefined]){
+    const f=await fixture(t);f.artifacts.forEach(item=>f.namesAbsent.add(item.name));let probes=0;
+    const executeInitialStage=async(args,context)=>{
+      const reply=await f.executeInitialStage(args,context);
+      if(args[0]==='--version'){probes++;if(signal===undefined)delete reply.signal;else reply.signal=signal;}
+      return reply;
+    };
+    await assert.rejects(f.stage({executeInitialStage}),/Initial-name owner tool differs/u);
+    assert.equal(probes,1);assert.deepEqual(f.commands,[]);assert.equal(f.pending.size,0);
+  }
+});
+
+test('npm stage terminal: signalled original send stops once with raw status and explicit no-resend recovery',async t=>{
+  const f=await fixture(t);let afterSendReads=0;
+  const fetchStage=async(url,options)=>{if(f.commands.length)afterSendReads++;return f.options.fetchStage(url,options);};
+  const runNpm=async(args,context)=>{
+    const reply=await f.options.runNpm(args,context);if(args[0]!=='--version')reply.signal='SIGTERM';return reply;
+  };
+  await assert.rejects(f.stage({runNpm,fetchStage}),/Original stage outcome unknown/u);
+  assert.equal(f.commands.length,1);assert.equal(f.pending.size,1);assert.equal(afterSendReads,0);
+  const target=join(f.options.receiptsDirectory,reviewed.sha256,'node'),[attempt]=await readdir(target);
+  const original=join(target,attempt),intent=join(original,'0-intent.json');
+  const bytes=await readFile(intent),inode=(await lstat(intent)).ino;
+  assert.deepEqual(JSON.parse(await readFile(join(original,'0-terminal.json'))),{code:0,signal:'SIGTERM'});
+  assert.equal(JSON.parse(await readFile(join(original,'0-unknown.json'))).reason,'command-or-original-response-unconfirmed');
+  await assert.rejects(readFile(join(original,'0-command.json')),{code:'ENOENT'});
+  assert.equal(JSON.parse(await readFile(join(original,'0-stdout.json')))[f.artifacts[0].name].stageId,uuid(0));
+  const result=await f.stage();assert(result.results.every(item=>item.state==='pending'));
+  assert.deepEqual(f.commands.map(item=>item.name),f.artifacts.map(item=>item.name));
+  assert.deepEqual(await readFile(intent),bytes);assert.equal((await lstat(intent)).ino,inode);
+});
+
+test('npm stage terminal: missing send status stays Unknown without a successful command receipt',async t=>{
+  for(const field of ['signal','code']){
+    const f=await fixture(t);
+    const runNpm=async(args,context)=>{
+      const reply=await f.options.runNpm(args,context);if(args[0]!=='--version')delete reply[field];return reply;
+    };
+    await assert.rejects(f.stage({runNpm}),/Original stage outcome unknown/u);
+    assert.equal(f.commands.length,1);assert.equal(f.pending.size,1);
+    const target=join(f.options.receiptsDirectory,reviewed.sha256,'node'),[attempt]=await readdir(target);
+    assert.equal(JSON.parse(await readFile(join(target,attempt,'0-unknown.json'))).reason,'command-or-original-response-unconfirmed');
+    await assert.rejects(readFile(join(target,attempt,'0-command.json')),{code:'ENOENT'});
+    assert.equal(JSON.parse(await readFile(join(target,attempt,'0-stdout.json')))[f.artifacts[0].name].stageId,uuid(0));
+  }
 });
