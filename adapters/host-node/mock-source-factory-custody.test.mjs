@@ -93,3 +93,16 @@ test('repeated Source slots hold distinct children and close only their original
   await f.closeSource(0);assert.deepEqual(acquired.map(raw=>raw.closed),[1,1]);
   assert.deepEqual(retired,[0,1]);
 });
+
+// Execute the original Mock Run constructor. A retired Effect discriminator
+// must refuse before current callbacks, an independent quote or any Core use.
+test('retired Mock Effect discriminator cannot enter the Pure Run constructor', () => {
+  let current = 0, factories = 0;
+  const sourceManaged = {assertCurrent() {current++;},
+    prepareRun() {factories++; assert.fail('No replacement Pure Root');},
+    prepareEffectRun() {factories++; assert.fail('No legacy Effect Root');}};
+  const f = make({sourceManaged, moon: {}}, value => value, fail);
+  assert.throws(() => f.prepareManagedRun({}, {}, undefined, true),
+    {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(current, 0); assert.equal(factories, 0); assert.equal(f.held(), undefined);
+});

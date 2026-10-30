@@ -180,3 +180,10 @@ test('Effect Model Plan has no standalone manager Root constructor after Request
   f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });
+
+test('retired Mock Effect manager entry cannot acquire another Model Root', async () => {
+  const f = await fixture();
+  assert.equal(f.view.prepareEffectLocalMockModelRun, undefined);
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  await f.view.close();
+});
