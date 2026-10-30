@@ -108,6 +108,27 @@ pub fn client_program_installed_effect_operation_extent_from_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectResponseBufferConstructionCapacity")
+pub fn client_program_installed_effect_response_buffer_construction_capacity(
+  max_response_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_effect_response_buffer_construction_capacity(
+    max_response_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationResponseBackingFits")
+pub fn client_program_installed_effect_operation_response_backing_fits(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+  max_response_bytes : Int,
+) -> Bool {
+  @client_local_host.installed_effect_operation_response_backing_fits(
+    original, max_response_bytes,
+  )
+}
+
+///|
 // Original selected extent DATA, checked before binding allocation. These
 // projections neither admit a transfer nor turn a quota into observed bytes.
 #export_name("clientProgramInstalledEffectOperationExtentPhysical")

@@ -231,11 +231,12 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   const select=runtime?.clientProgramInstalledEffectManagedPlanOperation,
     isPhysical=runtime?.clientProgramInstalledEffectOperationExtentPhysical,
     transfer=runtime?.clientProgramInstalledEffectOperationExtentTransfer,
+    responseBackingFits=runtime?.clientProgramInstalledEffectOperationResponseBackingFits,
     borrow=runtime?.clientProgramInstalledEffectOperationBorrow,
     start=runtime?.clientProgramInstalledEffectOperationStart,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
-  if (![readPlan,select,isPhysical,transfer,borrow,start,charge,retire].every(value=>typeof value==='function')) {
+  if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const nativeCurrent=()=>{
@@ -252,6 +253,10 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   if(Reflect.apply(isPhysical,runtime,[extent])!==true || typeof declaredTransfer!=='bigint' ||
       declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
     fail('InsufficientInstalledEffectOperationTransfer');
+  }
+  if(maxResponseBytes>2147483647 ||
+      Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes])!==true) {
+    fail('InsufficientInstalledEffectResponseBacking');
   }
   let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
   let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
