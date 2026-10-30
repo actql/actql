@@ -76,4 +76,3 @@ test('Native package version: actual artifact CLI refuses invalid or duplicated 
   }
   await scratch.passed();
 });
-
