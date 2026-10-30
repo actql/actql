@@ -149,7 +149,7 @@ pub fn project_calendar_free_busy(
     return Err(BudgetExceeded)
   }
   let parsed = match
-    @source.parse_json_bytes(bytes, {
+    @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
