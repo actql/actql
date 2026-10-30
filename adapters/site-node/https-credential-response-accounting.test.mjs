@@ -46,3 +46,65 @@ test('bounded original response reader charges the actual refusal byte before di
   assert.equal(requests,1);assert.equal(f.claims(),1);assert.deepEqual(f.outcomes,['unknown']);
   assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
 });
+
+test('original binary response lengths and body remain exact through successful completion',async t=>{
+  const body=Buffer.from('{"text":"東京"}');
+  const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end(body);});
+  const lengths=[];
+  const result=await f.call({observeResponseBytes:n=>{assert.equal(f.outcomes.length,0);lengths.push(n);}});
+  assert.equal(lengths.reduce((a,b)=>a+b,0),body.byteLength);
+  assert.deepEqual(result.body,body);assert.deepEqual(f.outcomes,['succeeded']);
+  assert.equal(resource.httpsCredentialResponseWindowBytes(64),65n);
+  for(const invalid of [0,-1,NaN,1.5])assert.throws(()=>resource.httpsCredentialResponseWindowBytes(invalid),{code:'InvalidRemoteCredentialResponseWindow'});
+});
+
+test('a lost reply preserves its actual consumed prefix without a quota substitution or another request',async t=>{
+  let consumed;
+  const originalRead=new Promise(resolve=>{consumed=resolve;});
+  let requests=0;
+  const f=await fixture(t,(request,response)=>{
+    requests++;response.writeHead(200);response.write(Buffer.alloc(16384,120));
+    originalRead.then(()=>request.socket.destroy());
+  });
+  const lengths=[];
+  await assert.rejects(f.call({maxResponseBytes:32768,observeResponseBytes:n=>{lengths.push(n);consumed();}}));
+  assert.deepEqual(lengths,[16384]);assert.equal(requests,1);assert.deepEqual(f.outcomes,['unknown']);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+});
+
+test('an invalid asynchronous byte observer stays joined after socket close until its original settlement',async t=>{
+  for(const rejected of [false,true]){
+    let ready,resolve,reject;
+    const entered=new Promise(yes=>{ready=yes;});
+    const original=new Promise((yes,no)=>{resolve=yes;reject=no;});
+    const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end('{}');});
+    let completed=false;
+    const pending=f.call({observeResponseBytes(){ready();return original;}});
+    const refused=assert.rejects(pending,{code:'InvalidRemoteCredentialResponseByteObserver'}).then(()=>{completed=true;});
+    await entered;
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding),'pending');
+    await new Promise(setImmediate);assert.equal(completed,false);assert.deepEqual(f.outcomes,[]);
+    if(rejected)reject(new Error('original invalid observer failure'));else resolve();
+    await refused;
+    assert.deepEqual(f.outcomes,['unknown']);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+  }
+});
+
+test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
+  const primary=new Error('original Ledger charge refusal');
+  const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end('body');});
+  let charges=0;
+  await assert.rejects(f.call({observeResponseBytes(){charges++;throw primary;}}),error=>error===primary);
+  assert.equal(charges,1);assert.equal(f.claims(),1);assert.deepEqual(f.outcomes,['unknown']);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+});
+
+test('absent byte observation keeps the legacy body and a malformed observer refuses before claim',async t=>{
+  let requests=0;
+  const f=await fixture(t,(request,response)=>{requests++;response.writeHead(200);response.end('{}');});
+  await assert.rejects(f.call({observeResponseBytes:true}),{code:'InvalidRemoteCredentialResponseByteObserver'});
+  assert.equal(f.claims(),0);assert.equal(requests,0);
+  const result=await f.call({});assert.equal(result.body.toString(),'{}');
+  assert.equal(f.claims(),1);assert.equal(requests,1);assert.deepEqual(f.outcomes,['succeeded']);
+});
