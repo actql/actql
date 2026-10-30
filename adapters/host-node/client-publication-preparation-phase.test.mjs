@@ -369,3 +369,101 @@ test('Source evidence preparation failure preserves the exact capture cleanup ow
     assert.equal(entry.physicalWorkMayHaveStarted, true);
   }
 });
+
+
+function originalSourcePreparationCallbacks(entry, readContext, retire, originals) {
+  const callbacks = {explicitStartup: false, assertSourceManagedHostPreparation: value => assert.equal(value, originals),
+    prepareInstalledMockSourcePreparation() {}, readInstalledMockPreparation() {},
+    readInstalledProjectSourcePreparation() {}, originalSourceManagedHostRequest() {},
+    sourceManagedSubmittedIntentCid() {}, readSourceManagedRunRequirements() {},
+    readSourceManagedEffectRunRequirements() {}, readLocalMockModelRunRequirements() {},
+    readLocalContentRunRequirements() {}, readLocalPreparationContext: readContext,
+    retireSourceManagedInitialPreparation: retire,
+    prepareOrdinarySourceManagedInstallation(value, bag, source) {
+      assert.equal(value, originals); assert.equal(source, true); return bag;
+    }, prepareOrdinaryProjectSourceManagedInstallation(value, bag) {
+      assert.equal(value, originals); return bag;
+    }};
+  return get('./node-source-managed-installation.mjs', entry, callbacks)(originals);
+}
+
+test('both actual Source entries open the same Request before snapshot and retain its original retirement', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    for (const kind of ['program', 'aql']) {
+      const originals = {}, context = {}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
+      const callbacks = originalSourcePreparationCallbacks(entry, value => {
+        assert.equal(value, originals); events.push('context'); return context;
+      }, (value, body) => {assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');}, originals);
+      const receipts = new WeakMap(), producers = new Set();
+      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+        current() {}, callbacks, originals, receipts, producers, closed: false, fail,
+        requestPreparationAvailable: value => {assert.equal(value, context); return true;},
+        assertRequestPreparationControl: value => {assert.equal(value, context); events.push('control');},
+        beginRequestInput(state, receipt, actualConnection) {
+          assert.equal(state.context, context); assert.equal(receipts.get(receipt).preparation, state);
+          assert.equal(actualConnection, connection); assert.equal(producers.size, 1);
+          state.parent = parent; events.push('begin'); return true;
+        }, cleanupRequestInput() {assert.fail('successful opening has no early cleanup');},
+      }, true);
+      const receipt = before(kind, kind === 'program' ? {} : 'SELECT @original AS n',
+        {parameters: {original: 9}}, connection);
+      const producer = receipts.get(receipt);
+      assert.equal(producer.preparation?.parent, parent);
+      assert.deepEqual(events, ['context', 'control', 'begin']);
+      producer.preparation.prepared = prepared; producer.preparation.holder = holder;
+      context.runtime = {
+        clientProgramAbortRequestPreparation(value) {assert.equal(value, parent); events.push('abort');},
+        clientProgramPreparationBorrowRetirementStarted(value) {assert.equal(value, holder); return true;},
+        clientProgramPreparationBorrowReturn(value) {assert.equal(value, holder); events.push('return');},
+      };
+      const cleanup = get('../local-node/request-preparation-adapter.mjs', 'cleanupRequestInput', {
+        checked: value => value, invalid() {assert.fail('valid original retirement');},
+      });
+      const finish = get('./ordinary-source-managed.mjs', 'finishSourceProducer', {
+        producerFor: value => {assert.equal(value, receipt); return producer;}, fail, producers,
+        cleanupRequestInput: cleanup, retireInitialPreparation: body => callbacks.retireInitialPreparation(originals, body),
+        releaseFinishedProducer() {},
+      }, true);
+      finish(receipt, 'failed');
+      assert.equal(producer.preparation, undefined); assert.equal(producers.size, 0);
+      assert.deepEqual(events, ['context', 'control', 'begin', 'abort', 'retire', 'return', 'abort']);
+    }
+  }
+});
+
+test('Source context refuses unavailable original capability before producer allocation', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    const originals = {}, context = {}, receipts = new WeakMap(), producers = new Set();
+    const callbacks = originalSourcePreparationCallbacks(entry, () => context,
+      () => assert.fail('no prepared input to retire'), originals);
+    const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      current() {}, callbacks, originals, receipts, producers, fail,
+      requestPreparationAvailable: value => {assert.equal(value, context); return false;},
+      assertRequestPreparationControl() {assert.fail('no available original');},
+      beginRequestInput() {assert.fail('no allocation after original refusal');},
+    }, true);
+    assert.throws(() => before('aql', 'SELECT 9 AS n', {}, {}),
+      {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.equal(producers.size, 0);
+  }
+});
+
+
+test('Source context original refusal cannot allocate or select an unfunded snapshot', () => {
+  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
+    for (const issue of [new Error('original context current refused'), undefined]) {
+      const originals = {}, receipts = new WeakMap(), producers = new Set();
+      const callbacks = originalSourcePreparationCallbacks(entry, () => {throw issue;},
+        () => assert.fail('no preparation was acquired'), originals);
+      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+        current() {}, callbacks, originals, receipts, producers,
+        requestPreparationAvailable() {assert.fail('no returned context');},
+        beginRequestInput() {assert.fail('no allocation after original refusal');},
+      }, true);
+      let failed = false;
+      try {before('program', {}, {}, {});}
+      catch (actual) {failed = true; assert.equal(actual, issue);}
+      assert.equal(failed, true); assert.equal(producers.size, 0);
+    }
+  }
+});

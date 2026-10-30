@@ -3509,3 +3509,21 @@ usage against the publication limits. A transferred DATA value grants no Source
 permission or physical cleanup acknowledgment. Content, INFER, Effect, external
 wire admission, and stored restoration remain their separate existing
 boundaries until their actual consumers migrate.
+
+
+### Ordinary Source request context and retirement
+
+Both ordinary installed Source entries, including Project Sources, pass the
+Host's existing `readLocalPreparationContext` and
+`retireSourceManagedInitialPreparation` callbacks to their existing manager.
+The selected context is read before allocating the producer. The manager opens
+that context's Request before the SDK snapshot for native Programs and query
+text with options; its original retirement callback reaches the same prepared
+body before the preparation borrow returns.
+
+This forwarding does not construct an Environment, sequence contract, control,
+resource quote, or another parent. The existing context reader's exact
+runtime/control/contract/output-mode checks remain authoritative. Unsupported
+context selections and the remaining unfunded installation or consumer
+boundaries still require their own migration; callback presence is not proof
+of physical backing, Source permission, or successful cleanup.
