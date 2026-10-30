@@ -83,7 +83,9 @@ test('REST ordinary preflight refuses a second SDK namespace or workspace entry 
 });
 
 test('REST ordinary preflight refuses a symlinked module root before any product import', async t => {
-  const f = await fixture(t), shared = join(f.root, 'shared-modules');
+  const f = await fixture(t), workspace = join(f.root, 'workspace');
+  await mkdir(workspace);
+  const shared = join(workspace, 'node_modules');
   await rename(f.modules, shared);
   await symlink(shared, f.modules);
   await assert.rejects(resolveExternalRestModules({consumerRoot: f.consumerRoot,
