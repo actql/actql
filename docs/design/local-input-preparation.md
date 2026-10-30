@@ -3618,3 +3618,28 @@ parent through the required supplemental semantic phase before final compiler
 and body selection. Neither an absent verifier result nor this Unit return is
 permission to serialize again, substitute a Source publication, skip policy
 verification or manufacture an unowned fallback preparation.
+
+### Original Contract Value body construction
+
+`value_admission.contract_value_body_construction_inventory` projects the
+existing Value constructor inventory from the same admitted Contract and
+construction quantities. It does not manufacture a ParameterType or reread
+Parameter/default syntax. The original ParameterType route uses this same
+body; the completed ParameterSyntax route still uses its retained checked
+Decimal precision without another Contract walk. Arithmetic and representation
+quantities have one implementation.
+
+The supported body consists of scalar Text/Number/Boolean/Date/Timestamp/
+Signed64/Decimal and their Array/Object constructors. Json, Vector and reference
+constructors require their own inventories and return no inventory through this
+projection. This is an inventory scope, not a new language or value-admission
+restriction. Actual typed admission retains the original Contract and enforces
+its original type, nullability, constraints and node/depth/text limits.
+
+Construction geometry is DATA. An observed original subtree and a separately
+justified pre-construction envelope have different provenance; this projection
+proves neither. The caller must back its original metadata inspection frame
+before entry and justify every bound it supplies. It must also include its
+actual entry/checked-value, request/response overlap, writer, refusal and cleanup
+holdings. The returned logical constructor quantities neither reserve a Ledger
+nor establish physical backing, permission or a cleanup acknowledgment.

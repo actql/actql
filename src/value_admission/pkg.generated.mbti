@@ -120,6 +120,8 @@ pub fn complete_equality_pending_frames(CompleteEquality) -> Int
 
 pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
 
+pub fn contract_value_body_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?

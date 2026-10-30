@@ -18,9 +18,10 @@ pub(all) struct ParameterValueBodyConstructionInventory {
 
 ///|
 // Inspect only the original checked type, never its syntax or default value.
-// Its actual declaration reader alone owns supported kinds and precision law.
+// Its actual declaration reader alone owns constraints and precision law.
 // The caller backs this bounded metadata stack before requesting the inventory.
-fn parameter_body_decimal_precision(original : @contract.Contract) -> Int {
+// Json, Vector and reference constructors have different inventories.
+fn value_body_contract_precision(original : @contract.Contract) -> Int? {
   let pending = [original]
   let mut largest = 0
   while pending.pop() is Some(current) {
@@ -32,10 +33,35 @@ fn parameter_body_decimal_precision(original : @contract.Contract) -> Int {
         for index in 0..<@contract.field_count(fields) {
           pending.push(@contract.field_at(fields, index).unwrap().contract)
         }
-      _ => ()
+      @contract.Text(_)
+      | @contract.Number
+      | @contract.Boolean
+      | @contract.Timestamp
+      | @contract.Date
+      | @contract.Signed64 => ()
+      _ => return None
     }
   }
-  largest
+  Some(largest)
+}
+
+///|
+/// Constructor DATA from the SAME admitted non-reference Contract. No
+/// ParameterType, syntax/default reader or replacement Contract is created.
+/// Geometry quantities can describe an observed subtree or an independently
+/// justified construction envelope; this function attests neither source nor
+/// bound. The caller funds metadata inspection before entry and retains the
+/// original input/Contract while its actual admission enforces the bounds.
+/// Json, Vector and reference admission need their own original inventories.
+pub fn contract_value_body_construction_inventory(
+  original : @contract.Contract,
+  geometry : @decode.SubtreeConstructionGeometry,
+) -> ParameterValueBodyConstructionInventory? {
+  guard parameter_value_body_geometry_valid(geometry) &&
+    value_body_contract_precision(original) is Some(precision) else {
+    return None
+  }
+  parameter_value_body_construction_inventory_owned(precision, geometry)
 }
 
 ///|
@@ -48,13 +74,7 @@ pub fn parameter_value_body_construction_inventory(
   parameter : @contract.ParameterType,
   geometry : @decode.SubtreeConstructionGeometry,
 ) -> ParameterValueBodyConstructionInventory? {
-  if !parameter_value_body_geometry_valid(geometry) {
-    return None
-  }
-  parameter_value_body_construction_inventory_owned(
-    parameter_body_decimal_precision(parameter.contract),
-    geometry,
-  )
+  contract_value_body_construction_inventory(parameter.contract, geometry)
 }
 
 ///|
