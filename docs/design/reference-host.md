@@ -1629,6 +1629,34 @@ original physical call from the child. Saved recovery needs its actual original
 parent and child retainer; a saved recipe or CID cannot select fresh backing or
 silently restore the legacy physical route.
 
+Native Kintone CREATE constructor inventories retain the original Mapping and
+Form as borrows. Mapped value construction, complete current Form projection
+and acknowledgement/outcome construction are separate components. Each
+composes the existing collection, decoder, SHA and writer owners' logical
+representation units with the existing execution-capacity arithmetic. Bounds
+and returned capacity remain DATA until the same Request Plan reserves them;
+there is no connector-specific byte tariff or additional admission.
+
+Form correspondence compares every immutable original field path in place.
+It keeps App/revision, complete field count, exact paths, options, calculation
+and lookup facts; it makes no detached original or observed path catalogue.
+Projection still bounds the whole observed response, including nested metadata
+which a CREATE Mapping may later refuse. Response acknowledgement inventory
+bounds unknown-field refusal by the possible supplied object width, never by
+the two permitted `ids` and `revisions` keys. Wide digit strings keep their
+original spelling and request correlation. Missing/foreign originals, invalid
+bounds, batch substitution and arithmetic overflow refuse without a fallback.
+
+These synchronous metadata constructors perform no I/O, clock read, read/write
+authorization, cancellation acknowledgement or outcome settlement. Received
+Bytes stay with the physical child; the shared response decoder accounts its
+own parser/index/key-normalization buffers without encoding another input
+String or Bytes. Full Host request/response/secret/failed-child controls, saved
+custody and simultaneous lifetimes remain required additional components.
+Native constructor tests with an explicit initial carrier demonstrate only
+their stated same-parent reservation and original projection boundaries, not
+complete ordinary installation backing or physical provider acceptance.
+
 ## Model demand on the original installed Effect Plan
 
 The Node bridge obtains Model/read/bootstrap bounds through the same checked
