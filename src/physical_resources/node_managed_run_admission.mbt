@@ -87,11 +87,7 @@ pub fn[P] cleanup_node_managed_run_admission(
         Ok(_) => ()
       }
       let usage = ledger_usage(ledger)
-      if usage.uncertain_transfer_bytes != 0L ||
-        usage.reserved_transfer_bytes != 0L ||
-        usage.held_bytes != 0L ||
-        usage.reserved_retention_bytes != 0L ||
-        usage.reserved_execution_bytes != 0L ||
+      if ledger_usage_has_pending_resources(usage) ||
         ledger.delegated_planning != 0 ||
         ledger.delegated_attempts != 0 ||
         ledger.delegated_holdings != 0 {
