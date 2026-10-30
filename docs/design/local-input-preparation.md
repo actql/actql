@@ -3865,3 +3865,32 @@ Model constructor adopts an already inventoried preparation, the existing
 `bind_client_model_read_scope` binds that same original census. Calling the
 pristine-bootstrap `begin_client_model_read_scope` would select a different
 lifecycle and is not a substitute for this binding.
+
+### First timed Request invocation
+
+A time-dependent Request retains its original preparation borrower until the
+submission has its nominal Request. The same parent compiles once, then the
+existing Host constructs the first checked Run and Definition and binds its
+QueryTime preparation to those originals. Only the Core getter's opaque Option
+passes to the module constructor. JavaScript neither reconstructs that tuple nor
+uses an adopted Run to construct its own module. Module completion precedes
+adoption; a failed original construction remains failed rather than selecting
+another compiler, clock sample or header.
+
+The installed operation retains only the immutable Request, compiled Run,
+Definition and QueryTime view needed by its existing captured Plan and later
+publication. The temporary Option carrier and constructor callback do not
+remain as additional roots. Downstream Values or Task publication checks and
+uses that same view; its invocation, Result policy, retention and current
+checks remain separate. A retained Definition restores its original query time
+instead of sampling another one. The adopted Core getter checks the original
+Prepared and all four retained tokens and refuses a failed or retired holder.
+
+Retirement follows the existing managed payload severing boundary. A pending
+retirement keeps the same original view and cleanup duty; successful severing
+clears those aliases before its existing continuation finishes. This managed
+alias release is not a physical cleanup acknowledgment. Untimed and independently
+selected Model or serialization purposes keep their original paths. Captured
+whole-Source execution additionally requires its matching typed QueryTime port
+and complete same-parent backing; a JS view or a numeric limit is not that
+backing.

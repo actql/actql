@@ -5091,7 +5091,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "2eae670b3a4675fa429201b489ca47a9f6914ae3b698ac3d3ddf492e795213d7",
+      "sha256": "d5e74a09c72595b8bc79440a79806ce45fb203a9903a6c378b3d98c25853b255",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5480,7 +5480,8 @@
           "parameters": [
             "prepared",
             "request",
-            "profile"
+            "profile",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -5523,6 +5524,14 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
           "parameters": [
             "runtime",
             "prepared"
@@ -5619,7 +5628,15 @@
             "runtime",
             "prepared",
             "request",
-            "sourceProfile"
+            "sourceProfile",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+          "parameters": [
+            "artifact"
           ],
           "async": false
         },
@@ -5664,7 +5681,8 @@
             "runtime",
             "prepared",
             "request",
-            "sourceProfile"
+            "sourceProfile",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -6911,6 +6929,15 @@
             "definition",
             "request",
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareTimedRunInvocation/prepareTimedRunInvocation",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "compilationOriginal"
           ],
           "async": false
         },
@@ -12798,10 +12825,123 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareTimedRunInvocation/prepareTimedRunInvocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "timed installing caller keeps immutable view through pending retirement then clears at original sever"
+              }
+            ]
+          }
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -12909,7 +13049,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
@@ -13711,7 +13853,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
+      "sha256": "9dc804df540d2e8269da85be08098ca26c175a51a785dbe789aca394159ec9f2",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13727,6 +13869,7 @@
         "localContractLimits",
         "localOutputLimits",
         "openSourceFreeEffectComputation",
+        "prepareTimedClientInvocation",
         "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
@@ -13989,6 +14132,18 @@
           "async": false
         },
         {
+          "name": "checkedOriginalQueryInvocation",
+          "parameters": [
+            "original",
+            "control",
+            "prepared",
+            "request",
+            "kind",
+            "retainedWire"
+          ],
+          "async": false
+        },
+        {
           "name": "checkedTaskRunAdmission",
           "parameters": [
             "control",
@@ -14003,6 +14158,7 @@
             "requestIdentity",
             "compilationOriginal",
             "publicationPreparation",
+            "invocationOriginal",
             "kind"
           ],
           "async": false
@@ -14096,6 +14252,21 @@
             "prepared",
             "request",
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTimedClientInvocation",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "requestIdentity",
+            "compilationOriginal",
+            "kind",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "retainedDefinitionWire"
           ],
           "async": false
         },
@@ -14228,7 +14399,8 @@
             "requestIdentity",
             "publicationOriginal",
             "compilationOriginal",
-            "publicationPreparation"
+            "publicationPreparation",
+            "invocationOriginal"
           ],
           "async": false
         }
@@ -14894,6 +15066,121 @@
               {
                 "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
                 "anchor": "test \"source-free Content Effect compiler requires"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkedOriginalQueryInvocation",
+            "prepareTimedClientInvocation"
+          ],
+          "exports": [
+            "prepareTimedClientInvocation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves first Run and full publication duties"
               }
             ]
           }

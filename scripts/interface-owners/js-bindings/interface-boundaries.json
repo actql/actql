@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "227bf702e294d3689d807eedd4d6bd1dc8fdb18561a763ea02d8777c0c3eea7f",
+      "sha256": "12c96ec06c4090fee43156015cf679590aeae2e7055701761541a200c016f25e",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -17778,6 +17778,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientManagedQueryInvocationOriginal/init:checkedClientManagedQueryInvocationOriginal",
+          "parameters": [
+            "run",
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
           "parameters": [
             "prepared",
@@ -17956,6 +17965,14 @@
             "read",
             "readRetainedBytes",
             "readExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:clientQueryTimeInvocationOriginal/init:clientQueryTimeInvocationOriginal",
+          "parameters": [
+            "original",
+            "prepared"
           ],
           "async": false
         },
@@ -27278,6 +27295,119 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkedClientManagedQueryInvocationOriginal/init:checkedClientManagedQueryInvocationOriginal",
+            "publicationControl/init:clientQueryTimeInvocationOriginal/init:clientQueryTimeInvocationOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "timed original adopted getter checks all first tokens and refuses retired or foreign projections"
               }
             ]
           }
@@ -39705,7 +39835,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2eae670b3a4675fa429201b489ca47a9f6914ae3b698ac3d3ddf492e795213d7",
+      "sha256": "d5e74a09c72595b8bc79440a79806ce45fb203a9903a6c378b3d98c25853b255",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -40096,7 +40226,8 @@
           "parameters": [
             "prepared",
             "request",
-            "profile"
+            "profile",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -40139,6 +40270,14 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
           "parameters": [
             "runtime",
             "prepared"
@@ -40235,7 +40374,15 @@
             "runtime",
             "prepared",
             "request",
-            "sourceProfile"
+            "sourceProfile",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+          "parameters": [
+            "artifact"
           ],
           "async": false
         },
@@ -40280,7 +40427,8 @@
             "runtime",
             "prepared",
             "request",
-            "sourceProfile"
+            "sourceProfile",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -41527,6 +41675,15 @@
             "definition",
             "request",
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareTimedRunInvocation/prepareTimedRunInvocation",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "compilationOriginal"
           ],
           "async": false
         },
@@ -50326,10 +50483,123 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:managedComputeInvocationOriginal/init:managedComputeInvocationOriginal",
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/constructInvocation/constructInvocation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareTimedRunInvocation/prepareTimedRunInvocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "managedComputeInvocationOriginal(runtime, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "timed installing caller keeps immutable view through pending retirement then clears at original sever"
+              }
+            ]
+          }
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -50437,7 +50707,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
@@ -76151,7 +76423,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
+      "sha256": "9dc804df540d2e8269da85be08098ca26c175a51a785dbe789aca394159ec9f2",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -76169,6 +76441,7 @@
         "localContractLimits",
         "localOutputLimits",
         "openSourceFreeEffectComputation",
+        "prepareTimedClientInvocation",
         "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
@@ -76431,6 +76704,18 @@
           "async": false
         },
         {
+          "name": "checkedOriginalQueryInvocation",
+          "parameters": [
+            "original",
+            "control",
+            "prepared",
+            "request",
+            "kind",
+            "retainedWire"
+          ],
+          "async": false
+        },
+        {
           "name": "checkedTaskRunAdmission",
           "parameters": [
             "control",
@@ -76445,6 +76730,7 @@
             "requestIdentity",
             "compilationOriginal",
             "publicationPreparation",
+            "invocationOriginal",
             "kind"
           ],
           "async": false
@@ -76538,6 +76824,21 @@
             "prepared",
             "request",
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTimedClientInvocation",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "requestIdentity",
+            "compilationOriginal",
+            "kind",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "retainedDefinitionWire"
           ],
           "async": false
         },
@@ -76670,7 +76971,8 @@
             "requestIdentity",
             "publicationOriginal",
             "compilationOriginal",
-            "publicationPreparation"
+            "publicationPreparation",
+            "invocationOriginal"
           ],
           "async": false
         }
@@ -80512,6 +80814,121 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkedOriginalQueryInvocation",
+            "prepareTimedClientInvocation"
+          ],
+          "exports": [
+            "prepareTimedClientInvocation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves first Run and full publication duties"
               }
             ]
           }
