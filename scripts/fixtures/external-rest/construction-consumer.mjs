@@ -80,11 +80,18 @@ assert.equal(secretResolutions,0);
 const oracle=JSON.parse(await readFile(configuration.constructionOraclePath,'utf8'));
 assert.equal(typeof oracle.expectedDuplicateBindingMessage,'string');
 assert(oracle.expectedDuplicateBindingMessage.length>0);
-const strings=[];
-const collect=value=>{if(typeof value==='string')strings.push(value);else if(value&&typeof value==='object')Object.values(value).forEach(collect);};
-collect(record.primary);
-assert(strings.some(value=>value===oracle.expectedDuplicateBindingMessage),
-  'The actual public original cause did not expose the expected construction seam');
+assert.equal(typeof oracle.expectedPublicWrapper,'string');
+assert(oracle.expectedPublicWrapper.length>0);
+assert.equal(record.primary?.code,oracle.expectedPublicWrapper,
+  'The actual initialization wrapper code did not match the selected constructor oracle');
+assert.equal(record.primary?.message,oracle.expectedPublicWrapper,
+  'The actual initialization wrapper message did not match the selected constructor oracle');
+assert.equal(Object.getOwnPropertyDescriptor(record.primary,'primaryFailure')?.value?.message,
+  oracle.expectedDuplicateBindingMessage,
+  'The original own primaryFailure did not expose the expected construction seam');
+assert.equal(Object.getOwnPropertyDescriptor(record.primary,'cause')?.value?.message,
+  oracle.expectedDuplicateBindingMessage,
+  'The captured original cause did not expose the expected construction seam');
 assert.equal(record.createdScopesFd0,true,'Created Source/Host scopes retain physical descriptors');
 assert.notEqual(publicFields.cleanupPending?.value,true,'Construction failure retains pending cleanup');
 await writeFile(join(outputRoot,'outcome.json'),JSON.stringify({passed:true,

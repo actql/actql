@@ -1,7 +1,7 @@
 {
   "case": "actual duplicate binding construction failure after completed valid Source objects",
   "expectedDuplicateBindingMessage": "InstalledSourceBindingAmbiguous",
-  "expectedPublicWrapper": "InstalledHostInitializationFailed; exact actual primary cause must remain publicly exposed",
+  "expectedPublicWrapper": "InstalledHostInitializationFailed",
   "expectedSourceProfiles": 2,
   "distinctAbsolutePathsIdenticalValidProfileBytes": true,
   "expectedClientReturned": false,
