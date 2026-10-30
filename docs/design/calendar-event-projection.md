@@ -48,6 +48,8 @@ are not a normal installation factory. A matching original Profile getter and
 the complete checked Source/parent/backing connection remain required. Raw API
 time parameters do not by themselves establish exact SQL predicate pushdown.
 
+## Request and original environment
+
 The Events request adapter consumes the same parameter-bound `requestWire`
 provided by the existing RowAcquisition caller. Its complete `request_schema`
 body is an object contract with four required non-null strings: `calendar_id`,
@@ -64,6 +66,8 @@ pure page hooks. It captures methods/receiver and limits before use and performs
 no exchange, accounting, grant or cleanup itself. Actual Source publication,
 complete parent and original environment delivery must be connected by their
 existing owners before this is a normal reader.
+
+## One compiler namespace
 
 The Common runtime's `calendarEventsProfileFromEnvironment` bridge exposes
 the exact Profile retained by the supplied original CheckEnvironment, through
@@ -84,6 +88,8 @@ The separate Calendar provider retains stateless schema/facts/column wire
 projections, not a duplicate opaque Events API path. Do not serialize and
 re-admit the Profile, fix a global seed, remap a namespace or infer authority
 from equal CIDs to bypass this original-value boundary.
+
+## Shared custody boundary
 
 Publication and physical reading must still bind the actual original calendar,
 timezone, selected profile and response to the same checked acquisition. The
