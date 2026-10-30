@@ -266,3 +266,69 @@ remain separate required acceptance. Component HTTP/inert-file and own-process
 observation tests do not establish a real public Native install. This launcher
 has no publication/owner-approval or credentials path, and retains its entire
 fresh state on success or failure.
+
+## Exact Native Latest finalization
+
+The existing channel/review/publisher owners connect the standalone
+`native-public-install` receipt to a separate post-freeze Native Latest plan.
+The original upper digest, artifact bytes and earlier acceptance stay unchanged.
+The receipt adapter preserves the actual Remote-only consumer scope and every
+original unverified item; it cannot qualify Local/Project, other platforms,
+Native-npm installation or independent owner authority.
+
+`observeNativeLatestTarget` requires the separate complete owner reader and
+the original immutable published candidate. It reuses the existing full
+settings, presentation, source-tag, asset inventory and actual-byte reader,
+then fences complete release inventory and Latest identity. Drafts and
+prereleases cannot become Latest. Unknown, changed or incomplete readings stop.
+
+For an existing Latest, `nativeLatestPromotionPlan` binds the explicit prior
+release ID and tag, parses its version with the shared version owner and
+rejects rollback to an older maintenance version. A different fresh pointer
+is not overwritten by a historical plan.
+
+First publication has a distinct bounded case. A Latest 404 remains unresolved;
+it is **not** an absence proof. Only a fresh complete owner inventory containing
+the exact published candidate as the sole eligible non-Draft/non-prerelease
+release can support an explicit `unassigned-or-selected` initialization plan.
+The possible pointer is confined to unassigned or that same candidate. Any
+other eligible full release, missing candidate, duplicate/incomplete inventory
+or later change refuses. This historical DATA supplies no approval or CAS.
+
+The read-only plan command is:
+
+```sh
+node scripts/release.mjs native-latest-plan \
+  <fixed-directory> <upper-SHA256> <explicit-native-move.json> <original-latest-report.json>
+```
+
+The move is exactly `{targetId, before}`, where `before` is the complete
+original observed tuple: `{state:"present",releaseId,tag}` or the explicitly
+bounded `{state:"unassigned-or-selected",releaseId}`. Prepare and cold-verify
+the separate promotion-review bundle through the existing commands in
+[release preparation](README.md#separate-post-freeze-promotion-evidence).
+The Native plan, report and exact Native consumer receipt remain raw bound DATA.
+
+`promoteNativeReleaseLatest` has no default mutation runner, credentials or
+executable CLI route. The protected independent owner executor must accept the
+actual consumer evidence, approve both digests and the exact transition, and
+hold exclusive execution across every read/send/readback. It supplies separate
+owner API, public/CDN and mutation ports. A callback, 404, JSON status, merge or
+repository-scoped concurrency name establishes none of those properties.
+
+The protocol checks the full original standalone archive and all public
+fixed-set bytes, including the separately selected Host. It writes a synced
+private intent before the sole permitted request: a PATCH to the exact
+original release ID with only `{make_latest:"true"}`. It does not change a tag,
+asset, title, notes, Draft/prerelease flag, version or source. Complete bytes,
+settings, source, presentation, inventory and current pointer are reobserved.
+Post-command confirmation always requires a positive Latest response naming
+the exact original ID and tag; another 404/conditional reading is Unknown.
+
+A lost/nonzero/malformed reply or failed readback stops without rollback or
+automatic retry. Distinct original attempts retain Unknown and cleanup duties.
+A separately authorized same-digest recovery reobserves the actual originals
+and skips a positively confirmed identical Latest. It does not reuse a success
+flag as currentness or reuse revoked/completed authority. Actual owner/settings,
+first publication, public install, Latest mutation and full release acceptance
+remain unexecuted until their independent prerequisites and approval exist.

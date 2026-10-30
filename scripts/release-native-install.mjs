@@ -9,6 +9,11 @@ import {admitInstalledNativeArtifact, requireNativePackageVersion} from './nativ
 import {admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+export function nativeStandaloneAcceptanceScope() {
+  return {acceptedScope: 'only completed direct Native --version/help/refusal and original Remote Host fixture; Node-free Native child PATH; separate public Node Host installation',
+    unverified: ['Local execution/bootstrap/approval', 'standard Project/README CLI', 'other platforms', 'npm Native launcher installation', 'full fault matrix', 'owner approval/publication authority']};
+}
+
 export function nativeReleaseInstallSelection(args) {
   assert(Array.isArray(args) && args.length === 5,
     'usage: test-native-standalone-install.mjs <fixed-directory> <externally-retained-SHA256> <native-target-id> <host-node-target-id> <new-external-consumer-directory>');

@@ -10,7 +10,7 @@ import {releasePlan} from './release-policy.mjs';
 import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseSet, releaseSetSummary,
   prepareReleasePromotionReview, verifyReleasePromotionReview, releasePromotionReviewSummary} from './release-set.mjs';
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
-import {promotionPlan} from './release-channels.mjs';
+import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
 import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
 import {nativePublishPlan, npmStagePlan, pythonPublishPlan} from './publish-package-release.mjs';
 
@@ -62,11 +62,11 @@ export async function runRelease(args) {
     assert.equal(values.length, 3, 'usage: release.mjs native-publish-plan <fixed-directory> <SHA256> <native-target-id>');
     return nativePublishPlan(values[0], values[1], values[2]);
   }
-  if (command === 'promotion-plan') {
+  if (command === 'promotion-plan' || command === 'native-latest-plan') {
     assert.equal(values.length, 4, 'usage: release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>');
     const fixed = await verifyReleaseSet(values[0], {expectedSha256: values[1]});
     const report = await readFile(resolve(values[3]));
-    return promotionPlan(fixed, JSON.parse(await readFile(resolve(values[2]), 'utf8')),
+    return (command==='native-latest-plan'?nativeLatestPromotionPlan:promotionPlan)(fixed, JSON.parse(await readFile(resolve(values[2]), 'utf8')),
       JSON.parse(report), createHash('sha256').update(report).digest('hex'));
   }
   if (command === 'source-plan' || command === 'maintenance-plan') {

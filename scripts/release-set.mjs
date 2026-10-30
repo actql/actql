@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
-import {promotionPlan} from './release-channels.mjs';
+import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -376,10 +376,11 @@ function admitPromotionReviewRequest(request, fixed, plan) {
     exact(item, ['id', 'targetId', 'kind', 'file', 'bytes', 'sha256']);
     assert(typeof item.id === 'string' && /^[a-z][a-z0-9-]{0,63}$/u.test(item.id) && !ids.has(item.id), 'Invalid/duplicate public evidence id');
     ids.add(item.id); assert(targets.includes(item.targetId), 'Public evidence belongs to an unselected promotion target'); covered.add(item.targetId);
-    // This is the actual connected installed Node receipt, not an invented
-    // Native/Python-to-npm conversion or a generic JSON passed flag.
-    assert.equal(item.kind, 'node-public-install', 'No matching public npm consumer receipt adapter for this evidence kind');
-    assert.equal(fixed.manifest.cohorts.find(value => value.targetId === item.targetId)?.kind, 'node-npm');
+    // Each receipt stays with its actual public consumer and child kind.
+    // There is no Native-npm/Python-to-Node or generic passed-flag conversion.
+    const cohortKind=fixed.manifest.cohorts.find(value=>value.targetId===item.targetId)?.kind;
+    assert((item.kind==='node-public-install'&&cohortKind==='node-npm')||
+      (item.kind==='native-public-install'&&cohortKind==='native-standalone'),'No matching original public consumer receipt adapter for this evidence kind');
     literal(item.file);
     assert(!item.file.startsWith('/') && !item.file.includes('\\') && item.file.split('/').every(part => part && !['.', '..'].includes(part)));
     assert(Number.isSafeInteger(item.bytes) && item.bytes > 0 && item.bytes <= 64 * 1024 * 1024); digestText(item.sha256);
@@ -390,7 +391,7 @@ function admitPromotionReviewRequest(request, fixed, plan) {
   return structuredClone(request);
 }
 
-function promotionReceiptIdentity(bytes, item, fixed) {
+function nodePromotionReceiptIdentity(bytes, item, fixed) {
   const body = JSON.parse(bytes), target = fixed.manifest.request.targets.find(value => value.id === item.targetId);
   const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
   const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === target.id), binding = body.releaseSetBinding;
@@ -415,8 +416,48 @@ function promotionReceiptIdentity(bytes, item, fixed) {
     qualification: 'original receipt identity correspondence only; actual trusted job, install, rows/current/close/profile and owner acceptance remain unproved'};
 }
 
+async function promotionReceiptIdentity(bytes,item,fixed,directory) {
+  if(item.kind==='node-public-install')return nodePromotionReceiptIdentity(bytes,item,fixed);
+  assert.equal(item.kind,'native-public-install');
+  const body=JSON.parse(bytes),target=fixed.manifest.request.targets.find(value=>value.id===item.targetId);
+  const cohort=fixed.manifest.cohorts.find(value=>value.targetId===target.id);assert.equal(cohort.kind,'native-standalone');
+  assert.equal(body.schemaVersion,'actql-native-public-install/0.1');assert.equal(body.manifestSha256,fixed.sha256);assert.equal(body.targetId,target.id);
+  const host=fixed.manifest.request.targets.find(value=>value.id===body.hostTargetId);
+  assert(host?.ecosystem==='npm'&&host.id!==target.id);assert.equal(fixed.manifest.cohorts.find(value=>value.targetId===host.id)?.kind,'node-npm');
+  assert(target.platforms.includes(body.platform));
+  const {verifyNativeStandalone}=await import('./native-standalone-release.mjs');
+  const standalone=await verifyNativeStandalone(dirname(join(directory,cohort.path)));
+  assert.equal(standalone.sourceSha,fixed.manifest.request.source.commit);assert.equal(standalone.packageVersion,fixed.manifest.release.version);
+  const artifact=JSON.parse(standalone.origin.manifest).artifacts.find(value=>value.platform===body.platform);
+  const archive=standalone.archives.find(value=>value.platform===body.platform);assert(artifact&&archive);
+  const artifacts=fixed.manifest.artifacts.filter(value=>value.targetId===target.id);
+  assert.equal(body.download?.schemaVersion,'actql-native-public-download/0.1');assert.equal(body.download.manifestSha256,fixed.sha256);
+  assert.equal(body.download.targetId,target.id);assert.equal(body.download.status,'verified');
+  assert.deepEqual(body.download.files.map(value=>value.file),artifacts.map(value=>value.file));
+  for(const [index,value]of body.download.files.entries()){
+    assert.equal(value.expectedBytes,artifacts[index].bytes);assert.equal(value.retainedBytes,artifacts[index].bytes);
+    assert.equal(value.expectedSha256,artifacts[index].sha256);assert.equal(value.status,'verified');
+  }
+  assert.equal(body.installed?.binarySha256,artifact.binarySha256);assert.equal(body.installed.binaryBytes,artifact.binaryBytes);
+  assert.equal(body.installed.payloadFiles,archive.files.length);assert.equal(body.nativeEnvironment?.PATH,'');
+  literal(body.nodeSupervisor);assert(Array.isArray(body.records)&&body.records.length);
+  const version=body.records[0];assert.deepEqual(version.args,['--version']);assert.equal(version.stdout,`${standalone.packageVersion}\n`);
+  assert.equal(version.code,0);assert.equal(version.signal,null);
+  const {nativeStandaloneAcceptanceScope}=await import('./release-native-install.mjs');
+  const scope=nativeStandaloneAcceptanceScope();assert.equal(body.acceptedScope,scope.acceptedScope);assert.deepEqual(body.unverified,scope.unverified);
+  return {id:item.id,targetId:item.targetId,kind:item.kind,manifestSha256:fixed.sha256,cohortManifestSha256:cohort.sha256,
+    hostTargetId:host.id,platform:body.platform,nodeSupervisor:body.nodeSupervisor,nativeBinarySha256:artifact.binarySha256,
+    acceptedScope:body.acceptedScope,unverified:structuredClone(body.unverified),
+    qualification:'Native public consumer identity/scope correspondence DATA only; actual trusted run, install, close and owner acceptance remain unproved'};
+}
+
 function checkedPromotionReviewPlan(fixed, plan, report, reportSha256) {
   assert(Array.isArray(plan.transitions));
+  if(plan.schemaVersion==='actql-native-latest-promotion-plan/0.1'){
+    assert.equal(plan.transitions.length,1);const {targetId,before}=plan.transitions[0];
+    assert.deepEqual(nativeLatestPromotionPlan(fixed,{targetId,before},report,reportSha256),plan,'Native Latest plan changed from its exact original report/transition');
+    return plan;
+  }
   const moves = plan.transitions.map(({targetId, name, channel, expectedVersion}) => ({targetId, name, channel, expectedVersion}));
   assert.deepEqual(promotionPlan(fixed, moves, report, reportSha256), plan,
     'Promotion plan differs from its exact original fixed set, channel report or transition');
@@ -440,7 +481,7 @@ export async function prepareReleasePromotionReview({directory, expectedSha256, 
   const request = admitPromotionReviewRequest(JSON.parse(requestBytes), fixed, plan), payloads = [];
   for (const item of request.publicInstallEvidence) {
     const bytes = await checkedBytes(dirname(resolve(reviewFile)), {path: item.file, bytes: item.bytes, sha256: item.sha256}, 64 * 1024 * 1024);
-    promotionReceiptIdentity(bytes, item, fixed); payloads.push({item, bytes});
+    await promotionReceiptIdentity(bytes, item, fixed, directory); payloads.push({item, bytes});
   }
   await verifyReleaseSet(directory, {expectedSha256});
   await mkdir(destination); await mkdir(join(destination, 'evidence'));
@@ -476,7 +517,7 @@ export async function verifyReleasePromotionReview({directory, expectedSha256, r
   const publicEvidence = [];
   for (const [index, item] of request.publicInstallEvidence.entries()) {
     const {id, ...record} = header.evidence[index]; assert.equal(record.bytes, item.bytes); assert.equal(record.sha256, item.sha256);
-    publicEvidence.push(promotionReceiptIdentity(await read(record, `evidence/${id}`, 64 * 1024 * 1024), item, fixed));
+    publicEvidence.push(await promotionReceiptIdentity(await read(record, `evidence/${id}`, 64 * 1024 * 1024), item, fixed, directory));
   }
   const detached = await checkedBytes(reviewDirectory, {path: 'promotion-review.sha256'}, 128);
   assert.equal(detached.toString('utf8'), `${expectedReviewSha256}  promotion-review.json\n`);
@@ -496,13 +537,22 @@ export function releasePromotionReviewSummary(checked) {
     'Public receipts refer to the original frozen set; no artifact or original review field was changed.',
     'All receipt claims and identity correspondence remain DATA. No trusted job, actual public install, current value, owner approval, lease or mutation is certified.', '',
     '| Target | Package | Channel | Expected prior version | Proposed version |', '| --- | --- | --- | --- | --- |'];
-  for (const item of checked.plan.transitions) lines.push(`| ${escape(item.targetId)} | ${escape(item.name)} | ${escape(item.channel)} | ${escape(item.expectedVersion ?? '(absent)')} | ${escape(item.toVersion)} |`);
+  for (const item of checked.plan.transitions) lines.push(`| ${escape(item.targetId)} | ${escape(item.name)} | ${escape(item.channel)} | ${escape(item.before?.state==='unassigned-or-selected'?`conditional: unassigned or release ${item.before.releaseId}`:item.expectedVersion ?? '(absent)')} | ${escape(item.toVersion)} |`);
   lines.push('', '| Public receipt | Target | Kind | Bytes | SHA256 |', '| --- | --- | --- | ---: | --- |');
   for (const item of checked.request.publicInstallEvidence) lines.push(`| ${escape(item.id)} | ${escape(item.targetId)} | ${escape(item.kind)} | ${item.bytes} | ${item.sha256} |`);
-  for (const item of checked.publicEvidence) lines.push('', `Public receipt ${escape(item.id)} (${escape(item.targetId)}):`,
+  for (const item of checked.publicEvidence) {
+    if(item.kind==='native-public-install'){
+      lines.push('',`Public Native receipt ${escape(item.id)} (${escape(item.targetId)}):`,
+        `Child SHA256: ${item.cohortManifestSha256}; Native binary SHA256: ${item.nativeBinarySha256}`,
+        `Declared supervisor/platform/Host: ${escape(JSON.stringify([item.nodeSupervisor,item.platform,item.hostTargetId]))}`,
+        `Declared completed scope: ${escape(item.acceptedScope)}`,...item.unverified.map(value=>`- Unverified: ${escape(value)}`));
+      continue;
+    }
+    lines.push('', `Public receipt ${escape(item.id)} (${escape(item.targetId)}):`,
     `Child SHA256: ${item.cohortManifestSha256}; observed Node/OS: ${escape(JSON.stringify([item.node, item.platform, item.arch]))}`,
     `Declared business scope: ${escape(JSON.stringify(item.publicRuntimeScope))}`,
     `Declared approval acceptance (not promoted): ${escape(JSON.stringify(item.declaredApprovalAcceptance))}`);
+  }
   lines.push('', 'Post-freeze limitations (supplied DATA):',
     ...checked.request.limitations.map(value => `- ${escape(value)}`));
   lines.push('', 'A separate protected owner decision must bind this bundle and the original fixed set. Actual channel values must be checked under the exclusive executor before any later mutation.');
