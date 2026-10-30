@@ -5735,8 +5735,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run !== undefined) {
         if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (run.closed || run.runtime !== runtime || run.prepared !== prepared ||
-            run.request !== request || run.manager !== manager || run.sourceProfile !== sourceProfile ||
-            run.prepareInvocation !== prepareInvocation) {
+            run.request !== request || run.manager !== manager || run.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
         const value = run.value;
@@ -5754,7 +5753,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return value;
       }
       run = {runtime, prepared, request, manager, sourceProfile, original: undefined, admission: undefined,
-        value: undefined, closed: false, prepareInvocation};
+        value: undefined, closed: false};
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       runs.set(prepared, run);
       liveRuns.add(run);
@@ -5771,9 +5770,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         const constructInvocation = typeof prepareInvocation !== 'function' ? undefined : artifact => {
           if (run.queryInvocation !== undefined) throw clientOperationError('ForeignInstalledComputeRun');
           const invocation = Reflect.apply(prepareInvocation, undefined, [prepared, request, artifact]);
-          run.queryInvocation = invocation;
-          run.queryTimePreparation = invocation.queryTimePreparation;
-          return invocation.invocationOriginal;
+          // Only the necessary immutable view survives ModuleBody. Its
+          // temporary opaque Option carrier is not another retained root.
+          run.queryInvocation = invocation.retained;
+          run.queryTimePreparation = invocation.retained.queryTimePreparation;
+          return invocation.original;
         };
         const funded = sourceProfile === undefined
           ? manager.adoptPreparation?.(prepared, originalRequest, request, constructInvocation)
@@ -5824,7 +5825,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }
         run.manager.severPreparation(prepared,run.original);
         run.prepared=undefined;run.closed=true;
-        run.queryInvocation=run.queryTimePreparation=run.prepareInvocation=undefined;
+        run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
         // Returning registry/handler holders may now complete the same debit.
         run.finishRetirement = managedPreparationRetirementContinuation(run,record);

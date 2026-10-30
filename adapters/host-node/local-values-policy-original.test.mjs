@@ -71,14 +71,14 @@ function timedOriginalFixture(kind='values',retained=false){
     checkClientCompiledRunDefinition(c,d){assert.equal(c,compilation);assert.equal(d,definition);},
   };
   const options={control,preparedProgram:prepared,requestIdentity:request,compilationOriginal:artifact,kind,authorityScopeCid:'scope',namespaceId:'namespace',now:()=>{nowReads++;return header.created_at;},...(retained?{retainedDefinitionWire:wire}:{})};
-  const build=()=>functions.prepareTimedClientInvocation(options);
-  return {functions,build,options,control,prepared,request,compilation,definition,time,context,opaque,calls,get samples(){return samples;},get nowReads(){return nowReads;}};
+  let carrier;const build=()=>{carrier=functions.prepareTimedClientInvocation(options);return carrier.retained;};
+  return {functions,build,options,control,prepared,request,compilation,definition,time,context,opaque,calls,get samples(){return samples;},get nowReads(){return nowReads;},get carrier(){return carrier;}};
 }
 
 test('timed original construction binds one sample and first compilation before forwarding Core Option',()=>{
   for(const kind of ['values','tasks']){
     const f=timedOriginalFixture(kind),original=f.build();
-    assert.equal(original.invocationOriginal,f.opaque);assert.equal(original.compiled,f.compilation);assert.equal(original.runDefinition,f.definition);
+    assert.equal(f.carrier.original,f.opaque);assert.equal(Object.hasOwn(original,'invocationOriginal'),false);assert.equal(original.compiled,f.compilation);assert.equal(original.runDefinition,f.definition);
     assert.equal(original.queryTimePreparation,f.time);assert.equal(original.queryTime,f.context);assert.equal(original.requestIdentity,f.request);assert(Object.isFrozen(original));
     assert.equal(f.samples,1);assert.equal(f.nowReads,1);assert.deepEqual(f.calls,['time','issue-compiled','define','bind','original-option']);
   }
@@ -86,7 +86,7 @@ test('timed original construction binds one sample and first compilation before 
 
 test('timed original restoration retains original header without sampling another query time',()=>{
   const f=timedOriginalFixture('tasks',true),original=f.build();
-  assert.equal(f.samples,0);assert.equal(f.nowReads,1);assert.equal(original.runDefinition,f.definition);assert.equal(original.invocationOriginal,f.opaque);
+  assert.equal(f.samples,0);assert.equal(f.nowReads,1);assert.equal(original.runDefinition,f.definition);assert.equal(f.carrier.original,f.opaque);assert.equal(Object.hasOwn(original,'invocationOriginal'),false);
   assert.deepEqual(f.calls,['issue-compiled','define','restore-original','original-option']);
 });
 

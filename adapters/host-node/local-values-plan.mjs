@@ -52,8 +52,9 @@ export function prepareTimedClientInvocation({control, preparedProgram, requestI
   const queryTime = bindQueryInvocation(control, queryInvocation, preparedProgram, compiled, runDefinition);
   const invocationOriginal = control.clientQueryTimeInvocationOriginal(
     queryTime.queryTimePreparation, preparedProgram);
-  return Object.freeze({preparedProgram, requestIdentity, compiled,
-    runDefinition, createdAt, validUntil, ...queryTime, invocationOriginal});
+  const retainedInvocation = Object.freeze({preparedProgram, requestIdentity, compiled,
+    runDefinition, createdAt, validUntil, ...queryTime});
+  return Object.freeze({original: invocationOriginal, retained: retainedInvocation});
 }
 
 function checkedOriginalQueryInvocation(original, control, prepared, request, kind, retainedWire) {
