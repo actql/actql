@@ -9020,7 +9020,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));"
+                "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -9942,7 +9942,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "clientProgramInstalledSourceReadCheckCurrent(originalRead)"
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               }
             ],
             "failure": [
@@ -10014,7 +10014,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
               }
             ],
             "identity": [
@@ -10082,7 +10082,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
               }
             ],
             "identity": [
@@ -10366,9 +10366,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+            "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+            "createInstalledRowSource/acquire/recovery/init:close/init:close",
+            "createInstalledRowSource/acquire/recovery/recovery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "12c05c0bdc6c5a4f9b42f7fe34d42e3ee90bcbb5be7be6dc6fa274df8225df1b",
+      "sha256": "68ab9d31782ca0026f3c720f08895f582a9e47cf5ad6211dc9cc2a1c8945c862",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10427,6 +10498,7 @@
             "originalSourceAccess",
             "providerReader",
             "prepareSourceRead",
+            "closeSourceRead",
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
@@ -10454,6 +10526,11 @@
             "originalOperationScope",
             "captureOnly"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+          "parameters": [],
           "async": true
         },
         {
@@ -10508,6 +10585,21 @@
             "rows",
             "charge"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/recovery",
+          "parameters": [],
           "async": false
         },
         {

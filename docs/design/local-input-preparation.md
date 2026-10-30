@@ -3722,3 +3722,38 @@ refusal and foreign throws retain the same cleanup carrier; clearing the
 Request closes returned work and drops subject/evidence aliases. Neither a
 policy CID nor this DATA lifetime issues provider permission, acknowledges
 physical cleanup, changes Model Scope meaning or chooses a Model/Content Plan.
+
+### Project Local Files original Run and physical retirement
+
+An ordinary Project Local Files source delegates Run preparation to the Host's
+original managed Source service. The installed profile retains a weak original
+lookup, not a second Resource Root, admission, reservation, or strong Run-count
+inventory. Effect and keyed Content retain their separate purpose-specific
+constructors until those actual consumers migrate. Ordinary adoption does not
+confer either purpose or a Source permission.
+
+The same Request Root observes the physical children retained on its original
+producer/Run inventory, including children acquired after adoption. Retirement
+fences new reads before cutting the heavy Prepared/Request aliases; existing
+physical children keep their original close methods and receivers until their
+own acknowledgment. A terminal handler or severed preparation is not a physical
+stop acknowledgment.
+
+The original captured Plan supplies one tuple containing its read, checked
+requirement, acquisition and capacity. The native Source retains that same read
+before fallible callbacks and does not prepare another query, acquisition or
+capacity. Binding the original Program already checks currentness; a separate
+check immediately before the same binding adds no external-state boundary.
+Account authorization, actual native Root/FD custody, selector/version checks,
+page/byte admission and the independent post-await current fences still apply.
+
+The native Source's internal closeSourceRead callback closes only its original
+external child. It is not a Core read-retirement issuer. Empty listings close
+that same control without opening a native reader or issuing a credential grant.
+The RowRun/session remains the Core read/capture owner. External cleanup must
+acknowledge before the session can release its backing. A pending or failed
+close retains the same cleanup continuation; another internal helper does not
+immediately repeat it. Concurrent closes await the same in-flight operation.
+Once acknowledged, the Local lookup keeps only weak close and consumed-occurrence
+tombstones, with no closed reader or heavy Prepared graph. Spent attempts and
+work are never refunded and a consumed occurrence cannot reopen.

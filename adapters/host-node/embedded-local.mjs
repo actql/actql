@@ -5782,8 +5782,23 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
-      return installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
-        sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem()});
+      const prepare = preparation.prepareManagedSourceRun;
+      // Forward the existing SAME Host service, not a Connector-owned Root or
+      // an independently selected manager. The actual returned profile below
+      // is the same one required by that service's original identity fence.
+      const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
+        sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
+        prepareManagedRun(prepared, request, profile) {
+          return Reflect.apply(prepare, preparation, [moon, prepared, request, profile]);
+        }});
+      return acquired.then(async profile => {
+        if (record.managedSourceProfile !== undefined) {
+          throw await retainInstalledHostInitializationFailure(
+            clientOperationError('InstalledSourcePreparationChanged'), {sourceProfile: profile});
+        }
+        record.managedSourceProfile = originalInstallation.managedSourceProfile = profile;
+        return profile;
+      });
     },
     localFilesEffectLimits(runtime) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {

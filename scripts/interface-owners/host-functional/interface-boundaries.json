@@ -19617,7 +19617,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19780,7 +19780,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -77061,7 +77061,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8a46764a5609a320554ec989315a52a01d37a34f83510dae36a2c3773cebc6e7",
+      "sha256": "c2a70b265cc183effd9fd270fef1817ba6404517ef53ed8e67a4736fcbab0d94",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77302,6 +77302,18 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -79137,6 +79149,75 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/childrenPending/childrenPending/childrenPending"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
               }
             ]
           }
@@ -82497,7 +82578,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "b6c327e12489f15b637126bab36eeb538bb23c58b854225a821e054fa6a47bab",
+      "sha256": "6aa0f1c2b007206dcd9bd064a895574ed90d0a45da8fe88b2edcd6039e1bb4f6",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -82522,7 +82603,8 @@
             "state",
             "receipt",
             "connection",
-            "assertCurrent"
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -84563,7 +84645,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -84812,7 +84894,7 @@
       "sha256": "39c95f4f6ff5ebac45a7fb6bd01747eacee1bd04a67be8fd47eb1ec67807d70a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -85226,7 +85308,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

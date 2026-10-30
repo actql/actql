@@ -273,7 +273,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               fail('ForeignInstalledSourceProducer');
             }
           };
-          const accepted = beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent);
+          // The same initial Root survives Run adoption. Observe physical
+          // children on its existing producer/Run inventory, rather than
+          // freezing a no-children answer before those children can exist.
+          const childrenPending = () => {
+            for (const run of liveRuns) if (run.producer === producer &&
+                run.children.some(child => child.flight !== undefined || !child.closed)) return true;
+            return false;
+          };
+          const accepted = beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent, childrenPending);
           if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
         } catch (cause) {
           producer.finished = true;
@@ -701,9 +709,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       run.children = [];
       releaseFinishedProducer(producer);
     },
-    prepareRun(prepared) {
+    // Project ordinary Sources adopt their existing Request. Their view no
+    // longer exports the detached Source-compute Root preparation entrance.
+    ...(project ? {} : {prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
-    },
+    }}),
     prepareContentRun(prepared, selected) {
       if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
       return prepareRun(prepared, 'local-content', undefined, false, selected);
@@ -723,7 +733,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
       const index = project ? occurrence?.task : declared;
-      if (declared === undefined || declared < 0 || run.original !== originalRun ||
+      const expectedRun = run.producer.preparation === undefined ? run.original : run.value;
+      if (declared === undefined || declared < 0 || run.prepared !== prepared ||
+          expectedRun === undefined || expectedRun !== originalRun ||
           project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
             occurrence.stage !== index || occurrence.input !== 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');

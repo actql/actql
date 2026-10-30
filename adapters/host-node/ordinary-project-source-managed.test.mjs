@@ -7,6 +7,7 @@ import * as sources from './ordinary-source-managed.mjs';
 import resource from './ordinary-node-resource-runtime.cjs';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 
 // Explicit Host/preparation and managed-limit ports. Physical FileHandles are
 // real, but this is not Common, a public Host or Source permission evidence.
@@ -14,28 +15,72 @@ async function fixture() {
   assert.equal(typeof sources.prepareOrdinaryProjectSourceManagedInstallation, 'function');
   const directory = await mkdtemp(join(tmpdir(), 'actql-project-source-custody-'));
   await writeFile(join(directory, 'original'), 'original');
-  const originals = {}, prepared = {}, request = {}, body = {}, declaration = {};
+  const originals = {}, prepared = {}, request = {}, declaration = {}, parent = {}, holder = {}, managed = {}, plan = {};
   const bundle = Object.freeze({sources: Object.freeze([{declaration}])});
-  let valid = true;
+  const ok = value => ({$tag: 1, _0: value});
+  let valid = true, original, ports, retiring = false, returned = false;
   const current = () => {if (!valid) throw new Error('OriginalProjectSourceChanged');};
+  const policy = {};
+  // Core phase/body results are explicit ports, as the former legacy Run
+  // fixture was. The real ordinary Root and real FileHandles remain actual.
+  // This does not qualify a compiled Common, Ledger tariff or public Host.
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => policy,
+    clientProgramRequestPreparationControl: () => [1024n, 0n],
+    clientLocalPreparationResourceLimits: () => [100n, 10n, 10n, 10000n, 10000n, 10000n],
+    clientProgramPrepareLocalPreparationAdmission(value, receipt) {
+      original = value; ports = resource.prepareOriginalLocalPreparationPorts(value, receipt);
+      return ok({});
+    },
+    clientProgramBeginRequestPreparation() {assert.equal(ports.status(0), 0); return ok(parent);},
+    clientProgramReserveRequestSnapshot: () => ok(),
+    clientProgramAbortRequestPreparation() {return ok();},
+    clientProgramPrepareRequestNativeComputation: () => ok('effect_free'),
+    clientProgramPrepareRequestSourceComputation: () => ok('effect_free'),
+    clientProgramFinishRequestComputation: () => ok('effect_free'),
+    clientProgramPrepareRequestProgramModuleBody: () => assert.fail('No source-free module'),
+    clientProgramRequestProgramModuleIssueCode() {},
+    clientProgramBorrowRequestProgramPlanInput: () => ok(holder),
+    clientProgramPreparationBorrowRead: value => {assert.strictEqual(value, holder); return prepared;},
+    clientProgramAcquisitionCount: () => 1,
+    clientProgramRequestParametersOriginal: () => ok(undefined),
+    clientProgramAdoptRequestProgramPreparation: () => assert.fail('No source-free adoption'),
+    clientProgramPrepareRequestCaptureModuleBody: () => ok(),
+    clientProgramAdoptRequestCapturePreparation: () => ok(managed),
+    clientProgramPreparationBorrowRetirementStarted: () => retiring,
+    clientProgramPreparationBorrowReturn(value) {
+      assert.strictEqual(value, holder); assert(retiring); assert(!returned); returned = true; return ok(true);
+    },
+  };
+  const context = Object.freeze({runtime: moon, preparedEnvironment: {}, retainedRelationOutput: true});
+  originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
   const view = await sources.prepareOrdinaryProjectSourceManagedInstallation(originals, {
     validator(value) {assert.strictEqual(value, originals); current();},
     async prepare() {}, read: () => bundle,
     request(value, owner) {assert.strictEqual(owner, prepared); return request;},
-    requirements: () => ({planningWork: 100, attempts: 10, holdings: 10,
-      transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n}),
-    intent: () => 'sha256:' + 'a'.repeat(64),
+    preparationContext: () => context, retireInitialPreparation() {},
   });
-  const receipt = view.beforeSourceSnapshot('aql', 'text', {});
+  assert.equal(view.prepareRun, undefined, 'Project Sources cannot create a detached ordinary Root');
+  const connection = Object.freeze({mode: 'local', owner: 'local',
+    consentRefs: Object.freeze([]), runners: Object.freeze([])});
+  const program = {version: 'actql/0.1', id: 'original-project-source', stages: [{id: 'scan',
+    inputs: {remote: {connector: 'fixture', resource: 'records'}},
+    steps: [{filter: 'true'}, {select: ['id'], as: 'rows'}],
+    results: {rows: {from: 'rows', fields: ['id']}}}],
+    results: {rows: {from: {stage: 'scan', result: 'rows'}}}};
+  const receipt = view.beforeSourceSnapshot('program', program, {}, connection);
+  const body = view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
   view.bindSourceSnapshot(receipt, body); view.bindSourceRequest(receipt, body, request);
-  const original = view.prepareRun(prepared);
-  const ports = resource.prepareOriginalManagedRunPorts(original, prepared);
-  assert.equal(ports.status(0), 0);
+  await view.fundedPreparation(request, undefined);
+  const adopted = view.adoptCapturePreparation(prepared, request, {}, () => plan);
+  assert.strictEqual(adopted.original, original); assert.strictEqual(adopted.value, managed);
   return {view, prepared, declaration, original, ports, directory,
-    child(index = 0) {return view.prepareRead(prepared, declaration, original,
+    child(index = 0) {return view.prepareRead(prepared, declaration, managed,
       {stage: index, input: 0, task: index});},
     finish() {view.finishSourceProducer(receipt, 'returned');
-      assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);},
+      assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);},
+    sever() {retiring = true; view.severPreparation(prepared, original); assert(returned);},
+    retired() {view.retireSeveredPreparation(original);},
     invalidate() {valid = false;}};
 }
 
@@ -54,7 +99,7 @@ test('Project Source retains a real reader before current refusal and closes wit
   assert.equal(f.ports.status(2), -42);
   assert.equal((await child.close()).pending, false);
   assert.equal(calls, 1); assert.equal(file.fd, -1);
-  assert.equal(f.ports.status(2), 0);
+  f.sever(); assert.equal(f.ports.status(2), 0); f.retired();
   assert.equal((await f.view.close()).pending, false);
 });
 
@@ -77,7 +122,7 @@ test('Project Source distinguishes same-declaration occurrences and preserves pe
   ready = true;
   assert.equal((await first.close()).pending, false);
   assert.equal(closeCalls, 2); assert.equal(file.fd, -1);
-  assert.equal(f.ports.status(2), 0);
+  f.sever(); assert.equal(f.ports.status(2), 0); f.retired();
   assert.equal((await f.view.close()).pending, false);
 });
 
@@ -95,12 +140,25 @@ test('Project Source retries only an unobserved original getter and never replac
   assert.equal(f.ports.status(2), -42);
   assert.equal((await child.close()).pending, false);
   assert.equal(gets, 2); assert.equal(closes, 1);
-  assert.equal(f.ports.status(2), 0);
+  f.sever(); assert.equal(f.ports.status(2), 0); f.retired();
   assert.equal((await f.view.close()).pending, false);
 });
 
 // Execute the real Host's quote projection with explicit Core/Project ports.
 // Actual Core compilation and the integrated Host remain separate checks.
+test('Project Source retirement fences new children while original physical cleanup remains live', async () => {
+  const f = await fixture(), child = f.child();
+  let closed = false;
+  child.retainChild({status: () => ({pending: !closed}),
+    close() {closed = true; return {pending: false};}});
+  f.finish(); f.sever();
+  assert.throws(() => f.child(1), {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.ports.status(2), -42);
+  assert.equal((await child.close()).pending, false);
+  assert.equal(f.ports.status(2), 0); f.retired();
+  assert.equal((await f.view.close()).pending, false);
+});
+
 const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
 function quoteFixture(refs) {
