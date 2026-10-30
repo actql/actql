@@ -75,10 +75,13 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       maxPageBytes: Math.max(...original.sources.map(source => source.limits.maxPageBytes)),
       maxPageRows: Math.max(...original.sources.map(source => source.limits.maxPageRows)),
       maxCaptureRows: Math.max(...original.sources.map(source => source.limits.maxRows))});
+    const pageBounds = Object.freeze({maxNodes: Math.max(...original.sources.map(source => source.limits.maxNodes)),
+      maxDepth: Math.max(...original.sources.map(source => source.limits.maxDepth)),
+      maxCursorBytes: Math.max(...original.sources.map(source => source.limits.maxCursorBytes))});
     const implementationLimits = Object.freeze({...Object.fromEntries(
       [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])),
       maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
-      maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows});
+      maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows, ...pageBounds});
     const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
       columnCount: Math.max(...declared.views.map(view => view.fields.length))});
     const targets = new Map(original.sources.map(source => [source.resource, source]));
