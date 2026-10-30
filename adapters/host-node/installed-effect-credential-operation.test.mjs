@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {openHttpsExchangeFixture} from '../site-node/https-exchange-fixture.mjs';
+import {openHttpsCredentialBinding,closeHttpsCredentialBinding,callHttpsCredentialResource} from '../site-node/https-credential-resource.mjs';
+import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
+import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
+import * as implementation from './installed-effect-plan.mjs';
+
+// Native Plan/Account issuer/Journal ports are explicit. The shared operation,
+// capture retainer, scoped invocation, Credential binding and TLS are real.
+// This is not native capacity/normal installation or provider outcome evidence.
+test('same original Effect operation reserves before binding and accounts exact TLS frames until original cleanup',async t=>{
+  assert.equal(typeof implementation.prepareInstalledEffectCredentialChild,'function');
+  const server=await openHttpsExchangeFixture(t,{routes:[{method:'POST',pathname:'/create',handle:()=>({body:'{"ok":true}'})}]});
+  const parent={},prepared={},identity={},plan={},token={},grant={},events=[],charges=[],children=[];
+  const scope=Object.freeze({issuerAuthority:'authority',principal:'principal',namespaceId:'namespace',environment:'fixture',
+    siteKey:'site',siteGeneration:1,runtimeBundleCid:'runtime',connectorRegistration:'fixture',connectorRevision:'fixture/1',
+    resourceOrigin:server.origin,runInvocationCid:'run',taskAttempt:1,dispatchRequestCid:'dispatch',operation:'create'});
+  const raw=Object.freeze({grant,scope}),purpose=Object.freeze({kind:'effect',resource:'rows'});
+  const control={identity:()=> 'original-grant'},journal={
+    claim(){return {replayed:false,grant,use:{},record:{useCid:'use',grantCid:'original-grant'}};},authorize(){},finish(){}};
+  const resolveSecret=async()=> 'fixture-secret';
+  let aliasesRetired=false,retired=false;
+  const runtime={clientProgramInstalledEffectManagedOperationPlan(owner,p,r){assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);return {$tag:1,_0:plan};},
+    clientProgramInstalledEffectOperationBorrow(owner,p,r,original,member,perRow,index,row,operation){
+      assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(original,plan);
+      assert.deepEqual([member,perRow,index,row,operation],[0,true,2,0,'create']);events.push('borrow');return {$tag:1,_0:token};},
+    clientProgramInstalledEffectOperationStart(original){assert.equal(original,token);events.push('start');return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationCharge(original,bytes){assert.equal(original,token);assert.equal(typeof bytes,'bigint');charges.push(bytes);return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationRetire(original,ack){assert.equal(original,token);assert.equal(ack,true);assert(aliasesRetired);retired=true;return {$tag:1,_0:true};}};
+  const run={runtime,value:parent,prepared,request:identity,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
+  const site=Object.freeze({runtimeBundleCid:'runtime',connectorRegistration:'fixture',connectorRevision:'fixture/1',referenceCurrent:()=>true,
+    authorizationPurpose(original){assert.equal(original,raw);return purpose;},
+    bindRunAcquisition(original,current){
+      assert.equal(original,raw);assert.equal(children.length,1);assert.deepEqual(events,['borrow']);events.push('bind');
+      const binding=openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,assertCurrent:current.assertCurrent});
+      return Object.freeze({credential:Object.freeze({binding,control,journal,resolveSecret,ca:server.ca,currentBeforeSend:current.observeCurrent}),
+        close(){return closeHttpsCredentialBinding(binding);}});
+    },callResource(options){events.push('call');assert.equal(options.grant,grant);return callHttpsCredentialResource(options);}});
+  const child=implementation.prepareInstalledEffectCredentialChild({run,memberIndex:0,rowIndex:0,operationIndex:2,operation:'create',
+    originalSite:site,originalAuthorization:raw,useId:'use',resource:'rows',purpose:'effect',runInvocationCid:'run',dispatchRequestCid:'dispatch',
+    maxRequestBytes:1024,maxResponseBytes:64,assertCurrent(){},observeCurrent:async()=>{},requestsRetired:()=>aliasesRetired,
+    invoke({authorization,credential,callResource}){assert.equal(authorization.grant,grant);assert.equal(authorization.useId,'use');
+      return invokeScopedCredentialOperation({authorization,credential,callResource,operation:'create',method:'POST',path:'/create',body:'{}',
+        maxRequestBytes:1024,maxResponseBytes:64});}});
+  assert.deepEqual(events,['borrow']);
+  let output=await prepareInstalledRowCaptureChild({children,create:()=>child});
+  assert.equal(output.body.toString(),'{"ok":true}');assert.deepEqual(charges,[2n,11n]);
+  assert.deepEqual(events,['borrow','bind','start','call']);assert.equal(server.seen().length,1);
+  assert.equal(await child.release(),false);assert.equal(retired,false);
+  output=undefined;aliasesRetired=true;
+  await children[0].prepared.retry();
+  assert.equal(child.status().pending,false);assert.equal(retired,true);
+});
