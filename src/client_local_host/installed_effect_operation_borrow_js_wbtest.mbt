@@ -188,3 +188,116 @@ test "Effect operation constructor fences same-parent reentry before current cal
   retire_installed_managed_run(owner).unwrap()
   owner_ref.val = None
 }
+
+///|
+extern "js" fn effect_plan_node_original(
+  loader : PublicationTestLoader,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String,
+  extent : ClientInstalledEffectOperationExtent,
+  demand : (
+    @publication_host.PreparedClientEffectComputation,
+    Int,
+    String,
+    FixedArray[ClientInstalledEffectOperationExtent],
+    FixedArray[ClientInstalledEffectOperationExtent],
+  ) -> Result[
+    ClientInstalledEffectOperationDemand,
+    ClientInstalledManagedRunIssue,
+  ],
+  construct : (
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientRequestIdentity,
+    ClientInstalledSequenceContracts,
+    FixedArray[ClientInstalledEffectOperationDemand],
+  ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue],
+  sources : (@publication_host.PreparedClientEffectComputation) -> Int,
+) -> ClientInstalledEffectManagedPlan =
+  #|(loader,prepared,request,contracts,values,fragment,extent,demand,construct,sources) => {
+  #| const helper=loader('../../../../../adapters/host-node/installed-effect-plan.mjs');
+  #| const recipe=helper.captureInstalledEffectPlanRecipe(Object.freeze({memberOperations:Object.freeze([]),rowOperations:Object.freeze([Object.freeze({operation:'operation',extent})])}),4);
+  #| const moon={clientProgramEffectAcquisitionCount:sources,clientProgramInstalledEffectOperationDemandPrepare:demand,
+  #|   clientProgramInstalledEffectManagedPlanPrepare(...args){
+  #|     if(args.length!==12||args[0]!==prepared||args[1]!==request||args[2].length||args[3]!==''||args[4]!==''||args[5].length||args[6].length||args[7]!==contracts||args[8]!==values||args[9]!==fragment||args[10]!==undefined)throw new Error('ChangedOriginalEffectPlanArguments');
+  #|     return construct(args[0],args[1],args[7],args[11]);
+  #|   }};
+  #| return helper.prepareInstalledEffectManagedPlan({moon,facts:{prepared,identity:request},inputs:{installedContracts:contracts,values,fragment},unit:{stageIndex:0},members:[{effectId:'save'}],recipeFor:()=>recipe});
+  #| }
+
+///|
+test "actual Node Effect plan helper returns the original typed Core Plan for same Request adoption" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let extent = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(100L, 200L).unwrap(),
+    10L,
+    true,
+  ).unwrap()
+  let plan = effect_plan_node_original(
+    publication_test_loader(publication_test_url()),
+    prepared,
+    request,
+    contracts,
+    source_query_original_values,
+    source_query_original_fragment,
+    extent,
+    (original, stage, name, members, rows) => {
+      prepare_installed_effect_operation_demand(
+        original,
+        stage,
+        name,
+        members.to_array(),
+        rows.to_array(),
+      )
+    },
+    (original, identity, selected, demands) => {
+      prepare_installed_effect_managed_plan(
+        original,
+        identity,
+        [],
+        "",
+        "",
+        [],
+        [],
+        selected,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+        demands.to_array(),
+        provider_factory=_ => [],
+      )
+    },
+    original => {
+      @strategy.graph_captured_prefix(
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(original),
+        ),
+      )
+    },
+  )
+  assert_true(physical_equal(plan.prepared, prepared))
+  assert_true(physical_equal(plan.request, request))
+  assert_true(
+    physical_equal(
+      prepared_installed_effect_managed_operation(plan, 0, true, 0, "operation").unwrap(),
+      extent,
+    ),
+  )
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      installed_effect_managed_operation_plan(owner, prepared, request).unwrap(),
+      plan,
+    ),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}

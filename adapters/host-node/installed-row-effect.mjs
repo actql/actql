@@ -91,6 +91,7 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan} from './installed-effect-plan.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
@@ -365,41 +366,6 @@ function captureManagedPlanDefinition(definition, driver) {
     }
   }
   return definition;
-}
-
-// The selected Host supplies original typed extents from its actual implementation
-// recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
-// Core values; this view creates no capacity, admission or permission.
-function captureManagedPlanRecipe(recipe) {
-  if (recipe === undefined) return undefined;
-  const own = (value, names) => {
-    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
-        !Object.isFrozen(value)) fail('InvalidInstalledEffectPlanRecipe');
-    const fields = Object.getOwnPropertyDescriptors(value);
-    if (Reflect.ownKeys(fields).length !== names.length ||
-        names.some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) {
-      fail('InvalidInstalledEffectPlanRecipe');
-    }
-    return fields;
-  };
-  const fields = own(recipe, ['memberOperations', 'rowOperations']);
-  const operations = name => {
-    const values = fields[name].value;
-    if (!Array.isArray(values) || values.length > localContractLimits.maxNodes) {
-      fail('InvalidInstalledEffectPlanRecipe');
-    }
-    const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
-    return Object.freeze(Array.from({length: values.length}, (_, index) => {
-      const entry = own(entries[String(index)].value, ['operation', 'extent']);
-      const operation = entry.operation.value, extent = entry.extent.value;
-      if (!text(operation) || extent === null || typeof extent !== 'object' ||
-          nodeTypes.isProxy(extent)) fail('InvalidInstalledEffectPlanRecipe');
-      return Object.freeze({operation, extent});
-    }));
-  };
-  const memberOperations = operations('memberOperations'), rowOperations = operations('rowOperations');
-  if (memberOperations.length + rowOperations.length === 0) fail('InvalidInstalledEffectPlanRecipe');
-  return Object.freeze({memberOperations, rowOperations});
 }
 
 function captureEffectResources(receiver) {
@@ -729,7 +695,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   const owned = checkDriver(write === undefined ? driver
     : deriveInstalledRowWrite(write, connectorRegistration));
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
-  const planRecipe = captureManagedPlanRecipe(managedPlanRecipe);
+  const planRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
       mappings.length + commands.length === 0 ||
@@ -1038,43 +1004,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     return Object.freeze(members);
   };
-  // Called by the ordinary Request owner before SAME-parent completion/adoption.
-  // Every selected member contributes its real immutable implementation extents;
-  // an absent recipe never becomes an empty operation list or scalar fallback.
   const prepareManagedPlan = (facts, inputs) => {
     assertPrepared({moon, prepared: facts?.prepared, compilation: facts?.compilation});
-    if (facts?.prepared === undefined || facts.identity === undefined ||
-        inputs?.installedContracts === undefined ||
-        typeof inputs.values !== 'string' ||
-        typeof moon.clientProgramInstalledEffectOperationDemandPrepare !== 'function') {
-      fail('InstalledEffectOperationDemandUnavailable');
-    }
     const unit = installedRowEffectUnit(moon, facts.compilation);
     const members = membersOf(facts.prepared, unit);
-    const demands = members.map(member => {
-      const recipe = ownerOf(member).managedPlanRecipe;
-      if (recipe === undefined) fail('InstalledEffectOperationDemandUnavailable');
-      return checked(moon.clientProgramInstalledEffectOperationDemandPrepare(
-        facts.prepared, unit.stageIndex, member.effectId,
-        recipe.memberOperations.map(entry => entry.extent),
-        recipe.rowOperations.map(entry => entry.extent)));
-    });
-    // Source acquisition originals cannot be inferred from profile DATA or
-    // prepared again under another parent. This first existing connection
-    // selects a Source-free Effect; Source/Model supply keeps its own owner.
-    if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
-        inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
-    const construct = facts.queryTimePreparation === undefined
-      ? moon.clientProgramInstalledEffectManagedPlanPrepare
-      : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
-    if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
-    const original = [facts.prepared, facts.identity,
-      ...(facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
-      [], '', '', [], [], inputs.installedContracts,
-      inputs.values, inputs.fragment, inputs.ordered, demands];
-    // Empty query/evidence strings are unused arguments only for zero Sources;
-    // they issue no query contract. Existing Core validates the checked graph.
-    return checked(Reflect.apply(construct, moon, original));
+    return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
+      recipeFor: member => ownerOf(member).managedPlanRecipe});
   };
 
   const memberDispatch = (runInvocationCid, member) => cid({
