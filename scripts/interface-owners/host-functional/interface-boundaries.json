@@ -18850,7 +18850,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "548cb6e7d0b02a4114a5d830498eeffff7cfccbc2138f952844ba8005f7d6993",
+      "sha256": "78ced8995f78622b05f5eb65cb1324bb522a241f87547d1d49f118f9a3d0d7f1",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18888,13 +18888,6 @@
           "parameters": [
             "code",
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "immutablePolicySubject",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -19075,28 +19068,6 @@
           "async": false
         },
         {
-          "name": "installNodeClientProgramPreparation/verified/verified",
-          "parameters": [
-            "request"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeClientProgramPreparation/verified/verified/verified",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/verified/verified/verified#2",
-          "parameters": [
-            "bytes",
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "serializeProgram",
           "parameters": [
             "kind",
@@ -19113,7 +19084,6 @@
             "<module>",
             "effectPreparation",
             "fail",
-            "immutablePolicySubject",
             "installNodeClientEffectProgramPreparation",
             "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
             "installNodeClientEffectProgramPreparation/prepare/prepare",
@@ -19131,9 +19101,6 @@
             "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
             "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
             "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
-            "installNodeClientProgramPreparation/verified/verified",
-            "installNodeClientProgramPreparation/verified/verified/verified",
-            "installNodeClientProgramPreparation/verified/verified/verified#2",
             "serializeProgram",
             "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
             "checkedRequestProgramPreparation"
@@ -19617,7 +19584,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19780,7 +19747,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -77061,7 +77028,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8a46764a5609a320554ec989315a52a01d37a34f83510dae36a2c3773cebc6e7",
+      "sha256": "612842e79469606c777c39c251faa86fa4189f8c4297efa03ef0d5a33085fb1c",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77088,6 +77055,13 @@
           "name": "fileIdentity/fileIdentity",
           "parameters": [
             "stat"
+          ],
+          "async": false
+        },
+        {
+          "name": "immutablePolicySubject",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -77376,9 +77350,16 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
           "parameters": [
             "request",
-            "environment"
+            "environment",
+            "originalVerifier",
+            "signal"
           ],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
@@ -77397,6 +77378,13 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
           "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
+          "parameters": [
             "name",
             "index"
           ],
@@ -77404,6 +77392,13 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
           "parameters": [
             "name"
           ],
@@ -79137,6 +79132,77 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "immutablePolicySubject",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
               }
             ]
           }
@@ -82497,7 +82563,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "b6c327e12489f15b637126bab36eeb538bb23c58b854225a821e054fa6a47bab",
+      "sha256": "feeed6a81be29cde28a30b450f2a1b6a3e175bae0dd590ddf2525e5065869c4f",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -84563,7 +84629,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -84812,7 +84878,7 @@
       "sha256": "39c95f4f6ff5ebac45a7fb6bd01747eacee1bd04a67be8fd47eb1ec67807d70a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -85226,7 +85292,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

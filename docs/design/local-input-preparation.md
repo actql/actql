@@ -3696,3 +3696,31 @@ refusal and foreign throws retain the same cleanup carrier; clearing the
 Request closes returned work and drops subject/evidence aliases. Neither a
 policy CID nor this DATA lifetime issues provider permission, acknowledges
 physical cleanup, changes Model Scope meaning or chooses a Model/Content Plan.
+
+
+### Installed Host verifier continuation
+
+The ordinary Request manager retains the exact verifier and its existing optional
+preparation signal on the same producer before entering semantic checking. It
+captures the Core methods and receiver before any verifier await, parses and
+freezes only the original measured descriptor DATA, and binds each result at its
+original index, including an explicit undefined decline. Subject count and total
+wire limits retain the existing Host refusal bounds. The binder performs the
+actual post-await current check; cheap local fences additionally reject reentry,
+changed callback or signal, cancellation and retired preparation.
+
+Final compilation receives the original external Environment and prepared
+publication after subject finalization. The supplemented Environment remains
+inside the same Core child. The installation no longer prepares a compiled
+Program to discover subjects and then serializes and prepares it again. A
+configured verifier requires the funded Request entrance; missing capabilities
+refuse before input capture. A typed refusal or callback throw remains the
+original failed preparation and cannot fall back to another parent or checker.
+
+Original Request cleanup clears verifier and signal aliases only after its
+existing stop is confirmed. A successful adopted Run retains them until that
+same preparation's retirement boundary. These aliases are not permission,
+Resource backing, physical cleanup acknowledgement or a Model/Content Plan.
+Caller fixtures cover same-original forwarding, explicit decline, callback
+failure, cancellation and retirement; compiled Common and ordinary Source/REST
+connections remain separate consuming obligations.
