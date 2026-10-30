@@ -274,3 +274,73 @@ test('Native mutation failure custody: refused Unknown write keeps its physical 
   assert.equal(JSON.parse(await readFile(join(attempt,'0-create-intent.json'))).state,'outcome-unknown');
   await assert.rejects(lstat(join(attempt,'0-create-unobserved.json')),{code:'ENOENT'});
 });
+
+// Own returned DATA only. Mutation runs at the consumer's next await after
+// its first output read, without changing any job/API/filesystem port.
+function nativeTerminalMutation(initial,later) {
+  const current={...initial},reads={code:0,signal:0,status:0,stdout:0,stderr:0},response={};let mutated=false;
+  for(const field of Object.keys(reads))Object.defineProperty(response,field,{enumerable:true,get(){
+    reads[field]++;
+    if(field==='stdout'&&reads[field]===1)queueMicrotask(()=>{Object.assign(current,later);mutated=true;});
+    return current[field];
+  }});
+  return {response,reads,mutated:()=>mutated};
+}
+
+for(const [name,code,signal,status]of [['nonzero',1,null,201],['signalled',0,'SIGTERM',201],
+  ['unexpected HTTP',0,null,503],['unreported',undefined,undefined,undefined]])
+test(`Native terminal snapshot: original ${name} cannot become confirmed during receipt IO`,async t=>{
+  const f=await fixture(t),original=f.options.runGitHub;
+  const initial={code,signal,status,stdout:'{"id":71}',stderr:'ORIGINAL inert stderr\n'};
+  const captured=nativeTerminalMutation(initial,{code:0,signal:null,status:201,stdout:'{"id":71}',stderr:'LATER stderr\n'});
+  await assert.rejects(publishNativeRelease({...f.options,runGitHub:async(request,context)=>{
+    const reply=await original(request,context);return context.kind==='create'?captured.response:reply;
+  }}),/returned without confirmation/u);
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,status:1,stdout:1,stderr:1});
+  const target=join(f.options.receiptsDirectory,f.selected.sha256,'native'),[name]=await readdir(target),attempt=join(target,name);
+  assert.deepEqual(JSON.parse(await readFile(join(attempt,'0-create-terminal.json'))),JSON.parse(JSON.stringify(initial)));
+  assert.deepEqual(f.commands.map(value=>value.kind),['create']);assert.equal(f.getRelease().draft,true);
+  await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+for(const [name,stdout,expected]of [['malformed JSON','not JSON',/original JSON unavailable/u],
+  ['invalid id','{"id":0}',/response identity unavailable/u]])
+test(`Native terminal snapshot: original ${name} cannot be replaced by later valid identity`,async t=>{
+  const f=await fixture(t),original=f.options.runGitHub;
+  const initial={code:0,signal:null,status:201,stdout,stderr:''};
+  const captured=nativeTerminalMutation(initial,{stdout:'{"id":71}'});
+  await assert.rejects(publishNativeRelease({...f.options,runGitHub:async(request,context)=>{
+    const reply=await original(request,context);return context.kind==='create'?captured.response:reply;
+  }}),expected);
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,status:1,stdout:1,stderr:1});
+  const target=join(f.options.receiptsDirectory,f.selected.sha256,'native'),[name]=await readdir(target),attempt=join(target,name);
+  assert.deepEqual(JSON.parse(await readFile(join(attempt,'0-create-terminal.json'))),initial);
+  assert.deepEqual(f.commands.map(value=>value.kind),['create']);
+  await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+test('Native terminal snapshot: original success and id survive later returned-object mutation',async t=>{
+  const f=await fixture(t),original=f.options.runGitHub;
+  const initial={code:0,signal:null,status:201,stdout:'{"id":71}',stderr:'ORIGINAL stderr\n'};
+  const captured=nativeTerminalMutation(initial,{code:1,signal:'SIGTERM',status:503,stdout:'{"id":99}',stderr:'LATER stderr\n'});
+  const result=await publishNativeRelease({...f.options,runGitHub:async(request,context)=>{
+    const reply=await original(request,context);return context.kind==='create'?captured.response:reply;
+  }});
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,status:1,stdout:1,stderr:1});
+  assert.equal(result.releaseId,71);assert.equal(result.state,'immutable-release-and-original-assets-confirmed');
+  assert.deepEqual(JSON.parse(await readFile(join(result.receiptDirectory,'0-create-terminal.json'))),initial);
+  assert.deepEqual(f.commands.map(value=>value.kind),['create','upload','upload','publish']);
+});
+
+test('Native terminal snapshot: only five selected fields enter the receipt and extra getters stay unread',async t=>{
+  const f=await fixture(t),original=f.options.runGitHub;let extraReads=0;
+  const initial={code:0,signal:null,status:201,stdout:'{"id":71}',stderr:''};
+  const captured=nativeTerminalMutation(initial,{});
+  Object.defineProperty(captured.response,'unselected',{enumerable:true,get(){extraReads++;return 'INERT unselected DATA';}});
+  const result=await publishNativeRelease({...f.options,runGitHub:async(request,context)=>{
+    const reply=await original(request,context);return context.kind==='create'?captured.response:reply;
+  }});
+  assert.equal(extraReads,0);assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,status:1,stdout:1,stderr:1});
+  assert.deepEqual(JSON.parse(await readFile(join(result.receiptDirectory,'0-create-terminal.json'))),initial);
+  assert.equal(result.state,'immutable-release-and-original-assets-confirmed');
+});

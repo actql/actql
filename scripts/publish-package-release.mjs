@@ -450,15 +450,17 @@ export async function publishNativeRelease(options) {
       throw retainOriginalPublisherFailure(Error(`Native ${kind} outcome unknown; preserve ${attempt}`), failure);
     }
     const terminal = response && ['code', 'signal', 'status', 'stdout', 'stderr'].every(field => Object.hasOwn(response, field));
-    const bounded = terminal && typeof response.stdout === 'string' && typeof response.stderr === 'string' &&
-      Buffer.byteLength(response.stdout) + Buffer.byteLength(response.stderr) <= 8 * 1024 * 1024;
+    const stdout = terminal ? response.stdout : undefined, stderr = typeof stdout === 'string' ? response.stderr : undefined;
+    const bounded = terminal && typeof stdout === 'string' && typeof stderr === 'string' &&
+      Buffer.byteLength(stdout) + Buffer.byteLength(stderr) <= 8 * 1024 * 1024;
     if (!bounded) {await record(`${index}-${kind}-unobserved.json`, {state: 'unknown', reason: 'Original terminal response unavailable'});
       throw Error(`Native ${kind} outcome unknown; preserve ${attempt}`);}
-    await record(`${index}-${kind}-terminal.json`, response);
-    assert(response.code === 0 && response.signal === null && response.status === expectedStatus,
+    const snapshot = {code: response.code, signal: response.signal, status: response.status, stdout, stderr};
+    await record(`${index}-${kind}-terminal.json`, snapshot);
+    assert(snapshot.code === 0 && snapshot.signal === null && snapshot.status === expectedStatus,
       `Native ${kind} returned without confirmation; preserve ${attempt}`);
     let body;
-    try {body = JSON.parse(response.stdout);} catch {throw Error(`Native ${kind} original JSON unavailable; preserve ${attempt}`);}
+    try {body = JSON.parse(snapshot.stdout);} catch {throw Error(`Native ${kind} original JSON unavailable; preserve ${attempt}`);}
     assert(Number.isSafeInteger(body?.id) && body.id > 0, 'Original GitHub response identity unavailable');
     return body.id;
   };
