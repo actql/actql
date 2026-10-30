@@ -785,6 +785,12 @@ pub fn client_program_prepare_request_program_module_body(
   input : ClientLocalPreparationInputOriginal,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   retained_output : Bool,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
@@ -798,6 +804,7 @@ pub fn client_program_prepare_request_program_module_body(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output~,
     provider_factory=installed_client_family_providers,
+    invocation~,
   ).map_err(issue => Preparation(issue))
 }
 

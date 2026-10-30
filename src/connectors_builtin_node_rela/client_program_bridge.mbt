@@ -788,6 +788,20 @@ pub fn client_program_installed_managed_run_compilation_original(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedRunInvocationOriginal")
+pub fn client_program_installed_managed_run_invocation_original(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  @client_local_host.installed_managed_run_invocation_original(run, prepared)
+}
+
+///|
 /// The existing closed compilation sum preserves its actual Values type.
 /// A foreign owner or wrong variant refuses in the original issuer; there is
 /// no recompile, identity cast or admission from an equal serialized body.

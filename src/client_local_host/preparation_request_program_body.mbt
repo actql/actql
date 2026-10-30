@@ -223,6 +223,7 @@ pub suberror ClientRequestProgramPlanIssue {
   Construction(@publication_host.ClientValuesExecutablePlanIssue)
   ValuesCompilation(@publication_host.ClientValuesCompilationIssue)
   TaskCompilation(@publication_host.ClientTaskCompilationIssue)
+  QueryTime(@publication_host.ClientQueryTimeIssue)
 }
 
 ///|
@@ -294,6 +295,12 @@ pub fn[I] prepare_request_program_module_body(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  invocation? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   prepare_request_program_module_body_owned(
     owner,
@@ -304,6 +311,7 @@ pub fn[I] prepare_request_program_module_body(
     compilation_limits~,
     retained_output~,
     provider_factory~,
+    invocation~,
   )
 }
 
@@ -320,6 +328,12 @@ pub fn[I] prepare_request_capture_module_body(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  invocation? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   prepare_request_program_module_body_owned(
     owner,
@@ -330,6 +344,7 @@ pub fn[I] prepare_request_capture_module_body(
     compilation_limits~,
     retained_output=plan.configuration.retained_output,
     provider_factory~,
+    invocation~,
   )
 }
 
@@ -426,6 +441,12 @@ fn[I] prepare_request_program_module_body_owned(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  invocation? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   let prepared = match retain_request_program_module_inputs(
     owner, input, contracts, captured, manifests~, compilation_limits~,
@@ -438,6 +459,39 @@ fn[I] prepare_request_program_module_body_owned(
   preparation_module_call(
     () => {
       let installed = contracts.original
+      // These are the original invocation objects, not a clock value or a
+      // caller-supplied proof. Bind only the compiler retained by this parent.
+      let query_time = match invocation {
+        Some((original, request, compiled, definition)) => {
+          guard owner.program_compilation is Some(artifact) else {
+            return Err(Preparation(WrongPhase))
+          }
+          if !@publication_host.client_compiled_run_matches_pure_compilation(
+              compiled, prepared, artifact,
+            ) {
+            return Err(Preparation(ForeignOriginal))
+          }
+          if captured is Some(plan) &&
+            (!physical_equal(plan.request, request) ||
+              !(plan._observed_query_time is Some(selected) &&
+                physical_equal(selected, original))) {
+            return Err(Preparation(ForeignOriginal))
+          }
+          match @publication_host.client_query_time_preparation_context_for_run(
+            original, prepared, compiled, definition, request,
+          ) {
+            Err(issue) => return Err(QueryTime(issue))
+            Ok(_) => ()
+          }
+          Some((original, request))
+        }
+        None => {
+          if captured is Some(plan) && plan._observed_query_time is Some(_) {
+            return Err(Preparation(WrongPhase))
+          }
+          None
+        }
+      }
       // Forward the exact already-admitted immutable catalogue before any
       // module callback, measurement or retained compiler emission exists.
       if owner.program_compilation is None {
@@ -464,6 +518,7 @@ fn[I] prepare_request_program_module_body_owned(
                   installed.ordered_body,
                   retained_output~,
                   provider_factory~,
+                  query_time~,
                 ) {
                 Err(issue) => return Err(Installed(issue))
                 Ok(value) => {

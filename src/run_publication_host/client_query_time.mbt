@@ -13,6 +13,7 @@ struct ClientQueryTimePreparation {
   request : ClientRequestIdentity
   created_at : String
   sample : @values.CheckedValue
+  mut _observed_query_compilation : ClientCompiledRun?
   mut definition : @publication.PublicationContract?
   mut context : @publication.QueryEvaluationTime?
 }
@@ -100,7 +101,8 @@ fn prepare_client_query_time_sample(
     is Some(sample) else {
     return Err(InvalidSample)
   }
-  Ok({ owner, request, created_at, sample, definition: None, context: None, })
+  Ok({ owner, request, created_at, sample,
+    _observed_query_compilation: None, definition: None, context: None, })
 }
 
 ///|
@@ -149,6 +151,58 @@ pub fn client_query_time_preparation_context(
   preparation : ClientQueryTimePreparation,
 ) -> @publication.QueryEvaluationTime? {
   preparation.context
+}
+
+///|
+/// Read an already bound invocation for the exact original handoff. Its
+/// admission and Definition were checked when this context was constructed;
+/// this lookup neither revalidates the Definition nor binds a new Run/sample.
+pub fn client_query_time_preparation_context_for_run(
+  preparation : ClientQueryTimePreparation,
+  owner : PreparedClientProgram,
+  compilation : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  request : ClientRequestIdentity,
+) -> Result[@publication.QueryEvaluationTime, ClientQueryTimeIssue] {
+  guard preparation.owner is Query(original) &&
+    physical_equal(original, owner) &&
+    client_compiled_run_matches(compilation, owner) else {
+    return Err(ForeignPreparation)
+  }
+  if !physical_equal(preparation.request, request) {
+    return Err(ForeignRequest)
+  }
+  guard preparation.definition is Some(bound_definition) &&
+    physical_equal(bound_definition, definition) &&
+    preparation.context is Some(original) &&
+    @publication.query_evaluation_time_matches(
+      original, compilation.admission, definition,
+    ) else {
+    return Err(ForeignRun)
+  }
+  Ok(original)
+}
+
+///|
+/// Return the first bound invocation, not another admission from its artifact.
+/// The caller already owns this immutable preparation; visibility is no grant.
+pub fn client_query_time_preparation_invocation(
+  preparation : ClientQueryTimePreparation,
+  owner : PreparedClientProgram,
+) -> (
+  ClientQueryTimePreparation,
+  ClientRequestIdentity,
+  ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  guard preparation._observed_query_compilation is Some(compiled) &&
+    preparation.definition is Some(definition) &&
+    client_query_time_preparation_context_for_run(
+      preparation, owner, compiled, definition, preparation.request,
+    ) is Ok(_) else {
+    return None
+  }
+  Some((preparation, preparation.request, compiled, definition))
 }
 
 ///|
@@ -213,6 +267,7 @@ pub fn bind_client_query_evaluation_time(
     Err(issue) => return Err(RunBinding(issue))
   }
   preparation.definition = Some(definition)
+  preparation._observed_query_compilation = Some(compilation)
   preparation.context = Some(time)
   Ok(time)
 }

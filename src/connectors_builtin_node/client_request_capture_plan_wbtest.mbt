@@ -143,7 +143,7 @@ test "actual Request captured Source bridge keeps original Plan acquisition and 
       acquisition,
     ),
   )
-  client_program_prepare_request_capture_module_body(parent, receipt, plan).unwrap()
+  client_program_prepare_request_capture_module_body(parent, receipt, plan, None).unwrap()
   assert_true(
     physical_equal(
       client_program_preparation_borrow_read(holder).unwrap(),
@@ -269,12 +269,13 @@ test "actual Request capture bridge rejects changed inventory query-time and ori
       parent,
       request_diagnostic_test_receipt(),
       plan,
+      None,
     )
     is Err(Preparation(Preparation(ForeignOriginal))),
   )
-  client_program_prepare_request_capture_module_body(parent, receipt, plan).unwrap()
+  client_program_prepare_request_capture_module_body(parent, receipt, plan, None).unwrap()
   assert_true(
-    client_program_prepare_request_capture_module_body(parent, receipt, plan)
+    client_program_prepare_request_capture_module_body(parent, receipt, plan, None)
     is Err(Preparation(Preparation(WrongPhase))),
   )
   let run = client_program_adopt_request_capture_preparation(parent, request).unwrap()

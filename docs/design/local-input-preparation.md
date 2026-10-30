@@ -3717,3 +3717,35 @@ active census retains its original cleanup obligation. Metadata disposal
 does not refund consumed input work/attempts or any byte debit. The selected
 keyed/declaration/transport/prefix/provider/codec/output and constructor
 overlap still needs complete backing before allocation on this same parent.
+
+### Ordinary invocation before module construction
+
+An ordinary QueryTime-dependent module consumes the Request parent's original
+compiler output. Compilation precedes module construction so that the caller
+can issue its actual compiled Run and Definition and bind its original
+QueryTime preparation before constructing the generated sequences. The module
+handoff carries those four original objects: QueryTime preparation, Request
+identity, compiled Run and Definition. Equal executable bytes, another Request
+identity or an independently compiled artifact cannot replace them.
+
+The existing QueryTime preparation retains the first successfully bound Pure
+compiled Run alongside its original Definition and evaluation context. Reading
+that bound invocation compares the retained originals; it does not re-admit
+the Definition, sample time, invoke Host currentness or bind another Run. The
+module uses this already-bound context, and a captured Plan must retain the
+same QueryTime preparation and Request. Untimed module construction remains a
+separate existing path; an already timed captured Plan cannot omit its original
+handoff. This does not widen the ordinary Model or serialization purpose guards.
+
+Run adoption retains the same module, compiler and invocation. The immutable
+Run getter returns the original four objects so that later publication need
+not issue another compiled Run from the artifact. It observes the existing
+payload-retirement fence. A returned original is DATA, not a currentness,
+permission or physical-cleanup acknowledgment; actual execution and publication
+retain their own mutable boundary checks.
+
+The QueryTime preparation's additional compiler reference, its selected Option
+carrier and the input/output tuple carriers are real retained or overlapping
+material. Their complete backing belongs to the caller's same-parent domain
+inventory before allocation. A reference getter or compiler-work receipt does
+not fund those holdings, and retirement cannot refund consumed work or attempts.

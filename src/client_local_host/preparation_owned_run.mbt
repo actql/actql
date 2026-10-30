@@ -39,6 +39,10 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
   guard original.owner is Pure(owner) && physical_equal(owner, prepared) else {
     return Err(ForeignOriginal)
   }
+  if original._observed_query_time is Some((_, bound_request)) &&
+    !physical_equal(bound_request, request) {
+    return Err(ForeignOriginal)
+  }
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
     @publication_host.client_request_program_cid(request) ||

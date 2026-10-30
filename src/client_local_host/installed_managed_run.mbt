@@ -106,6 +106,40 @@ pub fn installed_managed_run_compilation_original(
 }
 
 ///|
+/// Same payload-retirement fence as the original compilation getter. A timed
+/// module keeps the original issued Run/Definition through its invocation;
+/// later publication must consume those originals rather than issue again.
+pub fn installed_managed_run_invocation_original(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  guard installed_managed_run_compilation_original(run, prepared) is Some(artifact) else {
+    return None
+  }
+  let time = match run.captured_preparation {
+    Some(plan) => plan._observed_query_time
+    None => run.source_free_preparation.bind(plan => {
+      plan._observed_query_time.map(original => original.0)
+    })
+  }
+  guard time is Some(time) else { return None }
+  let invocation = @publication_host.client_query_time_preparation_invocation(time, prepared)
+  guard invocation is Some((_, request, compiled, _)) &&
+    physical_equal(request, run.request) &&
+    @publication_host.client_compiled_run_matches_pure_compilation(
+      compiled, prepared, artifact,
+    ) else {
+    return None
+  }
+  invocation
+}
+
+///|
 pub(all) enum ClientInstalledManagedRunIssue {
   ForeignOriginal
   Unsupported
@@ -285,6 +319,10 @@ pub fn prepare_installed_managed_source_free_with_contracts(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -297,6 +335,7 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       fragment_body,
       ordered_body,
       false,
+      query_time~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -395,6 +434,10 @@ pub fn begin_prepared_installed_managed_source_free_run(
   guard original.owner is Pure(owner) &&
     physical_equal(owner, prepared) &&
     original.configuration is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  if original._observed_query_time is Some((_, bound_request)) &&
+    !physical_equal(bound_request, request) {
     return Err(ForeignOriginal)
   }
   let value = match begin_installed_managed_run(admission, prepared, request) {
