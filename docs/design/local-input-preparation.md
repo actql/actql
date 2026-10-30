@@ -4134,3 +4134,19 @@ Current late Node consumers retain their binding-before-selection refusal
 order through one private adapter. A prepared consumer instead retains its
 selected limits and invokes only the binding continuation later. The former
 combined Core entry is removed rather than kept as a second phase contract.
+
+### Original Model Plan writer work
+
+`observe_prepared_client_infer_plan_encoding` runs the existing Infer compiler
+with the original Prepared Program, Infer graph, manifests and codec limits.
+The same private constructor serves the ordinary issuer. Its output cell is
+reset before entry and receives the final Executable Plan hash/text writers'
+VALUE-node visits, including a consumed prefix when construction fails. The
+original graph, template, required profiles, Plan wire and identities remain.
+
+The Request module owner must retain that cell before entering the compiler,
+back its construction and finish its existing work receipt after success or
+failure. This observation is only the final Plan writer dimension: it does not
+count earlier lowering, canonical admission, template construction, Model
+dispatch, physical I/O or cleanup. It is neither an allowance nor evidence that
+the compiler completed; a closing-byte refusal can follow all value visits.

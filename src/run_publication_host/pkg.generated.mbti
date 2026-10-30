@@ -1693,6 +1693,8 @@ pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectCo
 
 pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
 
+pub fn observe_prepared_client_infer_plan_encoding(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
+
 pub fn observe_prepared_client_task_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
 pub fn observe_prepared_client_values_plan_encoding(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue]
