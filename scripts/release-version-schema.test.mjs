@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {releaseVersion} from './release-version.mjs';
+import {admitReleaseChannel} from './release-policy.mjs';
 
 test('actual schema version regex and shared parser match independent literal version oracles', () => {
   const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url)));
@@ -33,5 +34,17 @@ test('existing lint opt-in selects the release files without new publication aut
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
     if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-registry.test.mjs'});
+    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-registry.test.mjs scripts/release-lanes.test.mjs'});
+});
+
+test('dotted channel schema and shared owner match independent literal channel oracles', () => {
+  const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url)));
+  const pattern = new RegExp(schema.properties.targets.items.properties.channels.items.pattern, 'u');
+  for (const channel of ['latest', 'next', 'candidate-fixed', 'release-0.0', 'release-0.1']) {
+    assert.equal(pattern.test(channel), true); assert.equal(admitReleaseChannel(channel), channel);
+  }
+  for (const channel of ['', '0.1', ' release-0.1', 'x/y', 'release-0.1' + String.fromCharCode(10),
+    'release-0.1' + String.fromCharCode(0)]) {
+    assert.equal(pattern.test(channel), false); assert.throws(() => admitReleaseChannel(channel));
+  }
 });

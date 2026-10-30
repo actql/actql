@@ -169,3 +169,34 @@ export async function observeReleaseSet(directory, expectedSha256, {fetchRespons
     plan: resumeReleaseSet(fixed, observations),
     qualification: 'anonymous bounded public HTTP byte observations only; no credentials, upload, approval, lock/CAS or public consumer acceptance; reobserve at the actual execution boundary'};
 }
+
+export async function observeReleaseChannels(directory, expectedSha256, {fetchResponse = fetch} = {}) {
+  assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
+  for (const artifact of fixed.manifest.artifacts.filter(value => value.ecosystem === 'npm')) {
+    const target = fixed.manifest.request.targets.find(value => value.id === artifact.targetId);
+    let tags;
+    try {
+      const reply = await metadata(`https://registry.npmjs.org/-/package/${encodeURIComponent(artifact.name)}/dist-tags`, fetchResponse, requests);
+      if (reply.status !== 200 || !reply.body || typeof reply.body !== 'object' || Array.isArray(reply.body))
+        unavailable('Current npm channel map is unavailable');
+      tags = reply.body;
+    } catch (failure) {
+      if (!(failure instanceof RegistryUnavailable)) throw failure;
+      issues.push({targetId: target.id, name: artifact.name, reason: failure.message});
+    }
+    for (const channel of target.channels) {
+      const base = {targetId: target.id, name: artifact.name, channel};
+      if (!tags) observations.push({...base, state: 'unknown'});
+      else if (!Object.hasOwn(tags, channel)) observations.push({...base, state: 'absent'});
+      else if (typeof tags[channel] === 'string' && tags[channel] && tags[channel] === tags[channel].trim())
+        observations.push({...base, state: 'present', version: tags[channel]});
+      else observations.push({...base, state: 'unknown'});
+    }
+  }
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {schemaVersion: 'actql-release-channels/0.1', manifestSha256: fixed.sha256,
+    startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
+    qualification: 'anonymous historical channel GETs only; no promotion, approval, public-install acceptance, lock or CAS'};
+}

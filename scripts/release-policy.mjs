@@ -12,6 +12,12 @@ const unique = (values, label) => {
   assert.equal(new Set(values).size, values.length, `Duplicate ${label}`);
 };
 
+export function admitReleaseChannel(value) {
+  text(value);
+  assert.match(value, /^[a-z][a-z0-9.-]*$/u, 'Select one literal release channel');
+  return value;
+}
+
 // This validates candidate policy DATA for a local plan. Trust in the protected
 // policy revision and owner approval belongs to the external release executor.
 export function admitReleasePolicy(value) {
@@ -62,7 +68,7 @@ export function admitReleaseRequest(value, policy) {
     assert.equal(target.destination, destination, 'Destination needs a separately reviewed policy extension');
     assert(Array.isArray(target.channels));
     assert.equal(new Set(target.channels).size, target.channels.length, 'Duplicate channels');
-    target.channels.forEach(channel => {text(channel); assert.match(channel, /^[a-z][a-z0-9-]*$/u);});
+    target.channels.forEach(admitReleaseChannel);
     if (target.ecosystem === 'pypi') assert.equal(target.channels.length, 0, 'PyPI has no npm-style channels');
     else assert(target.channels.length, 'Select release channels explicitly');
   }

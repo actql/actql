@@ -333,3 +333,78 @@ These checks are not a public fresh-install or runtime acceptance. Native npm
 launcher artifacts use the same npm route; standalone GitHub archives still
 require their actual assembly/observation connection. No observer grants
 publication authority or substitutes for the separate approved executor.
+
+## Channel transition review
+
+```sh
+node scripts/release.mjs channels <fixed-directory> <externally-retained-SHA256>
+node scripts/release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>
+```
+
+`channels` reads the selected npm packages' current dist-tag maps anonymously.
+Only a successful map can establish an absent tag; an unavailable map, including
+HTTP 404, stays unknown. The report is separate historical DATA. PyPI has no
+dist-tag route, and standalone GitHub Latest is not connected by this npm port.
+
+Each explicitly proposed move contains exactly `targetId`, `name`, `channel`
+and `expectedVersion` (a complete literal version, or null for an absent tag).
+The destination version comes from the fixed artifact, not another command
+argument. The plan binds the fixed manifest and the exact channel-report bytes,
+refuses stale expected values, unknown observations and unselected scope, and
+records an already-identical value separately. Normal promotion cannot move
+backward. Stable `latest` and `release-X.Y` cannot relabel a prerelease as final;
+a maintenance tag must match the candidate's actual parsed release line.
+An older maintenance line therefore cannot replace a newer stable latest.
+An intentional rollback is a separate owner recovery decision, not a normal
+promotion or automatic retry.
+
+Every plan remains `execution: unavailable`, pending exact public-install
+acceptance, independent owner approval and one protected exclusive executor.
+A prior GET followed by a PUT is not atomic CAS. The inspected npm CLI
+[dist-tag implementation](https://github.com/npm/cli/blob/latest/lib/commands/dist-tag.js)
+reads tags and writes a bare version without a conditional-update argument.
+The final execution design must also exclude other writers and recheck actual
+values under its authority. A GitHub concurrency name is repository-scoped;
+separate repositories must route through the same actual executor. No workflow,
+registry role, channel or exclusive-writer setting is configured by these plans.
+
+## Source and maintenance review
+
+```sh
+node scripts/release.mjs source-plan <request.json> <repository> [branches.json]
+node scripts/release.mjs maintenance-plan <request.json> <repository> <review.json> [branches.json]
+```
+
+`release/branches.json` initially selects only the already-permitted 0.0 line
+from `main`, with no maintenance cut. It does not grant another release line.
+Every allowed line needs one explicit source choice. Before a concurrent next
+line begins, the owner selects the maintenance cut and `release/X.Y` branch;
+after that selection, candidates for that line must name that branch rather
+than current main. No branch or tag is created by inspection. Policy, branch
+configuration, validators and workflows still need external protected review;
+candidate files cannot establish their own trust.
+
+The source plan reads exact local Git objects, checks branch membership and
+the fixed cut, captures original `cherry-pick -x` markers, and reports actual
+parents and changed paths. It detects original development commits merged
+across the maintenance cut. The maintenance plan refuses that broad history
+even if its author labels it a bug fix. This does not authenticate remote Git
+hosting or prove that a marker's patch is semantically correct.
+
+The maintenance request names `sourceCommit`, `line` and one record for every
+actual change commit, including merge/conflict work. Each record contains its
+`commit`, `category`, `originalPR`, affected `contracts`, `regressionEvidence`
+(description and SHA256), `adaptation`, and a `forwardPort` decision with
+`needed` and `reason`. Ordinary categories are bugfix, distribution, dependency,
+regression and docs. Feature, breaking and new optimization-project categories
+are refused. Source/commit mismatches and missing records or evidence refuse.
+Main backports retain their original PR and need no duplicate forward-port;
+line-only/emergency work must record the decision explicitly.
+
+These are complete review-DATA requirements, not semantic certification. The
+protected reviewer must inspect actual hunks, originals, claimed regression
+evidence and compatibility. A self-authored bugfix label, evidence hash or
+`approved: true` cannot replace that review. Use dedicated `cherry-pick -x`
+backport PRs and commit-level forward-ports; do not merge whole main into the
+maintenance branch or promise a support window implicitly. Maintenance merges
+do not pick a number, build a candidate or publish anything.
