@@ -107,3 +107,25 @@ test('barrier profiles retain their original graph requirements without an artif
  }
  assert.equal(compiles,0);assert.equal(issues,0);
 });
+
+
+test('timed original projection forwards the Core Option without a JavaScript tuple constructor',()=>{
+ const q={},prepared={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
+ const moon={clientProgramQueryTimeInvocationOriginal:function(...args){assert.equal(this,moon);assert.deepEqual(args,[q,prepared]);return opaque;}};
+ const project=method('../host-common/runtime-core.mjs','clientQueryTimeInvocationOriginal',{moon});
+ assert.equal(project(q,prepared),opaque);moon.clientProgramQueryTimeInvocationOriginal=undefined;assert.throws(()=>project(q,prepared),/unavailable/);
+});
+
+test('timed original adopted getter checks all first tokens and refuses retired or foreign projections',()=>{
+ const run={},prepared={},request={},q={},context={},compiled={},compiledToken={},definition={},definitionToken={},compiledRunTokens=new WeakMap([[compiled,compiledToken]]);
+ const expected={preparedProgram:prepared,requestIdentity:request,queryTimePreparation:q,queryTime:context,compiled,runDefinition:definition};
+ let output={_0:q,_1:request,_2:compiledToken,_3:definitionToken},checks=0;
+ const moon={clientProgramInstalledManagedRunInvocationOriginal:function(r,p){assert.equal(this,moon);assert.equal(r,run);assert.equal(p,prepared);return output;},clientProgramQueryTimeContext:actual=>{assert.equal(actual,q);return context;}};
+ const control={checkClientCompiledRunOwner(c,p){assert.equal(c,compiled);assert.equal(p,prepared);checks++;}};
+ const get=method('../host-common/runtime-core.mjs','checkedClientManagedQueryInvocationOriginal',{moon,compiledRunTokens,token:d=>{assert.equal(d,definition);return definitionToken;},runtimeOptionalField:(v,i)=>v?.['_'+i],control});
+ assert.equal(get(run,prepared,expected),expected);assert.equal(checks,1);
+ const valid=output;
+ for(let i=0;i<4;i++){output={...valid,['_'+i]:{}};assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}
+ for(const value of [undefined,{$tag:0},{$tag:1,_0:valid}]){output=value;assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}
+ output=valid;assert.throws(()=>get(run,prepared,{...expected,queryTime:{}}),/Foreign Client original/);assert.equal(checks,1);
+});

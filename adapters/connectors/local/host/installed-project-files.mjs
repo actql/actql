@@ -233,12 +233,12 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
       (run.value,prepared,run.request));return run;
   };
-  function prepareRun(prepared,request){
+  function prepareRun(prepared,request,prepareInvocation){
     current();
     if(runs.has(prepared)||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
     // The same Host retains its actual partial/adopted Run before returning.
     // No Connector Root, admission, numeric quote or run-count ceiling exists.
-    const value=Reflect.apply(prepareManagedRun,undefined,[prepared,request,profile]);
+    const value=Reflect.apply(prepareManagedRun,undefined,[prepared,request,profile,prepareInvocation]);
     if(value===undefined)fail('LocalFilesManagedReadUnavailable');
     const prior=sharedRuns.get(prepared);
     if(prior!==undefined&&(prior.value!==value||prior.request!==request))fail('ForeignLocalFilesPreparation');

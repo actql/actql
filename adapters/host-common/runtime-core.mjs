@@ -3107,6 +3107,28 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramBindQueryTime(original, prepared, value, token(definition), request));
     },
+    clientQueryTimeInvocationOriginal(original, prepared) {
+      const project = moon.clientProgramQueryTimeInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      // Opaque Option from the matching Core; never synthesize a JS tuple.
+      return Reflect.apply(project, moon, [original, prepared]);
+    },
+    checkedClientManagedQueryInvocationOriginal(run, prepared, original) {
+      const project = moon.clientProgramInstalledManagedRunInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      const retained = Reflect.apply(project, moon, [run, prepared]);
+      const compiled = compiledRunTokens.get(original.compiled);
+      if (compiled === undefined || original.preparedProgram !== prepared ||
+          runtimeOptionalField(retained, 0) !== original.queryTimePreparation ||
+          runtimeOptionalField(retained, 1) !== original.requestIdentity ||
+          runtimeOptionalField(retained, 2) !== compiled ||
+          runtimeOptionalField(retained, 3) !== token(original.runDefinition) ||
+          moon.clientProgramQueryTimeContext(original.queryTimePreparation) !== original.queryTime) {
+        throw new TypeError('Foreign Client original query-time invocation');
+      }
+      control.checkClientCompiledRunOwner(original.compiled, prepared);
+      return original;
+    },
     restoreClientQueryTime(prepared, compiled, definition, request) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || typeof moon.clientProgramRestoreQueryTimePreparation !== 'function') {

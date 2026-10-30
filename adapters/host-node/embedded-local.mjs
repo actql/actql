@@ -174,7 +174,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
+  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan, prepareTimedClientInvocation,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
   openSourceFreeEffectComputation,
   acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, serializationTaskRunAdmission,
@@ -3006,6 +3006,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       publicationOriginal: preparation?.managedComputePublicationOriginal?.(moon, preparedProgram),
       compilationOriginal: preparation?.managedComputeCompilationOriginal?.(moon, preparedProgram),
       publicationPreparation: preparation?.managedComputePublicationPreparation?.(moon, preparedProgram),
+      invocationOriginal: preparation?.managedComputeInvocationOriginal?.(moon, preparedProgram),
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(requestIdentity === undefined ? {} : {requestIdentity}),
       ...(retainedDefinitionWire === undefined ? {} :
@@ -3612,6 +3613,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
+  const prepareTimedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal) => {
+    const retained = journal.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
+    const kind = moon.clientProgramAcquisitionCount(preparedProgram) > 0 ||
+      moon.clientProgramRequiresTaskCompilation(preparedProgram) ? 'tasks' : 'values';
+    return prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
+      compilationOriginal, kind, authorityScopeCid, namespaceId, now,
+      retainedDefinitionWire: retained?.runDefinition.wire});
+  };
   const submit = async submission => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
@@ -3673,15 +3682,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
-      sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+      sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
     } else if (acquisitionCount > 0 && preparation !== undefined) {
       managedSourceRun = preparation.prepareManagedSourceRun(
-        moon, submission.preparedProgram, requested, sourceProfile);
+        moon, submission.preparedProgram, requested, sourceProfile, prepareTimedRunInvocation);
     }
     const managedRun = managedSourceRun ?? (preparation !== undefined && acquisitionCount === 0 &&
       !inferSelections.has(submission.preparedProgram) &&
       moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
-      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined);
+      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested, undefined, prepareTimedRunInvocation) : undefined);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -4104,11 +4113,11 @@ async function openInstalledHost(originalInstallation, preparation) {
             control, early.plan, selection,
             () => preparation.modelPublicationCapacity(submission.preparedProgram));
         } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
-          sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+          sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
         } else if (acquisitionCount === 0) {
-          preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
+          preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested, undefined, prepareTimedRunInvocation);
         } else if (typeof preparation.prepareManagedSourceRun === 'function') {
-          preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile);
+          preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile, prepareTimedRunInvocation);
         } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
@@ -5679,11 +5688,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return selected;
     },
     managesInstalledSources() {return record.managedSourceProfile !== undefined;},
-    prepareManagedSourceRun(runtime, prepared, request, sourceProfile) {
+    prepareManagedSourceRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
       if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
-      return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile);
+      return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
     },
     prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model) {
       const manager = computeManaged ?? sourceManaged;
@@ -5707,7 +5716,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked}).value;
     },
-    prepareManagedComputeRun(runtime, prepared, request, sourceProfile) {
+    prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) {
         throw clientOperationError('ForeignInstalledComputePreparation');
@@ -5726,7 +5735,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run !== undefined) {
         if (Object.hasOwn(run, 'failure')) throw run.failure;
         if (run.closed || run.runtime !== runtime || run.prepared !== prepared ||
-            run.request !== request || run.manager !== manager || run.sourceProfile !== sourceProfile) {
+            run.request !== request || run.manager !== manager || run.sourceProfile !== sourceProfile ||
+            run.prepareInvocation !== prepareInvocation) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
         const value = run.value;
@@ -5744,7 +5754,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return value;
       }
       run = {runtime, prepared, request, manager, sourceProfile, original: undefined, admission: undefined,
-        value: undefined, closed: false};
+        value: undefined, closed: false, prepareInvocation};
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       runs.set(prepared, run);
       liveRuns.add(run);
@@ -5758,10 +5768,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
         const originalRequest = originalSourceManagedHostRequest(originals, prepared);
+        const constructInvocation = typeof prepareInvocation !== 'function' ? undefined : artifact => {
+          if (run.queryInvocation !== undefined) throw clientOperationError('ForeignInstalledComputeRun');
+          const invocation = Reflect.apply(prepareInvocation, undefined, [prepared, request, artifact]);
+          run.queryInvocation = invocation;
+          run.queryTimePreparation = invocation.queryTimePreparation;
+          return invocation.invocationOriginal;
+        };
         const funded = sourceProfile === undefined
-          ? manager.adoptPreparation?.(prepared, originalRequest, request)
+          ? manager.adoptPreparation?.(prepared, originalRequest, request, constructInvocation)
           : manager.adoptCapturePreparation?.(prepared, originalRequest, request,
-            () => prepareManagedComputeCapturePlan(originals, run));
+            () => prepareManagedComputeCapturePlan(originals, run), constructInvocation);
         if (funded !== undefined) {
           run.original = funded.original;run.value = funded.value;run.preparationFunded = true;
           // Core now retains the same inventory through its original Plan.
@@ -5807,6 +5824,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }
         run.manager.severPreparation(prepared,run.original);
         run.prepared=undefined;run.closed=true;
+        run.queryInvocation=run.queryTimePreparation=run.prepareInvocation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
         // Returning registry/handler holders may now complete the same debit.
         run.finishRetirement = managedPreparationRetirementContinuation(run,record);
@@ -5850,6 +5868,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       return run.manager.reservePublication(prepared);
+    },
+    managedComputeInvocationOriginal(runtime, prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined || !run.preparationFunded) return undefined;
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      if (run.queryInvocation === undefined) return undefined; // Existing untimed module.
+      return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
+        run.value, prepared, run.queryInvocation);
     },
     managedComputeCompilationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
@@ -5926,8 +5954,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // is the same one required by that service's original identity fence.
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
-        prepareManagedRun(prepared, request, profile) {
-          return Reflect.apply(prepare, preparation, [moon, prepared, request, profile]);
+        prepareManagedRun(prepared, request, profile, prepareInvocation) {
+          return Reflect.apply(prepare, preparation, [moon, prepared, request, profile, prepareInvocation]);
         }});
       return acquired.then(async profile => {
         if (record.managedSourceProfile !== undefined) {
