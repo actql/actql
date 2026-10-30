@@ -358,6 +358,15 @@ export async function prepareReleaseReview({directory, expectedSha256, reviewFil
   return verifyReleaseSet(destination, {expectedSha256: sha256});
 }
 
+export async function readFrozenReleaseArtifact(directory, expectedSha256, targetId, file) {
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const artifact = fixed.manifest.artifacts.find(value => value.targetId === targetId && value.file === file);
+  assert(artifact, 'Select one exact frozen release artifact');
+  const bytes = await checkedBytes(resolve(directory), {path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256}, artifact.bytes);
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {artifact: structuredClone(artifact), bytes};
+}
+
 // Registry observations are DATA, not approval/currentness or a publication
 // command. Real ecosystem reobservation adapters still own their HTTP/auth
 // semantics. A timeout/unavailable response cannot be supplied as absence.

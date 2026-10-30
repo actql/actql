@@ -206,3 +206,13 @@ test('registry observation: positive public CLI dispatch composes exact fixed by
   assert.equal(f.calls.length, 4);
   assert.equal(result.plan.blocked, false);
 });
+
+test('registry observation: official npm HTTP metadata upgrades only to HTTPS without following redirects', async t => {
+  const f = await fixture(t); f.npm.dist.tarball = f.urls[1].replace('https:', 'http:');
+  const result = await f.observe(); assert.equal(result.plan.blocked, false);
+  assert.equal(f.calls.some(value => value.url.startsWith('http:')), false);
+  assert.equal(result.requests.find(value => value.url === f.urls[1]).sha256, f.artifacts[0].sha256);
+  f.npm.dist.tarball = 'http://other.invalid/foreign.tgz';
+  assert.equal((await f.observe()).observations[0].state, 'unknown');
+  assert.equal(f.calls.some(value => value.url.includes('other.invalid')), false);
+});

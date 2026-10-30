@@ -11,6 +11,7 @@ import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseS
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {promotionPlan} from './release-channels.mjs';
 import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
+import {npmStagePlan} from './publish-package-release.mjs';
 
 export async function runReleasePlan(args) {
   const [command, requestFile, ...rest] = args;
@@ -37,6 +38,10 @@ export async function runRelease(args) {
   if (command === 'review') {
     assert.equal(values.length, 4, 'usage: release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-directory>');
     return prepareReleaseReview({directory: values[0], expectedSha256: values[1], reviewFile: values[2], destination: values[3]});
+  }
+  if (command === 'npm-stage-plan') {
+    assert.equal(values.length, 3, 'usage: release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>');
+    return npmStagePlan(values[0], values[1], values[2]);
   }
   if (command === 'promotion-plan') {
     assert.equal(values.length, 4, 'usage: release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>');
