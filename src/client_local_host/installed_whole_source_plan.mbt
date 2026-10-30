@@ -65,16 +65,10 @@ pub fn prepare_installed_whole_source_capacity(
     physical_equal(selected, original) else {
     return Err(Unsupported)
   }
-  guard @strategy.graph_task_owner(
-      @publication_host.prepared_client_graph(prepared),
-      0,
-    )
-    is Some(owner) else {
-    return Err(Unsupported)
-  }
   let sequence = match
-    @lower.prepare_sequence(
-      owner,
+    @publication_host.prepare_prepared_client_full_sequence(
+      prepared,
+      0,
       @publication_host.prepared_client_values_sequence_limits(prepared),
     ) {
     Ok(value) => value

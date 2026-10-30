@@ -104,6 +104,15 @@ Retirement invalidates new reads before reclaiming input storage. Pending
 validator, provider or physical stop keeps the same reservation and retained
 originals for cleanup retry; only confirmed cleanup releases them.
 
+The installed capture opener consumes that same adopted Plan and its live
+captures for both Query and whole-input variants. It does not prepare another
+sequence configuration from the original Query graph. The Run retains the
+opened DAG before configuration can fail. The returned Compute host therefore
+uses the Plan's original provider selection, capacity and physical graph.
+Source capacity preparation and Plan construction obtain task zero through
+the existing prepared full-sequence helper with the same original limits;
+neither path lowers a duplicate root sequence outside that retained original.
+
 The focused Core and explicit-port Node cases exercise full input beyond a
 Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.

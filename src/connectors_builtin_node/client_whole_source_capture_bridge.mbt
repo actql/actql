@@ -241,6 +241,24 @@ pub fn client_program_prepared_installed_whole_source_requirements(
 }
 
 ///|
+/// Open Compute from the same adopted Plan and its original live captures.
+/// The existing Run retains the DAG before any later configuration failure.
+#export_name("clientProgramOpenInstalledManagedCaptureHost")
+pub fn client_program_open_installed_managed_capture_host(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[@query.CapturedInputSource],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @client_local_host.ClientInstalledCaptureHostIssue,
+] {
+  @client_local_host.open_installed_managed_capture_host(
+    owner, prepared, request, sources,
+  ).map(value => value.0)
+}
+
+///|
 #export_name("clientProgramInstalledWholeSourceReadStartRows")
 pub fn client_program_installed_whole_source_read_start_rows(
   read : @client_local_host.ClientInstalledSourceRead,

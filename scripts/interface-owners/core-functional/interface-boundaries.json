@@ -42696,7 +42696,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "7eb703ab04fa8f19dff957e0d5f644de1a361d50c44be7d05367a62e9e2e9fa1",
+      "sha256": "37e90d8d6885c98eb0dd6a2c5c779cf476ec23f63bd04fddf8c88966fcfac483",
       "exports": [],
       "operations": [
         {
@@ -43153,7 +43153,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "6fbc5321a112bcdc40c2cb3c42a6a31f09972654c9d1785fc0e8d1dbdeeb38aa",
+      "sha256": "60aa4a33166500ca53113b9898c4fb08206674767ddafe5e848023d8362a3c41",
       "exports": [],
       "operations": [
         {
@@ -43171,6 +43171,10 @@
         {
           "name": "client_program_issue_whole_source_input_logical",
           "declaration": "client_program_issue_whole_source_input_logical ( prepared : @ publication_host . PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_open_installed_managed_capture_host",
+          "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
@@ -43260,7 +43264,8 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_open_installed_managed_capture_host"
           ],
           "exports": [],
           "attributes": {
@@ -43400,7 +43405,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "97b28838a05a31c572b23899599d368adc5cd3839baa09e5a6b25ed9972a8e9b",
+      "sha256": "a0564c4bbe5ef27080e205ff7d3c5739136c383f5b681630ec5a7078e7343f86",
       "exports": [],
       "operations": [
         {
@@ -43418,6 +43423,10 @@
         {
           "name": "client_program_issue_whole_source_input_logical",
           "declaration": "client_program_issue_whole_source_input_logical ( prepared : @ publication_host . PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_open_installed_managed_capture_host",
+          "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
@@ -43507,7 +43516,8 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_open_installed_managed_capture_host"
           ],
           "exports": [],
           "attributes": {
