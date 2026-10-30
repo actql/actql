@@ -49,6 +49,11 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       typeof moon.clientProgramInstalledEffectOperationDemandPrepare !== 'function') {
     fail('InstalledEffectOperationDemandUnavailable');
   }
+  // Source acquisition originals cannot be inferred from profile DATA or
+  // prepared again under another parent. This first existing connection
+  // selects a Source-free Effect; Source/Model supply keeps its own owner.
+  if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
+      inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
   const demands = members.map(member => {
     const recipe = recipeFor(member);
     if (recipe === undefined) fail('InstalledEffectOperationDemandUnavailable');
@@ -57,11 +62,6 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       recipe.memberOperations.map(entry => entry.extent),
       recipe.rowOperations.map(entry => entry.extent)));
   });
-  // Source acquisition originals cannot be inferred from profile DATA or
-  // prepared again under another parent. This first existing connection
-  // selects a Source-free Effect; Source/Model supply keeps its own owner.
-  if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
-      inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
   const construct = facts.queryTimePreparation === undefined
     ? moon.clientProgramInstalledEffectManagedPlanPrepare
     : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
