@@ -768,6 +768,15 @@ outcome DATA is not a terminal Receipt or a physical ACK: the common Host still
 binds the saved response, approved Preview, current authority and durable claim.
 Lost replies retain the existing Unknown/reconciliation and no-resend law.
 
+The applied UPSERT outcome includes top-level `action: created` or
+`action: updated`, selected only by the same original native request and its
+correlated successful acknowledgement. The existing branch writer includes
+that field within its original output byte/node/depth bounds; no second outcome
+parse or result encoder selects the branch. Standalone CREATE and UPDATE keep
+their original outcome wire without `action`. This implements the existing
+[UPSERT outcome law](../spec/execution.md#reconciliation); generic protocol shape
+admission alone does not bind an operation, saved response or terminal Receipt.
+
 The lookup/Form/page, immutable selected names, checked values, native request,
 before matrix/wire/version and response/outcome can coexist. Self references,
 arrays, UTF-8 buffers and writer prefixes need their actual simultaneous backing

@@ -3111,12 +3111,16 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_create_outcome.mbt",
-      "sha256": "26047868ad9a1313cbc514214b25ad8c02f7fbd36e4d1eca24ee65e6f7b6f39d",
+      "sha256": "66b2d0a579b96d873f8234c0d998d40fca65dc48666ebc5eeeac5f8ce76d087f",
       "exports": [],
       "operations": [
         {
           "name": "project_record_create_effect_outcome",
           "declaration": "project_record_create_effect_outcome ( request : RecordCreateRequest , response : RecordCreateAcknowledgement , limits : RecordMutationLimits , ) - > Result [ RecordCreateEffectOutcome , RecordMutationIssue ]"
+        },
+        {
+          "name": "project_record_create_effect_outcome_for_operation",
+          "declaration": "project_record_create_effect_outcome_for_operation ( request : RecordCreateRequest , response : RecordCreateAcknowledgement , limits : RecordMutationLimits , upsert : Bool , ) - > Result [ RecordCreateEffectOutcome , RecordMutationIssue ]"
         },
         {
           "name": "record_create_effect_outcome_matches_request",
@@ -3139,6 +3143,7 @@
           "operations": [
             "<module>",
             "project_record_create_effect_outcome",
+            "project_record_create_effect_outcome_for_operation",
             "record_create_effect_outcome_matches_request",
             "record_create_effect_outcome_response_sha256",
             "record_create_effect_outcome_wire"
@@ -3149,6 +3154,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome responsibility:"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "inputsOutputs": [
@@ -3161,6 +3170,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome identity:"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "ownership": [
@@ -3191,6 +3204,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome resources:"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "extension": [
@@ -3203,6 +3220,14 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome verification:"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_key_upsert_response_wbtest.mbt",
+                "anchor": "keyed UPSERT action is included in exact output bounds without replacing original response"
               }
             ]
           }
@@ -4867,7 +4892,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_update_outcome.mbt",
-      "sha256": "e677c2302bb01badae1a512fd687d08c30a5003771fae8d864fde82669a0d104",
+      "sha256": "f5784214103d0d5966cbf914458ded8265b502fbf201de8939a2e5536c85da3c",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -4876,6 +4901,10 @@
         {
           "name": "project_record_update_effect_outcome",
           "declaration": "project_record_update_effect_outcome ( request : RecordUpdateRequest , response : RecordUpdateAcknowledgement , limits : RecordMutationLimits , ) - > Result [ RecordUpdateEffectOutcome , RecordMutationIssue ]"
+        },
+        {
+          "name": "project_record_update_effect_outcome_for_operation",
+          "declaration": "project_record_update_effect_outcome_for_operation ( request : RecordUpdateRequest , response : RecordUpdateAcknowledgement , limits : RecordMutationLimits , upsert : Bool , ) - > Result [ RecordUpdateEffectOutcome , RecordMutationIssue ]"
         },
         {
           "name": "record_update_effect_outcome_matches_request",
@@ -4895,6 +4924,7 @@
           "operations": [
             "<module>",
             "project_record_update_effect_outcome",
+            "project_record_update_effect_outcome_for_operation",
             "record_update_effect_outcome_matches_request",
             "record_update_effect_outcome_response_sha256",
             "record_update_effect_outcome_wire"
@@ -4913,6 +4943,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "inputsOutputs": [
@@ -4941,6 +4975,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "ownership": [
@@ -5011,6 +5049,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "extension": [
@@ -5039,6 +5081,14 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_key_upsert_response_wbtest.mbt",
+                "anchor": "keyed UPSERT action is included in exact output bounds without replacing original response"
               }
             ]
           }
@@ -5047,7 +5097,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_key_upsert_response.mbt",
-      "sha256": "db96594e07c3863a80cb18b913faa26f578d2f7284a9c6013768b615fab89cea",
+      "sha256": "ac591c01cb853e5966434465d62c278edb3b393a178ff2ff9f9f64cfd3a61e52",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -5118,6 +5168,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "inputsOutputs": [
@@ -5146,6 +5200,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "ownership": [
@@ -5216,6 +5274,10 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
               }
             ],
             "extension": [
@@ -5244,6 +5306,14 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The applied UPSERT outcome includes top-level"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_key_upsert_response_wbtest.mbt",
+                "anchor": "keyed UPSERT action is included in exact output bounds without replacing original response"
               }
             ]
           }
