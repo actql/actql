@@ -1,7 +1,7 @@
 ///|
 /// Complete the actual captured Plan on the existing Pure prepared capacity.
 /// The Run fields/manager borrow own its Plan dependency until actual cleanup.
-pub fn[I] complete_request_capture_preparation(
+fn[I] complete_request_capture_preparation(
   owner : ClientRequestPreparation[I],
   input : I,
   plan : ClientInstalledManagedCapturePlan,

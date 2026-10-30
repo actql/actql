@@ -125,6 +125,11 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   if !installed_effect_plan_matches(plan, prepared, request) {
     return Err(ForeignOriginal)
   }
+  // The ordinary entry cannot spend a separately selected Model purpose or
+  // begin Source reads before that plan's original Scope is installed.
+  if plan.model is Some(_) {
+    return Err(Unsupported)
+  }
   let limits = match
     @resources.node_source_compute_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))

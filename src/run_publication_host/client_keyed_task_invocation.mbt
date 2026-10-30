@@ -22,6 +22,86 @@ pub fn issue_client_compiled_keyed_task_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  let (compilation, left, right) = match
+    client_keyed_invocation_original_facts(
+      run, definition, capture, identity, requirement, keyed, data_policy_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let source = match
+    @publication.admit_run_evidence_value(
+      "source_evidence", source_evidence_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let input = match
+    @publication.admit_run_evidence_value(
+      "source_input_logical", input_logical_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  issue_client_keyed_invocation_from_originals(
+    compilation, identity, source, input, keyed, left, right, authority_scope_cid,
+    data_policy_cid, capture_started_at, capture_completed_at, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_compiled_keyed_task_invocation_original(
+  run : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  capture : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+  source : @publication.RunEvidenceValue,
+  input : @publication.RunEvidenceValue,
+  keyed : ClientKeyedLookupObservation,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  let (compilation, left, right) = match
+    client_keyed_invocation_original_facts(
+      run, definition, capture, identity, requirement, keyed, data_policy_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  issue_client_keyed_invocation_from_originals(
+    compilation, identity, source, input, keyed, left, right, authority_scope_cid,
+    data_policy_cid, capture_started_at, capture_completed_at, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn client_keyed_invocation_original_facts(
+  run : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  capture : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+  keyed : ClientKeyedLookupObservation,
+  data_policy_cid : String,
+) -> Result[
+  (
+    ClientTaskCompilation,
+    @planning.QuerySourceEvidenceFacts,
+    @planning.QuerySourceEvidenceFacts,
+  ),
+  @publication.RunEvidenceValueIssue,
+] {
   guard run.compilation is Tasks(compilation) &&
     compilation.infers.is_empty() &&
     bind_client_task_run(run.owner, compilation, run.admission, definition)
@@ -50,20 +130,29 @@ pub fn issue_client_compiled_keyed_task_invocation(
     @planning.keyed_source_evidence_facts(acquisition.facts) is Some(right) else {
     return Err(@publication.RunEvidenceReferenceMismatch("source_policy"))
   }
-  let source = match
-    @publication.admit_run_evidence_value(
-      "source_evidence", source_evidence_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let input = match
-    @publication.admit_run_evidence_value(
-      "source_input_logical", input_logical_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
+  Ok((compilation, left, right))
+}
+
+///|
+fn issue_client_keyed_invocation_from_originals(
+  compilation : ClientTaskCompilation,
+  identity : @query.CapturedSourceRelationIdentity,
+  source : @publication.RunEvidenceValue,
+  input : @publication.RunEvidenceValue,
+  keyed : ClientKeyedLookupObservation,
+  left : @planning.QuerySourceEvidenceFacts,
+  right : @planning.QuerySourceEvidenceFacts,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
   if @publication.admit_completed_source_input_logical(
       input,
       @query.captured_source_relation_logical_cid(identity),

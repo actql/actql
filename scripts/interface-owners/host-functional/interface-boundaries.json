@@ -77594,7 +77594,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "88133a8cd1349a15d50d2be808a59828e95044faf37060adbe83cc646b1baea4",
+      "sha256": "516c63697d142a035f941c1324c518648bd566446b90eb64b081e15f7a80a030",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77818,6 +77818,16 @@
         {
           "name": "prepareOrdinaryManagedInstallation/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan"
+          ],
           "async": false
         },
         {
@@ -78360,257 +78370,16 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "prepareOrdinaryManagedInstallation",
             "prepareOrdinaryManagedInstallation/captureReader",
             "prepareOrdinaryManagedInstallation/closeChild/work/work",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-            "prepareOrdinaryProjectSourceManagedInstallation",
             "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods"
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
+            "prepareOrdinaryProjectSourceManagedInstallation"
           ],
           "exports": [
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -78776,134 +78545,96 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild"
+            "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
+            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
+            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
+            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
+            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
+            "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
+            "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareKeyedRead(prepared, declaration, originalRun, request) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "run.purpose !== 'local-content' || run.original !== originalRun"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "child.reader = actual;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "captureReader(child);"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "fail('InstalledSourcePreparationMismatch');"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "async function closeChild(child) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "run.children.length >= run.required.attempts"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "extension": [
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "other unsupported backend shapes remain separate connections, not language"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal'"
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
               },
               {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
             ]
           }
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
-            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
-            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun"
+            "prepareOrdinaryManagedInstallation/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78912,12 +78643,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78926,12 +78657,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78940,12 +78667,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78954,12 +78681,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78968,12 +78691,12 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78982,12 +78705,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78996,12 +78715,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79010,12 +78729,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Preparation and capacity authority"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79024,8 +78739,12 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
-                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79191,6 +78910,376 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
+            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
+            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
+                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Accounted captured module before Run adoption"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Request completes one original Plan and adopts its same parent without an independent Run'"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
             "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
             "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication"
@@ -79345,6 +79434,229 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareKeyedRead(prepared, declaration, originalRun, request) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "run.purpose !== 'local-content' || run.original !== originalRun"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.reader = actual;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "captureReader(child);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "async function closeChild(child) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "run.children.length >= run.required.attempts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun"
           ],
           "exports": [],
@@ -79487,192 +79799,6 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Native Source snapshot currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
-            "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
-            "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
             ]
           }
@@ -83033,7 +83159,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "5605aee6b1f59f35e05a12ae569088067e34685bb309aa4d2e5e5c25dbcc0dd2",
+      "sha256": "b6c327e12489f15b637126bab36eeb538bb23c58b854225a821e054fa6a47bab",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -83238,6 +83364,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
               }
             ],
             "identity": [
@@ -83378,6 +83508,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('captured Pure Request keeps its original compiler input before Source Plan construction'"
               }
             ]
           }
@@ -84510,7 +84644,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d96082d8108c422fb64b3a699752455a7d39ca6215618b814bdd9fdb5f5d3bb",
+      "sha256": "30ad3707c73dc65d9b89756db50bb692b0d56bd8edbcaaa1e9e4512ed4b6c46a",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -84613,6 +84747,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Source readers receive the same checked Run"
               }
             ],
             "identity": [
@@ -84661,6 +84799,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Plural installations forward the same parent through every selected capacity;"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('Pure Source preparation receives its same original managed Run before reader construction'"
               }
             ]
           }

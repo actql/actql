@@ -143,7 +143,7 @@ test "actual Request captured Source bridge keeps original Plan acquisition and 
       acquisition,
     ),
   )
-  client_program_complete_request_capture_preparation(parent, receipt, plan).unwrap()
+  client_program_prepare_request_capture_module_body(parent, receipt, plan).unwrap()
   assert_true(
     physical_equal(
       client_program_preparation_borrow_read(holder).unwrap(),
@@ -160,6 +160,17 @@ test "actual Request captured Source bridge keeps original Plan acquisition and 
     is Err(ForeignOriginal),
   )
   let run = client_program_adopt_request_capture_preparation(parent, request).unwrap()
+  let compilation = @client_local_host.installed_managed_run_compilation_original(
+    run, prepared,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @client_local_host.installed_managed_run_compilation_original(
+        run, prepared,
+      ).unwrap(),
+      compilation,
+    ),
+  )
   assert_true(
     physical_equal(
       @client_local_host.installed_managed_capture_plan(run, prepared, request).unwrap(),
@@ -254,19 +265,30 @@ test "actual Request capture bridge rejects changed inventory query-time and ori
     None,
   ).unwrap()
   assert_true(
-    client_program_complete_request_capture_preparation(
+    client_program_prepare_request_capture_module_body(
       parent,
       request_diagnostic_test_receipt(),
       plan,
     )
-    is Err(ForeignOriginal),
+    is Err(Preparation(Preparation(ForeignOriginal))),
   )
-  client_program_complete_request_capture_preparation(parent, receipt, plan).unwrap()
+  client_program_prepare_request_capture_module_body(parent, receipt, plan).unwrap()
   assert_true(
-    client_program_complete_request_capture_preparation(parent, receipt, plan)
-    is Err(WrongPhase),
+    client_program_prepare_request_capture_module_body(parent, receipt, plan)
+    is Err(Preparation(Preparation(WrongPhase))),
   )
   let run = client_program_adopt_request_capture_preparation(parent, request).unwrap()
+  let compilation = @client_local_host.installed_managed_run_compilation_original(
+    run, prepared,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @client_local_host.installed_managed_run_compilation_original(
+        run, prepared,
+      ).unwrap(),
+      compilation,
+    ),
+  )
   assert_true(
     client_program_adopt_request_capture_preparation(parent, request)
     is Err(ForeignOriginal),

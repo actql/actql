@@ -222,7 +222,8 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 });
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
-  runtime = {}, source, originalRequest = value => value, controlClose = async () => ({pending: false})}) {
+  runtime = {}, source, capturePlan = () => assert.fail('No capture Plan constructor selected'),
+  originalRequest = value => value, controlClose = async () => ({pending: false})}) {
   const declarations = declared('connectEmbeddedLocal').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
@@ -251,6 +252,9 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     managedPreparationRetirementContinuation: new Function('checked', 'return ' +
       text(declared('managedPreparationRetirementContinuation')))(value => value),
     bindInstalledManagedSources,
+    prepareManagedComputeCapturePlan(held, run) {
+      assert.strictEqual(held, originals); return capturePlan(run);
+    },
     originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
     beforeChild, beforeChildClose, source,
   };
@@ -1079,4 +1083,121 @@ test('actual installed Effect Host forwards original Request input and joins typ
   await f.initialControl.close();
   assert.deepEqual(log, ['adopt', 'retire', 'return-original-borrow', 'retire', 'retire-original', 'manager-close']);
   assert.equal(f.record.computeLiveRuns.size, 0);
+});
+
+
+test('ordinary captured Source Host adopts its same Request Plan without detached admission ports', async () => {
+  const prepared = {}, request = {}, input = {}, original = {}, parent = {}, plan = {}, profile = {};
+  const calls = [];
+  const runtime = {
+    clientProgramInstalledManagedRunRetire() {},
+    clientProgramInstalledManagedRunCheck(value, actualPrepared, actualRequest) {
+      assert.equal(this, runtime); assert.equal(value, parent);
+      assert.equal(actualPrepared, prepared); assert.equal(actualRequest, request); calls.push('current');
+    },
+  };
+  const manager = {
+    adoptPreparation() {assert.fail('captured Source cannot select Source-free adoption');},
+    prepareRun() {assert.fail('the original Request must not mint a separate Resource Run');},
+    adoptCapturePreparation(value, receipt, identity, construct) {
+      assert.equal(this, manager); assert.equal(value, prepared); assert.equal(receipt, input); assert.equal(identity, request);
+      assert.equal(construct(), plan); calls.push('adopt'); return {original, value: parent};
+    }, close: async () => ({pending: false}),
+  };
+  const f = lifecycle({runtime, factory: async () => manager,
+    originalRequest(value) {assert.equal(value, prepared); return input;},
+    capturePlan(run) {
+      assert.equal(run.prepared, prepared); assert.equal(run.request, request); assert.equal(run.sourceProfile, profile);
+      calls.push('same-plan'); return plan;
+    }});
+  await f.preparation.prepareManagedCompute();
+  assert.equal(f.preparation.prepareManagedComputeRun(runtime, prepared, request, profile), parent);
+  assert.equal(f.record.computeRuns.get(prepared).preparationFunded, true);
+  assert.equal(f.preparation.prepareManagedComputeRun(runtime, prepared, request, profile), parent);
+  assert.deepEqual(calls, ['same-plan', 'adopt', 'current', 'current']);
+  assert.throws(() => f.preparation.prepareManagedComputeRun(runtime, prepared, {}, profile),
+    {code: 'ForeignInstalledComputeRun'});
+  assert.equal(calls.filter(value => value === 'same-plan').length, 1);
+});
+
+test('captured Source Host retains an original undefined constructor failure without retry or another Root', async () => {
+  const prepared = {}, request = {}, profile = {}; let calls = 0;
+  const runtime = {clientProgramInstalledManagedRunRetire() {}, clientProgramInstalledManagedRunCheck() {}};
+  const manager = {
+    prepareRun() {assert.fail('no replacement Root after original failed construction');},
+    adoptCapturePreparation(value, _input, identity, construct) {
+      assert.equal(value, prepared); assert.equal(identity, request); return construct();
+    }, close: async () => ({pending: false}),
+  };
+  const f = lifecycle({runtime, factory: async () => manager, capturePlan() {calls++; throw undefined;}});
+  await f.preparation.prepareManagedCompute();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let threw = false;
+    try {f.preparation.prepareManagedComputeRun(runtime, prepared, request, profile);}
+    catch (cause) {threw = true; assert.equal(cause, undefined);}
+    assert.equal(threw, true);
+  }
+  assert.equal(calls, 1);
+  assert.equal(Object.hasOwn(f.record.computeRuns.get(prepared), 'failure'), true);
+  assert.equal(f.record.computeRuns.get(prepared).value, undefined);
+});
+
+
+function capturePlanConstructor({queryTime, count, retained}) {
+  const prepared = {}, request = {}, plan = {}, profile = {}, admission = {}, calls = [];
+  const requirements = Array.from({length: count}, (_, index) => ({source: `source-${index}`}));
+  const capacities = requirements.map(() => ({}));
+  const contracts = {values: 'values-original', expression: 'fragment-original', ordered: 'ordered-original'};
+  const requirementAt = (p, stage, input, originalTime, identity, registry, values, fragment, ordered) => {
+    assert.equal(p, prepared); assert.equal(input, 0); assert.equal(registry, admission);
+    assert.equal(values, contracts.values); assert.equal(fragment, contracts.expression); assert.equal(ordered, contracts.ordered);
+    assert.equal(originalTime, queryTime); if (queryTime !== undefined) assert.equal(identity, request);
+    calls.push(`requirement-${stage}`); return requirements[stage];
+  };
+  const runtime = {
+    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); calls.push('inventory'); return count;},
+    clientProgramPrepareLocalQueryRequirement(...args) {
+      assert.equal(queryTime, undefined, 'retained QueryTime must not select the context-free requirement');
+      return requirementAt(...args.slice(0, 3), undefined, undefined, ...args.slice(3));
+    },
+    clientProgramPrepareLocalQueryRequirementAtQueryTime(...args) {return requirementAt(...args);},
+    clientProgramQueryRequirementSourceRef(requirement) {return requirement.source;},
+    clientProgramInstalledManagedCaptureRunRequirements() {assert.fail('no independent Run requirements quote');},
+    clientProgramInstalledManagedCapturePlanPrepare(p, identity, capture, transfer, execution, registry, values, fragment, ordered, mode, time) {
+      assert.equal(this, runtime); assert.equal(p, prepared); assert.equal(identity, request);
+      assert.deepEqual(capture, capacities); assert.deepEqual(transfer, capacities.map((_, i) => 7n + BigInt(i)));
+      assert.deepEqual(execution, capacities.map((_, i) => 11n + BigInt(i))); assert.equal(registry, admission);
+      assert.equal(values, contracts.values); assert.equal(fragment, contracts.expression); assert.equal(ordered, contracts.ordered);
+      assert.equal(mode, retained); assert.equal(time, queryTime); calls.push('plan'); return plan;
+    },
+  };
+  const adapters = requirements.map((requirement, index) => ({managedCaptureCapacity(original) {
+    assert.equal(this, adapters[index]); assert.equal(original, requirement); calls.push(`capture-${index}`);
+    return {capacity: capacities[index], transferBytes: 7n + BigInt(index), executionBytes: 11n + BigInt(index)};
+  }}));
+  const run = {runtime, prepared, request, sourceProfile: profile, closed: false, queryTimePreparation: queryTime};
+  const originals = {installation: {projectRuntime: runtime, retainedRelationOutput: retained,
+    managedSourceProfile: profile, computeRuns: new WeakMap([[prepared, run]])}};
+  const ports = {installedManagedRunContracts(value) {assert.equal(value, originals); return contracts;},
+    prepareInstalledSequenceContractOriginal(value) {assert.equal(value, originals); return {admission};},
+    installedSourceFor(value, ref) {assert.equal(value, profile); return adapters[requirements.findIndex(x => x.source === ref)];},
+    clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
+  const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
+    '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
+  assert.equal(prepare(originals, run), plan);
+  assert.equal(Object.isFrozen(run.sourceCapacities), true);
+  assert.equal(calls.filter(value => value === 'inventory').length, 1);
+  assert.equal(calls.filter(value => value === 'plan').length, 1);
+  for (let index = 0; index < count; index++) {
+    assert.equal(calls.filter(value => value === `requirement-${index}`).length, 1);
+    assert.equal(calls.filter(value => value === `capture-${index}`).length, 1);
+  }
+}
+
+test('captured Host constructor forwards its same Source inventory and installed output mode once', () => {
+  capturePlanConstructor({count: 2, retained: true});
+});
+
+test('captured Host constructor keeps the same QueryTime requirement without context substitution', () => {
+  capturePlanConstructor({count: 1, retained: false, queryTime: {}});
 });

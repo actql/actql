@@ -4,7 +4,7 @@
 // backing, Account/Effect grant or successful provider operation.
 // Preserve the original Array FFI/input boundary under this declaration only.
 #warnings("-deprecated")
-extern "js" fn effect_parent_test_original(
+extern "js" fn effect_wrong_purpose_test_original(
   loader : PublicationTestLoader,
   plan : ClientInstalledEffectManagedPlan,
   quote : FixedArray[Int64],
@@ -13,12 +13,12 @@ extern "js" fn effect_parent_test_original(
   #|(loader,plan,quote,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(plan,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},current,()=>false)
 
 ///|
-fn effect_parent_test_admission(
+fn effect_wrong_purpose_test_admission(
   plan : ClientInstalledEffectManagedPlan,
   quote : Array[Int64],
   current? : () -> Unit = () => (),
 ) -> @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan] {
-  let original = effect_parent_test_original(
+  let original = effect_wrong_purpose_test_original(
     publication_test_loader(publication_test_url()),
     plan,
     FixedArray::from_array(quote),
@@ -28,15 +28,35 @@ fn effect_parent_test_admission(
 }
 
 ///|
-test "actual managed supplier binds one original Effect plan and same Ledger through prepare and retirement" {
+// Adopt the original initial input and staged Plan through the production
+// preparation-owned entry. The existing 10-byte component carrier remains
+// live beside the Plan, not complete ordinary constructor funding.
+fn effect_parent_test_preparation(
+  plan : ClientInstalledEffectManagedPlan,
+  quote : Array[Int64],
+  current? : () -> Unit = () => (),
+) -> (
+  Array[Int],
+  @resources.NodePreparationAdmission[Array[Int]],
+  @resources.Ledger,
+  @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan],
+) {
+  let original = quote.copy()
+  original[4] += 10L
+  original[5] += 10L
+  effect_preparation_test_capacity(plan, original, current~)
+}
+
+///|
+test "initial preparation adopts one original Effect plan and same Ledger through retirement" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   assert_true(
     physical_equal(
@@ -56,7 +76,11 @@ test "actual managed supplier binds one original Effect plan and same Ledger thr
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  assert_eq(@resources.ledger_limits(ledger), plan.limits)
+  assert_eq(@resources.ledger_limits(ledger), {
+    ..plan.limits,
+    retained_bytes: plan.limits.retained_bytes + 10L,
+    execution_bytes: plan.limits.execution_bytes + 10L,
+  })
   let copied_request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
@@ -124,7 +148,10 @@ test "actual managed supplier binds one original Effect plan and same Ledger thr
   retire_installed_managed_run(run).unwrap()
   assert_true(run.preparation is None)
   assert_true(require_installed_managed_run(run) is Err(Retired))
-  assert_true(@resources.cleanup_node_managed_run_admission(admission) is Ok(_))
+  assert_eq(
+    @resources.cleanup_node_preparation_admission(initial),
+    Err(@resources.AlreadyConsumed),
+  )
 }
 
 ///|
@@ -136,19 +163,19 @@ test "admission for an equal-quote different Effect plan cannot begin this plan"
     prepared_installed_effect_managed_requirements(plan),
     prepared_installed_effect_managed_requirements(foreign),
   )
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
   assert_true(
-    begin_prepared_installed_effect_managed_run(
-      admission, prepared, request, foreign,
+    begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, foreign,
     )
     is Err(Resource(ForeignOriginal)),
   )
   // Refusing the foreign plan did not start/consume a different original.
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   retire_installed_managed_run(run).unwrap()
 }
@@ -160,15 +187,18 @@ test "one-short admitted envelope refuses the same Effect plan and retains its o
   for field in [1, 3, 4, 5] {
     let quote = prepared_installed_effect_managed_requirements(plan)
     quote[field] -= 1L
-    let admission = effect_parent_test_admission(plan, quote)
+    let (input, initial, _, capacity) = effect_preparation_test_capacity(
+      plan, quote,
+    )
     assert_true(
-      begin_prepared_installed_effect_managed_run(
-        admission, prepared, request, plan,
+      begin_preparation_owned_installed_effect_managed_run(
+        initial, input, capacity, prepared, request, plan,
       )
       is Err(InsufficientCapacity),
     )
-    @resources.cleanup_node_managed_run_admission(admission).unwrap()
-    @resources.cleanup_node_managed_run_admission(admission).unwrap()
+    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+    @resources.cleanup_node_preparation_admission(initial).unwrap()
+    @resources.cleanup_node_preparation_admission(initial).unwrap()
   }
 }
 
@@ -176,12 +206,12 @@ test "one-short admitted envelope refuses the same Effect plan and retains its o
 test "same Effect parent retains pending operation budget and never refunds consumed Starts" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = prepare_installed_effect_managed_run_ledger(
     run,
@@ -198,7 +228,7 @@ test "same Effect parent retains pending operation budget and never refunds cons
   // One explicit resource use/cleanup port; no real send or ACK is implied.
   let reservation = @resources.reserve_attempt(ledger, 13L, 300L, 500L).unwrap()
   @resources.consume_reserved_attempt(ledger, reservation).unwrap()
-  assert_true(retire_installed_managed_run(run) is Err(Resource(Unavailable)))
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   assert_true(
     physical_equal(
       installed_effect_managed_operation_plan(run, prepared, request).unwrap(),
@@ -217,12 +247,14 @@ test "same Effect parent retains pending operation budget and never refunds cons
 ///|
 test "planned Source parent consumes only the original quoted acquisition and capacity" {
   let plan = effect_operation_source_plan_fixture()
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
     plan.prepared,
     plan.request,
     plan,
@@ -275,13 +307,13 @@ test "physical extent membership retains original identity without another curre
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let current_calls = Ref(0)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => current_calls.val += 1,
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let physical = prepared_installed_effect_managed_operation(
     plan, 0, true, 0, "operation",
@@ -353,12 +385,12 @@ test "planned Effect Compute executes retained sequence on the original managed 
   })
   assert_eq(factories.val, 1)
   let bound = effect_parent_bound_run(prepared)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
   let (host, captured, sequences) = open_installed_effect_managed_host(
@@ -415,7 +447,7 @@ test "planned Effect Compute rejects foreign bound Run and fences same-parent ca
   let retirement_pending = Ref(false)
   let armed = Ref(false)
   let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => {
@@ -429,8 +461,8 @@ test "planned Effect Compute rejects foreign bound Run and fences same-parent ca
       }
     },
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   selected.val = Some(owner)
   assert_true(
@@ -468,7 +500,7 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   let available = Ref(true)
   let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
   let armed = Ref(false)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => {
@@ -480,8 +512,8 @@ test "planned Effect callback current loss retains original DAG cleanup and star
       effect_parent_test_require_current(available.val)
     },
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
   selected.val = Some(owner)
@@ -569,12 +601,12 @@ test "temporal planned Effect executes the original sampled timestamp on the sam
       physical_equal(value, context),
     )
   }
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
   let (foreign, other_time) = effect_operation_time_run(
@@ -695,8 +727,9 @@ extern "js" fn effect_preparation_test_original(
   loader : PublicationTestLoader,
   input : () -> Array[Int],
   quote : FixedArray[Int64],
+  current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
-  #|(loader,input,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false,'local-preparation')
+  #|(loader,input,quote,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},current,()=>false,'local-preparation')
 
 ///|
 // This supplies actual original resource ports and a checked Effect plan, not
@@ -706,6 +739,7 @@ fn effect_preparation_test_capacity(
   plan : ClientInstalledEffectManagedPlan,
   quote : Array[Int64],
   max_borrowers? : Int = 3,
+  current? : () -> Unit = () => (),
 ) -> (
   Array[Int],
   @resources.NodePreparationAdmission[Array[Int]],
@@ -717,6 +751,7 @@ fn effect_preparation_test_capacity(
     publication_test_loader(publication_test_url()),
     () => input,
     FixedArray::from_array(quote),
+    current,
   )
   let initial = @resources.prepare_node_local_preparation_admission(
     original, input,
@@ -977,6 +1012,7 @@ test "pure staged preparation retains its original dispatch and same generic ret
     publication_test_loader(publication_test_url()),
     () => input,
     FixedArray::from_array(quote),
+    () => (),
   )
   let initial = @resources.prepare_node_local_preparation_admission(
     original, input,
@@ -1036,15 +1072,25 @@ test "planned Model begins same original Scope before children and retains pendi
   let plan = effect_model_plan_fixture(
     prepared, request, contracts, model, calls,
   )
+  // Preserve the former ordinary-entry refusal on the new same-initial
+  // path. A complete Model Plan still requires its separately selected Scope.
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += 10L
+  quote[5] += 10L
+  let (input, initial, _, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  assert_true(
+    begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    )
+    is Err(Unsupported),
+  )
+  assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
   let admission = effect_model_parent_test_admission(
     plan,
     prepared_installed_effect_managed_requirements(plan),
-  )
-  assert_true(
-    begin_prepared_installed_effect_managed_run(
-      admission, prepared, request, plan,
-    )
-    is Err(Unsupported),
   )
   let (run, scope) = begin_prepared_installed_effect_mock_model_managed_run(
     admission, prepared, request, plan,
@@ -1113,7 +1159,7 @@ test "planned Model refuses wrong purpose foreign original and short envelope wi
   let plan = effect_model_plan_fixture(
     prepared, request, contracts, model, calls,
   )
-  let wrong = effect_parent_test_admission(
+  let wrong = effect_wrong_purpose_test_admission(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
@@ -1161,13 +1207,13 @@ test "same original planned parent lookup observes physical current once" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let calls = Ref(0)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => calls.val += 1,
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   calls.val = 0
   let ledger = require_installed_managed_run(run).unwrap()
@@ -1183,13 +1229,13 @@ test "bound Plan getter checks exact immutable originals and calls current once"
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let calls = Ref(0)
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => calls.val += 1,
   )
-  let run = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
   ).unwrap()
   calls.val = 0
   let original = installed_effect_managed_operation_plan(run, prepared, request).unwrap()
@@ -1240,7 +1286,7 @@ test "one current callback cannot retire or replace the original planned Run tup
     let original : Ref[ClientInstalledManagedRunOriginal?] = Ref(None)
     let calls = Ref(0)
     let armed = Ref(false)
-    let admission = effect_parent_test_admission(
+    let (input, initial, _, capacity) = effect_parent_test_preparation(
       plan,
       prepared_installed_effect_managed_requirements(plan),
       current=() => {
@@ -1255,8 +1301,8 @@ test "one current callback cannot retire or replace the original planned Run tup
         }
       },
     )
-    let run = begin_prepared_installed_effect_managed_run(
-      admission, prepared, request, plan,
+    let run = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
     ).unwrap()
     selected.val = Some(run)
     original.val = run.preparation

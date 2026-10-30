@@ -737,8 +737,6 @@ pub fn client_program_complete_installed_source_material(@physical_resources.Pre
 
 pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_complete_request_capture_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedCapturePlan) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
-
 pub fn client_program_complete_request_effect_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider
@@ -1479,8 +1477,6 @@ pub fn client_program_installed_effect_managed_host_open(@client_local_host.Clie
 
 pub fn client_program_installed_effect_managed_operation_plan(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
-pub fn client_program_installed_effect_managed_plan_begin(@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
-
 pub fn client_program_installed_effect_managed_plan_capture_children(@client_local_host.ClientInstalledEffectManagedPlan) -> Int
 
 pub fn client_program_installed_effect_managed_plan_operation(@client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1654,6 +1650,8 @@ pub fn client_program_issue_captured_effect_input_local_invocation(@run_publicat
 pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_captured_effect_table_input_local_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
+
+pub fn client_program_issue_captured_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], @run_publication_host.ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
@@ -1850,6 +1848,8 @@ pub fn client_program_keyed_lookup_join_prepare(@run_publication_host.PreparedCl
 pub fn client_program_keyed_lookup_join_start(@client_local_host.ClientKeyedJoinPreparation) -> Result[@local.ManagedProviderExecution, @client_local_host.ClientQueryResidualIssue]
 
 pub fn client_program_keyed_lookup_join_work(@local.ManagedProviderExecution) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_program_keyed_lookup_observation_originals(@run_publication_host.ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
 
 pub fn client_program_keyed_lookup_observation_wires(@run_publication_host.ClientKeyedLookupObservation) -> (String, String)?
 
@@ -2292,8 +2292,6 @@ pub fn client_program_native_decision_request_wires(@model_execution.NativeDecis
 pub fn client_program_node_effect_local_mock_model_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientEffectComputation) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation], @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_effect_managed_plan_cleanup(@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
-
-pub fn client_program_node_effect_managed_plan_prepare(@physical_resources.OriginalNodeManagedRunReference, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan], @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_effect_managed_run_cleanup(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
 

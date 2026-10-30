@@ -57,14 +57,42 @@ pub fn reserve_program_publication(
   if owner.publication_started || owner.publication is Some(_) {
     return Err(WrongPhase)
   }
-  guard owner.source_free_preparation is Some(source_free) else {
-    return Err(ForeignOriginal)
+  let plan = match owner.captured_preparation {
+    Some(captured) => {
+      if !physical_equal(captured.prepared, prepared) ||
+        !physical_equal(captured.request, owner.request) {
+        return Err(ForeignOriginal)
+      }
+      captured.capacity_plan
+    }
+    None => {
+      guard owner.source_free_preparation is Some(source_free) else {
+        return Err(ForeignOriginal)
+      }
+      source_free.capacity_plan
+    }
   }
-  let plan = source_free.capacity_plan
-  guard plan.scalar_demand is Some(demand) &&
-    plan.schema_inventory is Some(inventory) &&
-    physical_equal(demand.original, inventory) &&
-    plan.graph is Some(graph) &&
+  let (inventory, rows, text) = match plan.scalar_demand {
+    Some(demand) => {
+      guard plan.schema_inventory is Some(inventory) &&
+        physical_equal(demand.original, inventory) else {
+        return Err(ForeignOriginal)
+      }
+      (inventory, demand.rows, None)
+    }
+    None => {
+      // This SAME Plan already checked its flat Number/Boolean/Text schemas
+      // and retained their node demand. Do not repeat schema admission or
+      // treat absence of the numeric-only specialization as a foreign Run.
+      guard plan.value_node_demand is Some(demand) &&
+        plan.demand_inventory is Some(inventory) &&
+        physical_equal(demand.original, inventory) else {
+        return Err(ForeignOriginal)
+      }
+      (inventory, demand.rows, Some(plan.values.max_text_bytes))
+    }
+  }
+  guard plan.graph is Some(graph) &&
     owner.publication_definition is Some(_) &&
     owner.publication_invocation is Some(_) &&
     !owner.source_free_opening &&
@@ -110,7 +138,12 @@ pub fn reserve_program_publication(
     managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
-  guard scalar_snapshot_layout(inventory.fields, inventory.names, demand.rows)
+  guard scalar_snapshot_layout(
+      inventory.fields,
+      inventory.names,
+      rows,
+      total_text_bytes=text,
+    )
     is Some(task) &&
     @execution.preparation_representation_cost(task.retained) is Some(task_r) &&
     @execution.preparation_representation_cost(task.temporary) is Some(task_e) else {
@@ -128,7 +161,8 @@ pub fn reserve_program_publication(
     guard scalar_snapshot_layout(
         @schema.field_count(schema),
         @schema.field_reference_name_bytes(schema),
-        demand.rows,
+        rows,
+        total_text_bytes=text,
       )
       is Some(snapshot) &&
       @execution.preparation_representation_cost(snapshot.retained) is Some(r) &&
@@ -165,7 +199,7 @@ pub fn reserve_program_publication(
     retiring: false,
     publication_definition: owner.publication_definition,
     publication_invocation: owner.publication_invocation,
-    row_bound: Some(demand.rows),
+    row_bound: Some(rows),
     retained_quote: total_r,
     execution_quote: total_e,
     holder,

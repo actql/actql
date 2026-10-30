@@ -89,11 +89,12 @@ test('Source preparation cannot install a parent association after cancellation 
 
 test('Source preparation requires the same captured own checked Program across its original await', async () => {
   const original = {}, foreign = {}, parent = {}, prepared = {}; let calls = 0, reads = 0;
+  const facts = {preparedProgram: original};
   const profile = bindInstalledManagedSources({managedCaptureCapacity() {},
-    async prepare(facts) {calls++; await Promise.resolve(); facts.preparedProgram = foreign; return prepared;},
+    async prepare() {calls++; await Promise.resolve(); facts.preparedProgram = foreign; return prepared;},
     ledgerCapacity() {assert.fail('No association may be installed');},
   }, checked => {assert.strictEqual(checked, original); return parent;});
-  await assert.rejects(profile.prepare({preparedProgram: original}), /ForeignInstalledManagedSource/);
+  await assert.rejects(profile.prepare(facts), /ForeignInstalledManagedSource/);
   await assert.rejects(profile.prepare(Object.create({preparedProgram: original})), /ForeignInstalledManagedSource/);
   await assert.rejects(profile.prepare({get preparedProgram() {reads++; return original;}}), /ForeignInstalledManagedSource/);
   assert.equal(calls, 1); assert.equal(reads, 0);
@@ -233,4 +234,50 @@ test('Host Source current callback preserves the original newly recorded failure
   const original = hostManagedSources(({run}) => {run.failure = failure;});
   await assert.rejects(original.selected.prepare({preparedProgram: original.checkedProgram}), error => error === failure);
   assert.deepEqual(original.counts(), {preparations: 0, capacities: 0});
+});
+
+// This is the real selected Source wrapper, with explicit nominal Run/service
+// ports only. No second Ledger, physical reader or cleanup ACK is fabricated.
+test('Pure Source preparation receives its same original managed Run before reader construction', async () => {
+  const program = {}, originalRun = {}, selected = {}, calls = [];
+  const facts = {preparedProgram: program, requestIdentity: {}};
+  const source = {
+    managedCaptureCapacity() {},
+    async prepare(input) {
+      assert.strictEqual(this, source);
+      assert.strictEqual(input.preparedProgram, program);
+      assert.strictEqual(input.requestIdentity, facts.requestIdentity);
+      assert.strictEqual(input.managedRun, originalRun);
+      calls.push('same-original-reader');
+      return selected;
+    },
+    ledgerCapacity(value) {assert.strictEqual(this, source); assert.strictEqual(value, selected); return {};},
+  };
+  const bound = bindInstalledManagedSources(source, owner => {
+    assert.strictEqual(owner, program); return originalRun;
+  });
+  assert.strictEqual(await bound.prepare(facts), selected);
+  assert.deepEqual(calls, ['same-original-reader']);
+  assert.strictEqual(bound.ledgerCapacity(selected).managedRun, originalRun);
+});
+
+test('Source reader facts retain one frozen original Run and method receiver for both compiler roles', async () => {
+  for (const role of ['preparedProgram', 'preparedEffect']) {
+    const owner = {}, run = {}, foreign = {}, prepared = {}; let calls = 0;
+    const source = {managedCaptureCapacity() {},
+      async prepare(facts) {
+        assert.strictEqual(this, source); assert.equal(Object.isFrozen(facts), true);
+        assert.strictEqual(facts[role], owner); assert.strictEqual(facts.managedRun, run);
+        calls++; return prepared;
+      }, ledgerCapacity() {return {};}};
+    const bound = bindInstalledManagedSources(source, selected => {
+      assert.strictEqual(selected, owner); return run;
+    });
+    source.prepare = () => assert.fail('Replaced provider callback is not an original');
+    const facts = {[role]: owner, managedRun: foreign};
+    assert.strictEqual(await bound.prepare(facts), prepared);
+    assert.strictEqual(facts.managedRun, foreign);
+    assert.strictEqual(bound.ledgerCapacity(prepared).managedRun, run);
+    assert.equal(calls, 1);
+  }
 });

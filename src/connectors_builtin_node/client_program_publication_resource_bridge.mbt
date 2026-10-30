@@ -231,3 +231,42 @@ pub fn client_program_cancel_snapshot(
 ) -> Unit {
   @client_local_host.cancel_program_snapshot(snapshot)
 }
+
+///|
+#export_name("clientProgramIssueCapturedPublicationInvocation")
+pub fn client_program_issue_captured_publication_invocation(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  keyed : @publication_host.ClientKeyedLookupObservation?,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.issue_program_captured_publication_invocation(
+    owner, prepared, compiled, definition, captures, identities, requirements, sources,
+    inputs, keyed, authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramKeyedLookupObservationOriginals")
+pub fn client_program_keyed_lookup_observation_originals(
+  value : @publication_host.ClientKeyedLookupObservation,
+) -> (@publication.RunEvidenceValue, @publication.RunEvidenceValue, String)? {
+  @publication_host.client_keyed_lookup_observation_originals(value)
+}

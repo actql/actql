@@ -1264,3 +1264,49 @@ test "actual Request compiler retains its original installed ordered contract be
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+// The normal Pure caller selects its Source inventory from this same borrowed
+// compiler result. Source-free module completion must keep that original
+// holder, rather than returning it and issuing another body token.
+test "one Pure constructor input holder survives source-free module completion and Run adoption" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  let factory_calls = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      factory_calls.val += 1
+      []
+    },
+  ).unwrap()
+  assert_eq(factory_calls.val, 1)
+  assert_true(parent.program_source_free.unwrap().compilation is Some(_))
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "same-pure-constructor-holder",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

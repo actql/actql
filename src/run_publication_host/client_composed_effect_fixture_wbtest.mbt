@@ -49,6 +49,7 @@ fn client_composed_effect_base_fixture() -> (
   }
   let limits : ClientEffectComputationLimits = {
     program: {
+      values_max_rows: None,
       checking: {
         input,
         compilation: {

@@ -809,18 +809,6 @@ pub fn client_program_installed_managed_capture_plan_prepare(
 }
 
 ///|
-#export_name("clientProgramCompleteRequestCapturePreparation")
-pub fn client_program_complete_request_capture_preparation(
-  parent : @client_local_host.ClientRequestPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  input : ClientLocalPreparationInputOriginal,
-  plan : @client_local_host.ClientInstalledManagedCapturePlan,
-) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
-  @client_local_host.complete_request_capture_preparation(parent, input, plan)
-}
-
-///|
 #export_name("clientProgramAdoptRequestCapturePreparation")
 pub fn client_program_adopt_request_capture_preparation(
   parent : @client_local_host.ClientRequestPreparation[
