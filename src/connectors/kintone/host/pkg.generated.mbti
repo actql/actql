@@ -39,9 +39,17 @@ pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.Recor
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
+pub fn record_create_mapped_form_recheck_construction_capacity(RecordCreateMapping, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_form_recheck_construction_inventory(RecordCreateMapping, @catalog.FormFieldLimits) -> RecordCreateProtocolConstructionInventory?
+
 pub fn record_create_mapped_request_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_create_mapped_request_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
+pub fn record_create_mapped_response_construction_capacity(RecordCreateMapping, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_response_construction_inventory(RecordCreateMapping, @catalog.RecordMutationLimits) -> RecordCreateProtocolConstructionInventory?
 
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
 
@@ -139,6 +147,12 @@ pub enum RecordCreateOutcomeIssue {
 
 pub struct RecordCreatePreviewOutcome {
   // private fields
+}
+
+pub(all) struct RecordCreateProtocolConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
 }
 
 pub(all) struct RecordCreateRequestConstructionInventory {
