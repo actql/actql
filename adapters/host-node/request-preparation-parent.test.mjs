@@ -830,3 +830,69 @@ test('Request Effect borrowed methods keep original receiver and reject foreign 
   assert(!f.events.includes('complete')); await f.failedCleanup();
   assert.deepEqual(f.events, ['compile', 'borrow', 'sibling', 'return']);
 });
+
+
+test('captured Pure Request keeps its original compiler input before Source Plan construction', async () => {
+  const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {};
+  const events = []; let retiring = false, returned = false;
+  // Semantic compilation/typed capture are explicit Core ports; the actual
+  // manager, snapshot, input receipt and original Resource parent are real.
+  // This case establishes no Source I/O, Account authority or physical backing.
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const originalInput = {version: 'actql/0.1', id: 'source-compute',
+    results: {answer: {from: {result: 'r', stage: 'compute'}}}, stages: [
+      {id: 'acquire', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+        results: {r: {fields: ['id'], from: 'captured'}},
+        steps: [{as: 'filtered', filter: 'id > 0'}, {as: 'captured', select: ['id']}]},
+      {id: 'compute', inputs: {x: {result: {result: 'r', stage: 'acquire'}}},
+        results: {r: {fields: ['id'], from: 'out'}},
+        steps: [{filter: 'id > 2'}, {as: 'out', select: ['id']}]},
+    ]};
+  const receipt = f.view.beforeSourceSnapshot('program', originalInput, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: originalInput, parameters: null}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  moon.clientProgramPrepareRequestNativeComputation = function(parent, original) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    events.push('compile'); return ok('effect_free');
+  };
+  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, original) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    events.push('input-borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return prepared;
+  };
+  moon.clientProgramAcquisitionCount = function(value) {
+    assert.equal(this, moon); assert.equal(value, prepared); events.push('original-acquisition-count'); return 1;
+  };
+  moon.clientProgramPrepareRequestProgramModuleBody = () => assert.fail('captured Source must not enter the Source-free module constructor');
+  moon.clientProgramBorrowRequestProgramPreparation = () => assert.fail('the original input holder must survive until actual capture Plan completion');
+  moon.clientProgramRequestParametersOriginal = function(parent, original) {
+    assert.equal(parent, f.parent); assert.equal(original, receipt); return ok(undefined);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return retiring;
+  };
+  moon.clientProgramPreparationBorrowReturn = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); assert(retiring); assert(!returned);
+    returned = true; events.push('input-return'); return ok(true);
+  };
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = function(parent) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); retiring = true;
+    return returned || !events.includes('input-borrow')
+      ? Reflect.apply(abort, moon, [parent]) : {$tag: 0, _0: new Error('OriginalCaptureInputPending')};
+  };
+  try {
+    const selected = await f.view.fundedPreparation(request, undefined);
+    assert.equal(selected.kind, 'effect_free'); assert.equal(selected.prepared, prepared);
+    assert.deepEqual(events, ['compile', 'input-borrow', 'original-acquisition-count']);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).admitted, true);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+  } finally {
+    f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();
+  }
+  assert.equal(events.filter(value => value === 'compile').length, 1);
+  assert.equal(events.filter(value => value === 'input-return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
