@@ -602,6 +602,66 @@ values under its authority. A GitHub concurrency name is repository-scoped;
 separate repositories must route through the same actual executor. No workflow,
 registry role, channel or exclusive-writer setting is configured by these plans.
 
+### Separate post-freeze promotion evidence
+
+A public installed receipt names its original frozen upper digest. Inserting
+that receipt into the same manifest would change the digest and create a
+self-reference. Do not rewrite the frozen set, its earlier `not-run` result,
+or an approval record to make later facts look pre-existing. Prepare a separate
+immutable review bundle under the existing release-review owner instead:
+
+```sh
+node scripts/release.mjs promotion-review \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <exact-promotion-plan.json> <original-channel-report.json> \
+  <public-evidence-request.json> <new-review-directory>
+node scripts/release.mjs verify-promotion-review \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <promotion-review-directory> <externally-retained-promotion-review-SHA256>
+node scripts/release.mjs promotion-summary \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <promotion-review-directory> <externally-retained-promotion-review-SHA256>
+```
+
+The request has schema `actql-release-promotion-review-request/0.1` and exactly
+`manifestSha256`, `publicInstallEvidence` and `limitations`. Every evidence
+record is `{id, targetId, kind, file, bytes, sha256}`. IDs are unique lower-case
+review identifiers, and files are relative to that request without traversal
+or links. The existing review bounds apply: 128 records, 64 MiB per original,
+256 MiB total. Every promoted target needs evidence; unselected targets refuse.
+
+The currently connected kind is `node-public-install`, from the existing
+four-package Node public consumer with an explicit upper/child binding. The
+reader compares only its exact original release-set, target, child, source,
+version, public-origin and artifact identities. It retains the original actual
+Node/OS and declared business/approval scope without promoting those claims.
+Legacy child-only, private-loopback, foreign-child or substituted-cohort records
+cannot acquire a new upper binding. There is no Native-npm/Python-to-Node cast;
+their missing corresponding consumer routes are not silently certified here.
+
+The exact supplied plan is recomputed through the existing promotion owner and
+its original raw channel report, retaining expected prior values, source/version,
+pre-release and maintenance safeguards. Every move must be in the fixed review's
+original proposed promotion scope. Reports are historical DATA, not fresh CAS.
+
+All inputs validate before output. Only the original plan/report/request and
+raw evidence are copied, with a separate header and detached digest; original
+artifacts are neither copied nor changed. The destination must be physically
+outside the original fixed set. Cold verification still needs the exact original
+fixed files and independently reobserves every copied input. Missing originals,
+changed bytes or an existing output refuse; there is no reconstruction, new
+version, recursive enrichment or overwrite.
+
+JSON and Markdown summaries show the same original candidate/artifacts, prior
+and proposed channel values, evidence identities and preserved limitations.
+Changed evidence or expected values creates a different review digest while
+the original artifact digest stays fixed. Both remain `unaccepted`; raw receipt
+JSON and a local digest cannot prove a trusted run, actual install/current/close,
+owner identity or authority. The separate protected owner decision must bind
+this bundle and original fixed set. A future exclusive executor must reobserve
+actual public bytes and channel values under its real authority. No credential,
+2FA, stage approval, channel mutation or workflow is supplied by these commands.
+
 ## Source and maintenance review
 
 ```sh

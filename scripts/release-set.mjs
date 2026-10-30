@@ -4,12 +4,13 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
-import {copyFile, lstat, mkdir, open, readFile, writeFile} from 'node:fs/promises';
-import {basename, dirname, join, resolve} from 'node:path';
+import {copyFile, lstat, mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
+import {basename, dirname, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
+import {promotionPlan} from './release-channels.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -359,6 +360,156 @@ export async function prepareReleaseReview({directory, expectedSha256, reviewFil
   await writeFile(join(destination, 'release-set.sha256'), `${sha256}  release-set.json\n`, {flag: 'wx'});
   await verifyReleaseSet(directory, {expectedSha256});
   return verifyReleaseSet(destination, {expectedSha256: sha256});
+}
+
+function admitPromotionReviewRequest(request, fixed, plan) {
+  exact(request, ['schemaVersion', 'manifestSha256', 'publicInstallEvidence', 'limitations']);
+  assert.equal(request.schemaVersion, 'actql-release-promotion-review-request/0.1');
+  assert.equal(request.manifestSha256, fixed.sha256);
+  assert(fixed.review, 'Original proposed promotion scope must already be bound');
+  for (const transition of plan.transitions) assert(fixed.review.executionScope.promote.some(value =>
+    value.targetId === transition.targetId && value.channel === transition.channel), 'Promotion exceeds the original proposed scope');
+  const targets = [...new Set(plan.transitions.map(value => value.targetId))], ids = new Set(), covered = new Set();
+  assert(Array.isArray(request.publicInstallEvidence) && request.publicInstallEvidence.length > 0 && request.publicInstallEvidence.length <= 128);
+  let total = 0;
+  for (const item of request.publicInstallEvidence) {
+    exact(item, ['id', 'targetId', 'kind', 'file', 'bytes', 'sha256']);
+    assert(typeof item.id === 'string' && /^[a-z][a-z0-9-]{0,63}$/u.test(item.id) && !ids.has(item.id), 'Invalid/duplicate public evidence id');
+    ids.add(item.id); assert(targets.includes(item.targetId), 'Public evidence belongs to an unselected promotion target'); covered.add(item.targetId);
+    // This is the actual connected installed Node receipt, not an invented
+    // Native/Python-to-npm conversion or a generic JSON passed flag.
+    assert.equal(item.kind, 'node-public-install', 'No matching public npm consumer receipt adapter for this evidence kind');
+    assert.equal(fixed.manifest.cohorts.find(value => value.targetId === item.targetId)?.kind, 'node-npm');
+    literal(item.file);
+    assert(!item.file.startsWith('/') && !item.file.includes('\\') && item.file.split('/').every(part => part && !['.', '..'].includes(part)));
+    assert(Number.isSafeInteger(item.bytes) && item.bytes > 0 && item.bytes <= 64 * 1024 * 1024); digestText(item.sha256);
+    total += item.bytes; assert(total <= 256 * 1024 * 1024, 'Public promotion evidence exceeds its existing review byte bound');
+  }
+  assert.deepEqual([...covered].sort(), targets.sort(), 'Every promoted target needs its original public install evidence');
+  assert(Array.isArray(request.limitations)); request.limitations.forEach(literal);
+  return structuredClone(request);
+}
+
+function promotionReceiptIdentity(bytes, item, fixed) {
+  const body = JSON.parse(bytes), target = fixed.manifest.request.targets.find(value => value.id === item.targetId);
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
+  const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === target.id), binding = body.releaseSetBinding;
+  assert.deepEqual(artifacts.map(value => value.name), ['@actql/client-wire', '@actql/sdk', '@actql/local-node', '@actql/node'],
+    'This receipt adapter is the actual original four-package Node consumer');
+  assert.equal(body.version, 'actql-release-install-acceptance/0.1');
+  assert.equal(body.sourceSha, fixed.manifest.request.source.commit);
+  assert.equal(body.registry, 'https://registry.npmjs.org/');
+  assert.equal(body.publicRegistryPublication, 'exact-original-bytes-observed-anonymously');
+  assert(binding, 'Legacy child-only receipt cannot claim an upper release-set binding');
+  assert.equal(binding.manifestSha256, fixed.sha256); assert.equal(binding.targetId, target.id);
+  assert.equal(binding.cohortManifestSha256, cohort.sha256); assert.equal(body.cohortManifestSha256, cohort.sha256);
+  assert.equal(binding.sourceSha, body.sourceSha); assert.equal(binding.version, fixed.manifest.release.version);
+  assert.deepEqual(binding.requestedPlatforms, target.platforms); assert.deepEqual(binding.requestedProfiles, target.profiles);
+  assert.deepEqual(binding.artifacts, artifacts.map(({name, version, file, bytes, sha256, integrity}) => ({name, version, file, bytes, sha256, integrity})));
+  assert.deepEqual(body.artifacts, artifacts.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})));
+  for (const field of ['publicObservationFile', 'publicObservationAfterFile', 'publicRuntimeScope', 'node', 'platform', 'arch']) literal(body[field]);
+  assert(body.approvalAcceptance && typeof body.approvalAcceptance === 'object'); literal(body.approvalAcceptance.status);
+  return {id: item.id, targetId: item.targetId, kind: item.kind, manifestSha256: binding.manifestSha256,
+    cohortManifestSha256: binding.cohortManifestSha256, node: body.node, platform: body.platform, arch: body.arch,
+    publicRuntimeScope: body.publicRuntimeScope, declaredApprovalAcceptance: structuredClone(body.approvalAcceptance),
+    qualification: 'original receipt identity correspondence only; actual trusted job, install, rows/current/close/profile and owner acceptance remain unproved'};
+}
+
+function checkedPromotionReviewPlan(fixed, plan, report, reportSha256) {
+  assert(Array.isArray(plan.transitions));
+  const moves = plan.transitions.map(({targetId, name, channel, expectedVersion}) => ({targetId, name, channel, expectedVersion}));
+  assert.deepEqual(promotionPlan(fixed, moves, report, reportSha256), plan,
+    'Promotion plan differs from its exact original fixed set, channel report or transition');
+  return plan;
+}
+
+// Post-publication evidence cannot be inserted into the SAME manifest whose
+// digest that receipt names. Keep a distinct external review bundle instead:
+// original fixed SHA + exact plan/report + raw public receipts. This supplies
+// no approval, current channel proof, CAS, credential or mutation route.
+export async function prepareReleasePromotionReview({directory, expectedSha256, planFile, channelReportFile, reviewFile, destination}) {
+  digestText(expectedSha256); directory = resolve(directory); destination = resolve(destination);
+  const originalRoot = await realpath(directory), output = join(await realpath(dirname(destination)), basename(destination));
+  assert(output !== originalRoot && !output.startsWith(`${originalRoot}${sep}`), 'Post-freeze promotion review must be outside the original fixed set');
+  destination = output;
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const read = (file, maximum) => checkedBytes(dirname(resolve(file)), {path: basename(file)}, maximum);
+  const planBytes = await read(planFile, 4 * 1024 * 1024), reportBytes = await read(channelReportFile, 4 * 1024 * 1024);
+  const plan = checkedPromotionReviewPlan(fixed, JSON.parse(planBytes), JSON.parse(reportBytes), hash(reportBytes));
+  const requestBytes = await read(reviewFile, 1024 * 1024);
+  const request = admitPromotionReviewRequest(JSON.parse(requestBytes), fixed, plan), payloads = [];
+  for (const item of request.publicInstallEvidence) {
+    const bytes = await checkedBytes(dirname(resolve(reviewFile)), {path: item.file, bytes: item.bytes, sha256: item.sha256}, 64 * 1024 * 1024);
+    promotionReceiptIdentity(bytes, item, fixed); payloads.push({item, bytes});
+  }
+  await verifyReleaseSet(directory, {expectedSha256});
+  await mkdir(destination); await mkdir(join(destination, 'evidence'));
+  const put = async (path, bytes) => {await writeFile(join(destination, path), bytes, {flag: 'wx'}); return {path, bytes: bytes.length, sha256: hash(bytes)};};
+  const header = {schemaVersion: 'actql-release-promotion-review/0.1', manifestSha256: fixed.sha256,
+    plan: await put('plan.json', planBytes), channelReport: await put('channel-report.json', reportBytes),
+    request: await put('request.json', requestBytes), evidence: [], acceptance: 'unaccepted'};
+  for (const {item, bytes} of payloads) header.evidence.push({id: item.id, ...await put(`evidence/${item.id}`, bytes)});
+  const bytes = json(header), sha256 = hash(bytes);
+  await writeFile(join(destination, 'promotion-review.json'), bytes, {flag: 'wx'});
+  await writeFile(join(destination, 'promotion-review.sha256'), `${sha256}  promotion-review.json\n`, {flag: 'wx'});
+  await verifyReleaseSet(directory, {expectedSha256});
+  return verifyReleasePromotionReview({directory, expectedSha256, reviewDirectory: destination, expectedReviewSha256: sha256});
+}
+
+export async function verifyReleasePromotionReview({directory, expectedSha256, reviewDirectory, expectedReviewSha256}) {
+  digestText(expectedSha256); digestText(expectedReviewSha256); reviewDirectory = resolve(reviewDirectory);
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const original = await checkedBytes(reviewDirectory, {path: 'promotion-review.json', sha256: expectedReviewSha256}, 4 * 1024 * 1024);
+  const header = JSON.parse(original);
+  exact(header, ['schemaVersion', 'manifestSha256', 'plan', 'channelReport', 'request', 'evidence', 'acceptance']);
+  assert.equal(header.schemaVersion, 'actql-release-promotion-review/0.1'); assert.equal(header.manifestSha256, fixed.sha256);
+  assert.equal(header.acceptance, 'unaccepted');
+  const read = async (record, path, maximum) => {
+    exact(record, ['path', 'bytes', 'sha256']); assert.equal(record.path, path); digestText(record.sha256);
+    assert(Number.isSafeInteger(record.bytes) && record.bytes > 0 && record.bytes <= maximum);
+    return checkedBytes(reviewDirectory, record, maximum);
+  };
+  const planBytes = await read(header.plan, 'plan.json', 4 * 1024 * 1024), reportBytes = await read(header.channelReport, 'channel-report.json', 4 * 1024 * 1024);
+  const plan = checkedPromotionReviewPlan(fixed, JSON.parse(planBytes), JSON.parse(reportBytes), hash(reportBytes));
+  const request = admitPromotionReviewRequest(JSON.parse(await read(header.request, 'request.json', 1024 * 1024)), fixed, plan);
+  assert.deepEqual(header.evidence.map(value => value.id), request.publicInstallEvidence.map(value => value.id));
+  const publicEvidence = [];
+  for (const [index, item] of request.publicInstallEvidence.entries()) {
+    const {id, ...record} = header.evidence[index]; assert.equal(record.bytes, item.bytes); assert.equal(record.sha256, item.sha256);
+    publicEvidence.push(promotionReceiptIdentity(await read(record, `evidence/${id}`, 64 * 1024 * 1024), item, fixed));
+  }
+  const detached = await checkedBytes(reviewDirectory, {path: 'promotion-review.sha256'}, 128);
+  assert.equal(detached.toString('utf8'), `${expectedReviewSha256}  promotion-review.json\n`);
+  assert.deepEqual(await checkedBytes(reviewDirectory, {path: 'promotion-review.json', sha256: expectedReviewSha256}, 4 * 1024 * 1024), original);
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {fixed, header, sha256: expectedReviewSha256, plan, request, publicEvidence, acceptance: 'unaccepted'};
+}
+
+export function releasePromotionReviewSummary(checked) {
+  const escape = value => String(value).replace(/[\\`*_[\]<>|]/gu, '\\$&');
+  const candidate = releaseSetSummary(checked.fixed), lines = [candidate.markdown,
+    '## Separate post-freeze promotion review', '', `Promotion review SHA256: ${checked.sha256}`,
+    `Original fixed manifest SHA256: ${checked.fixed.sha256}`,
+    `Plan SHA256: ${checked.header.plan.sha256}`,
+    `Channel report SHA256: ${checked.header.channelReport.sha256}`,
+    `Request SHA256: ${checked.header.request.sha256}`, 'Acceptance: unaccepted', '',
+    'Public receipts refer to the original frozen set; no artifact or original review field was changed.',
+    'All receipt claims and identity correspondence remain DATA. No trusted job, actual public install, current value, owner approval, lease or mutation is certified.', '',
+    '| Target | Package | Channel | Expected prior version | Proposed version |', '| --- | --- | --- | --- | --- |'];
+  for (const item of checked.plan.transitions) lines.push(`| ${escape(item.targetId)} | ${escape(item.name)} | ${escape(item.channel)} | ${escape(item.expectedVersion ?? '(absent)')} | ${escape(item.toVersion)} |`);
+  lines.push('', '| Public receipt | Target | Kind | Bytes | SHA256 |', '| --- | --- | --- | ---: | --- |');
+  for (const item of checked.request.publicInstallEvidence) lines.push(`| ${escape(item.id)} | ${escape(item.targetId)} | ${escape(item.kind)} | ${item.bytes} | ${item.sha256} |`);
+  for (const item of checked.publicEvidence) lines.push('', `Public receipt ${escape(item.id)} (${escape(item.targetId)}):`,
+    `Child SHA256: ${item.cohortManifestSha256}; observed Node/OS: ${escape(JSON.stringify([item.node, item.platform, item.arch]))}`,
+    `Declared business scope: ${escape(JSON.stringify(item.publicRuntimeScope))}`,
+    `Declared approval acceptance (not promoted): ${escape(JSON.stringify(item.declaredApprovalAcceptance))}`);
+  lines.push('', 'Post-freeze limitations (supplied DATA):',
+    ...checked.request.limitations.map(value => `- ${escape(value)}`));
+  lines.push('', 'A separate protected owner decision must bind this bundle and the original fixed set. Actual channel values must be checked under the exclusive executor before any later mutation.');
+  return {manifestSha256: checked.fixed.sha256, promotionReviewSha256: checked.sha256,
+    acceptance: 'unaccepted', header: structuredClone(checked.header),
+    plan: structuredClone(checked.plan), request: structuredClone(checked.request),
+    publicEvidence: structuredClone(checked.publicEvidence), candidate, markdown: `${lines.join('\n')}\n`};
 }
 
 export async function readFrozenReleaseArtifact(directory, expectedSha256, targetId, file) {
