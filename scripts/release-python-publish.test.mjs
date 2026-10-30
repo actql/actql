@@ -267,3 +267,48 @@ test('Python publish failure custody: Unknown receipt write refusal retains BOTH
   assert.equal(JSON.parse(await readFile(join(attempt,'intent.json'))).outcome,'unknown-until-original-job-terminal-and-public-byte-readback');
   await assert.rejects(readFile(join(attempt,'unknown.json')),{code:'ENOENT'});
 });
+
+// Own returned DATA only. The first output read schedules mutation at the
+// consumer's next await; no job, clock, filesystem or product port is patched.
+function terminalReplyMutation(initial, later) {
+  const current={...initial},reads={stdout:0,stderr:0,code:0,signal:0},reply={};let mutated=false;
+  for(const field of Object.keys(reads))Object.defineProperty(reply,field,{get(){
+    reads[field]++;
+    if(field==='stdout'&&reads[field]===1)queueMicrotask(()=>{Object.assign(current,later);mutated=true;});
+    return current[field];
+  }});
+  return {reply,reads,mutated:()=>mutated};
+}
+
+for(const [name,code,signal]of [['nonzero',1,null],['signalled',0,'SIGTERM'],['unreported',undefined,undefined]])
+test(`Python terminal snapshot: original ${name} cannot become success during receipt IO`,async t=>{
+  const f=await fixture(t),original=f.options.runProjectJob;
+  const initial={code,signal,stdout:'ORIGINAL inert terminal stdout\n',stderr:'ORIGINAL inert terminal stderr\n'};
+  const captured=terminalReplyMutation(initial,{code:0,signal:null,stdout:'LATER stdout\n',stderr:'LATER stderr\n'});
+  await assert.rejects(publishPythonReleaseProject({...f.options,project:'actql-sdk',runProjectJob:async(action,context)=>{
+    await original(action,context);return captured.reply;
+  }}),/outcome unconfirmed/u);
+  assert(captured.mutated());assert.deepEqual(captured.reads,{stdout:1,stderr:1,code:1,signal:1});
+  assert.equal(f.jobs.length,1);const [attempt]=await f.attempts('actql-sdk');
+  const command=JSON.parse(await readFile(join(attempt,'command.json')));
+  assert.equal(command.code,code);assert.equal(command.signal,signal);assert.equal(command.commandSucceeded,false);
+  assert.equal(await readFile(join(attempt,'stdout.txt'),'utf8'),initial.stdout);
+  assert.equal(await readFile(join(attempt,'stderr.txt'),'utf8'),initial.stderr);
+  await assert.rejects(lstat(join(attempt,'after.json')),{code:'ENOENT'});
+  await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+test('Python terminal snapshot: original success and output survive later returned-object mutation',async t=>{
+  const f=await fixture(t),original=f.options.runProjectJob;
+  const initial={code:0,signal:null,stdout:'ORIGINAL success stdout\n',stderr:'ORIGINAL success stderr\n'};
+  const captured=terminalReplyMutation(initial,{code:1,signal:'SIGTERM',stdout:'LATER stdout\n',stderr:'LATER stderr\n'});
+  const result=await publishPythonReleaseProject({...f.options,project:'actql-sdk',runProjectJob:async(action,context)=>{
+    await original(action,context);return captured.reply;
+  }});
+  assert(captured.mutated());assert.deepEqual(captured.reads,{stdout:1,stderr:1,code:1,signal:1});
+  assert.equal(f.jobs.length,1);assert.equal(result.state,'command-and-public-bytes-confirmed');
+  const command=JSON.parse(await readFile(join(result.receiptDirectory,'command.json')));
+  assert.equal(command.code,0);assert.equal(command.signal,null);assert.equal(command.commandSucceeded,true);
+  assert.equal(await readFile(join(result.receiptDirectory,'stdout.txt'),'utf8'),initial.stdout);
+  assert.equal(await readFile(join(result.receiptDirectory,'stderr.txt'),'utf8'),initial.stderr);
+});

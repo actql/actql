@@ -345,16 +345,18 @@ export async function publishPythonReleaseProject(options) {
       catch (cleanup) {throw retainOriginalPublisherFailure(cleanup, failure);}
       throw retainOriginalPublisherFailure(Error(`Original PyPI outcome unknown; preserve ${attempt}`), failure);
     }
-    if (!reply || typeof reply.stdout !== 'string' || typeof reply.stderr !== 'string' ||
-        Buffer.byteLength(reply.stdout) + Buffer.byteLength(reply.stderr) > 1024 * 1024) {
+    const stdoutText = reply?.stdout, stderrText = typeof stdoutText === 'string' ? reply.stderr : undefined;
+    if (!reply || typeof stdoutText !== 'string' || typeof stderrText !== 'string' ||
+        Buffer.byteLength(stdoutText) + Buffer.byteLength(stderrText) > 1024 * 1024) {
       await record('unknown.json', {state: 'unknown', reason: 'invalid-or-oversized-original-job-response'});
       throw Error(`Original PyPI outcome unknown; preserve ${attempt}`);
     }
-    const stdout = await record('stdout.txt', Buffer.from(reply.stdout)), stderr = await record('stderr.txt', Buffer.from(reply.stderr));
+    const code = reply.code, signal = reply.signal, stdoutBytes = Buffer.from(stdoutText), stderrBytes = Buffer.from(stderrText);
+    const stdout = await record('stdout.txt', stdoutBytes), stderr = await record('stderr.txt', stderrBytes);
     await record('command.json', {schemaVersion: 'actql-python-publish-command/0.1', manifestSha256: expectedSha256,
-      targetId, project, code: reply.code, signal: reply.signal, stdout, stderr,
-      commandSucceeded: reply.code === 0 && reply.signal === null, confirmation: 'unobserved'});
-    assert(reply.code === 0 && reply.signal === null, `Original PyPI outcome unconfirmed; preserve ${attempt}`);
+      targetId, project, code, signal, stdout, stderr,
+      commandSucceeded: code === 0 && signal === null, confirmation: 'unobserved'});
+    assert(code === 0 && signal === null, `Original PyPI outcome unconfirmed; preserve ${attempt}`);
     assert.deepEqual(await readFile(path), captured.bytes, 'Publisher changed original wheel bytes');
     const original = await lstat(path); assert(original.isFile() && !original.isSymbolicLink() && (original.mode & 0o777) === 0o400);
     const sidecar = `${item.file}.publish.attestation`;
