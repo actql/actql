@@ -92,3 +92,35 @@ for (const mode of ['raw', 'managed']) {
     assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge', 'charged', 'interrupt']);
   });
 }
+
+for (const mode of ['raw', 'managed']) {
+  test(`Salesforce ${mode} query preserves accounting failure and interrupts the original read`, async () => {
+    const originalError = new Error('Original accounting refusal');
+    const f = fixture(mode, () => { throw originalError; });
+    await assert.rejects(f.run(), error => error === originalError);
+    assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge', 'interrupt']);
+  });
+
+  test(`Salesforce ${mode} query awaits pending accounting without upgrading the original rejection`, async () => {
+    let entered, release;
+    const started = new Promise(resolve => { entered = resolve; });
+    const pending = new Promise(resolve => { release = resolve; });
+    const f = fixture(mode, async ({response}) => {
+      response.accepted = true;
+      entered();
+      await pending;
+    });
+    let settled = false;
+    const rejected = assert.rejects(f.run(), error => error.code === 'SalesforceQueryResourceRejected')
+      .finally(() => { settled = true; });
+    try {
+      await started;
+      assert.equal(settled, false);
+      assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge']);
+    } finally {
+      release();
+    }
+    await rejected;
+    assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge', 'charged', 'interrupt']);
+  });
+}
