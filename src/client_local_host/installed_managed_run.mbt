@@ -32,6 +32,7 @@ struct ClientInstalledManagedRun {
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   effect_operations : Array[ClientInstalledEffectOperationBorrow]
+  mut effect_operation_opening : Bool
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -699,6 +700,7 @@ fn new_installed_managed_run_owned(
     keyed: None,
     keyed_reads: [],
     effect_operations: [],
+    effect_operation_opening: false,
     source_free_preparation: None,
     captured_preparation: None,
     preparation_retirement: None,
@@ -1196,7 +1198,7 @@ pub fn retire_installed_managed_run(
   guard value.original is Some(original) && physical_equal(value, original) else {
     return Err(ForeignOriginal)
   }
-  if value.source_free_opening {
+  if value.source_free_opening || value.effect_operation_opening {
     return Err(CleanupPending)
   }
   if value.ledger is None {

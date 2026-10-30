@@ -42,11 +42,14 @@ pub fn client_program_installed_effect_operation_charge(
 }
 
 ///|
-#export_name("clientProgramInstalledEffectOperationUnknown")
-pub fn client_program_installed_effect_operation_unknown(
+#export_name("clientProgramInstalledEffectOperationTransferUncertain")
+pub fn client_program_installed_effect_operation_transfer_uncertain(
   original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  bytes : Int64,
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.mark_installed_effect_operation_unknown(original)
+  @client_local_host.mark_installed_effect_operation_transfer_uncertain(
+    original, bytes,
+  )
 }
 
 ///|

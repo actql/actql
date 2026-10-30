@@ -38,6 +38,36 @@ pub fn borrow_installed_effect_operation(
   ClientInstalledEffectOperationBorrow,
   ClientInstalledManagedRunIssue,
 ] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  let result = borrow_installed_effect_operation_original(
+    owner, prepared, request, expected_plan, member_index, per_row, operation_index,
+    row_index, operation,
+  )
+  owner.effect_operation_opening = false
+  result
+}
+
+///|
+fn borrow_installed_effect_operation_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+) -> Result[
+  ClientInstalledEffectOperationBorrow,
+  ClientInstalledManagedRunIssue,
+] {
   let plan = match
     installed_effect_managed_operation_plan(owner, prepared, request) {
     Ok(plan) => plan
@@ -170,9 +200,11 @@ pub fn charge_installed_effect_operation(
 }
 
 ///|
-/// A lost reply retains possible transfer on the same spent reservation.
-pub fn mark_installed_effect_operation_unknown(
+/// Account the original physical driver's uncertain transfer on the same
+/// spent reservation. Business Unknown does not guess an amount from a quota.
+pub fn mark_installed_effect_operation_transfer_uncertain(
   value : ClientInstalledEffectOperationBorrow,
+  bytes : Int64,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   let ledger = match require_installed_effect_operation(value) {
     Err(issue) => return Err(issue)
@@ -181,15 +213,10 @@ pub fn mark_installed_effect_operation_unknown(
   guard value.started && value.backing is Some(Physical(original)) else {
     return Err(Unsupported)
   }
-  match
-    @resources.mark_transfer_uncertain(
-      ledger,
-      original,
-      value.remaining_transfer,
-    ) {
+  match @resources.mark_transfer_uncertain(ledger, original, bytes) {
     Err(issue) => Err(Ledger(issue))
     Ok(_) => {
-      value.remaining_transfer = 0L
+      value.remaining_transfer -= bytes
       Ok(())
     }
   }
