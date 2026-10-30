@@ -186,12 +186,16 @@
     {
       "id": "A14",
       "required": "Maintenance line excludes new features/breaking contracts",
-      "currentSlice": "Local Git branch/cut/cherry-pick inspection and complete maintenance review-DATA shape implemented. Broad main merge and explicitly incompatible categories refuse; protected semantic hunk review, actual branch operation and owner approval remain pending",
+      "currentSlice": "Original local branch/cut/maintenance review now also connects exact upper artifact bytes and an explicitly selected same-line prior fixed set to actual Git ancestry. Full original current/final byte checks, maintenance findings and commit/hunk review remain. Initial history is a supplied scope claim, not proven absence; actual published history, protected remote/semantic review, branch operation and owner approval remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Real temporary Git histories, not actual product/maintenance acceptance",
           "test": "release lanes: whole development merge into maintenance is detected from real history even with bugfix labels"
+        },
+        {
+          "kind": "Real temporary Git plus inert fixed files only; not actual published history, remote trust, maintenance compatibility or owner approval",
+          "test": "fixed source: original upper and prior bytes bind real ancestry while an advanced branch cannot replace fixed SHA"
         }
       ]
     },

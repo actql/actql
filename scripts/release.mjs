@@ -11,7 +11,7 @@ import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseS
   prepareReleasePromotionReview, verifyReleasePromotionReview, releasePromotionReviewSummary} from './release-set.mjs';
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
-import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
+import {inspectReleaseSource, maintenanceReviewPlan, inspectFixedReleaseSource} from './release-source.mjs';
 import {nativePublishPlan, npmStagePlan, pythonPublishPlan} from './publish-package-release.mjs';
 
 export async function runReleasePlan(args) {
@@ -80,6 +80,16 @@ export async function runRelease(args) {
       request: JSON.parse(await readFile(resolve(values[0]), 'utf8'))});
     return command === 'source-plan' ? source : maintenanceReviewPlan(source,
       JSON.parse(await readFile(resolve(values[2]), 'utf8')));
+  }
+  if (command === 'fixed-source-plan') {
+    assert(values.length === 4 || values.length === 5,
+      'usage: fixed-source-plan <fixed-directory> <upper-SHA256> <repository> <history.json> [branches.json]');
+    const policy = JSON.parse(await readFile(new URL('../release/policy.json', import.meta.url), 'utf8'));
+    const branches = JSON.parse(await readFile(values[4] ? resolve(values[4])
+      : new URL('../release/branches.json', import.meta.url), 'utf8'));
+    return inspectFixedReleaseSource({directory: resolve(values[0]), expectedSha256: values[1],
+      repository: resolve(values[2]), policy, branches,
+      history: JSON.parse(await readFile(resolve(values[3]), 'utf8'))});
   }
   if (['verify', 'summary', 'resume-plan'].includes(command)) {
     assert.equal(values.length, command === 'resume-plan' ? 3 : 2,

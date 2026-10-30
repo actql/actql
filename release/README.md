@@ -857,6 +857,55 @@ backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
 
+### Bind source history to fixed artifacts
+
+The request-only inspection above does not bind an artifact set. For an owner
+review of already-frozen bytes, select the upper digest and history input:
+
+```sh
+node scripts/release.mjs fixed-source-plan <fixed-release-set-directory> \
+  <externally-retained-upper-SHA256> <repository> <history.json> [branches.json]
+```
+
+The history input must be one of these complete forms:
+
+```json
+{"kind":"initial"}
+```
+
+```json
+{"kind":"previous","directory":"/absolute/original-previous-release-set","manifestSha256":"<externally-retained-previous-upper-SHA256>"}
+```
+
+These are input examples, not an initial-release decision or evidence of public
+publication. A missing prior record is not treated as initial. The protected
+reviewer must independently authenticate the actual prior published release,
+or the deliberately selected initial scope. Local bytes cannot establish that
+no previous release exists. The previous fixed directory must retain its full
+original child manifests and artifacts; hashes or Git labels alone do not
+replace them.
+
+The existing full fixed-set verifier checks both sets before and after the
+original Git source check. The candidate request comes from its exact upper
+manifest, while policy and branch configuration still come from the separately
+trusted source owner. This call retains the original history and configuration
+before byte reads yield; later caller mutation cannot replace them. This does
+not cache permission or waive later protected current-state checks. The selected
+prior must have an earlier complete version
+on the same line, and its actual commit must be an ancestor of the fixed
+candidate. A branch advancing during release preparation does not substitute
+its new tip for the approved source SHA. Equal-version same-byte recovery uses
+the original publication/resume protocol, not a new release candidate.
+
+The original maintenance cut, complete commit inventory and broad-merge findings
+remain. A maintenance source still requires `maintenance-plan` and protected
+hunk/regression/forward-port review; this connection does not clear findings or
+replace that review. The output binds both original upper digests and the actual
+local Git observation, with execution unavailable. It does not authenticate the
+remote repository, discover publication history, approve a candidate, create a
+branch/tag, build or publish. Initial/prior choice, source changes or a different
+upper digest belong in a new exact owner review.
+
 Python's [exact-byte publication protocol](python-local.md#exact-byte-python-publication-protocol)
 uses `release.mjs python-publish-plan` and the same publisher/receipt Owner.
 It prepares one project per protected job, keeps the facade behind exact public
