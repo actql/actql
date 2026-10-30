@@ -57,3 +57,23 @@ read permission, current decision, Ledger or cleanup acknowledgement. General
 unfiltered Source capture and ordinary read/failure/release/Saved remain separate
 required work. The focused initializer and raw-file cases use explicit parent,
 current and I/O accounting ports; they are not nominal Core or normal acceptance.
+
+## Failed Reader and Account initialization
+
+The existing initialization cleanup owner retains a supplied `sourceReader`
+factory and `authorization` Account before its first cleanup await. It captures
+each original method and receiver once, retries only an unobserved method, and
+requires that original owner's synchronous `true` before clearing its holding.
+An unexpected Promise is joined and remains an invalid acknowledgement even
+when it resolves true. The same failure/status/retry owner retains every pending
+phase and the original primary error.
+
+Factory retirement precedes Source Site close. A separately supplied Account
+closes only after those dependent phases settle, and initial-parent close stays
+behind all original child owners. The normal failed-Site constructor supplies
+`{authorization}` only when no Site was returned; a returned owned Site keeps
+its existing Account-close duty. This does not create another Account/cleanup
+owner or duplicate its grant/current decisions. The constructed Account, factory,
+method references and failed-child overlap still belong in the actual original
+initial/Source reservation; the explicit-port regression is not physical or
+normal retirement acceptance.

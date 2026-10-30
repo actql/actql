@@ -44483,7 +44483,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b72940be2ca8a0889c34ce606c995e267752e03de86697bb05485faccb6e1d1f",
+      "sha256": "2be2ca59d9df54d5a08a5226df485ad3e8df17ae589c7a4cd2b925f0c4a575dc",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44648,7 +44648,9 @@
             "store",
             "checkpoints",
             "dispatchOwner",
+            "sourceReader",
             "sourceProfile",
+            "authorization",
             "installedEffect",
             "observation",
             "ownerViews",
@@ -44680,7 +44682,17 @@
           "async": false
         },
         {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalAuthorizationClose",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostInitializationFailure/captureOriginalCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
           "parameters": [],
           "async": false
         },
@@ -44691,6 +44703,11 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/drain/closeAuthorization",
           "parameters": [],
           "async": true
         },
@@ -44755,6 +44772,11 @@
           "name": "retainInstalledHostInitializationFailure/drain/drain#9",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/drain/retireSourceReader",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "retainInstalledHostInitializationFailure/observeOriginalCleanup",
@@ -45818,6 +45840,81 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.test.mjs",
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledHostInitializationFailure/captureOriginalAuthorizationClose",
+            "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
+            "retainInstalledHostInitializationFailure/drain/closeAuthorization",
+            "retainInstalledHostInitializationFailure/drain/retireSourceReader"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Failed Reader and Account initialization"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-authorization-cleanup.test.mjs",
+                "anchor": "failed original Site initialization retains original authorization until its true close ACK"
+              },
+              {
+                "path": "adapters/host-node/installed-source-authorization-cleanup.test.mjs",
+                "anchor": "same factory then Site then Account and initial parent retain original methods across initialization await"
               }
             ]
           }
