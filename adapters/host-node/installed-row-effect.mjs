@@ -2072,7 +2072,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
-          if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
+          // Export already bounds the total proposal rows. Member/control
+          // children share the same retainer but do not consume a row slot.
+          if (rowIndex >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity} : {}),
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
