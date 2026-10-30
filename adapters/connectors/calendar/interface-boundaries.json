@@ -3676,7 +3676,7 @@
     },
     {
       "module": "src/connectors/calendar/catalog/events_query.mbt",
-      "sha256": "52f07b3ca0d8c88bc6d47a4c01cc748d790e01fea05b2a8e9a0e4d64622921a5",
+      "sha256": "7c3a5518f97c849fbd60393831ffd66f882780edd2e3c89cc6ef4b5724223614",
       "operations": [
         {
           "name": "calendar_events_envelope_calendar_id",
@@ -3785,6 +3785,10 @@
               {
                 "path": "src/connectors/calendar/catalog/events_query_wbtest.mbt",
                 "anchor": "Calendar Events query retains original"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/events_rows_wbtest.mbt",
+                "anchor": "Calendar Event expanded pages refuse recurring masters before row selection"
               }
             ]
           }

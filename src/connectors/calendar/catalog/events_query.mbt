@@ -229,6 +229,14 @@ pub fn project_calendar_events_envelope(
       Present(value) if @decode.text(value) == Ok("calendar#event") => ()
       _ => return Err(InvalidResponse)
     }
+    // The original list request selects singleEvents=true. One-off events
+    // and individual instances omit recurrence; a present field describes
+    // an unexpanded parent or an invalid response, never an observed row.
+    // In particular, do not invent local occurrences or a partial page.
+    match @decode.field(event, "recurrence") {
+      Missing => ()
+      _ => return Err(InvalidResponse)
+    }
     if id.length() > limits.max_identity_bytes ||
       @utf8.encode(id).length() > limits.max_identity_bytes {
       return Err(BudgetExceeded)
