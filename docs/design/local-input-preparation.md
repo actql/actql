@@ -2279,7 +2279,7 @@ receipt is reset or regranted. The Selecting fence prevents reentrant adoption
 or retirement. No external callback occurs between the admitted grow and these
 synchronous constructors, so per-header, per-type, per-value and reconciliation
 current checks are unnecessary. The old fine-grained declaration controller and
-its public exports are removed; effective supplied-value binding is separate.
+its public exports are removed.
 
 The same existing declaration reader preserves typed first refusals and finite
 node/depth/text limits. Source construction consumes that completed original
@@ -2289,6 +2289,16 @@ Request aliases clear and the same capacity continues to Pure or Effect.
 Clearing immutable aliases neither settles capacity, refunds work nor reports
 physical cleanup. Independently supplied prepared Sources retain their existing
 full correspondence and admission boundaries.
+
+Effective supplied-value binding remains owned by the original Parameter reader
+and topology-selected `LocalProgramBindingInput`. The Source, supplied cursor
+and limits belong to that same immutable input; final assembly consumes its
+completed original bindings. The resource layer has no separate
+`ClientParameterBindingPreparation` controller or per-value binding resource
+API. The Request/checker reservation and original semantic work phase retain
+the live binding result through the normal successor. Removing an unconsumed
+controller neither changes the binding rules nor acknowledges physical cleanup;
+the actual Host supplier still owns backing and retirement.
 
 ### Effect inventory on the same parsed input
 
