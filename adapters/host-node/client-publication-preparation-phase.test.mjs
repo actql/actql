@@ -55,13 +55,85 @@ test('publication invocation issues and binds through one Core original engine, 
  const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared);
  assert.equal(issued.invocation,invocation);assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
  assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Foreign Client compiled Run/);
- compiled.kind='tasks';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
+ compiled.kind='infer';assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},limits,owner,prepared),/Invalid original publication invocation profile/);assert.equal(calls.length,1);
 });
 
 test('funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call',()=>{
  const source=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
  const calls=[];function walk(n){if(!n||typeof n!=='object')return;if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='issueCheckedClientCompiledInvocation')calls.push(n);for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(fn);assert.equal(calls.length,1);assert.deepEqual(calls[0].arguments.slice(4).map(x=>x.name),['publicationPreparation','preparedProgram']);
  assert.equal(source.includes('bindPreparedPublicationCompiledOriginal'),false);
+});
+
+test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{
+ const prepared={},owner={},compiled={kind:'tasks'},definition={},observation={},invocation={},original={};
+ let issues=0;
+ const acquired={compiled,runDefinition:definition,admission:{},compiledPlan:{identity:'compiled'},
+   preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'},createdAt:'created'};
+ const control={issueCheckedClientCompiledInvocation(actual,run,policy,limits,publication,body){
+   assert.equal(actual,compiled);assert.equal(run,definition);assert.equal(policy.dataPolicyCid,'policy');
+   assert.equal(publication,owner);assert.equal(body,prepared);assert.equal(issues++,0);
+   return {observation,invocation};}};
+ const invoke=get('./local-values-plan.mjs','sourceFreeTaskPlan',{
+   acquiredTaskRunAdmission:options=>{assert.equal(options.preparedProgram,prepared);return acquired;},
+   policyCid:()=> 'policy',limits:{},
+   localPublicationPlan:input=>{assert.equal(input.invocation,invocation);assert.equal(input.observation,observation);return {};},
+   checkedLocalOutputLimits:()=>({}),valuesAdmissions:new WeakMap(),originalPlans:new WeakMap(),
+   sourceFreePlanOriginal:actual=>{assert.equal(actual,acquired);return original;}});
+ invoke({moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},
+   control,preparedProgram:prepared,publicationPreparation:owner});
+ assert.equal(issues,1);
+});
+
+test('funded source-free Tasks invocation uses the same Core owner without a legacy issuer',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssuePublicationInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssueCompiledSourceFreeTaskInvocation(){assert.fail('legacy issuer cannot bind the funded owner');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17},owner,prepared);
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[owner,prepared,compiledOriginal,definitionOriginal,'policy',11,13,17]]);
+});
+
+test('funded invocation refuses Source evidence and every non Values Tasks profile before Core',()=>{
+ const owner={},prepared={},compiled={kind:'tasks'},definition={};let calls=0;
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,{}]]),token:x=>x,captureContractLimits:x=>x,
+   moon:{clientProgramIssuePublicationInvocation(){calls++;assert.fail('invalid profile reached Core');}}},true);
+ for(const kind of ['values','tasks']){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{source:{},dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ for(const kind of ['infer','serialization','effects',undefined]){
+   compiled.kind=kind;
+   assert.throws(()=>invoke(compiled,definition,{dataPolicyCid:'policy'},{},owner,prepared),
+     /Invalid original publication invocation profile/);
+ }
+ assert.equal(calls,0);
+ assert.throws(()=>invoke({},definition,{dataPolicyCid:'policy'},{},owner,prepared),
+   /Foreign Client compiled Run/);
+});
+
+test('unfunded source-free Tasks invocation retains its original legacy issuer',()=>{
+ const compiled={kind:'tasks'},compiledOriginal={},definition={},definitionOriginal={},
+   observation={},invocation={},calls=[];
+ const invoke=get('../host-common/runtime-core.mjs','issueCheckedClientCompiledInvocation',{
+   compiledRunTokens:new WeakMap([[compiled,compiledOriginal]]),
+   token:actual=>{assert.equal(actual,definition);return definitionOriginal;},
+   captureContractLimits:x=>x,compiledRunResult:x=>x,inspectEvidence:x=>x,inspect:x=>x,
+   runtimeField:(x,index)=>x[`_${index}`],moon:{
+     clientProgramIssueCompiledSourceFreeTaskInvocation(...args){calls.push(args);return {_0:observation,_1:invocation};},
+     clientProgramIssuePublicationInvocation(){assert.fail('no admitted publication owner was supplied');}}},true);
+ const issued=invoke(compiled,definition,{dataPolicyCid:'policy'},
+   {maxWireBytes:11,maxNodes:13,maxDepth:17});
+ assert.equal(issued.invocation,invocation);
+ assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
 function captureFinisher(context,name='finishProgramCapture') {
