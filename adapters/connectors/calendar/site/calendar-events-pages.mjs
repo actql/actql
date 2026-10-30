@@ -20,17 +20,20 @@ export class CalendarEventsReadFailure extends Error{
 }
 
 // Adapter for the existing managed reader's original requestWire input. The
-// selected Profile must arrive from its original checking/installation owner;
-// this port neither admits profile JSON nor recovers a RowAcquisition from wire.
-export function prepareCalendarEventsRequestPages({moon,requestWire,profile,names,limits},applySynchronousProjection){
-  if(typeof requestWire!=='string'||!requestWire.isWellFormed()||profile===undefined||profile===null||
+// selected environment must arrive from its original checking/installation
+// owner. Its Profile and all opaque query/page operations stay in that SAME
+// Common runtime. This port neither admits JSON nor transports a foreign Map.
+export function prepareCalendarEventsRequestPages({moon,requestWire,environment,names,limits},applySynchronousProjection){
+  if(typeof requestWire!=='string'||!requestWire.isWellFormed()||environment===undefined||environment===null||
       !limits||typeof limits!=='object'||typeof applySynchronousProjection!=='function')fail('InvalidCalendarEventsRead');
   const bound=Object.freeze({...limits});
   if(!positiveLimits.every(name=>positive(bound[name]))||bound.perPage>2500||
       !count(bound.maxAttendees)||!count(bound.maxResolutionWork))fail('InvalidCalendarEventsRead');
   if(Buffer.byteLength(requestWire)>bound.maxQueryBytes)fail('CalendarEventsRequestLimit');
   const prepare=moon?.calendarEventsQueryFromRequestWire;
-  if(typeof prepare!=='function')fail('InvalidCalendarEventsRead');
+  const select=moon?.calendarEventsProfileFromEnvironment;
+  if(typeof prepare!=='function'||typeof select!=='function')fail('InvalidCalendarEventsRead');
+  const profile=checked(applySynchronousProjection(select,moon,[environment]));
   const query=checked(applySynchronousProjection(prepare,moon,[requestWire,profile,
     bound.maxQueryBytes,bound.maxNodes,bound.maxDepth,bound.maxRows,
     bound.maxIdentityBytes,bound.maxCursorBytes,bound.maxAttendees,

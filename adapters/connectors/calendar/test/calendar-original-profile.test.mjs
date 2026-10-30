@@ -9,14 +9,12 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {prepareCalendarEventsRequestPages} from '../site/calendar-events-pages.mjs';
 
 // Normal CI's existing preparation builds both root modules. A bounded local
-// component may explicitly select a retained immutable Common and its new
-// matching Calendar provider, with that mixed-artifact scope recorded outside
-// this test. It must not be called current-main or normal package acceptance.
+// component may explicitly select one new matching Common module. The
+// environment issuer and ALL Profile/query/page methods must be its SAME
+// namespace; a separately compiled provider cannot consume its retained Map.
 const commonUrl=process.env.ACTQL_TEST_COMMON_MODULE??
   new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href;
-const calendarUrl=process.env.ACTQL_TEST_CALENDAR_MODULE??
-  new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js',import.meta.url).href;
-const common=await import(commonUrl),calendar=await import(calendarUrl);
+const common=await import(commonUrl),calendar=common;
 const table='{"conversion_law":"actql-calendar-boundaries/0.1","coverage_end_ms":253402300800000,"coverage_start_ms":-62135596800000,"tzdb_version":"test-fixture","version":"actql-tzdb-table/0.1","zones":{"UTC":{"initial_offset_seconds":0,"transitions":[]}}}';
 const tableCid='sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca';
 assert.equal('sha256:'+createHash('sha256').update(table).digest('hex'),tableCid);
@@ -59,7 +57,7 @@ test('actual Calendar provider retains the Common environment original Profile t
     [{start:'2026-03-08T00:00:00.000Z',end:'2026-03-09T00:00:00.000Z',all_day:true}]);
   // This is the actual new request-entry provider connection, still using an
   // explicit response DATA port and not a signed physical read or RowRun.
-  const hooks=prepareCalendarEventsRequestPages({moon:calendar,profile,requestWire,names:['id'],limits},
+  const hooks=prepareCalendarEventsRequestPages({moon:calendar,environment:selected,requestWire,names:['id'],limits},
     (method,receiver,args)=>Reflect.apply(method,receiver,args));
   const frame={pageIndex:0,rowCount:0};
   assert.equal(hooks.fetchPage(frame).query.find(([name])=>name==='timeZone')[1],'UTC');
