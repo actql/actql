@@ -65,9 +65,7 @@ pub fn prepare_calendar_free_busy_query(
   if calendar_ids.is_empty() || calendar_ids.length() > limits.max_calendars {
     return Err(InvalidQuery)
   }
-  guard @admitted.timestamp_epoch_milliseconds(start) is Some(minimum) &&
-    @admitted.timestamp_epoch_milliseconds(end) is Some(maximum) &&
-    minimum < maximum else {
+  guard @admitted.compare_timestamp_text(start, end) is Some(order) && order < 0 else {
     return Err(InvalidQuery)
   }
   let ids : Array[String] = []
