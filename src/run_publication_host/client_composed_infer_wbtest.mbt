@@ -130,6 +130,14 @@ test "Model original graph parts keep tighter codec bounds and refuse foreign or
   assert_true(
     client_infer_graph_original_parts(changed, prepared, b, n, d) is None,
   )
+  let equal_copy = {
+    ..component,
+    graph: { ..component.graph, wire: component.graph.wire, },
+  }
+  assert_true(!physical_equal(equal_copy.graph, component.graph))
+  assert_true(
+    client_infer_graph_original_parts(equal_copy, prepared, b, n, d) is None,
+  )
   assert_true(
     issue_prepared_client_multi_infer_task_plan_graph(
       prepared,

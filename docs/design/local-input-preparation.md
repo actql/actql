@@ -4165,8 +4165,10 @@ The original Infer graph keeps the canonical component node, edge and root
 arrays created by its issuer, with the exact byte/node/depth usage of that same
 completed writer. The composed Task compiler borrows those private arrays;
 it does not parse the same component wire or copy the arrays again. A consumer
-with tighter codec bounds still checks the original complete usage, and a
-changed wire cannot reuse the old component facts. Saved material still follows
+with tighter codec bounds still checks the original complete usage. The same
+readonly Graph holder binds these facts by reference; a copied or changed
+Graph cannot reuse them, and no wire comparison/current callback is added.
+Saved material still follows
 its full original Program/contract reconstruction path.
 
 This changes representation lifetime: four references and three scalar words
