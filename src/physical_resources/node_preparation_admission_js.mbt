@@ -35,7 +35,12 @@ fn[I] prepare_node_preparation_original(
 ) -> NodePreparationAdmission[I] {
   {
     admission: Some(
-      prepare_node_managed_run_original(child, input, abort_unpublished),
+      prepare_node_managed_run_original(
+        child,
+        input,
+        abort_unpublished,
+        purpose=LocalPreparation,
+      ),
     ),
     transitioning: false,
   }

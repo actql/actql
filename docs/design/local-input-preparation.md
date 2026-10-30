@@ -3643,3 +3643,30 @@ before entry and justify every bound it supplies. It must also include its
 actual entry/checked-value, request/response overlap, writer, refusal and cleanup
 holdings. The returned logical constructor quantities neither reserve a Ledger
 nor establish physical backing, permission or a cleanup acknowledgment.
+
+
+### Effect Model Scope on the original Request
+
+The initial Local preparation retains its census on the original first
+reservation before input construction. Its sealed admitted envelope must
+contain the ordinary Local baseline and the actual selected domain supply;
+it need not equal that single baseline. Quantity bounds remain separately
+installed once after known input cleanup. No late limit expansion or scope
+selection follows from a numerical DATA match.
+
+`prepare_request_effect_model_read_scope` binds the selected Effect Plan's
+original compiled Run/definition/Model graph to that census before body
+completion. The caller retains and backs the complete selected Model,
+constructor, material and callback overlap first. Growth preserves the same
+working extents, consumed input attempts/work and original holder inventory.
+The returned Scope must remain with that same caller through any later
+refusal and physical cleanup.
+
+Completion requires the same retained Plan. Model adoption requires the same
+Scope, Ledger and original census and uses the existing two body holders and
+retirement. Ordinary entry still excludes Model; its unused unbound census
+metadata can retire without returning bytes or resetting consumption. A live
+Scope, outstanding borrower, pending child or failed cleanup independently
+keeps the original preparation reservation. No new Model resource, Root,
+compiler, permission, physical acknowledgment or Source read is issued by
+this ownership handoff.

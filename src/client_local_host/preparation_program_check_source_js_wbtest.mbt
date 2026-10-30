@@ -12,6 +12,7 @@ fn registration_parent_fixture(
     @publication_host.ClientProgramPreparationLimits,
     @publication_host.ClientEffectComputationLimits,
   )? = None,
+  initial_limits? : @resources.LedgerLimits? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -20,7 +21,7 @@ fn registration_parent_fixture(
 ) raise {
   let input = [1]
   let parent = begin_request_preparation(
-    request_parent_fixture(input, current~),
+    request_parent_fixture(input, current~, initial_limits~),
     input,
     client_local_resource_policy(),
   ).unwrap()
