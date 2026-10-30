@@ -8926,7 +8926,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "bfd1043e6fb5192a2bde49d797d97062b381c8b2e055f66e9bc782a99df5ef99",
+      "sha256": "afec6045b6a6d61534893ce96689576d912633d3ffe7203834db13a7f915f07d",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11161,6 +11161,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
                 "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
               }
             ]
           }
@@ -12199,6 +12203,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
                 "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
               }
             ]
           }
