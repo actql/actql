@@ -354,6 +354,10 @@ pub fn installed_effect_operation_extent_physical(ClientInstalledEffectOperation
 
 pub fn installed_effect_operation_extent_transfer(ClientInstalledEffectOperationExtent) -> Int64
 
+pub fn installed_effect_operation_response_backing_fits(ClientInstalledEffectOperationExtent, Int) -> Bool
+
+pub fn installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

@@ -1814,3 +1814,29 @@ failed children and all retained overlap must be composed and admitted on the
 same actual parent before construction. Quote construction also needs its
 original backing. A nonempty quantity does not select a Plan, provide a grant,
 acknowledge cleanup or enable an ordinary execution path.
+
+## Effect response buffer backing
+
+The observed binary HTTPS receiver retains its copied chunk prefix beside the
+concatenated body at successful end. A body bound B permits at most B nonempty
+one-byte chunk copies; the original current read is bounded by B+1, including
+the byte which causes refusal. Its constructor inventory co-counts those three
+byte families, the chunk Buffer headers and the shared Array growth inventory.
+It holds that whole envelope through original output retirement rather than
+inferring early release from a response Promise or copied body.
+
+Before borrowing or binding a physical occurrence, the shared Effect child
+checks the capacity of that same original selected extent against this buffer
+inventory. A declared attempt or sufficient transfer amount cannot replace
+retained/execution backing. Missing native support or an insufficient extent
+refuses before binding, grant consumption or a physical call. This check
+creates no new reservation: the existing original Plan and parent own the
+later borrow and its retirement.
+
+The buffer inventory is one necessary component, not the complete physical
+operation. Native quotation, the request, receiver/control frames, headers,
+secret/current/Journal material, provider parsing and saved response envelopes
+need their own backing and retained overlap before normal execution. Node's
+stream, Buffer-pool, TLS and runtime implementation storage is not measured by
+these logical quantities. No receiver check supplies authority or a cleanup
+acknowledgement, and no old compiled runtime gains the new native predicates.

@@ -42255,6 +42255,256 @@
           "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_response_buffer.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_operation_response_backing_fits",
+            "installed_effect_response_buffer_construction_capacity",
+            "installed_effect_response_buffer_representation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "checks the capacity of that same original selected extent against this buffer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "creates no new reservation: the existing original Plan and parent own the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "It holds that whole envelope through original output retirement rather than"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Before borrowing or binding a physical occurrence, the shared Effect child"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refuses before binding, grant consumption or a physical call. This check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "acknowledgement, and no old compiled runtime gains the new native predicates."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "secret/current/Journal material, provider parsing and saved response envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The buffer inventory is one necessary component, not the complete physical"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"Effect response buffer backing checks exact original extent before an occurrence can use it\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response backing shortage refuses the original physical extent before borrow or binding'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "eb823daef1db58ca68bd4a5179e45f1ae4909e6dae08dc1757849a4589c69068",
+      "operations": [
+        {
+          "name": "installed_effect_operation_response_backing_fits",
+          "declaration": "installed_effect_operation_response_backing_fits ( original : ClientInstalledEffectOperationExtent , max_response_bytes : Int , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_response_buffer_construction_capacity",
+          "declaration": "installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_effect_response_buffer_representation",
+          "declaration": "installed_effect_response_buffer_representation ( max_response_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_operation_borrow",
+            "client_program_installed_effect_operation_charge",
+            "client_program_installed_effect_operation_controls_begin",
+            "client_program_installed_effect_operation_extent_from_capacity",
+            "client_program_installed_effect_operation_extent_physical",
+            "client_program_installed_effect_operation_extent_transfer",
+            "client_program_installed_effect_operation_response_backing_fits",
+            "client_program_installed_effect_operation_retire",
+            "client_program_installed_effect_operation_start",
+            "client_program_installed_effect_operation_transfer_uncertain",
+            "client_program_installed_effect_response_buffer_construction_capacity",
+            "client_program_installed_json_effect_request_construction_capacity",
+            "client_program_installed_json_effect_response_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "checks the capacity of that same original selected extent against this buffer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "creates no new reservation: the existing original Plan and parent own the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "It holds that whole envelope through original output retirement rather than"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Before borrowing or binding a physical occurrence, the shared Effect child"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refuses before binding, grant consumption or a physical call. This check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "acknowledgement, and no old compiled runtime gains the new native predicates."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "secret/current/Journal material, provider parsing and saved response envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The buffer inventory is one necessary component, not the complete physical"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"Effect response buffer backing checks exact original extent before an occurrence can use it\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response backing shortage refuses the original physical extent before borrow or binding'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "4771724043a3b3340295441611aa1b066752108196b07314f13147c0763c6378",
+      "operations": [
+        {
+          "name": "client_program_installed_effect_operation_borrow",
+          "declaration": "client_program_installed_effect_operation_borrow ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationBorrow , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_charge",
+          "declaration": "client_program_installed_effect_operation_charge ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_controls_begin",
+          "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_from_capacity",
+          "declaration": "client_program_installed_effect_operation_extent_from_capacity ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_physical",
+          "declaration": "client_program_installed_effect_operation_extent_physical ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Bool"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_transfer",
+          "declaration": "client_program_installed_effect_operation_extent_transfer ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Int64"
+        },
+        {
+          "name": "client_program_installed_effect_operation_response_backing_fits",
+          "declaration": "client_program_installed_effect_operation_response_backing_fits ( original : @ client_local_host . ClientInstalledEffectOperationExtent , max_response_bytes : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_installed_effect_operation_retire",
+          "declaration": "client_program_installed_effect_operation_retire ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_start",
+          "declaration": "client_program_installed_effect_operation_start ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_transfer_uncertain",
+          "declaration": "client_program_installed_effect_operation_transfer_uncertain ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_response_buffer_construction_capacity",
+          "declaration": "client_program_installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_effect_request_construction_capacity",
+          "declaration": "client_program_installed_json_effect_request_construction_capacity ( provider : @ execution . ExecutionCapacity , max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_effect_response_construction_capacity",
+          "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ]
     }
   ]
 }

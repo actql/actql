@@ -1538,11 +1538,15 @@ pub fn client_program_installed_effect_operation_extent_prepare(String, Int64, I
 
 pub fn client_program_installed_effect_operation_extent_transfer(@client_local_host.ClientInstalledEffectOperationExtent) -> Int64
 
+pub fn client_program_installed_effect_operation_response_backing_fits(@client_local_host.ClientInstalledEffectOperationExtent, Int) -> Bool
+
 pub fn client_program_installed_effect_operation_retire(@client_local_host.ClientInstalledEffectOperationBorrow, Bool) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_start(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_transfer_uncertain(@client_local_host.ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
