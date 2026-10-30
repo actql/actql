@@ -675,6 +675,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure} = {}) {
     installedSourceReadBindings: () => [reference], checked, authorityScopeCid: 'authority',
     runtimeIsOkRequired: value => value?.$tag === 1, runtimeField: (value, index) => value?.[`_${index}`],
     runtimeOptionalField: (value, index) => value?.[`_${index}`],
+    runtimeTag: value => value?.$tag,
     clientOperationError: (code, cause) => Object.assign(new Error(code, {cause}), {code}),
     diagnostic() {}, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
