@@ -37,12 +37,14 @@ pub fn record_create_mapped_form_recheck_construction_inventory(
   // Results4H4R4W; non-retained form_text Some <=2F+3N+1;
   // scalar-reader Results <=8F+3N+1; Presence6H6R6W; names Ok1H1R1W;
   // pending tuple1H2R, popped Some1H1R1W and two length Options2H4W.
+  // Full correspondence additionally calls form_field_named twice per field:
+  // two original-metadata Some wrappers2H2R2W plus match tuple1H2R.
   // Initial pending/root and final Catalog/Ok/Form+Err/InvalidField+Err
   // controls add12H14R12W. Input names/text and original paths are borrowed.
   guard @shape.collection_construction_extent({
-      records: 12L + 34L * f + 10L * n,
-      record_references: 14L + 42L * f + 12L * n,
-      record_words: 12L + 34L * f + 8L * n,
+      records: 12L + 37L * f + 10L * n,
+      record_references: 14L + 46L * f + 12L * n,
+      record_words: 12L + 36L * f + 8L * n,
       // fields/pending/initial-prefix; each field's path, options names and
       // lookup target arrays. Arrays of empty lookup targets still count.
       reference_arrays: 3L + 3L * f,

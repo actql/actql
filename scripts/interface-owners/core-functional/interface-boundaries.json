@@ -40704,7 +40704,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_protocol_construction.mbt",
-      "sha256": "7039dbab20e6ddb6cc389956205f848625d50cb6465dd02a1447168f179dbe13",
+      "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
