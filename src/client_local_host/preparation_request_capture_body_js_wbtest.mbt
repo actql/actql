@@ -713,6 +713,36 @@ test "captured Source publication retains original evidence Plan and one invocat
       fail("fixture SourceEvidence.Evidence")
     Err(_) => fail("fixture other Row evidence issue")
   }
+  // A retained value does not waive a later tighter per-value envelope.
+  // This exact source is larger than the resulting Observation Set.
+  let evidence_wire = @publication.run_evidence_value_json(evidence)
+  let tight_bytes = @utf8.encode(evidence_wire).length() - 1
+  assert_true(
+    @publication.admit_run_evidence_value(
+      "source_evidence", evidence_wire, tight_bytes, 8192, 64,
+    )
+    is Err(_),
+  )
+  assert_true(
+    @publication_host.issue_client_compiled_captured_invocation(
+      compiled,
+      definition,
+      [source],
+      [identity],
+      [requirement],
+      [evidence],
+      [logical],
+      None,
+      authority,
+      policy,
+      "2026-10-30T00:00:00.000Z",
+      "2026-10-30T00:00:01.000Z",
+      tight_bytes,
+      8192,
+      64,
+    )
+    is Err(_),
+  )
   let (observation, invocation) = issue_program_captured_publication_invocation(
     run,
     prepared,

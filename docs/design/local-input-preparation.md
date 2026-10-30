@@ -3476,3 +3476,17 @@ admitted once at its explicit boundary and retained for both invocation and
 publication; an already retained logical input is never serialized for a
 second admission. Keyed publication reads its existing observation and logical
 identity directly, while stored/restored wire remains an external boundary.
+
+## Retained evidence keeps exact bounded-writer facts
+
+An admitted Run evidence value retains the UTF-8 bytes, value nodes and peak
+depth observed by the same writer that produced its complete canonical wire.
+Both issuance and external admission retain these facts; identities and wire
+bodies do not change. A later tighter envelope compares that exact original
+usage, without reparsing, rehashing or emitting the value again.
+
+The optional usage shape follows the existing publication-contract holder.
+An unmeasured private fixture is not a bounds witness: missing facts refuse.
+These immutable facts grant no Source, Run, currentness or resource authority.
+Their retained tuple/reference extent remains part of the actual owner
+representation and must be included by the consuming funding domain.
