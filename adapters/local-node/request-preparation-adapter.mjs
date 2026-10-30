@@ -55,6 +55,12 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestSourceComputation')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestPolicySubjects')==='function' &&
+    typeof own(moon,'clientProgramReadRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramBindRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestPolicySubjects')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
     typeof own(moon,'clientProgramRequestProgramModuleIssueCode')==='function' &&
     typeof own(moon,'clientProgramBorrowRequestProgramPlanInput')==='function' &&
@@ -189,5 +195,6 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
   state.capturePlan=state.acquisitionCount=undefined;
+  state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;
 }

@@ -78,7 +78,9 @@ export async function captureStandardRestRead(client, {publicSdk, program,
     const execution = outcome.value;
     const reference = structuredClone(execution.ref);
     await save(outputRoot, 'original-reference.json', reference);
-    await execution.wait();
+    const waited = await execution.wait();
+    await save(outputRoot, 'original-wait.json', waited);
+    assert.equal(waited.status, 'succeeded');
     const state = await execution.status();
     await save(outputRoot, 'original-state.json', state);
     assert.equal(state.status, 'succeeded');

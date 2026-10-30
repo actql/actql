@@ -560,9 +560,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // Managed Compute publication cannot publish an acquisition Result.
       // Inspect the common checked graph before reserving physical custody or
       // capturing rows. Content and Infer have their own publication owners.
-      if (!inferring && !serializing && !generatingContent &&
-          moon.clientProgramRequiresAcquisitionResultPublication(preparedProgram)) {
-        throw new TypeError('InstalledAcquisitionResultPublicationUnsupported');
+      if (!inferring && !serializing && !generatingContent) {
+        if (held.managedRun !== undefined &&
+            typeof moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication !== 'function') {
+          throw new TypeError('InstalledManagedSourcePlanUnavailable');
+        }
+        const requiresAcquisitionResult = held.managedRun === undefined
+          ? moon.clientProgramRequiresAcquisitionResultPublication(preparedProgram)
+          : checked(moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication(
+            held.managedRun, preparedProgram, requested));
+        if (requiresAcquisitionResult) throw new TypeError('InstalledAcquisitionResultPublicationUnsupported');
       }
       // A checked model barrier is not a Values task. The installed Model
       // connection must consume this exact plan and transfer physical custody
@@ -745,16 +752,31 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const capacity = installedSource.ledgerCapacity(held.preparedSource);
         if (capacity.managedRun !== undefined) {
-          if (typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+          if (capacity.managedRun !== held.managedRun) {
             throw new Error('InstalledSingleSourceOriginalRunUnavailable');
           }
-          // One Source uses the same operational parent as the checked
-          // capture prefix. Equal scalar capacity is not a replacement Run.
-          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
-            capacity.managedRun, preparedProgram, requested,
-            [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
-            registry, values, fragment, ordered));
+          if (capacity.wholeInput === true) {
+            if (typeof moon.clientProgramInstalledManagedWholeSourceLedger !== 'function') {
+              throw new Error('InstalledSingleSourceOriginalRunUnavailable');
+            }
+            ledger = checked(moon.clientProgramInstalledManagedWholeSourceLedger(
+              capacity.managedRun, preparedProgram, requested,
+              capacity.capacity, capacity.transferBytes, capacity.executionBytes));
+          } else {
+            if (typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+              throw new Error('InstalledSingleSourceOriginalRunUnavailable');
+            }
+            // One Source uses the same operational parent as the checked
+            // capture prefix. Equal scalar capacity is not a replacement Run.
+            ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+              capacity.managedRun, preparedProgram, requested,
+              [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+              registry, values, fragment, ordered));
+          }
         } else {
+          if (capacity.wholeInput === true || held.managedRun !== undefined) {
+            throw new Error('InstalledSingleSourceOriginalRunUnavailable');
+          }
           ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
             capacity.capacity, capacity.transferBytes, capacity.executionBytes,
             registry, values, fragment, ordered);
@@ -909,11 +931,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
-        const open = retainedRelationOutput
-          ? moon.clientProgramOpenMultiCapturedLocalRetainedHost
-          : moon.clientProgramOpenMultiCapturedLocalHost;
-        setup = open(preparedProgram,
-          captures.map(value => value.capture.source()), ledger, registry, values, fragment, ordered);
+        if (held.managedRun !== undefined) {
+          retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested, preparationLease !== undefined);
+          if (typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
+            throw new Error('InstalledManagedComputeHostUnavailable');
+          }
+          setup = checked(moon.clientProgramOpenInstalledManagedCaptureHost(
+            held.managedRun, preparedProgram, requested, captures.map(value => value.capture.source())));
+        } else {
+          const open = retainedRelationOutput
+            ? moon.clientProgramOpenMultiCapturedLocalRetainedHost
+            : moon.clientProgramOpenMultiCapturedLocalHost;
+          setup = open(preparedProgram,
+            captures.map(value => value.capture.source()), ledger, registry, values, fragment, ordered);
+        }
         if (setup === undefined) throw new Error('InstalledMultiSourceHostUnavailable');
         entry.pendingSetup = setup;
         const dag = moon.strategyHostRun(setup);
@@ -956,8 +987,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           // close its original physical input, then reclaim DAG outputs.
           entry.borrowedSources = true;
           const capture = entry.sourceCapture.capture;
-          setup = moon.clientProgramOpenSingleCapturedLocalHost(preparedProgram,
-            capture.source(), ledger, registry, values, fragment, ordered, retainedRelationOutput);
+          if (held.managedRun !== undefined) {
+            retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested, preparationLease !== undefined);
+            if (typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
+              throw new Error('InstalledManagedComputeHostUnavailable');
+            }
+            setup = checked(moon.clientProgramOpenInstalledManagedCaptureHost(
+              held.managedRun, preparedProgram, requested, [capture.source()]));
+          } else {
+            setup = moon.clientProgramOpenSingleCapturedLocalHost(preparedProgram,
+              capture.source(), ledger, registry, values, fragment, ordered, retainedRelationOutput);
+          }
           if (setup === undefined) throw new Error('InstalledSingleSourceHostUnavailable');
           // Retain before binding the borrow: a failed binding still leaves
           // this same Compute owner in child-first cleanup custody.

@@ -5,6 +5,12 @@
     "file": "f-r1-host-primary-reference-declarations.json",
     "sha256": "710c5d09b89e724e9eb953d73b9a70504df75532c14f2c05b7b56ee0948a4d76"
   },
+  "counts": {
+    "modules": 16,
+    "operations": 825,
+    "exports": 99,
+    "explicitContractGroups": 60
+  },
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
@@ -1504,7 +1510,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "8ae3760ea8b6a5311c206e8b32dd246e30d19001e69ddab3d066691f472ad0b2",
+      "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1872,7 +1878,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#11",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -1882,9 +1890,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#13",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -1910,6 +1916,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#18",
           "parameters": [
             "task"
           ],
@@ -2847,6 +2860,74 @@
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/start#18"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }
@@ -5004,7 +5085,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "ffc6f121c9bd61c5543e4ea3e5cead0cd05778245efcde4e6faad008d731cee2",
+      "sha256": "94433c83d7e186bfb6b3c42b63fa214436b397a630141824d96d13cc02330de2",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5091,6 +5172,11 @@
           "async": true
         },
         {
+          "name": "connectEmbeddedLocal/assertSourceInitializationSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/client/client",
           "parameters": [],
           "async": false
@@ -5102,6 +5188,11 @@
         },
         {
           "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/connectEmbeddedLocal#3",
           "parameters": [],
           "async": false
         },
@@ -5195,6 +5286,11 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
           "async": false
@@ -5217,7 +5313,9 @@
           "name": "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
           "parameters": [
             "request",
-            "environment"
+            "environment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -5647,6 +5745,21 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
+          "parameters": [
+            "runtime",
+            "root",
+            "principalId",
+            "hostCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
           "parameters": [],
           "async": false
@@ -5683,7 +5796,8 @@
             "installation",
             "project",
             "moon",
-            "projectSources"
+            "projectSources",
+            "configurationReader"
           ],
           "async": true
         },
@@ -6770,7 +6884,9 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
-            "selectedEnvironment"
+            "selectedEnvironment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -7741,21 +7857,28 @@
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#2",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#3",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
           "parameters": [
             "value"
           ],
@@ -7959,6 +8082,13 @@
           "async": false
         },
         {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "readSourceManagedEffectRunRequirements",
           "parameters": [
             "originals",
@@ -8091,6 +8221,118 @@
       "role": "physical-io",
       "owner": "Existing installed Local Host assembly around the original request journal, authorization gate, publication Store and physical dispatch/cleanup owners",
       "responsibilityFacet": "primary",
+      "imports": [
+        "../../_build/native/directory-darwin-arm64.node",
+        "../../_build/native/directory-darwin-x64.node",
+        "../../packages/client-wire/index.mjs",
+        "../../packages/local-node/_build/native/directory-darwin-arm64.node",
+        "../../packages/local-node/_build/native/directory-darwin-x64.node",
+        "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../connectors/local/host/installed-project-file-effects.mjs",
+        "../connectors/local/host/installed-project-files.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/observation.mjs",
+        "../host-common/run-state-access.mjs",
+        "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/installed-mock-row-effect.mjs",
+        "../local-node/installed-project-mock-answers.mjs",
+        "../local-node/installed-project-mock.mjs",
+        "../local-node/request-preparation-adapter.mjs",
+        "../local-node/retained-store.mjs",
+        "../store-local/files.mjs",
+        "../store-local/publication-store.mjs",
+        "./acquired-effect-computation.mjs",
+        "./acquired-effect-continuation.mjs",
+        "./acquired-effect-sources.mjs",
+        "./captured-duckdb-source.mjs",
+        "./client-check.mjs",
+        "./client-checkpoints.mjs",
+        "./client-dispatch-owner.mjs",
+        "./client-effect-observations.mjs",
+        "./client-effect-run.mjs",
+        "./client-http.mjs",
+        "./client-interactive-plan.mjs",
+        "./client-owner-cursor.mjs",
+        "./client-owner-observations.mjs",
+        "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
+        "./client-request-lookup.mjs",
+        "./client-run-attach.mjs",
+        "./client-run-inspect.mjs",
+        "./client-run-plan.mjs",
+        "./client-run-start.mjs",
+        "./client-submission.mjs",
+        "./effect-run-recovery.mjs",
+        "./effect-target-read-continuation.mjs",
+        "./effect-target-read-inventory.mjs",
+        "./embedded-local-lifecycle.mjs",
+        "./entry.mjs",
+        "./host-root-format.mjs",
+        "./in-process-client.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-trusted-runtime-view.mjs",
+        "./initial-control-host-input.mjs",
+        "./installed-calendar.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-connectors.mjs",
+        "./installed-content-run.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-effect-managed-run.mjs",
+        "./installed-effect-site.mjs",
+        "./installed-effect.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-policy.mjs",
+        "./installed-host-services.mjs",
+        "./installed-infer-run.mjs",
+        "./installed-managed-source.mjs",
+        "./installed-model-continuation.mjs",
+        "./installed-model-originals.mjs",
+        "./installed-model.mjs",
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "./installed-project-profile.mjs",
+        "./installed-row-effect.mjs",
+        "./installed-source.mjs",
+        "./installed-update-originals.mjs",
+        "./local-account-config.mjs",
+        "./local-checkpoint-answer.mjs",
+        "./local-continuation-evidence.mjs",
+        "./local-preparation-registry.mjs",
+        "./local-result-authorization.mjs",
+        "./local-values-plan.mjs",
+        "./node-host-journal-installation.mjs",
+        "./node-host-result-installation.mjs",
+        "./node-initial-control-installation.mjs",
+        "./node-source-managed-installation.mjs",
+        "./ordinary-host-journal.mjs",
+        "./ordinary-local-account.mjs",
+        "./ordinary-mock-account.mjs",
+        "./ordinary-source-binding.mjs",
+        "./result-access.mjs",
+        "./source-alias-publication.mjs",
+        "./source-managed-original-input.mjs",
+        "./source-profile-json.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:module",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "contracts": [
         {
           "operations": [
@@ -8381,10 +8623,6 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              },
-              {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
               },
@@ -8465,10 +8703,6 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -8617,10 +8851,6 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -8915,10 +9145,6 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              },
-              {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
@@ -8979,10 +9205,6 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -9852,84 +10074,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [
-            "readInitialControlHostInput",
-            "readSourceManagedOriginalInput",
-            "snapshotInitialControlHostInput"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "options = readInitialControlInstallationInput(control, originals);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "connectInitialControlHostPreparation"
           ],
@@ -10540,101 +10684,14 @@
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
-          ],
-          "exports": [
-            "readLocalMockModelRunRequirements"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
-          "exports": [],
+          "exports": [
+            "readLocalMockModelRunRequirements"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -12390,16 +12447,13 @@
           }
         },
         {
-          "exports": [],
           "operations": [
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
-            "prepareManagedComputeCapturePlan/plan/plan",
-            "prepareManagedComputeCapturePlan/plan/plan#2",
-            "prepareManagedComputeCapturePlan/plan/plan#3",
             "retainedManagedCaptureInventory"
           ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -12505,6 +12559,232 @@
         },
         {
           "operations": [
+            "connectEmbeddedLocal/assertSourceInitializationSelection",
+            "connectEmbeddedLocal/connectEmbeddedLocal#3",
+            "connectEmbeddedLocal/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+            "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
+            "connectEmbeddedLocal/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "readInitialControlHostInput",
+            "readSourceManagedOriginalInput",
+            "snapshotInitialControlHostInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
             "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/init:installProjectSources"
           ],
@@ -12572,119 +12852,7 @@
             ]
           }
         }
-      ],
-      "imports": [
-        "../../_build/native/directory-darwin-arm64.node",
-        "../../_build/native/directory-darwin-x64.node",
-        "../../packages/client-wire/index.mjs",
-        "../../packages/local-node/_build/native/directory-darwin-arm64.node",
-        "../../packages/local-node/_build/native/directory-darwin-x64.node",
-        "../../packages/sdk/host-port.mjs",
-        "../../packages/sdk/internal/private-source-preparation.mjs",
-        "../connectors/local/host/installed-project-file-effects.mjs",
-        "../connectors/local/host/installed-project-files.mjs",
-        "../host-common/authorization-gate.mjs",
-        "../host-common/compiler-binding.generated.mjs",
-        "../host-common/completed-run-publication.mjs",
-        "../host-common/diagnostic-observer.mjs",
-        "../host-common/effect-preparation-result.mjs",
-        "../host-common/observation.mjs",
-        "../host-common/run-state-access.mjs",
-        "../host-common/run-state-observation.mjs",
-        "../host-common/runtime-core.mjs",
-        "../host-common/runtime-result.mjs",
-        "../local-node/installed-mock-row-effect.mjs",
-        "../local-node/installed-project-mock-answers.mjs",
-        "../local-node/installed-project-mock.mjs",
-        "../local-node/request-preparation-adapter.mjs",
-        "../local-node/retained-store.mjs",
-        "../store-local/files.mjs",
-        "../store-local/publication-store.mjs",
-        "./acquired-effect-computation.mjs",
-        "./acquired-effect-continuation.mjs",
-        "./acquired-effect-sources.mjs",
-        "./captured-duckdb-source.mjs",
-        "./client-check.mjs",
-        "./client-checkpoints.mjs",
-        "./client-dispatch-owner.mjs",
-        "./client-effect-observations.mjs",
-        "./client-effect-run.mjs",
-        "./client-http.mjs",
-        "./client-interactive-plan.mjs",
-        "./client-owner-cursor.mjs",
-        "./client-owner-observations.mjs",
-        "./client-program-preparation.mjs",
-        "./client-request-journal.mjs",
-        "./client-request-lookup.mjs",
-        "./client-run-attach.mjs",
-        "./client-run-inspect.mjs",
-        "./client-run-plan.mjs",
-        "./client-run-start.mjs",
-        "./client-submission.mjs",
-        "./effect-run-recovery.mjs",
-        "./effect-target-read-continuation.mjs",
-        "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mjs",
-        "./entry.mjs",
-        "./host-root-format.mjs",
-        "./in-process-client.mjs",
-        "./infer-evaluation-evidence.mjs",
-        "./infer-trusted-runtime-view.mjs",
-        "./initial-control-host-input.mjs",
-        "./installed-calendar.mjs",
-        "./installed-check-environment.mjs",
-        "./installed-connectors.mjs",
-        "./installed-content-run.mjs",
-        "./installed-effect-inventory.mjs",
-        "./installed-effect-managed-run.mjs",
-        "./installed-effect-site.mjs",
-        "./installed-effect.mjs",
-        "./installed-host-cleanup.mjs",
-        "./installed-host-policy.mjs",
-        "./installed-host-services.mjs",
-        "./installed-infer-run.mjs",
-        "./installed-managed-source.mjs",
-        "./installed-model-continuation.mjs",
-        "./installed-model-originals.mjs",
-        "./installed-model.mjs",
-        "./installed-project-configuration.mjs",
-        "./installed-project-model-tasks.mjs",
-        "./installed-project-profile.mjs",
-        "./installed-row-effect.mjs",
-        "./installed-source.mjs",
-        "./installed-update-originals.mjs",
-        "./local-account-config.mjs",
-        "./local-checkpoint-answer.mjs",
-        "./local-continuation-evidence.mjs",
-        "./local-preparation-registry.mjs",
-        "./local-result-authorization.mjs",
-        "./local-values-plan.mjs",
-        "./node-host-journal-installation.mjs",
-        "./node-host-result-installation.mjs",
-        "./node-initial-control-installation.mjs",
-        "./node-source-managed-installation.mjs",
-        "./ordinary-host-journal.mjs",
-        "./ordinary-local-account.mjs",
-        "./ordinary-mock-account.mjs",
-        "./ordinary-source-binding.mjs",
-        "./result-access.mjs",
-        "./source-alias-publication.mjs",
-        "./source-managed-original-input.mjs",
-        "./source-profile-json.mjs",
-        "./update-target-original-shape.mjs",
-        "node:crypto",
-        "node:fs",
-        "node:fs/promises",
-        "node:module",
-        "node:os",
-        "node:path",
-        "node:url"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+      ]
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -15182,11 +15350,5 @@
       "compilerFields": [],
       "unresolvedSyntax": []
     }
-  ],
-  "counts": {
-    "modules": 16,
-    "operations": 825,
-    "exports": 99,
-    "explicitContractGroups": 60
-  }
+  ]
 }

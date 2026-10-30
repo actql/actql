@@ -62,6 +62,7 @@ import {
 } for "test"
 
 import {
+  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/capacity_law",
   "moonbitlang/core/debug",
   "actql/actql/bounded_execution" @bounded,

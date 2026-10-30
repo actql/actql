@@ -67,6 +67,7 @@ test "Source read consumer identity without an original child is unavailable" {
     declaration: None,
     requirement: None,
     acquisition: None,
+    whole_input: None,
     run: None,
     started: false,
   }

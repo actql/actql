@@ -249,6 +249,7 @@ test "Calendar RFC3339 conversion keeps exact precision explicit offsets and val
       ("2026-10-17t01:00:00.123000z", "2026-10-17T01:00:00.123Z"),
       ("2026-10-17T00:00:00.1+00:00", "2026-10-17T00:00:00.100Z"),
       ("2026-10-17T00:00:00.12Z", "2026-10-17T00:00:00.120Z"),
+      ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0001Z"),
       ("2024-03-01T00:30:00+01:00", "2024-02-29T23:30:00.000Z"),
       ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0001Z"),
       ("2026-10-17T09:00:00.000000001+09:00", "2026-10-17T00:00:00.000000001Z"),
@@ -316,4 +317,54 @@ test "Calendar free busy applies complete response cell and projection budgets i
     ),
   )
   assert_true(calendar_free_busy_schema_wire(1, 64, 8) is Err(BudgetExceeded))
+}
+
+///|
+test "Calendar free busy preserves canonical submillisecond Request bounds without a clock projection" {
+  for
+    (start, end) in [
+      ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0002Z"),
+      ("1969-12-31T23:59:59.999999999Z", "1970-01-01T00:00:00.000Z"),
+    ] {
+    let query = prepare_calendar_free_busy_query(
+      ["original@example.test"],
+      start,
+      end,
+      free_busy_limits(),
+    ).unwrap()
+    assert_eq(
+      calendar_free_busy_request_wire(query),
+      "{\"timeMin\":\"" +
+      start +
+      "\",\"timeMax\":\"" +
+      end +
+      "\",\"timeZone\":\"UTC\",\"calendarExpansionMax\":1,\"items\":[{\"id\":\"original@example.test\"}]}",
+    )
+  }
+}
+
+///|
+test "Calendar free busy response retains distinct original data keys without NFC aliasing" {
+  let query = free_busy_query(ids=["calendar/é", "calendar/é"])
+  let page = project_calendar_free_busy(
+    @utf8.encode(
+      (
+        #|{"kind":"calendar#freeBusy","timeMin":"2026-10-17T00:00:00Z","timeMax":"2026-10-18T00:00:00Z","calendars":{"calendar/é":{"busy":[{"start":"2026-10-17T01:00:00Z","end":"2026-10-17T02:00:00Z"}]},"calendar/é":{"busy":[{"start":"2026-10-17T03:00:00Z","end":"2026-10-17T04:00:00Z"}]}}}
+      ),
+    ),
+    query,
+    free_busy_limits(),
+  ).unwrap()
+  assert_eq(
+    calendar_free_busy_rows_wire(
+      page,
+      ["calendar_id", "start", "end"],
+      4096,
+      100,
+      8,
+    ).unwrap(),
+    (
+      #|[{"calendar_id":"calendar/é","start":"2026-10-17T01:00:00.000Z","end":"2026-10-17T02:00:00.000Z"},{"calendar_id":"calendar/é","start":"2026-10-17T03:00:00.000Z","end":"2026-10-17T04:00:00.000Z"}]
+    ),
+  )
 }

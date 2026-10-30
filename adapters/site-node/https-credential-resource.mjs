@@ -12,6 +12,7 @@ import {installationPreparationSubjectKeys} from
   '../host-common/installation-preparation-fields.generated.mjs';
 import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
   ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {captureSourceResponseCustody} from '../host-common/source-response-custody.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -133,7 +134,7 @@ export function openHttpsCredentialBinding({scope, control, journal,
   const binding = Object.freeze(Object.create(null));
   bindings.set(binding, {original, control, journal, resolveSecret,
     metadata, assertCurrent,
-    pendingOutcome: undefined, receivedResponse: undefined,
+    pendingOutcome: undefined, receivedResponse: undefined, unjoinedResponseCustody: undefined,
     maxSecretBytes, secretPresentation, secret: undefined, active: false, retiring: false,
     closed: false, changed: false, request: undefined,
     authentication: ownAuthenticationRegistration(authentication),
@@ -143,8 +144,12 @@ export function openHttpsCredentialBinding({scope, control, journal,
   return binding;
 }
 
+function bindingQuiescent(state) {
+  return !state.active && state.request === undefined && state.unjoinedResponseCustody === undefined;
+}
+
 function retireBinding(state) {
-  if (state.retiring && !state.active && state.request === undefined) {
+  if (state.retiring && state.borrow === undefined && bindingQuiescent(state)) {
     state.secret = undefined;
     state.authenticationMaterial = undefined;
     state.authenticationExchange = undefined;
@@ -152,6 +157,46 @@ function retireBinding(state) {
     state.receivedResponse = undefined;
     state.closed = true;
   }
+}
+
+// One exclusive read child of this SAME physical owner. The original binding
+// remains the key; the opaque borrow is only an association, not another
+// binding, grant, resolver, Journal, Ledger or authentication dependency.
+export function retainHttpsCredentialBindingReadChild(binding) {
+  const state = bindings.get(binding);
+  if (state === undefined || state.metadata) fail('InvalidRemoteCredentialBindingBorrow');
+  if (state.borrow !== undefined || !bindingQuiescent(state)) fail('RemoteCredentialBindingBorrowBusy');
+  if (state.retiring || state.closed) fail('RemoteCredentialBindingRetiring');
+  if (state.changed) fail('RemoteCredentialBindingChanged');
+  if (state.pendingOutcome !== undefined) throw state.pendingOutcome;
+  if (state.authentication !== undefined && state.authenticationToken === undefined) fail('RemoteCredentialAuthenticationUnavailable');
+  const original = {token: undefined, closing: false, retired: false};
+  const borrow = Object.freeze({
+    available() {
+      if (this !== borrow) fail('ForeignRemoteCredentialBindingBorrow');
+      return !original.closing && !original.retired && state.borrow === original &&
+        !state.retiring && !state.changed && state.pendingOutcome === undefined;
+    },
+    close() {
+      if (this !== borrow) fail('ForeignRemoteCredentialBindingBorrow');
+      if (original.retired) return 'closed';
+      original.closing = true;
+      state.request?.destroy(Object.assign(new Error('RemoteCredentialBindingBorrowRetiring'),
+        {code: 'RemoteCredentialBindingBorrowRetiring'}));
+      return bindingQuiescent(state) ? 'closed' : 'pending';
+    },
+    retire() {
+      if (this !== borrow) fail('ForeignRemoteCredentialBindingBorrow');
+      if (original.retired) return true;
+      if (!original.closing || !bindingQuiescent(state)) return false;
+      if (state.borrow !== original) fail('ForeignRemoteCredentialBindingBorrow');
+      original.retired = true;state.borrow = undefined;
+      retireBinding(state);
+      return true;
+    },
+  });
+  original.token = borrow;state.borrow = original;
+  return borrow;
 }
 
 // The original native material never leaves this Credential binding. The
@@ -470,8 +515,9 @@ export function closeHttpsCredentialBinding(binding) {
   return state.closed ? 'closed' : 'pending';
 }
 
-function acquireBinding(binding, {scope, control, journal, resolveSecret}) {
+function acquireBinding(binding, {scope, control, journal, resolveSecret, bindingBorrow}) {
   if (binding === undefined) {
+    if (bindingBorrow !== undefined) fail('ForeignRemoteCredentialBindingBorrow');
     if (control?.kind === 'installation-metadata') fail('InvalidRemoteCredentialBinding');
     return undefined;
   }
@@ -490,6 +536,10 @@ function acquireBinding(binding, {scope, control, journal, resolveSecret}) {
     fail('ForeignRemoteCredentialBinding');
   }
   if (state.retiring) fail('RemoteCredentialBindingRetiring');
+  if (state.borrow === undefined ? bindingBorrow !== undefined : state.borrow.token !== bindingBorrow) {
+    fail('ForeignRemoteCredentialBindingBorrow');
+  }
+  if (state.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
   if (state.changed) fail('RemoteCredentialBindingChanged');
   if (state.pendingOutcome !== undefined) throw state.pendingOutcome;
   if (state.active) fail('RemoteCredentialBindingBusy');
@@ -499,6 +549,7 @@ function acquireBinding(binding, {scope, control, journal, resolveSecret}) {
 
 function credentialBindingCurrent(binding, scope, signal) {
   if (binding.retiring) fail('RemoteCredentialBindingRetiring');
+  if (binding.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
   if (binding.changed) fail('RemoteCredentialBindingChanged');
   signal?.throwIfAborted();
   if (binding.metadata) binding.control.scopeFields(scope);
@@ -744,6 +795,7 @@ async function callCredentialResource({
   returnRejectedResponse = false,
   retainRunResponseOriginal = false,
   currentBeforeSend,
+  responseCustody,
   signal,
 }, binding) {
   if (typeof control?.identity !== 'function' ||
@@ -758,6 +810,14 @@ async function callCredentialResource({
       (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
+  const retainResponse = captureSourceResponseCustody(responseCustody, () =>
+    Object.assign(new Error('InvalidRemoteCredentialResponseCustody'), {code: 'InvalidRemoteCredentialResponseCustody'}),
+  (original, cause) => {
+    // No join exists to observe this task's retirement. Keep it and its body
+    // on this SAME binding; another close attempt cannot infer an ACK from the
+    // primary error, a later Promise resolution or the socket's termination.
+    if (binding) binding.unjoinedResponseCustody = {original, cause};
+  });
   const metadata = binding?.metadata === true;
   const fenced = binding?.assertCurrent !== undefined;
   if (!metadata && fenced && typeof currentBeforeSend !== 'function') {
@@ -833,6 +893,7 @@ async function callCredentialResource({
       // Preserve the original refusal before starting another Host read when
       // retirement, cancellation or a replacement credential is already known.
       if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
+      if (binding?.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
       if (binding?.secret !== undefined && binding.secret !== currentSecret) {
         binding.changed = true;
         fail('RemoteCredentialBindingChanged');
@@ -841,6 +902,7 @@ async function callCredentialResource({
       await currentBeforeSend();
     }
     if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
+    if (binding?.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
     if (binding?.secret !== undefined && binding.secret !== currentSecret) {
       binding.changed = true;
       fail('RemoteCredentialBindingChanged');
@@ -879,6 +941,15 @@ async function callCredentialResource({
     // before the caller has retired this original binding. This is not durable
     // publication storage or evidence of resource reclamation.
     if (fenced) binding.receivedResponse = response;
+    // The same Source owns the actual bounded body even when the following
+    // current/Journal/outcome check refuses. Retention is DATA, not authority
+    // or a response outcome. Its original caller still owns the real charge.
+    if (retainResponse !== undefined) {
+      // Borrow only the SAME native body. Unselected response headers and
+      // credential/outcome correspondence remain in this physical Owner.
+      const retained = retainResponse(Object.freeze({body: response.body}));
+      if (retained !== undefined) await retained;
+    }
     if (fenced) {
       // Known retirement/cancellation closes even further configuration reads.
       credentialBindingCurrent(binding, scope, signal);

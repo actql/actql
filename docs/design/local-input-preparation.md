@@ -3723,6 +3723,64 @@ Request closes returned work and drops subject/evidence aliases. Neither a
 policy CID nor this DATA lifetime issues provider permission, acknowledges
 physical cleanup, changes Model Scope meaning or chooses a Model/Content Plan.
 
+
+### Installed Host verifier continuation
+
+The ordinary Request manager retains the exact verifier and its existing optional
+preparation signal on the same producer before entering semantic checking. It
+captures the Core methods and receiver before any verifier await, parses and
+freezes only the original measured descriptor DATA, and binds each result at its
+original index, including an explicit undefined decline. Subject count and total
+wire limits retain the existing Host refusal bounds. The binder performs the
+actual post-await current check; cheap local fences additionally reject reentry,
+changed callback or signal, cancellation and retired preparation.
+
+Final compilation receives the original external Environment and prepared
+publication after subject finalization. The supplemented Environment remains
+inside the same Core child. The installation no longer prepares a compiled
+Program to discover subjects and then serializes and prepares it again. A
+configured verifier requires the funded Request entrance; missing capabilities
+refuse before input capture. A typed refusal or callback throw remains the
+original failed preparation and cannot fall back to another parent or checker.
+
+Original Request cleanup clears verifier and signal aliases only after its
+existing stop is confirmed. A successful adopted Run retains them until that
+same preparation's retirement boundary. These aliases are not permission,
+Resource backing, physical cleanup acknowledgement or a Model/Content Plan.
+Caller fixtures cover same-original forwarding, explicit decline, callback
+failure, cancellation and retirement; compiled Common and ordinary Source/REST
+connections remain separate consuming obligations.
+
+
+### Original whole-Source caller connection
+
+Before constructing a captured Plan, the installed Host selects each original
+Source occurrence through the same Prepared/Request typed route. Query retains
+its QueryRequirement and QueryTime path. A selected whole input uses its own
+nominal capacity and the whole-input Plan constructor, never a fabricated
+predicate, Query capacity array, zero-prefix classifier or error fallback. Its
+original prepared captured prefix remains one. Unsupported mixed inventories
+refuse; the legacy independent quote cannot construct a whole-input Plan.
+
+The Request's existing constructor borrow completes and adopts that exact Plan.
+Submission retains the returned original Run before preparing physical Source
+inputs, and the Source facade keeps each original capacity method and receiver.
+The dispatch Result-placement check reads the adopted Plan graph rather than
+classifying it from the prepared capture prefix. Whole-input Ledger selection
+requires that same Run and exact typed capacity; current or binding refusal
+cannot create another Ledger or enter the legacy scalar path.
+
+After actual capture and evidence preparation, Compute opens from that adopted
+Plan with the original live sources. The dispatcher retains its existing
+preparation borrow and pending setup before binding the capture to the same DAG.
+Existing stop, child-first cleanup, payload retirement and publication duties
+remain. Query and unowned legacy consumers preserve their distinct contracts;
+this continuation creates no new Resource, Account authority or physical ACK.
+Both Node and RelA receive the one original capture opener through their existing
+shared bridge mirror. Typed interfaces and explicit-port caller tests establish
+only their declared boundaries; matching installed ordinary Source/REST,
+release and separate-process Saved remain necessary consuming evidence.
+
 ### Project Local Files original Run and physical retirement
 
 An ordinary Project Local Files source delegates Run preparation to the Host's

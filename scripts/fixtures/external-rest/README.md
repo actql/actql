@@ -59,6 +59,17 @@ selected. The supplied custom CA remains explicit and requires real Host
 initialization backing; this caller must stay unexecuted while that input is
 missing.
 
+The selected input can name the existing full normal-five inventory manifest,
+or the supplier's original qualified offer. A qualified offer must bind its
+exact source/tree, successful clean producer, five SHA256/SHA512 identities and
+the original `packed-client-packages.json` bytes. The preparation helper uses
+the existing archive verifier/unpacker and inventories the original package
+payloads in fresh temporary scratch, then removes that scratch. It writes no
+replacement manifest and imports no package exports. The ordinary report keeps
+both original metadata bindings; installation and payload checks use the same
+verified archives. This metadata connection does not admit a Host or qualify
+the unfinished normal Source/initialization path.
+
 When deliberately admitted, the parent keeps its own TLS event loop alive,
 runs CLI scaffold/build, packs the generated JS connector, and installs the
 five selected normal tars plus that package through the default npm lifecycle.
@@ -86,7 +97,7 @@ facts must be recorded by the same installed Host conformance caller.
 ## Source checks and platform scope
 
 The generic distribution command selects `preparation.test.mjs` only. Its
-six cases use synthetic package/digest and provider DATA without importing
+preflight cases use synthetic package/digest and provider DATA without importing
 normal software or creating a Host, keys or TLS server. The separate
 `conformance.test.mjs` caller-mechanism cases currently require Darwin
 `/usr/sbin/lsof` for their same-process scoped descriptor observations; they

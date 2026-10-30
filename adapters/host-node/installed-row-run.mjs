@@ -8,7 +8,11 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
-  capacity, keyed = false, originalRead, originalKeyedRead}) {
+  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  if (wholeInput && (keyed || originalRead === undefined || ledger === undefined ||
+      capacity?.provider === undefined || capacity?.listingReport !== undefined)) {
+    fail('InstalledWholeSourceReadUnavailable');
+  }
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
@@ -28,7 +32,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       fail('InstalledSourceRunLedgerRequired');
     }
     if (['clientProgramInstalledSourceReadCheckLedger',
-      providerCapacity === undefined ? 'clientProgramInstalledSourceReadStartRows'
+      wholeInput ? 'clientProgramInstalledWholeSourceReadStartRows'
+      : providerCapacity === undefined ? 'clientProgramInstalledSourceReadStartRows'
         : 'clientProgramInstalledSourceReadStartProviderRows',
       'clientProgramInstalledSourceReadRetire']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledSourceReadUnavailable');
@@ -39,9 +44,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   if (providerCapacity !== undefined) {
     if (keyed || reportCapacity !== undefined) fail('InstalledProviderSourceProgramMismatch');
     if (ledger === undefined) fail('InstalledProviderSourceLedgerRequired');
-    if ([originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
+    if ([wholeInput ? 'clientProgramInstalledWholeSourceReadStartRows'
+      : originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
       : 'clientProgramInstalledSourceReadStartProviderRows',
-      'clientProgramRowSourceBorrowResponses', 'clientProgramRowSourceBindResponseCleanup']
+      wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
+      'clientProgramRowSourceBindResponseCleanup']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -54,7 +61,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const settled = new Set();
   let transportStopped = false;
   let transportRecovery;
-  const run = checked(originalKeyedRead !== undefined
+  const run = checked(wholeInput
+    ? moon.clientProgramInstalledWholeSourceReadStartRows(originalRead, acquisition,
+      nonce, attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)
+    : originalKeyedRead !== undefined
     ? moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes,
       capacity.executionBytes, () => transportStopped)
@@ -146,7 +156,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     }
     if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
     readerPrepared = true;
-    const borrow = checked(moon.clientProgramRowSourceBorrowResponses(run, acquisition));
+    const borrow = checked(wholeInput ? moon.clientProgramWholeSourceBorrowResponses(run, acquisition)
+      : moon.clientProgramRowSourceBorrowResponses(run, acquisition));
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     reader = Reflect.apply(prepare, receiver, [options]);
     if (typeof reader?.then === 'function') {
@@ -230,7 +241,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     const identity = checked(effectful
       ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
       : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
-    const logicalInput = checked(effectful
+    const logicalInput = checked(wholeInput
+      ? moon.clientProgramIssueWholeSourceInputLogical(checkedOwner,
+        capturedSource, identity, owner.providerCaptureCapacity)
+      : effectful
       ? occurrence.task === 0
         ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
           capturedSource, identity, owner.requirement)
@@ -257,7 +271,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         inferStep === undefined && !composedInfer && setup === undefined) {
       fail('InstalledSourceHostUnavailable');
     }
-    const evidenceIssuer = moon.clientProgramRowSourceIssueSourceEvidenceOriginal;
+    const evidenceIssuer = wholeInput ? moon.clientProgramWholeSourceIssueSourceEvidenceOriginal
+      : moon.clientProgramRowSourceIssueSourceEvidenceOriginal;
     const captureAccess = Object.freeze({source,
       originalRead: () => {
         if (closed) fail('InstalledSourceClosed');
@@ -274,7 +289,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         return original;
       },
       ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
-        moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
+        wholeInput ? moon.clientProgramWholeSourceCheckComputeBinding(captured, dag, task)
+          : moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
       logicalInput, requirement: owner.requirement, setup, occurrence,
       capturedSource, inferStep, composedInfer,
@@ -300,9 +316,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       },
       issueSourceEvidence: async ({authorityScopeCid, effectiveDataPolicyCid}) => {
         await currentRead();
-        return checked(moon.clientProgramRowSourceIssueSourceEvidence(
+        const issuer = wholeInput ? moon.clientProgramWholeSourceIssueSourceEvidence
+          : moon.clientProgramRowSourceIssueSourceEvidence;
+        return checked(Reflect.apply(issuer, moon, [
           acquisition, captured, identity, logicalInput, authorityScopeCid,
-          effectiveDataPolicyCid, new Date().toISOString()));
+          effectiveDataPolicyCid, new Date().toISOString()]));
       },
       close});
   }
