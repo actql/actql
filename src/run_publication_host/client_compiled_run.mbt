@@ -495,6 +495,17 @@ fn check_client_compiled_run_definition_owned(
   }
   match bind(value, definition) {
     Ok(Some(binding)) => {
+      // Validating restored bytes must not replace the live issued original.
+      if value.definition_binding is Some(original) &&
+        client_compiled_run_definition_facts_match(
+          original,
+          value,
+          original.definition,
+        ) &&
+        @publication.publication_contract_identity(original.definition) ==
+        @publication.publication_contract_identity(definition) {
+        return Ok(())
+      }
       value.definition_binding = Some({
         owner: value.owner,
         compilation: value.compilation,

@@ -29,6 +29,13 @@ path under a metadata-only reservation. Store-loaded originals use their own
 admission and validation path. No historical Run rewrite or compatibility
 migration is implied.
 
+Validating a restored Definition against a live compiled Run performs the full
+existing binding check. When the restored contract has the same CID, successful
+validation preserves the issued Definition and its original binding. The restored
+contract does not become the live publication original. A compiler with no
+binding can retain its admitted Definition, and an explicitly issued different
+Definition follows the existing replacement path.
+
 ## Ownership and handoff
 
 Existing manager and dispatch holders preserve the preparation while publication
