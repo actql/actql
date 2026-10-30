@@ -57,6 +57,7 @@ import {
 
 options(
   targets: {
+    "installed_effect_operation_borrow_js_wbtest.mbt": [ "js" ],
     "preparation_parameter_source_current_wbtest.mbt": [ "js" ],
     "preparation_program_check_context_input_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_core_js_wbtest.mbt": [ "js" ],

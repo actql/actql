@@ -367,6 +367,41 @@ function captureManagedPlanDefinition(definition, driver) {
   return definition;
 }
 
+// The selected Host supplies original typed extents from its actual implementation
+// recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
+// Core values; this view creates no capacity, admission or permission.
+function captureManagedPlanRecipe(recipe) {
+  if (recipe === undefined) return undefined;
+  const own = (value, names) => {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+        !Object.isFrozen(value)) fail('InvalidInstalledEffectPlanRecipe');
+    const fields = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(fields).length !== names.length ||
+        names.some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    return fields;
+  };
+  const fields = own(recipe, ['memberOperations', 'rowOperations']);
+  const operations = name => {
+    const values = fields[name].value;
+    if (!Array.isArray(values) || values.length > localContractLimits.maxNodes) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
+    return Object.freeze(Array.from({length: values.length}, (_, index) => {
+      const entry = own(entries[String(index)].value, ['operation', 'extent']);
+      const operation = entry.operation.value, extent = entry.extent.value;
+      if (!text(operation) || extent === null || typeof extent !== 'object' ||
+          nodeTypes.isProxy(extent)) fail('InvalidInstalledEffectPlanRecipe');
+      return Object.freeze({operation, extent});
+    }));
+  };
+  const memberOperations = operations('memberOperations'), rowOperations = operations('rowOperations');
+  if (memberOperations.length + rowOperations.length === 0) fail('InvalidInstalledEffectPlanRecipe');
+  return Object.freeze({memberOperations, rowOperations});
+}
+
 function captureEffectResources(receiver) {
   if (receiver === undefined) return undefined;
   const methods = {};
@@ -687,13 +722,14 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe}) {
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
   const owned = checkDriver(write === undefined ? driver
     : deriveInstalledRowWrite(write, connectorRegistration));
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
+  const planRecipe = captureManagedPlanRecipe(managedPlanRecipe);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
       mappings.length + commands.length === 0 ||
@@ -767,7 +803,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
-    managedPlanDefinition: planDefinition, issueOriginalCollectionReference})], environmentWire);
+    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, issueOriginalCollectionReference})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -811,7 +847,8 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
 export function retainInstalledRowEffectAdapter(original, projection) {
   const owner = rowInstallations.get(original);
   if (owner === undefined) return projection;
-  if (projection.prepareCaptured !== original.prepareCaptured ||
+  if (projection.prepareManagedPlan !== original.prepareManagedPlan ||
+      projection.prepareCaptured !== original.prepareCaptured ||
       projection.prepareRecovered !== original.prepareRecovered ||
       projection.environmentWire !== original.environmentWire ||
       projection.effectSelectors !== original.effectSelectors) {
@@ -1001,6 +1038,45 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     return Object.freeze(members);
   };
+  // Called by the ordinary Request owner before SAME-parent completion/adoption.
+  // Every selected member contributes its real immutable implementation extents;
+  // an absent recipe never becomes an empty operation list or scalar fallback.
+  const prepareManagedPlan = (facts, inputs) => {
+    assertPrepared({moon, prepared: facts?.prepared, compilation: facts?.compilation});
+    if (facts?.prepared === undefined || facts.identity === undefined ||
+        inputs?.installedContracts === undefined ||
+        typeof inputs.values !== 'string' ||
+        typeof moon.clientProgramInstalledEffectOperationDemandPrepare !== 'function') {
+      fail('InstalledEffectOperationDemandUnavailable');
+    }
+    const unit = installedRowEffectUnit(moon, facts.compilation);
+    const members = membersOf(facts.prepared, unit);
+    const demands = members.map(member => {
+      const recipe = ownerOf(member).managedPlanRecipe;
+      if (recipe === undefined) fail('InstalledEffectOperationDemandUnavailable');
+      return checked(moon.clientProgramInstalledEffectOperationDemandPrepare(
+        facts.prepared, unit.stageIndex, member.effectId,
+        recipe.memberOperations.map(entry => entry.extent),
+        recipe.rowOperations.map(entry => entry.extent)));
+    });
+    // Source acquisition originals cannot be inferred from profile DATA or
+    // prepared again under another parent. This first existing connection
+    // selects a Source-free Effect; Source/Model supply keeps its own owner.
+    if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
+        inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
+    const construct = facts.queryTimePreparation === undefined
+      ? moon.clientProgramInstalledEffectManagedPlanPrepare
+      : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
+    if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
+    const original = [facts.prepared, facts.identity,
+      ...(facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
+      [], '', '', [], [], inputs.installedContracts,
+      inputs.values, inputs.fragment, inputs.ordered, demands];
+    // Empty query/evidence strings are unused arguments only for zero Sources;
+    // they issue no query contract. Existing Core validates the checked graph.
+    return checked(Reflect.apply(construct, moon, original));
+  };
+
   const memberDispatch = (runInvocationCid, member) => cid({
     version: ownerOf(member).profile.dispatch, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
@@ -2446,7 +2522,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   }
 
   if (singular === undefined) {
-    const adapter = Object.freeze({environmentWire, assertPrepared,
+    const adapter = Object.freeze({environmentWire, assertPrepared, prepareManagedPlan,
       prepareCaptured, prepareRecovered});
     rowInstallations.set(adapter, Object.freeze([...owners]));
     return adapter;
@@ -2472,7 +2548,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     ...(!owned.kinds.includes('command') ? [] : installedCommands.map(command =>
       Object.freeze({kind: 'command', target: command.target,
         commandRef: command.commandRef, commandCid: command.commandCid})))]),
-    prepareCaptured, prepareRecovered,
+    prepareManagedPlan, prepareCaptured, prepareRecovered,
     close: () => site.close(),
   });
   rowInstallations.set(adapter, singular);

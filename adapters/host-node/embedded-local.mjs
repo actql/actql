@@ -5561,7 +5561,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
         requestInput: model === undefined ? originalSourceManagedHostRequest(originals, facts.prepared) : undefined,
-        selection, facts, inputs, sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
+        selection, facts, inputs: Object.freeze({...inputs,
+          installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
+        sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');

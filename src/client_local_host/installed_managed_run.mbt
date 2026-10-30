@@ -31,6 +31,7 @@ struct ClientInstalledManagedRun {
   reads : Array[ClientInstalledSourceRead?]
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
+  effect_operations : Array[ClientInstalledEffectOperationBorrow]
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -697,6 +698,7 @@ fn new_installed_managed_run_owned(
     ),
     keyed: None,
     keyed_reads: [],
+    effect_operations: [],
     source_free_preparation: None,
     captured_preparation: None,
     preparation_retirement: None,
@@ -1207,6 +1209,11 @@ pub fn retire_installed_managed_run(
   }
   for read in value.keyed_reads {
     if !read.retired {
+      return Err(CleanupPending)
+    }
+  }
+  for operation in value.effect_operations {
+    if !operation.retired {
       return Err(CleanupPending)
     }
   }
