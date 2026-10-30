@@ -71,9 +71,12 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
         if name == 'actql-sdk' and ('local' in body.get_all('Provides-Extra', [])
                 or any('actql-local-runtime' in value or 'wasmtime' in value or 'duckdb' in value for value in requirements)):
             raise ValueError('Lightweight SDK wheel contains a Local dependency')
-        if tag.get_all('Tag', []) != [
-                'py3-none-macosx_11_0_arm64' if name == 'actql-local-runtime' else 'py3-none-any']:
+        expected_tag = ('py3-none-macosx_11_0_arm64'
+                        if name == 'actql-local-runtime' else 'py3-none-any')
+        if tag.get_all('Tag', []) != [expected_tag]:
             raise ValueError('Python cohort wheel target mismatch')
+        if path.name != name.replace('-', '_') + '-' + version + '-' + expected_tag + '.whl':
+            raise ValueError('Python cohort wheel filename differs from its metadata')
         if name == 'actql' and not {'actql/__init__.py', 'actql/__init__.pyi', 'actql/py.typed'} <= set(names):
             raise ValueError('Standard product wheel has no typed facade')
         if name != 'actql-local-runtime' and any(value.endswith(('.wasm', '.cwasm', '.dylib', '.so', '.dll')) for value in names):

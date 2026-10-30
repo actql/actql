@@ -2,7 +2,6 @@
 package "actql/actql/connectors/calendar/host_node"
 
 import {
-  "actql/actql/calendar_profile",
   "actql/actql/connectors/calendar/catalog",
 }
 
@@ -11,13 +10,7 @@ pub fn calendar_events_column_names() -> Array[String]
 
 pub fn calendar_events_facts_wire() -> String
 
-pub fn calendar_events_matches_query(@catalog.CalendarEventsPage, @catalog.CalendarEventsQuery) -> Bool
-
-pub fn calendar_events_metadata_wire(@catalog.CalendarEventsPage, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
-
-pub fn calendar_events_query_wire(@catalog.CalendarEventsQuery, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
-
-pub fn calendar_events_rows_wire(@catalog.CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
+pub fn calendar_events_request_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
 
 pub fn calendar_events_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
 
@@ -45,13 +38,9 @@ pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, In
 
 pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]
 
-pub fn calendar_prepare_events_query(String, String, String, String, @calendar_profile.Profile, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue]
-
 pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]
 
 pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]
-
-pub fn calendar_project_events(Bytes, @catalog.CalendarEventsQuery, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsPage, @catalog.CalendarEventsIssue]
 
 pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]
 
