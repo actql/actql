@@ -3867,6 +3867,48 @@ pristine-bootstrap `begin_client_model_read_scope` would select a different
 lifecycle and is not a substitute for this binding.
 
 
+### Preparation-funded original inventory
+
+An early `begin_preparation_capacity_inventory` can use the first original
+preparation reservation as its census backing. Its fixed caller must fund the
+actual initial controls, backing, slot bounds and entrance coexistence before
+entry. The existing pristine-token/work/quantity checks remain in force;
+installing the census after parsing, checking or a settled zero-byte child is
+not a replacement. No second bootstrap reservation or imported parent is
+created. This Resource primitive alone does not enable the ordinary Request
+constructor, price a Model domain or install a Model Scope.
+
+The existing inventory binding scalar also records settlement custody. A
+standalone census retains its owning-bootstrap behavior. A preparation-funded
+census permits `bind_client_model_read_scope` to bind the original compiled
+Run, definition and Infer graph, but its Scope finish only acknowledges that
+Scope's cleanup and closes allocation. It cannot settle the original parent
+while a manager, compiler or operation borrower remains. A bound Scope's
+acknowledgment and every child/holding/delegation retirement are required
+before preparation retirement can settle the same token. Cancellation and
+zero-byte arithmetic are not those witnesses. Unknown quantity history and
+spent serials survive the final settlement.
+
+Before binding or descriptor/read issuance, the actual domain may use
+`grow_preparation_capacity_inventory` to reserve its complete coexistence
+backing on that same capacity and then publish larger slot bounds. This is a
+monotone inventory continuation, not another census, tariff or grant. Its
+original identities, vacant slots and work remain intact. Currentness is
+observed once at the resize boundary; reentrant binding/closure prevents
+publication of stale new bounds and leaves the actual debit charged. This
+does not derive the domain's physical byte coefficients or infer counts from
+unused policy headroom.
+
+Scope finishing and final preparation settlement have distinct transient
+states in that same private scalar. Reentry cannot issue another borrower or
+settle twice. The allocation fence remains installed through final currentness;
+only the callback-free original settlement detaches the census. A failed
+current observation retains the closed fence, original census and debit. The
+same typed capacity continuation and actual Node adoption retain this custody,
+with no extra read-bootstrap owner. The normal Host/Model material recipe,
+early Request entry and later constructor selection remain necessary consumers.
+
+
 ### Keyed Content construction on the original Request
 
 A keyed Content constructor selects `borrow_request_content_plan_input` before

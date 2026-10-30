@@ -176,6 +176,13 @@ fn resize_capacity_reservation(
   let usage = ledger.usage
   let retained_delta = retained - token.retention
   let execution_delta = execution - token.execution
+  if (retained_delta > 0L || execution_delta > 0L) &&
+    ledger.original_inventory is Some(inventory) &&
+    physical_equal(inventory.bootstrap, capacity) &&
+    original_inventory_preparation_owned(inventory) &&
+    inventory.closing {
+    return Err(ClosedReservation)
+  }
   // Original stopping permits disposal, never new allocation. The preceding
   // reservation check has refreshed currentness and may have latched stopping.
   if (retained_delta > 0L || execution_delta > 0L) &&

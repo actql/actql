@@ -27,6 +27,7 @@ options(
     "node_preparation_lifecycle_js.mbt": [ "js" ],
     "node_preparation_lifecycle_unsupported.mbt": [ "not", "js" ],
     "node_preparation_admission_wbtest.mbt": [ "js" ],
+    "preparation_inventory_node_js_wbtest.mbt": [ "js" ],
     "node_preparation_cleanup_wbtest.mbt": [ "js" ],
     "node_managed_run_admission_js_wbtest.mbt": [ "js" ],
     "node_original_source_child_js_wbtest.mbt": [ "js" ],

@@ -2,17 +2,30 @@
 // Finite private custody on the existing Ledger, not another registry owner.
 // The bootstrap pays for all backing/control/snapshots for the original Run.
 // Bounds alone do not establish those byte coefficients or public adoption.
+priv enum OriginalInventoryBinding {
+  StandaloneUnbound
+  StandaloneBound
+  PreparationUnbound
+  PreparationBound
+  PreparationFinishing
+  PreparationQuiescent
+  PreparationSettling
+} derive(Eq)
+
+///|
 priv struct LedgerOriginalInventory {
   identity : OriginalLedgerIdentity
   bootstrap : CapacityReservation
-  max_reservations : Int
-  max_holdings : Int
-  max_delegations : Int
+  mut max_reservations : Int
+  mut max_holdings : Int
+  mut max_delegations : Int
   reservations : OriginalTokenSlots[Reservation]
   holdings : OriginalTokenSlots[Holding]
   delegations : OriginalTokenSlots[ExecutionDelegation]
   // One checked Run binding may be installed after preparation, before reads.
-  mut run_binding_claimed : Bool
+  // The same scalar also selects existing bootstrap settlement custody. A
+  // preparation census never becomes an independent owner of its reservation.
+  mut binding : OriginalInventoryBinding
   mut descriptor_issued : Bool
   mut read_claimed : Bool
   mut closing : Bool
@@ -38,6 +51,25 @@ pub fn begin_original_ledger_inventory(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
+  begin_original_ledger_inventory_owned(
+    ledger,
+    bootstrap,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    StandaloneUnbound,
+  )
+}
+
+///|
+fn begin_original_ledger_inventory_owned(
+  ledger : Ledger,
+  bootstrap : CapacityReservation,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  binding : OriginalInventoryBinding,
 ) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
   if ledger.original_inventory is Some(_) ||
     !original_read_bootstrap_available(ledger, bootstrap) ||
@@ -67,7 +99,7 @@ pub fn begin_original_ledger_inventory(
     reservations: original_token_slots(),
     holdings: original_token_slots(),
     delegations: original_token_slots(),
-    run_binding_claimed: false,
+    binding,
     descriptor_issued: false,
     read_claimed: false,
     closing: false,
@@ -166,10 +198,14 @@ pub fn claim_original_ledger_run_binding(
     ledger.original_inventory is Some(value) else {
     return Err(InvalidBootstrap)
   }
-  if value.run_binding_claimed || value.descriptor_issued || value.read_claimed {
+  if value.descriptor_issued || value.read_claimed {
     return Err(SpentClaim)
   }
-  value.run_binding_claimed = true
+  value.binding = match value.binding {
+    StandaloneUnbound => StandaloneBound
+    PreparationUnbound => PreparationBound
+    _ => return Err(SpentClaim)
+  }
   Ok(())
 }
 
@@ -401,6 +437,27 @@ pub fn finish_original_ledger_inventory(
     value.holdings.any(token => token.live) ||
     value.delegations.any(token => token.reservation.open) {
     return Ok(false)
+  }
+  // Scope cleanup acknowledges its own children, not preparation borrowers.
+  // Keep the same allocation fence/census and debit until that original
+  // preparation owner retires. No new current boundary or settlement occurs.
+  if original_inventory_preparation_owned(value) {
+    match value.binding {
+      PreparationQuiescent => return Ok(true)
+      PreparationFinishing | PreparationSettling => return Ok(false)
+      _ => ()
+    }
+    let previous = value.binding
+    value.binding = PreparationFinishing
+    match reservation_check(ledger, value.bootstrap.reservation) {
+      Err(issue) => {
+        value.binding = previous
+        return Err(Resource(issue))
+      }
+      Ok(_) => ()
+    }
+    value.binding = PreparationQuiescent
+    return Ok(true)
   }
   match reservation_check(ledger, value.bootstrap.reservation) {
     Err(issue) => return Err(Resource(issue))

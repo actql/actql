@@ -50,6 +50,8 @@ pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, In
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
 
+pub fn[I, P] begin_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
+
 pub fn[I, P] begin_preparation_capacity_phase(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[I, P] begin_preparation_io(PreparationCapacity[I, P], I, Int64) -> Result[PreparationIo, PreparationCapacityIssue]
@@ -195,6 +197,8 @@ pub fn[T] funded_read_consumer_handed_off_origin(FundedReadConsumer[T]) -> T?
 pub fn[T] funded_read_consumer_origin(FundedReadConsumer[T]) -> T?
 
 pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retained_bytes? : Int64) -> Bool
+
+pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
