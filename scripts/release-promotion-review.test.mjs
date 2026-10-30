@@ -2,15 +2,17 @@
 // install, trusted job/approval, registry/current channel or mutation is tested.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile} from 'node:fs/promises';
+import {chmod, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import {releaseVersion} from './release-version.mjs';
 import {promotionPlan} from './release-channels.mjs';
 import {prepareReleaseReview, prepareReleasePromotionReview, verifyReleasePromotionReview,
   releasePromotionReviewSummary, verifyReleaseSet} from './release-set.mjs';
 import {runRelease} from './release.mjs';
+import {promoteNpmReleaseChannels} from './publish-package-release.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const wire = body => Buffer.from(`${JSON.stringify(body, null, 2)}\n`);
@@ -192,4 +194,186 @@ test('promotion review: summaries retain every post-freeze digest and limitation
   assert(summary.markdown.includes('post-scope-marker'));assert(!summary.markdown.includes('<b>claim</b>'));
   assert(!summary.markdown.includes('<owner-control>'));assert.equal(summary.header.plan.sha256,checked.header.plan.sha256);
   assert.equal(summary.acceptance,'unaccepted');
+});
+
+// SAME inert cold fixture, actual public-byte/channel reader, injected terminal
+// npm port only. No real npm command, credentials, authority or public install.
+async function promotionFixture(t, {reversePlan = false} = {}) {
+  const f = await fixture(t);
+  if (reversePlan) await writeFile(f.planFile, wire(promotionPlan(f.fixed, [...f.moves].reverse(), f.report, sha(wire(f.report)))));
+  const review = await f.prepare(), published = new Map(), tags = new Map(), commands = [], requests = [];
+  for (const artifact of f.artifacts) {
+    published.set(artifact.name, await readFile(join(f.directory, artifact.path)));
+    tags.set(artifact.name, {'candidate-fixture': artifact.version, latest: '0.0.6'});
+  }
+  const control = {wrongTool: false, missing: null, corrupt: null, unknownChannels: false, channelRound: 0,
+    beforeChannelRound: null, throwAfterSend: false, badTerminal: false, nonzero: false, noChange: false, unrelatedChange: false};
+  const fetchResponse = async (url, options) => {
+    requests.push(url); assert.equal(options.method, 'GET'); assert.equal(options.credentials, 'omit'); assert.equal(options.redirect, 'error');
+    const channel = f.artifacts.find(item => url === `https://registry.npmjs.org/-/package/${encodeURIComponent(item.name)}/dist-tags`);
+    if (channel) {
+      if (channel === f.artifacts[0]) {control.channelRound++; await control.beforeChannelRound?.(control.channelRound);}
+      return control.unknownChannels ? new Response('', {status: 503}) : Response.json(tags.get(channel.name));
+    }
+    const metadata = f.artifacts.find(item => url === `https://registry.npmjs.org/${encodeURIComponent(item.name)}/${item.version}`);
+    if (metadata) return metadata.name === control.missing ? new Response('', {status: 404}) : Response.json({name: metadata.name,
+      version: metadata.version, dist: {integrity: metadata.integrity, tarball: `https://registry.npmjs.org/${metadata.name}/-/${metadata.file}`}});
+    const artifact = f.artifacts.find(item => url === `https://registry.npmjs.org/${item.name}/-/${item.file}`);
+    assert(artifact, `Unexpected public read ${url}`);
+    const bytes = published.get(artifact.name);
+    return new Response(artifact.name === control.corrupt ? Buffer.alloc(bytes.length, 88) : bytes);
+  };
+  const receiptsDirectory = join(f.root, 'receipts');
+  const runNpm = async (args, context) => {
+    assert(Object.isFrozen(args)); assert(Object.isFrozen(context));
+    assert.equal(context.manifestSha256, f.fixed.sha256); assert.equal(context.promotionReviewSha256, review.sha256);
+    if (args[0] === '--version') return {code: 0, signal: null, stdout: control.wrongTool ? '10.9.4\n' : `${options.npmVersion}\n`, stderr: ''};
+    assert.equal(context.phase, 'dist-tag'); assert(Object.isFrozen(context.transition));
+    const item = f.artifacts.find(value => `${value.name}@${value.version}` === args[2]); assert(item);
+    assert.deepEqual(args, ['dist-tag','add',`${item.name}@${item.version}`,'latest','--registry','https://registry.npmjs.org/','--ignore-scripts','--workspaces=false']);
+    const index = f.artifacts.indexOf(item), originalRoot = join(receiptsDirectory, f.fixed.sha256, review.sha256);
+    const attempts = await readdir(originalRoot); let originalIntent;
+    for (const attempt of attempts) {
+      const path = join(originalRoot, attempt, `${index}-intent.json`);
+      try {
+        const body = JSON.parse(await readFile(path));
+        try {await lstat(join(originalRoot, attempt, `${index}-unknown.json`)); continue;} catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+        assert.equal((await lstat(path)).mode & 0o777, 0o600); originalIntent = body;
+      } catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+    }
+    assert(originalIntent, 'Original durable intent must exist before the command');
+    assert.deepEqual(originalIntent.args, args); assert.equal(originalIntent.state, 'outcome-unknown');
+    assert.equal(originalIntent.manifestSha256, f.fixed.sha256); assert.equal(originalIntent.promotionReviewSha256, review.sha256);
+    commands.push(item.name);
+    if (!control.noChange) tags.get(item.name).latest = item.version;
+    if (control.unrelatedChange) tags.get(item.name)['candidate-fixture'] = '0.0.8';
+    if (control.throwAfterSend) {control.throwAfterSend = false; throw Error('Original command completed but response lost');}
+    if (control.badTerminal) return {};
+    return {code: control.nonzero ? 1 : 0, signal: null, stdout: '+latest:0.0.7\n', stderr: ''};
+  };
+  const options = {directory: f.directory, expectedSha256: f.fixed.sha256, reviewDirectory: f.destination,
+    expectedReviewSha256: review.sha256, receiptsDirectory, npmVersion: '11.21.0', runNpm, fetchResponse};
+  return {...f, review, published, tags, commands, requests, control, options, run: extra => promoteNpmReleaseChannels({...options, ...extra})};
+}
+
+test('npm promotion: exact bundle, full public bytes, synced intents, original order and current readback', async t => {
+  const f = await promotionFixture(t, {reversePlan: true}), original = await readFile(join(f.directory, 'release-set.json'));
+  const result = await f.run();
+  assert.deepEqual(f.commands, f.artifacts.map(item => item.name)); assert.equal(result.operationCount, 4);
+  assert.equal(result.manifestSha256, f.fixed.sha256); assert.equal(result.promotionReviewSha256, f.review.sha256);
+  assert.equal(result.state, 'selected-current-channels-observed'); assert(result.results.every(item => item.outcome === 'exact-original-current-readback'));
+  assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), original);
+  const summary = JSON.parse(await readFile(join(result.receiptDirectory, 'summary.json'))); assert.equal(summary.operationCount, 4);
+  assert.equal((await lstat(result.receiptDirectory)).mode & 0o777, 0o700);
+  assert(f.requests.some(url => url.endsWith('/dist-tags'))); assert(f.requests.some(url => url.endsWith('.tgz')));
+});
+
+test('npm promotion: no runner, forged authority, wrong digest and unsupported or mismatched pins refuse before mutation', async t => {
+  const f = await promotionFixture(t);
+  await assert.rejects(f.run({runNpm: undefined}), /runner/u);
+  await assert.rejects(f.run({approved: true}), /Unexpected/u);
+  for (const npmVersion of ['11.20.0','12.0.0','12.1.9','13.0.0','11.21.0-rc.1','11.21.0\n']) await assert.rejects(f.run({npmVersion}));
+  await assert.rejects(f.run({expectedReviewSha256:'f'.repeat(64)}));
+  f.control.wrongTool = true; await assert.rejects(f.run(), /protected pin/u);
+  assert.deepEqual(f.commands, []); assert.deepEqual(f.requests, []);
+  await assert.rejects(runRelease(['promote', f.directory]), /unavailable/u);
+});
+
+test('npm promotion: missing different public bytes or unknown/stale selected values stop the entire set before command', async t => {
+  for (const kind of ['missing','corrupt','unknown','stale']) {
+    const f = await promotionFixture(t);
+    if (kind === 'missing') f.control.missing = f.artifacts[3].name;
+    if (kind === 'corrupt') f.control.corrupt = f.artifacts[3].name;
+    if (kind === 'unknown') f.control.unknownChannels = true;
+    if (kind === 'stale') f.tags.get(f.artifacts[3].name).latest = '0.0.9';
+    await assert.rejects(f.run()); assert.deepEqual(f.commands, []);
+    await assert.rejects(lstat(f.options.receiptsDirectory), {code:'ENOENT'});
+  }
+});
+
+test('npm promotion: fresh execution fence detects change after historical plan and initial read', async t => {
+  const f = await promotionFixture(t);
+  f.control.beforeChannelRound = round => {if (round === 2) f.tags.get(f.artifacts[2].name).latest = '0.0.8';};
+  await assert.rejects(f.run(), /execution fence/u); assert.deepEqual(f.commands, []);
+});
+
+test('npm promotion: lost real mutation response stops once, explicit same-digest recovery reobserves and skips confirmed channel', async t => {
+  const f = await promotionFixture(t); f.control.throwAfterSend = true;
+  await assert.rejects(f.run(), /outcome unknown/u); assert.equal(f.commands.length, 1);
+  const originalRoot = join(f.options.receiptsDirectory, f.fixed.sha256, f.review.sha256), attempts = await readdir(originalRoot);
+  assert.equal(attempts.length, 1); const path = join(originalRoot, attempts[0]);
+  assert.equal(JSON.parse(await readFile(join(path,'0-unknown.json'))).state, 'unknown');
+  await assert.rejects(lstat(join(path,'summary.json')), {code:'ENOENT'});
+  const recovered = await f.run(); assert.equal(recovered.operationCount, 3);
+  assert.equal(recovered.results[0].outcome, 'already-identical-observed');
+  assert.deepEqual(f.commands, f.artifacts.map(item => item.name));
+  const finished = await f.run(); assert.equal(finished.operationCount, 0); assert.equal(f.commands.length, 4);
+});
+
+test('npm promotion: no command success, reply shape or unrelated selected-tag drift substitutes for full readback', async t => {
+  for (const flag of ['badTerminal','nonzero','noChange','unrelatedChange']) {
+    const f = await promotionFixture(t); f.control[flag] = true;
+    await assert.rejects(f.run(), /outcome unknown/u); assert.equal(f.commands.length, 1);
+    const originalRoot = join(f.options.receiptsDirectory, f.fixed.sha256, f.review.sha256), [attempt] = await readdir(originalRoot);
+    assert.equal(JSON.parse(await readFile(join(originalRoot,attempt,'0-unknown.json'))).state, 'unknown');
+    await assert.rejects(lstat(join(originalRoot,attempt,'summary.json')), {code:'ENOENT'});
+  }
+});
+
+test('npm promotion: original byte mutation at the actual runner boundary is caught and does not advance the next package', async t => {
+  const f = await promotionFixture(t), runner = f.options.runNpm;
+  await assert.rejects(f.run({runNpm:async (args,context)=>{
+    const response = await runner(args,context);
+    if (context.phase === 'dist-tag') await writeFile(join(f.directory,f.artifacts[3].path),'changed original');
+    return response;
+  }}), /outcome unknown/u);
+  assert.equal(f.commands.length, 1);
+});
+
+test('npm promotion: receipt output cannot alias either frozen input and supported npm12 pin retains the same protocol', async t => {
+  const f = await promotionFixture(t), alias = join(f.root,'fixed-alias'); await symlink(f.directory,alias,'dir');
+  for (const receiptsDirectory of [join(alias,'new-receipts'),join(f.destination,'new-receipts')]) {
+    await assert.rejects(f.run({receiptsDirectory}), /outside the frozen inputs/u);
+    await assert.rejects(lstat(receiptsDirectory), {code:'ENOENT'});
+  }
+  const value = await f.run({npmVersion:'12.2.0',runNpm:async (args,context)=>args[0]==='--version'
+    ? {code:0,signal:null,stdout:'12.2.0\n',stderr:''} : f.options.runNpm(args,context)});
+  assert.equal(value.operationCount, 4);
+});
+
+test('npm promotion failure custody: private original survives without exception text in Unknown or cause output',async t=>{
+  const f=await promotionFixture(t),original=f.options.runNpm;
+  const failure=Object.assign(Error('PRIVATE-INERT-PROMOTION-MUTATION'),{originalCleanup:{inertIdentityOnly:true}});
+  let caught;
+  try{await f.run({runNpm:async(args,context)=>{
+    const reply=await original(args,context);if(context.phase==='dist-tag')throw failure;return reply;
+  }});}catch(error){caught=error;}
+  const target=join(f.options.receiptsDirectory,f.fixed.sha256,f.review.sha256),[name]=await readdir(target),attempt=join(target,name);
+  const unknown=await readFile(join(attempt,'0-unknown.json'),'utf8');
+  assert(!unknown.includes('PRIVATE-INERT'),'Unknown receipt must not disclose original runner exception');
+  assert.equal(JSON.parse(unknown).reason,'original-mutation-or-readback-unconfirmed');
+  assert.equal(caught.originalPromotionError,failure);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalPromotionError').enumerable,false);
+  assert.equal(caught.cause,undefined);assert(!String(caught).includes('PRIVATE-INERT'));assert(!inspect(caught).includes('PRIVATE-INERT'));
+  assert.equal(f.commands.length,1);assert.equal(f.tags.get(f.artifacts[0].name).latest,f.artifacts[0].version);
+  await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+test('npm promotion failure custody: refused Unknown write keeps its physical error and SAME private original',async t=>{
+  const f=await promotionFixture(t),original=f.options.runNpm;
+  const failure=Object.assign(Error('PRIVATE-INERT-PROMOTION-WRITE'),{originalCleanup:{inertIdentityOnly:true}});
+  let attempt,caught;
+  try{await f.run({runNpm:async(args,context)=>{
+    const reply=await original(args,context);
+    if(context.phase==='dist-tag'){
+      const target=join(f.options.receiptsDirectory,f.fixed.sha256,f.review.sha256),[name]=await readdir(target);attempt=join(target,name);
+      await chmod(attempt,0o500);throw failure;
+    }
+    return reply;
+  }});}catch(error){caught=error;}finally{if(attempt)await chmod(attempt,0o700);}
+  assert.equal(caught.code,'EACCES');assert.notEqual(caught,failure);assert.equal(caught.originalPromotionError,failure);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalPromotionError').enumerable,false);
+  assert(!inspect(caught).includes('PRIVATE-INERT'));assert.equal(f.commands.length,1);
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-intent.json'))).state,'outcome-unknown');
+  await assert.rejects(lstat(join(attempt,'0-unknown.json')),{code:'ENOENT'});
 });

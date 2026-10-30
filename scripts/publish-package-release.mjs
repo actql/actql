@@ -9,8 +9,9 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {inventory, publicationPlan, publishedVersion, unpack, verifyPackageRelease} from './package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
-import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet} from './release-set.mjs';
-import {observeNativePublicationTarget, observeNpmStageTarget, observePythonReleaseTarget} from './release-registry.mjs';
+import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet, verifyReleasePromotionReview} from './release-set.mjs';
+import {observeNativePublicationTarget, observeNpmStageTarget, observePythonReleaseTarget,
+  observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -508,6 +509,120 @@ export async function publishNativeRelease(options) {
   const summary = {schemaVersion: 'actql-native-publish-attempt/0.1', manifestSha256: expectedSha256, targetId,
     attemptId, releaseId, operationCount: operationIndex, state: 'immutable-release-and-original-assets-confirmed',
     qualification: 'same-byte protocol/owner-port readback only; not approval, permission separation, attestation verification, public install, final channel or complete release acceptance'};
+  await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
+}
+
+function promotionChannelSnapshot(report) {
+  const result = new Map();
+  for (const item of report.observations) {
+    assert(item.state !== 'unknown', 'Original selected channel value is unknown');
+    const key = JSON.stringify([item.targetId, item.name, item.channel]);
+    assert(!result.has(key)); result.set(key, item.state === 'absent' ? null : item.version);
+  }
+  return result;
+}
+
+// SAME publisher/receipt Owner, protocol only. The protected executor must
+// independently validate actual public acceptance and owner approval of BOTH
+// digests, then hold exclusive execution across all reads/commands/readbacks.
+// A callback, receipt label or GET is not that authority or registry CAS.
+// Runner settlement means its SAME original child is terminal; an unobserved
+// live child remains with that executor and must never cause a second send.
+// No default runner, credential, CLI command or settings operation is supplied.
+export async function promoteNpmReleaseChannels(options) {
+  const allowed = ['directory', 'expectedSha256', 'reviewDirectory', 'expectedReviewSha256',
+    'receiptsDirectory', 'npmVersion', 'runNpm', 'fetchResponse'];
+  assert(options && Object.keys(options).every(key => allowed.includes(key)), 'Unexpected promotion execution fields');
+  const {directory, expectedSha256, reviewDirectory, expectedReviewSha256, receiptsDirectory,
+    npmVersion, runNpm, fetchResponse = fetch} = options;
+  assert.equal(typeof runNpm, 'function', 'No protected npm promotion runner supplied');
+  const [major, minor] = stableTool(npmVersion);
+  assert((major === 11n && minor >= 21n) || (major === 12n && minor >= 2n),
+    'Select a verified npm11.21+ or npm12.2+ OIDC dist-tag tool pin');
+  assert(atLeast(process.versions.node, '22.14.0'));
+  const verify = () => verifyReleasePromotionReview({directory, expectedSha256, reviewDirectory, expectedReviewSha256});
+  const checked = await verify(), transitions = checked.plan.transitions;
+  assert.equal(checked.plan.schemaVersion,'actql-release-promotion-plan/0.1','This runner accepts only the original npm channel plan');
+  const ordered = checked.fixed.manifest.artifacts.flatMap(artifact => transitions.filter(value =>
+    value.targetId === artifact.targetId && value.name === artifact.name));
+  assert.equal(ordered.length, transitions.length);
+  const versionReply = await runNpm(Object.freeze(['--version']), Object.freeze({manifestSha256: expectedSha256,
+    promotionReviewSha256: expectedReviewSha256, phase: 'tool-version'}));
+  assert(versionReply?.code === 0 && versionReply.signal === null && versionReply.stdout === `${npmVersion}\n` &&
+    versionReply.stderr === '', 'Promotion tool differs from the explicit protected pin');
+  const bytes = async () => {
+    const report = await observeReleaseSet(directory, expectedSha256, {fetchResponse});
+    assert(report.observations.every(value => value.state === 'present'), 'Complete original public bytes are unavailable or different');
+    return report;
+  };
+  const channels = () => observeReleaseChannels(directory, expectedSha256, {fetchResponse});
+  const initialBytes = await bytes(), initialChannels = await channels(), current = promotionChannelSnapshot(initialChannels);
+  for (const move of ordered) {
+    const value = current.get(JSON.stringify([move.targetId, move.name, move.channel]));
+    assert(value === move.expectedVersion || value === move.toVersion, 'Channel changed outside the original approved transition');
+  }
+  assert(isAbsolute(receiptsDirectory));
+  const root = join(await realpath(dirname(receiptsDirectory)), basename(receiptsDirectory));
+  for (const original of [await realpath(directory), await realpath(reviewDirectory)])
+    assert(root !== original && !root.startsWith(`${original}${sep}`), 'Promotion receipts must be outside the frozen inputs');
+  await privateDirectory(root);
+  const releaseRoot = join(root, expectedSha256); await privateDirectory(releaseRoot);
+  const reviewRoot = join(releaseRoot, expectedReviewSha256); await privateDirectory(reviewRoot);
+  for (const name of await readdir(reviewRoot)) {
+    assert(name.startsWith('attempt-') && stageUuid(name.slice(8)), 'Unrecognized original promotion attempt');
+    const st = await lstat(join(reviewRoot, name)); assert(st.isDirectory() && !st.isSymbolicLink());
+  }
+  const attemptId = randomUUID(), attempt = join(reviewRoot, `attempt-${attemptId}`);
+  await mkdir(attempt, {mode: 0o700}); await syncDirectory(reviewRoot);
+  const record = (name, value) => writePrivateOriginal(join(attempt, name), Buffer.from(`${JSON.stringify(value, null, 2)}\n`));
+  await record('public-preflight.json', initialBytes); await record('channels-preflight.json', initialChannels);
+  const fence = async label => {
+    await verify(); const publicBytes = await bytes(), channelReport = await channels();
+    await record(`${label}-public.json`, publicBytes); await record(`${label}-channels.json`, channelReport);
+    assert.deepEqual(promotionChannelSnapshot(channelReport), current, 'Selected channel changed across the original execution fence');
+    await verify();
+  };
+  let operationCount = 0;
+  const results = [];
+  for (const [index, move] of ordered.entries()) {
+    await fence(`${index}-before`);
+    const key = JSON.stringify([move.targetId, move.name, move.channel]);
+    if (current.get(key) === move.toVersion) {
+      results.push({...move, outcome: 'already-identical-observed'}); continue;
+    }
+    assert.equal(current.get(key), move.expectedVersion);
+    const args = Object.freeze(['dist-tag', 'add', `${move.name}@${move.toVersion}`, move.channel,
+      '--registry', 'https://registry.npmjs.org/', '--ignore-scripts', '--workspaces=false']);
+    await record(`${index}-intent.json`, {schemaVersion: 'actql-npm-promotion-intent/0.1', manifestSha256: expectedSha256,
+      promotionReviewSha256: expectedReviewSha256, attemptId, at: new Date().toISOString(), move, args, state: 'outcome-unknown'});
+    operationCount++;
+    try {
+      const response = await runNpm(args, Object.freeze({manifestSha256: expectedSha256,
+        promotionReviewSha256: expectedReviewSha256, phase: 'dist-tag', transition: Object.freeze({...move})}));
+      assert(response && typeof response.stdout === 'string' && typeof response.stderr === 'string' &&
+        Buffer.byteLength(response.stdout) + Buffer.byteLength(response.stderr) <= 1024 * 1024,
+      'Original bounded npm terminal response unavailable');
+      await record(`${index}-terminal.json`, {code: response.code, signal: response.signal,
+        stdout: response.stdout, stderr: response.stderr});
+      assert(response.code === 0 && response.signal === null, 'Original npm promotion command did not confirm completion');
+      // Command success is not a current channel or public-byte proof.
+      current.set(key, move.toVersion); await fence(`${index}-after`);
+      await record(`${index}-confirmed.json`, {move, state: 'exact-original-current-readback'});
+      results.push({...move, outcome: 'exact-original-current-readback'});
+    } catch (failure) {
+      try {await record(`${index}-unknown.json`, {state: 'unknown', reason: 'original-mutation-or-readback-unconfirmed',
+        originalIntent: `${index}-intent.json`});}
+      catch (cleanup) {
+        Object.assign(cleanup, {originalAttempt: attempt});
+        throw retainOriginalPublisherFailure(cleanup, failure, 'originalPromotionError');
+      }
+      throw retainOriginalPublisherFailure(Error(`Original channel outcome unknown; preserve ${attempt} and use explicit same-digest owner reobservation`), failure, 'originalPromotionError');
+    }
+  }
+  await fence('final');
+  const summary = {schemaVersion: 'actql-npm-promotion-attempt/0.1', manifestSha256: expectedSha256,
+    promotionReviewSha256: expectedReviewSha256, attemptId, operationCount, results, state: 'selected-current-channels-observed',
+    qualification: 'same-original protocol/readback only; not owner approval, trusted public acceptance, permission isolation, exclusive lease/CAS or complete release acceptance'};
   await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
 }
 
