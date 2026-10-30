@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4169fe726ee9a13c2d6ccf0af8b59fb441ba48d61714156a5980336f8847e185",
+      "sha256": "573fd43987bf48ca37ce895866c614e1e8e72c83337b6ae39d833a63921a9258",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -766,7 +766,8 @@
           "name": "installPreparedProjectLocalFiles/prepareRun",
           "parameters": [
             "prepared",
-            "request"
+            "request",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -1293,6 +1294,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
                 "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
               }
             ]
           }
