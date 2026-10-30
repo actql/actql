@@ -154,10 +154,10 @@ test('ordinary Source original cannot later acquire the separate Mock purpose', 
   assert.equal((await f.view.close()).pending, false);
 });
 
-test('ordinary raw Effect preparation refuses without a quote or replacement Root', async () => {
+test('ordinary manager exposes no retired raw Effect entry or replacement Root', async () => {
   const f = await fixture();
-  assert.throws(() => f.view.prepareEffectRun(f.prepared), {code: 'InstalledEffectPlanUnavailable'});
-  assert.throws(() => f.view.prepareEffectRun(f.prepared), {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(Object.hasOwn(f.view, 'prepareEffectRun'), false);
+  assert.equal(f.view.prepareEffectRun, undefined);
   assert.deepEqual(f.quotes, {pure: 0, effect: 0});
   f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);

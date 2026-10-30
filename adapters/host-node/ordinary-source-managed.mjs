@@ -766,7 +766,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
       return prepareRun(prepared, 'local-content', undefined, selected);
     },
-    prepareEffectRun() {fail('InstalledEffectPlanUnavailable');},
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);
     },
