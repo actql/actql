@@ -816,6 +816,23 @@ pub fn issue_client_compiled_captured_invocation(
     is Ok(_) else {
     return Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(@publication.RunEvidenceInvalidLimits)
+  }
+  for evidence in sources {
+    if !@publication.run_evidence_value_fits(
+        evidence, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return Err(@publication.RunEvidenceInvalidWire)
+    }
+  }
+  for input in inputs {
+    if !@publication.run_evidence_value_fits(
+        input, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return Err(@publication.RunEvidenceInvalidWire)
+    }
+  }
   if keyed is Some(observation) {
     if captures.length() != 1 ||
       identities.length() != 1 ||

@@ -968,6 +968,8 @@ pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssu
 
 pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
 
+pub fn run_evidence_value_fits(RunEvidenceValue, Int, Int, Int) -> Bool
+
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 
 pub fn run_evidence_value_json(RunEvidenceValue) -> String

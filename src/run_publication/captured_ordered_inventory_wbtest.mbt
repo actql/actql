@@ -60,6 +60,7 @@ fn ordered_inventory_model_fixture() -> CapturedOrderedInventoryInput {
     name: "model_invocation_evidence",
     identity: ordered_inventory_cid("1"),
     wire: "{}",
+    wire_usage: None, // This private fixture is not an admitted bound witness.
     value: stream_fixture_value("{}"),
   }
   let b = { ..a, identity: ordered_inventory_cid("2"), }
