@@ -108,3 +108,11 @@ test('absent byte observation keeps the legacy body and a malformed observer ref
   const result=await f.call({});assert.equal(result.body.toString(),'{}');
   assert.equal(f.claims(),1);assert.equal(requests,1);assert.deepEqual(f.outcomes,['succeeded']);
 });
+
+test('an empty original response closes without fabricating a zero-byte observation',async t=>{
+  const f=await fixture(t,(request,response)=>{response.writeHead(204);response.end();});
+  const lengths=[];
+  const result=await f.call({observeResponseBytes:n=>{lengths.push(n);}});
+  assert.equal(result.statusCode,204);assert.equal(result.body.byteLength,0);assert.deepEqual(lengths,[]);
+  assert.equal(f.claims(),1);assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+});

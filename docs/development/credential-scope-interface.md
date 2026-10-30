@@ -652,6 +652,7 @@ Subjects: neither control nor use is converted between those purposes.
   remaining protocol body bound plus one. The callback receives each actual
   consumed chunk length before copying or checking body acceptance. No secret,
   raw body, quota-derived observation or terminal Effect outcome is returned.
+  The binary read size follows the pinned [Node.js 22.22 contract](https://nodejs.org/download/release/v22.22.0/docs/api/stream.html#readablereadsize).
 - Response reader identity: the callback is captured for that same call and
   requires its original Credential binding. It cannot replace the original
   grant, current checks, scoped request, use identity or saved claim.
