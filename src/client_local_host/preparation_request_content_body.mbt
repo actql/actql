@@ -1,7 +1,7 @@
 ///|
 /// Select the Content constructor before allocating its Plan. The same
 /// original compiler is borrowed through the existing capacity engine; only
-/// the two selected Plan/Request link carriers is added to the original Plan quote.
+/// the two selected Plan/Request link carriers are added to the retained extent.
 /// Subsequent borrows preserve actual domain growth without adding it again.
 /// Selected provider/keyed/serialization backing remains separately required
 /// on this SAME parent, never a second Root or a successful DATA quote.
@@ -23,13 +23,21 @@ pub fn[I] borrow_request_content_plan_input(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let previous_phase = owner.phase
   let capacity = owner.program_capacity.unwrap()
   let prepared = owner.compiled_program.unwrap()
-  let (r, e) = if reserved {
+  // A Program inventory borrower may already retain domain growth. Selecting
+  // Content changes neither that original borrower nor its occupied backing.
+  let (r, e) = if reserved || previous_phase == ProgramPlanReserved {
     match @resources.preparation_capacity_working_extents(capacity, input) {
       Err(issue) => return Err(Capacity(issue))
       Ok(value) => value
     }
+  } else {
+    (r, e)
+  }
+  let (r, e) = if reserved {
+    (r, e)
   } else {
     // Selected Plan and original Request links:2H2R2W. Fields are prepaid at entry.
     guard @execution.preparation_representation_cost({
@@ -50,10 +58,10 @@ pub fn[I] borrow_request_content_plan_input(
   let result = @resources.reserve_preparation_construction_input(
     capacity, input, prepared, r, e,
   )
-  owner.phase = if result is Ok(_) || reserved {
+  owner.phase = if result is Ok(_) {
     ContentPlanReserved
   } else {
-    ProgramPlanQuoted
+    previous_phase
   }
   result.map_err(issue => Capacity(issue))
 }

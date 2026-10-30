@@ -3877,6 +3877,17 @@ from replacing that choice. Repeated Content borrows retain the actual current
 extent, including any domain growth, without charging the selected Plan/Request link carriers
 again. Both resident optional fields are included in entry controls.
 
+An outstanding Program inventory borrower may select Content on the same
+original capacity before an ordinary body constructor has been attempted.
+The Content entrance preserves the current grown extent and adds its fixed
+link carriers once; it does not reapply the earlier cached Plan quote. Both
+borrowers retain the same immutable compiler. Returning the inventory borrower
+neither retires the Content borrower nor releases its backing. A refused Content
+reservation preserves the previous Program phase and debit. This transition
+is not a successful Content domain construction or permission to skip its
+independently required inventory. The reverse Content-to-ordinary constructor
+transition remains refused.
+
 The existing `prepare_installed_managed_keyed_content` still owns the actual
 keyed declaration, row capacity, transport and serialization requirements. Its
 selected provider, parser/codec, response, output and constructor overlap must

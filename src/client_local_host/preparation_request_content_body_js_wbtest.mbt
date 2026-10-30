@@ -1,14 +1,13 @@
 ///|
 // Actual authored keyed Source/SERIALIZE Program enters the original Request
 // checker and compiler. Provider, Store and physical backing are not executed.
-fn request_content_fixture(
+fn request_content_compile_fixture(
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
-  ClientInstalledManagedKeyedPreparation,
-  @publication_host.ClientRequestIdentity,
+  SplitKeyedContentLimitsFixture,
 ) raise {
   let original = split_keyed_content_limits_fixture()
   let (parent, child, _, input) = registration_parent_fixture(
@@ -28,6 +27,22 @@ fn request_content_fixture(
       continue_request_program_preparation(parent, input).unwrap(),
       prepared,
     ),
+  )
+  (parent, input, prepared, original)
+}
+
+///|
+fn request_content_fixture(
+  current? : () -> Bool = () => true,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  @publication_host.PreparedClientProgram,
+  ClientInstalledManagedKeyedPreparation,
+  @publication_host.ClientRequestIdentity,
+) raise {
+  let (parent, input, prepared, original) = request_content_compile_fixture(
+    current~,
   )
   let borrowed = borrow_request_content_plan_input(parent, input).unwrap()
   // Independent two-Some inventory under the pinned logical tariff: two
@@ -106,6 +121,97 @@ fn request_content_fixture(
     "same-request-keyed-content",
   ).unwrap()
   (parent, input, prepared, selected, request)
+}
+
+///|
+test "Program inventory borrow can select Content without replacing its grown extent or releasing either original" {
+  let calls = Ref(0)
+  let (parent, input, prepared, _) = request_content_compile_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  let program = borrow_request_program_plan_input(parent, input).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let quote = parent.program_plan_quote.unwrap()
+  let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  // Independent occupied test extents, deliberately greater than the 64-byte
+  // link carrier. They do not stand in for a provider's full domain recipe.
+  @resources.reserve_working_preparation_phase(
+    capacity,
+    input,
+    r + 129L,
+    e + 257L,
+  ).unwrap()
+  let before = calls.val
+  let content = borrow_request_content_plan_input(parent, input).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(parent.phase == ContentPlanReserved)
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  assert_eq(parent.program_plan_quote.unwrap(), quote)
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input),
+    Ok((r + 129L + 64L, e + 257L + 64L)),
+  )
+  for holder in [program, content] {
+    assert_true(
+      @resources.preparation_body_borrow_value(holder) is Some(original) &&
+      physical_equal(original, prepared),
+    )
+  }
+  assert_false(@resources.return_preparation_body_borrow(program).unwrap())
+  let charged = request_preparation_accounting(parent)
+  let second = borrow_request_content_plan_input(parent, input).unwrap()
+  assert_eq(request_preparation_accounting(parent), charged)
+  assert_true(
+    borrow_request_program_plan_input(parent, input) is Err(WrongPhase),
+  )
+  assert_true(
+    abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
+  )
+  assert_false(@resources.return_preparation_body_borrow(content).unwrap())
+  assert_true(@resources.ledger_usage(parent.ledger).live_reservations > 0)
+  assert_true(@resources.return_preparation_body_borrow(second).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Content selection refusal preserves the outstanding Program borrower and charged extent" {
+  let calls = Ref(0)
+  let (parent, input, prepared, _) = request_content_compile_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  let program = borrow_request_program_plan_input(parent, input).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let (_, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  // Leave one short link carrier's worth of room, without allocating DATA or
+  // changing the original logical limit. This is only a refusal control.
+  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 32L
+  @resources.reserve_working_preparation_phase(capacity, input, r, e).unwrap()
+  let before = request_preparation_accounting(parent)
+  let observed = calls.val
+  assert_true(
+    borrow_request_content_plan_input(parent, [1]) is Err(ForeignOriginal),
+  )
+  assert_eq(calls.val, observed)
+  assert_true(
+    borrow_request_content_plan_input(parent, input)
+    is Err(Capacity(Resource(RetentionLimit))),
+  )
+  assert_eq(calls.val, observed + 1)
+  assert_true(parent.phase == ProgramPlanReserved)
+  assert_eq(request_preparation_accounting(parent), before)
+  assert_true(
+    @resources.preparation_body_borrow_value(program) is Some(original) &&
+    physical_equal(original, prepared),
+  )
+  assert_true(
+    abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
+  )
+  assert_true(@resources.return_preparation_body_borrow(program).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
