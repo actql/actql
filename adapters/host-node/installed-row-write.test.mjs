@@ -518,3 +518,19 @@ test('standard declared check retains the same independent mapped row on fresh a
   await observe(restored);
   assert.deepEqual([bodyCalls,projectCalls],[2,2]);
 });
+
+test('standard mapper consumes and saves exact original proposal wire without reconstructing it on cold restore',()=>{
+  const wire='{"state":"present","value":{"name":"same é"}}',value=JSON.parse(wire).value;
+  let maps=0;
+  const driver=deriveInstalledRowWrite(declaration({request(context){
+    assert.equal(context.proposalWire,wire);assert.equal(context.value,value);maps++;
+    return {path:'/records',body:'{"native":"same"}',proposalWire:context.proposalWire};
+  }}),'fixture');
+  const prepared=driver.prepareRequest({member,value,proposalWire:wire});
+  const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]});
+  const restored=driver.recoverRequests({members:[member],durable:{connectorRecovery:[{...saved,memberIndex:0}]}}).requests[0][0];
+  assert.equal(maps,1);
+  assert.equal(restored.proposalWire,wire);
+  assert.equal(driver.requestCid(restored),prepared.requestCid);
+  assert.equal(restored.body,prepared.request.body);
+});

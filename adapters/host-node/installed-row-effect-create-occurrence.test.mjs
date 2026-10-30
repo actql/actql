@@ -512,3 +512,19 @@ test('member capture control does not consume a row constructor from the origina
   assert.equal(f.requestChildren[0],control);
   assert.equal(f.debits.length,3);
 });
+
+test('CREATE inventory consumes the original checked proposal wire before any lossy JS number encoding',()=>{
+  const wire='{"state":"present","value":{"wide":9007199254740993}}';
+  const value=JSON.parse(wire).value;
+  assert.equal(value.wide,9007199254740992);
+  const originalIdentity=Object.freeze({content_cid:cid('a'),occurrence:0});
+  const moon={clientProgramEffectCreateRowInventory(wires,count){
+    assert.deepEqual(wires,[wire]);assert.equal(count,1);
+    return {ok:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
+  const canonicalRows=expression('canonicalRows',{moon,checked,fail,runtimeField,parseExactJson:JSON.parse,
+    limits:{preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10}}});
+  const row=Object.freeze({value,proposalWire:wire});
+  const result=canonicalRows([row]);
+  assert.equal(result[0].entry,row);
+  assert.deepEqual(result[0].identity,originalIdentity);
+});
