@@ -93,3 +93,21 @@ pub fn client_program_installed_effect_operation_extent_from_capacity(
     operation, capacity, transfer_bytes, physical_attempt,
   )
 }
+
+///|
+// Original selected extent DATA, checked before binding allocation. These
+// projections neither admit a transfer nor turn a quota into observed bytes.
+#export_name("clientProgramInstalledEffectOperationExtentPhysical")
+pub fn client_program_installed_effect_operation_extent_physical(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Bool {
+  @client_local_host.installed_effect_operation_extent_physical(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationExtentTransfer")
+pub fn client_program_installed_effect_operation_extent_transfer(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Int64 {
+  @client_local_host.installed_effect_operation_extent_transfer(original)
+}

@@ -2,6 +2,8 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import {httpsCredentialResponseWindowBytes} from '../site-node/https-credential-resource.mjs';
+import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
 
@@ -163,5 +165,156 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
     },
     release: drain, retry: drain,
     status: () => Object.freeze({pending: state !== 'retired'}),
+  });
+}
+
+// Internal physical sibling of the same capture child. The original Site binds
+// an ALREADY-issued read/effect authorization; this never signs another grant.
+// One selected HTTP body operation and its binary response reader share one
+// native occurrence. Form reads and writes must select separate occurrences.
+export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
+  operationIndex, operation, originalSite, originalAuthorization, useId, resource,
+  purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
+  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke}) {
+  if (run === undefined || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
+      .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
+      !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
+      ![maxRequestBytes,maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+    fail('InvalidInstalledEffectCredentialOperation');
+  }
+  const own = (value, name) => {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) fail('InvalidInstalledEffectCredentialOperation');
+    const field = Object.getOwnPropertyDescriptor(value,name);
+    if (!field || !Object.hasOwn(field,'value')) fail('InvalidInstalledEffectCredentialOperation');
+    return field.value;
+  };
+  const method = (value,name) => {const fn=own(value,name);if(typeof fn!=='function')fail('InstalledEffectCredentialOperationUnavailable');return fn;};
+  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke;
+  let bind=method(site,'bindRunAcquisition'),readPurpose=method(site,'authorizationPurpose'),
+    referenceCurrent=method(site,'referenceCurrent'),physical=method(site,'callResource');
+  originalSite=originalAuthorization=originalInvoke=undefined;
+  const {runtime,value:parent,prepared,request,operationPlan:plan,readPlan}=run;
+  const select=runtime?.clientProgramInstalledEffectManagedPlanOperation,
+    isPhysical=runtime?.clientProgramInstalledEffectOperationExtentPhysical,
+    transfer=runtime?.clientProgramInstalledEffectOperationExtentTransfer,
+    borrow=runtime?.clientProgramInstalledEffectOperationBorrow,
+    start=runtime?.clientProgramInstalledEffectOperationStart,
+    charge=runtime?.clientProgramInstalledEffectOperationCharge,
+    retire=runtime?.clientProgramInstalledEffectOperationRetire;
+  if (![readPlan,select,isPhysical,transfer,borrow,start,charge,retire].every(value=>typeof value==='function')) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  const nativeCurrent=()=>{
+    const same=()=>run.closed!==true && run.runtime===runtime && run.value===parent && run.prepared===prepared &&
+      run.request===request && run.operationPlan===plan && run.readPlan===readPlan;
+    if(Object.hasOwn(run,'failure'))throw run.failure;
+    if(!same()||checked(Reflect.apply(readPlan,runtime,[parent,prepared,request]))!==plan)fail('ForeignInstalledEffectManagedRun');
+    if(Object.hasOwn(run,'failure'))throw run.failure;
+    if(!same())fail('ForeignInstalledEffectManagedRun');
+  };
+  nativeCurrent();
+  const extent=checked(Reflect.apply(select,runtime,[plan,memberIndex,true,operationIndex,operation]));
+  const declaredTransfer=Reflect.apply(transfer,runtime,[extent]);
+  if(Reflect.apply(isPhysical,runtime,[extent])!==true || typeof declaredTransfer!=='bigint' ||
+      declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
+    fail('InsufficientInstalledEffectOperationTransfer');
+  }
+  let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
+  let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
+  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,closeFlight;
+  const retainFence=value=>{
+    const then=value!==null&&(typeof value==='object'||typeof value==='function')?value.then:undefined;
+    if(typeof then==='function')pendingFence=new Promise((yes,no)=>Reflect.apply(then,value,[yes,no])).then(()=>undefined,()=>undefined);
+  };
+  const check=()=>{
+    nativeCurrent();
+    const returned=assertCurrent();
+    if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectCurrentFence');}
+    const current=Reflect.apply(referenceCurrent,site,[]);
+    if(current!==true){retainFence(current);fail('InstalledEffectCredentialNotCurrent');}
+    nativeCurrent();
+  };
+  const observe=async()=>{check();await observeCurrent();check();};
+  const chargeBytes=bytes=>{
+    try{checked(Reflect.apply(charge,runtime,[token,bytes]));}
+    catch(error){accountingFailed=true;throw error;}
+  };
+  const callResource=options=>{
+    if(closing||callStarted)fail('InstalledEffectOperationAlreadyUsed');
+    check();
+    const scope=authorization.scope;
+    if(options.grant!==authorization.grant || options.useId!==useId ||
+        credentialInvocationBindingKeys.some(key=>options.scope?.[key]!==scope[key]) ||
+        options.scope?.operation!==operation || options.binding!==boundCredential.binding ||
+        options.control!==boundCredential.control || options.journal!==boundCredential.journal ||
+        options.resolveSecret!==boundCredential.resolveSecret || options.maxRequestBytes!==maxRequestBytes ||
+        options.maxResponseBytes!==maxResponseBytes || !(options.operations instanceof Map) ||
+        nodeTypes.isProxy(options.operations) || options.operations.size!==1)fail('ForeignInstalledEffectCredentialOperation');
+    const selected=Map.prototype.get.call(options.operations,operation);
+    if(selected===undefined || !Object.isFrozen(selected) || nodeTypes.isProxy(selected))fail('InvalidInstalledEffectHttpOperation');
+    const fields=Object.getOwnPropertyDescriptors(selected);
+    if(Reflect.ownKeys(fields).some(name=>!['method','path','body','headers','responseHeaders'].includes(name)||!Object.hasOwn(fields[name],'value'))) {
+      fail('UnsupportedInstalledEffectHttpRepresentation');
+    }
+    const body=fields.body?.value;
+    if(body!==undefined&&typeof body!=='string')fail('UnsupportedInstalledEffectHttpRepresentation');
+    const bytes=body===undefined?0:Buffer.byteLength(body);
+    if(bytes>maxRequestBytes)fail('InstalledEffectRequestByteLimit');
+    callStarted=true;
+    chargeBytes(BigInt(bytes));
+    // Preserve exact original method/path/headers/body/CID semantics. The
+    // existing Resource still performs its own current/transport validation.
+    return Reflect.apply(physical,site,[{...options,operations:new Map([[operation,selected]]),
+      observeResponseBytes:bytes=>{chargeBytes(BigInt(bytes));}}]);
+  };
+  const drain=()=>{
+    if(state==='retired')return true;
+    closing=true;
+    if(closeFlight!==undefined)return closeFlight;
+    if(pendingFence!==undefined)return false;
+    if(acquisition!==undefined&&!bindingClosed){
+      if(closeBinding===undefined)return false;
+      const result=Reflect.apply(closeBinding,acquisition,[]);
+      if(result==='closed')bindingClosed=true;
+      else if(result!=='pending'){
+        const then=result!==null&&(typeof result==='object'||typeof result==='function')?result.then:undefined;
+        if(typeof then!=='function')fail('InvalidInstalledEffectBindingCleanup');
+        closeFlight=new Promise((yes,no)=>Reflect.apply(then,result,[yes,no])).then(()=>false,()=>false)
+          .finally(()=>{closeFlight=undefined;});
+        return closeFlight;
+      }
+    }
+    if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
+    invoke=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=undefined;
+    if(checked(Reflect.apply(retire,runtime,[token,true]))!==true)return false;
+    token=undefined;state='retired';return true;
+  };
+  return Object.freeze({
+    async prepare(){
+      if(state!=='fresh'||closing)fail('InstalledEffectOperationAlreadyPrepared');
+      state='preparing';preparing=true;
+      try{
+        check();
+        const originalPurpose=Reflect.apply(readPurpose,site,[authorization]),scope=authorization?.scope;
+        if(originalPurpose?.kind!==purpose||originalPurpose.resource!==resource||scope?.operation!==operation||
+            scope.runInvocationCid!==runInvocationCid||scope.dispatchRequestCid!==dispatchRequestCid||
+            scope.runtimeBundleCid!==site.runtimeBundleCid||scope.connectorRegistration!==site.connectorRegistration||
+            scope.connectorRevision!==site.connectorRevision)fail('ForeignInstalledEffectAuthorizationPurpose');
+        // The exact issuer's synchronous factory performs no physical request;
+        // the existing capture already retained this child before entry.
+        acquisition=Reflect.apply(bind,site,[authorization,{assertCurrent:check,observeCurrent:observe}]);
+        if(acquisition===null||typeof acquisition!=='object'||nodeTypes.isProxy(acquisition))fail('InvalidInstalledEffectCredentialBinding');
+        closeBinding=method(acquisition,'close');
+        boundCredential=own(acquisition,'credential');
+        if(boundCredential===null||typeof boundCredential!=='object')fail('InvalidInstalledEffectCredentialBinding');
+        check();
+        checked(Reflect.apply(start,runtime,[token]));
+        const result=await invoke({authorization:Object.freeze({...authorization,useId}),credential:boundCredential,callResource});
+        if(!callStarted)fail('InstalledEffectPhysicalOperationUnavailable');
+        check();state='prepared';return result;
+      }catch(error){state='failed';throw error;}
+      finally{if(pendingFence!==undefined){await pendingFence;pendingFence=undefined;}preparing=false;}
+    },
+    release:drain,retry:drain,status:()=>Object.freeze({pending:state!=='retired'}),
   });
 }
