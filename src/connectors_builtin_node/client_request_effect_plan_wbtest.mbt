@@ -27,15 +27,18 @@ fn request_effect_bridge_fixture() -> (
       #|{"version":"actql/0.1","id":"request-effect-bridge","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"name":{"type":"string","nullable":false}},"rows":[{"id":"one","name":"original"}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id","name"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"name"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     ),
   )
+  client_program_prepare_request_native_computation(
+    parent,
+    receipt,
+    program,
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  ).unwrap()
   assert_eq(
-    client_program_prepare_request_native_computation(
-      parent,
-      receipt,
-      program,
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      None,
+    client_program_finish_request_computation(
+      parent, receipt, environment, publication,
     ).unwrap(),
     "effectful",
   )
