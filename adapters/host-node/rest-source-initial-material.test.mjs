@@ -229,12 +229,13 @@ test('REST factory selects the same validated authored demand for implementation
     const expected = multiple ? {maxPages: 4, maxPageBytes: 512, maxPageRows: 3, maxCaptureRows: 7}
       : {maxPages: 3, maxPageBytes: 256, maxPageRows: 2, maxCaptureRows: 4};
     assert.deepEqual(rowSource.limits, expected);
-    const pageLimits = multiple ? {maxNodes: 128, maxDepth: 8} : {maxNodes: 64, maxDepth: 6};
+    const parserBounds = multiple ? {maxNodes: 128, maxDepth: 8} : {maxNodes: 64, maxDepth: 6};
     const selectedFields = {maxPages: expected.maxPages, maxResponseBytes: expected.maxPageBytes,
       maxRows: expected.maxPageRows, maxTotalRows: expected.maxCaptureRows,
-      ...pageLimits, maxCursorBytes: multiple ? 64 : 32};
+      ...parserBounds, maxCursorBytes: multiple ? 64 : 32};
     for (const [name,value] of Object.entries(selectedFields))assert.equal(implementation.limits[name], value);
-    assert.deepEqual(rowSource.originalPageLimits, pageLimits);
+    assert.equal(Object.hasOwn(rowSource, 'originalPageLimits'), false);
+    assert.equal(Object.hasOwn(rowSource, 'prepareSourceRead'), false);
     for (const name of [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'])
       if (!Object.hasOwn(selectedFields, name))assert.equal(implementation.limits[name], f.policy[name]);
     assert.strictEqual(rowSource.declaration, prepared.declaration);
