@@ -1328,6 +1328,21 @@ export async function createInstalledRowSource({moon, declaration,
     }
     originalReader = Object.freeze({capacity, prepare, retire, receiver: providerReader});
   }
+  let managedPageLimits;
+  if (readerDemand !== undefined) {
+    // This is the SAME immutable service selection already checked against
+    // this declaration/Environment/reader, not the legacy preparer option.
+    if (nodeTypes.isProxy(readerDemand)) fail('InvalidInstalledSourceReaderPageDemand');
+    const nodes = Object.getOwnPropertyDescriptor(readerDemand, 'maxNodes');
+    const depth = Object.getOwnPropertyDescriptor(readerDemand, 'maxDepth');
+    if (!nodes || !depth || !Object.hasOwn(nodes, 'value') || !Object.hasOwn(depth, 'value') ||
+        !Number.isSafeInteger(nodes.value) || nodes.value < 1 || nodes.value > 2147483647 ||
+        !Number.isSafeInteger(depth.value) || depth.value < 1 || depth.value > 2147483647 ||
+        typeof moon.clientProgramRowSourceBeginWithPageLimits !== 'function') {
+      fail('InvalidInstalledSourceReaderPageDemand');
+    }
+    managedPageLimits = Object.freeze({maxNodes: nodes.value, maxDepth: depth.value});
+  }
   if (prepareAcquisition !== undefined &&
       (typeof prepareAcquisition !== 'function' ||
         typeof moon?.clientProgramRowSourceCheckOriginalAcquisition !== 'function')) {
@@ -1437,10 +1452,11 @@ export async function createInstalledRowSource({moon, declaration,
   function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}) {
     if (originalReader === undefined || typeof providerSiteCurrent !== 'function' ||
         Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
+    const selectedPageLimits = managedPageLimits ?? pageLimits;
     const capacity = checked(moon.clientProgramPrepareWholeSourceCapacity(
       preparedProgram, sourceSelection, declaration, installedContracts, originalReader.capacity,
-      limits.maxCaptureRows, limits.maxPageBytes, pageLimits?.maxNodes ?? 400000,
-      pageLimits?.maxDepth ?? 32, limits.maxPageRows));
+      limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
+      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
     return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
@@ -2416,11 +2432,12 @@ export async function createInstalledRowSource({moon, declaration,
       const readChildGrants = new Map();
       const readChildOriginals = new WeakMap();
       let readChildIndex = 0, rootReadUses = 0, propertyOccurrences = 0;
-      checked(pageLimits === undefined
+      const beginPageLimits = owner.wholeInput ? managedPageLimits ?? pageLimits : pageLimits;
+      checked(beginPageLimits === undefined
         ? moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
           limits.maxPageRows, limits.maxCaptureRows, referenceIssuer)
         : moon.clientProgramRowSourceBeginWithPageLimits(run, limits.maxPageBytes,
-          pageLimits.maxNodes, pageLimits.maxDepth, limits.maxPageRows,
+          beginPageLimits.maxNodes, beginPageLimits.maxDepth, limits.maxPageRows,
           limits.maxCaptureRows, referenceIssuer));
       const isListing = !owner.wholeInput && moon.clientProgramRowSourceIsListing(acquisition);
       // paths=[] is already typed and complete. Do not issue a read grant or
