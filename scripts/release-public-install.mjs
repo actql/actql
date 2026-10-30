@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, lstat, readdir, realpath} from 'node:fs/promises';
 import {join, resolve, dirname, isAbsolute, basename, relative, sep} from 'node:path';
-import {inventory} from './package-release.mjs';
+import {inventory, verifyPackageRelease} from './package-release.mjs';
+import {verifyReleaseSet} from './release-set.mjs';
 import {releaseVersion} from './release-version.mjs';
 
 export const publicNpmRegistry = 'https://registry.npmjs.org/';
@@ -94,10 +95,49 @@ export const pythonConsumerDestination = releaseConsumerDestination;
 export function releaseInstallSelection(args) {
   assert(Array.isArray(args) && args.length >= 1, 'Supply the original RC directory');
   if (args.length === 1) return {kind: 'private-loopback', directory: resolve(args[0])};
-  assert(args.length === 3 && args[1] === '--public-registry',
-    'usage: test-package-release-install.mjs <RC-directory> [--public-registry <externally-retained-release.json-SHA256>]');
+  assert((args.length === 3 || (args.length === 8 && args[3] === '--release-set' && args[6] === '--target')) && args[1] === '--public-registry',
+    'usage: test-package-release-install.mjs <original-RC-directory> [--public-registry <release.json-SHA256> [--release-set <fixed-directory> <upper-SHA256> --target <target-id>]]');
   assert.match(args[2], /^[a-f0-9]{64}$/u, 'Public acceptance needs the exact retained cohort digest');
-  return {kind: 'public-npm', directory: resolve(args[0]), manifestSha256: args[2]};
+  if (args.length === 8) {
+    assert.match(args[5], /^[a-f0-9]{64}$/u, 'Fixed public acceptance needs the externally retained upper digest');
+    assert.match(args[7], /^[a-z][a-z0-9-]*$/u);
+  }
+  return {kind: 'public-npm', directory: resolve(args[0]), manifestSha256: args[2],
+    ...(args.length === 8 ? {releaseSet: {directory: resolve(args[4]), manifestSha256: args[5], targetId: args[7]}} : {})};
+}
+
+export async function verifyPublicNodeReleaseBinding(selection) {
+  assert.equal(selection.kind, 'public-npm');
+  if (!selection.releaseSet) return null; // Historical child-only scope remains explicit.
+  const supplied = selection.releaseSet, fixed = await verifyReleaseSet(supplied.directory,
+    {expectedSha256: supplied.manifestSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === supplied.targetId);
+  assert.equal(target?.ecosystem, 'npm', 'Select the original Node npm target');
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
+  assert.equal(cohort.kind, 'node-npm', 'Native/Python cohorts cannot acquire Node consumer acceptance');
+  assert.equal(cohort.sha256, selection.manifestSha256, 'Original Node child digest differs from the fixed selected target');
+  const original = await readFile(join(selection.directory, 'release.json'));
+  assert.equal(original.length, cohort.bytes);
+  assert.equal(createHash('sha256').update(original).digest('hex'), cohort.sha256);
+  assert.deepEqual(await readFile(join(supplied.directory, cohort.path)), original,
+    'Fixed child differs from the actual original Node cohort');
+  // Keep the COMPLETE original verifier, including development tarballs and
+  // their actual metadata/runtime correspondence. The flat fixed set alone
+  // does not contain those originals and must never trigger reconstruction.
+  const manifest = await verifyPackageRelease(selection.directory);
+  assert.equal(manifest.sourceSha, fixed.manifest.request.source.commit);
+  assert.equal(manifest.cohort.packageVersion, fixed.manifest.release.version);
+  assert.equal(manifest.cohort.registry, target.destination);
+  assert.deepEqual(target.packages, manifest.packages.map(value => value.name));
+  assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node'],
+    'This existing consumer qualifies only the original four-package Node/SDK route');
+  await verifyReleaseSet(supplied.directory, {expectedSha256: supplied.manifestSha256});
+  assert.deepEqual(await readFile(join(selection.directory, 'release.json')), original);
+  return {manifestSha256: fixed.sha256, targetId: target.id, cohortManifestSha256: cohort.sha256,
+    sourceSha: manifest.sourceSha, version: manifest.cohort.packageVersion,
+    requestedPlatforms: [...target.platforms], requestedProfiles: [...target.profiles],
+    artifacts: manifest.packages.map(({name, version, file, bytes, sha256, integrity}) => ({name, version, file, bytes, sha256, integrity})),
+    qualification: 'full original Node cohort byte/lineage binding to exact upper set only; not runtime, approval, platform or release acceptance'};
 }
 
 export function publicConsumerEnvironment(parent, root, node = process.execPath) {
