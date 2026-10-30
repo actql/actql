@@ -1603,6 +1603,32 @@ A forbidden asynchronous constructor remains joined through settlement before
 refusal and cleanup; neither Promise settlement nor a numeric quote is a
 physical cleanup acknowledgement.
 
+The same implementation recipe can select bounded `credentialOperations` by
+the fixed phases `capture-check`, `apply-check`, `resume-check` and `write`.
+Each selects its own declared row operation index; the constructor and other
+phases cannot share that index, even when their operation names match. These
+descriptors retain original typed extents and rejection bounds, not capacity
+or permission inferred from names. Missing complete phase supply refuses.
+
+After adopting the original Request parent, the Host reserves the Plan's
+operation-control inventory on that same Ledger before returning the parent
+to its variable child consumer. A getter does not start this reservation. A
+physical child then reserves its selected occurrence before credential binding,
+and the existing capture retains it before preparation. The original Site
+issuer receives its unchanged authorization; an invocation's separate `useId`
+does not create another grant. CREATE checks, refreshed checks and the claimed
+write remain independently authorized operations. The durable dispatch claim
+still precedes the write child, and raw response custody precedes projection.
+
+Transport accounting observes exact outbound body bytes and every consumed
+binary response chunk before copying or protocol refusal. A response body
+bound and its one-byte refusal window describe a funded read extent, not an
+observed transfer. A failed debit, pending socket/binding close or live request
+alias prevents settlement. A provider's omitted await cannot detach its
+original physical call from the child. Saved recovery needs its actual original
+parent and child retainer; a saved recipe or CID cannot select fresh backing or
+silently restore the legacy physical route.
+
 ## Model demand on the original installed Effect Plan
 
 The Node bridge obtains Model/read/bootstrap bounds through the same checked
