@@ -265,39 +265,18 @@ pub fn original_ledger_prefix_available(
     identity.ledger.original_inventory is Some(value) else {
     return false
   }
-  if value.descriptor_issued ||
-    value.read_claimed ||
-    !value.reservations.is_empty() ||
-    !value.holdings.is_empty() ||
-    !value.delegations.is_empty() {
-    return false
-  }
   if original_inventory_preparation_owned(value) {
     // Only actual preparation-input attempts were exempted at issuance,
     // before the original Run binding. Nothing here rebases consumed counters.
-    let ledger = identity.ledger
-    let usage = ledger.usage
     return value.binding == PreparationBound &&
       original_prefix_attempt_count_is(value, 0) &&
-      usage.reserved_attempts == 0 &&
-      usage.holdings == 0 &&
-      usage.live_reservations == 1 &&
-      usage.live_delegations == 0 &&
-      usage.uncertain_transfer_bytes == 0L &&
-      usage.reserved_transfer_bytes == 0L &&
-      usage.held_bytes == 0L &&
-      usage.reserved_retention_bytes == value.bootstrap.reservation.retention &&
-      usage.reserved_execution_bytes == value.bootstrap.reservation.execution &&
-      ledger.delegated_planning == 0 &&
-      ledger.delegated_attempts == 0 &&
-      ledger.delegated_holdings == 0 &&
-      ledger.quantity_usage ==
-      {
-        reserved: zero_quantities(),
-        uncertain: zero_quantities(),
-        consumed: zero_quantities(),
-      }
+      original_preparation_input_closed(value)
   }
+  !value.descriptor_issued &&
+  !value.read_claimed &&
+  value.reservations.is_empty() &&
+  value.holdings.is_empty() &&
+  value.delegations.is_empty() &&
   identity.ledger.next_capacity_serial == Some(-2) &&
   identity.ledger.next_attempt_serial == Some(0) &&
   identity.ledger.next_holding_serial == Some(0) &&

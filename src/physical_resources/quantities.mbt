@@ -46,9 +46,12 @@ fn subtract_quantities(
 }
 
 ///|
-/// Install exactly once before any attempt, read custody or delegated capacity. Ordinary
-/// ledgers remain unchanged; an installed quantity budget cannot be bypassed
-/// by calling the existing byte-only reservation API.
+/// Install exactly once before Model/read/delegation. Standalone Ledgers keep
+/// their pristine entrance. An original preparation may retain settled input
+/// IO/work, proved by its early private census, never raw token history. The
+/// fixed caller supplies its actual selected limits and backs the installation
+/// frame before entry; byte headroom is not a quantity grant. An installed
+/// budget still cannot be bypassed by a byte-only reservation.
 pub fn configure_quantities(
   ledger : Ledger,
   limits : QuantityAmounts,
@@ -60,11 +63,16 @@ pub fn configure_quantities(
   if !valid_quantities(limits) {
     return Err(InvalidLimits)
   }
-  if ledger.quantity_limits is Some(_) ||
-    ledger.next_attempt_serial != Some(0) ||
-    ledger.delegated_attempts != 0 ||
-    ledger.next_capacity_serial != Some(-1) {
+  if ledger.quantity_limits is Some(_) || ledger.delegated_attempts != 0 {
     return Err(InvalidCharge)
+  }
+  if ledger.next_attempt_serial != Some(0) ||
+    ledger.next_capacity_serial != Some(-1) {
+    guard ledger.original_inventory is Some(value) &&
+      value.binding == PreparationUnbound &&
+      original_preparation_input_closed(value) else {
+      return Err(InvalidCharge)
+    }
   }
   ledger.quantity_limits = Some(limits)
   Ok(())

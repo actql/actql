@@ -64,6 +64,41 @@ fn original_prefix_attempt_count_is(
 }
 
 ///|
+// One closed-input predicate for first-prefix use and one-time quantity
+// installation. It observes actual custody, never an input-reported aggregate.
+// Spent byte/work/attempt history remains on this SAME preparation Ledger.
+fn original_preparation_input_closed(value : LedgerOriginalInventory) -> Bool {
+  let ledger = value.identity.ledger
+  let usage = ledger.usage
+  !value.closing &&
+  value.park is None &&
+  !value.descriptor_issued &&
+  !value.read_claimed &&
+  value.reservations.is_empty() &&
+  value.holdings.is_empty() &&
+  value.delegations.is_empty() &&
+  capacity_reservation_open(value.bootstrap) &&
+  usage.reserved_attempts == 0 &&
+  usage.holdings == 0 &&
+  usage.live_reservations == 1 &&
+  usage.live_delegations == 0 &&
+  usage.uncertain_transfer_bytes == 0L &&
+  usage.reserved_transfer_bytes == 0L &&
+  usage.held_bytes == 0L &&
+  usage.reserved_retention_bytes == value.bootstrap.reservation.retention &&
+  usage.reserved_execution_bytes == value.bootstrap.reservation.execution &&
+  ledger.delegated_planning == 0 &&
+  ledger.delegated_attempts == 0 &&
+  ledger.delegated_holdings == 0 &&
+  ledger.quantity_usage ==
+  {
+    reserved: zero_quantities(),
+    uncertain: zero_quantities(),
+    consumed: zero_quantities(),
+  }
+}
+
+///|
 fn[I, P] preparation_capacity_inventory_open(
   owner : PreparationCapacity[I, P],
 ) -> Bool {

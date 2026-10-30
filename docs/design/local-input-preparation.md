@@ -3965,6 +3965,24 @@ opportunity. This offset is one resident census scalar, funded by the existing
 Resource-owned initial representation dimensions and common tariff. It is not
 a copied usage ledger or a successful aggregate substitute for original tokens.
 
+Model quantity limits may be selected after the checked Program exists, while
+the same Request already retains its input preparation. The existing
+`configure_quantities` setter recognizes only that early preparation-owned,
+unbound census with completed known input custody. It shares the closed-input
+predicate with first-prefix use. A raw token, live child, uncertain transfer,
+Run binding, descriptor, read or closing census cannot use this entrance.
+Standalone Ledgers retain the original pristine-serial requirement.
+
+Configuration remains one-time and uses the existing original-current boundary
+and setter. Already configured limits are compared by later Model startup,
+never replaced or refilled. Input work, attempts, transfer and serial history
+stay charged. The actual provider/checked execution-contract intersection
+still supplies the limits; byte capacity cannot manufacture a quantity budget.
+The fixed domain must back the configuration frame and retained limits carrier
+before entry, together with its complete Model construction/read envelope.
+This Resource entrance does not provide that physical recipe, a normal Model
+constructor or dispatch authority.
+
 
 ### Keyed Content construction on the original Request
 
