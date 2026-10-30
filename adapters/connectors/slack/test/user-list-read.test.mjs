@@ -99,7 +99,7 @@ test('Slack repeated cursors and incomplete page or total row bounds refuse with
     if(mode==='rows')limits.maxTotalRows=1;
     const code={cursor:'SlackUserListRepeatedCursor',pages:'SlackUserListPageLimit',rows:'SlackUserListRowLimit'}[mode];
     await assert.rejects(f.create({limits}).read(),error=>error.cause.code===code);
-    assert.equal(f.state.requests.length,mode==='pages'?2:3);f.row.assertNoCapture();
+    assert.equal(f.state.requests.length,mode==='cursor'?3:2);f.row.assertNoCapture();
   }
 });
 
