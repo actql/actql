@@ -27,6 +27,8 @@ pub fn calendar_events_metadata_wire(CalendarEventsPage, Int, Int, Int) -> Resul
 
 pub fn calendar_events_query_wire(CalendarEventsQuery, Int, Int, Int) -> Result[String, CalendarEventsIssue]
 
+pub fn calendar_events_request_schema_wire(Int, Int, Int) -> Result[String, CalendarEventsIssue]
+
 pub fn calendar_events_row_count(CalendarEventsPage) -> Int
 
 pub fn calendar_events_rows_wire(CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, CalendarEventsIssue]
@@ -66,6 +68,8 @@ pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo
 pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool
 
 pub fn prepare_calendar_events_query(String, String, String, String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]
+
+pub fn prepare_calendar_events_request(String, @calendar_profile.Profile, CalendarEventsLimits) -> Result[CalendarEventsQuery, CalendarEventsIssue]
 
 pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]
 
