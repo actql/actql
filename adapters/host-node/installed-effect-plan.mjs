@@ -56,14 +56,14 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
-    if (!Array.isArray(values) || values.length < 1 || values.length > 4) fail('InvalidInstalledEffectPlanRecipe');
+    if (!Array.isArray(values) || values.length < 1 || values.length > 5) fail('InvalidInstalledEffectPlanRecipe');
     const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
     const phases = new Set(), indexes = new Set(requestConstruction === undefined ? [] : [requestConstruction.operationIndex]);
     credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
       const entry = own(entries[String(index)].value, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes']);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
-      if (!['capture-check', 'apply-check', 'resume-check', 'write'].includes(phase) || phases.has(phase) ||
+      if (!['capture-check', 'apply-check', 'resume-check', 'write-check', 'write'].includes(phase) || phases.has(phase) ||
           !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length ||
           indexes.has(operationIndex) || ![maxRequestBytes,maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
         fail('InvalidInstalledEffectPlanRecipe');

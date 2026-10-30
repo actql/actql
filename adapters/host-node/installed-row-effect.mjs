@@ -435,8 +435,10 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
   if (check !== undefined) {
     const resource = data(check, 'resource'), operation = data(check, 'operation');
     const request = data(check, 'request');
-    if (!text(resource) || !text(operation) || typeof request !== 'function') fail();
-    checkOptions = {check: Object.freeze({resource, operation}),
+    const beforeSend = data(check, 'beforeSend', true);
+    if (!text(resource) || !text(operation) || typeof request !== 'function' ||
+        (beforeSend !== undefined && typeof beforeSend !== 'boolean')) fail();
+    checkOptions = {check: Object.freeze({resource, operation, ...(beforeSend === true ? {beforeSend} : {})}),
       checkRequest: context => Reflect.apply(request, check, [context])};
   }
   const originals = new WeakMap();
@@ -627,6 +629,39 @@ function checkDriver(driver) {
   return driver;
 }
 
+// Optional fixed CREATE check repeated immediately before its mutation. This
+// captures the original pure descriptor/callback, not a read decision/grant.
+// The corresponding DISTINCT physical occurrence must already be declared.
+function captureBeforeSendCheck(driver, recipe) {
+  const selected = recipe?.credentialOperations?.find(entry => entry.phase === 'write-check');
+  const checkField = Object.getOwnPropertyDescriptor(driver, 'check');
+  const check = checkField !== undefined && Object.hasOwn(checkField, 'value') ? checkField.value : undefined;
+  if (check === undefined) {
+    if (selected !== undefined) fail('InstalledEffectWriteCheckUnavailable');
+    return undefined;
+  }
+  if (nodeTypes.isProxy(check)) fail('InvalidInstalledEffectWriteCheck');
+  const flag = Object.getOwnPropertyDescriptor(check, 'beforeSend');
+  if (flag === undefined || (Object.hasOwn(flag, 'value') && flag.value === false)) {
+    if (selected !== undefined) fail('InstalledEffectWriteCheckUnavailable');
+    return undefined;
+  }
+  if (!Object.hasOwn(flag, 'value') || flag.value !== true || !Object.isFrozen(check) ||
+      !Object.hasOwn(checkField, 'value') || selected === undefined ||
+      driver.kinds.length !== 1 || driver.kinds[0] !== 'create') fail('InvalidInstalledEffectWriteCheck');
+  const fields = Object.getOwnPropertyDescriptors(check);
+  const request = Object.getOwnPropertyDescriptor(driver, 'checkRequest');
+  if (Reflect.ownKeys(fields).length !== 3 ||
+      ['resource','operation','beforeSend'].some(name => !Object.hasOwn(fields[name] ?? {}, 'value')) ||
+      !text(fields.resource.value) || !text(fields.operation.value) ||
+      !request || !Object.hasOwn(request, 'value') || typeof request.value !== 'function' ||
+      recipe.rowOperations[selected.operationIndex].operation !== fields.operation.value) {
+    fail('InvalidInstalledEffectWriteCheck');
+  }
+  return Object.freeze({resource: fields.resource.value, operation: fields.operation.value,
+    request: request.value, receiver: driver});
+}
+
 // The identity profile of an installation: the one its connector registered
 // in the installed connector table, or the common default. Only an entry of
 // the generated table or a snapshot admitted by the table owner is accepted.
@@ -697,6 +732,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     : deriveInstalledRowWrite(write, connectorRegistration));
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const planRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
+  const beforeSendCheck = captureBeforeSendCheck(owned, planRecipe);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
       mappings.length + commands.length === 0 ||
@@ -770,7 +806,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
-    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, issueOriginalCollectionReference})], environmentWire);
+    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, beforeSendCheck,
+    issueOriginalCollectionReference})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -1463,7 +1500,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                 expected[field] !== claim[field])) {
             fail('InvalidInstalledRowEffectDispatch');
           }
-          const {owned, site, managedPlanRecipe} = ownerOf(member);
+          const {owned, site, managedPlanRecipe, beforeSendCheck} = ownerOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
           const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
@@ -1484,13 +1521,34 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               const useId = `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`;
               if (managedPlanRecipe?.credentialOperations !== undefined) {
                 if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-                return physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
+                const send = () => physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
                   operation: owned.writeOperation(member), site, originalAuthorization: grant, useId,
                   resource: member.resource, purpose: 'effect', runInvocationCid,
                   dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
                   invoke: ({authorization, credential, callResource}) =>
                     owned.send({member, request: entry.request, current: now[memberIndex],
                       authorization, credential, callResource, signal, ...resourceFields(member)})});
+                if (beforeSendCheck === undefined) return send();
+                return (async () => {
+                  // The SAME durable dispatch already owns this possible send.
+                  // A fresh acquisition decision is still required for Form
+                  // access; effect commit cannot stand in for a read grant.
+                  const decision = await readDecision(member, beforeSendCheck.resource,
+                    subjectCid, signal, assertClaimedCurrent);
+                  assertClaimedCurrent();
+                  const originalAuthorization = site.issueReadGrant({operation: beforeSendCheck.operation,
+                    decision, resource: beforeSendCheck.resource, runInvocationCid,
+                    dispatchRequestCid: dispatches[memberIndex], maxUses: 1});
+                  await physicalOperations({member, rowIndex: sourceIndex, phase: 'write-check',
+                    operation: beforeSendCheck.operation, site, originalAuthorization,
+                    useId: `${dispatches[memberIndex]}-write-check-${subjectCid}-${rowIndex}`,
+                    resource: beforeSendCheck.resource, purpose: 'read', runInvocationCid,
+                    dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
+                    invoke: context => Reflect.apply(beforeSendCheck.request, beforeSendCheck.receiver,
+                      [{member, request: entry.request, ...context, signal}])});
+                  assertClaimedCurrent();
+                  return send();
+                })();
               }
               return owned.send({member, request: entry.request, current: now[memberIndex],
                 authorization: {...grant, useId}, credential: site.credential,
