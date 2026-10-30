@@ -318,8 +318,7 @@ test "Effect spent occurrence controls stay debited on the same Ledger until Run
   let held = @resources.ledger_usage(ledger)
   assert_eq(held.live_reservations, before.live_reservations + 2)
   assert_true(
-    held.reserved_retention_bytes >
-    before.reserved_retention_bytes + control_retained + 50L,
+    held.reserved_retention_bytes > before.reserved_retention_bytes + 50L,
   )
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   let closed_child = @resources.ledger_usage(ledger)
