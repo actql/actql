@@ -182,7 +182,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "npm and one-project Python protocols retain fixed bytes, synced intent, explicit original terminal status and independent public readback. npm requires code0/signalnull and keeps signalled or unreported outcomes Unknown; the Python facade waits for exact public SDK/runtime. Original private runner/job failures and receipt-write errors retain their cleanup duty. Lost responses stay Unknown and confirmed bytes are not resent. Actual protected executor, owner approval, signing/provenance/publication/recovery acceptance remain pending",
+      "currentSlice": "npm, one-project Python and Native Draft protocols preserve fixed original bytes, durable intent, original terminal status and independent complete byte readback. Python facade waits for exact SDK/runtime; Native uses original owner-visible Draft/settings/upload route and explicitly avoids Latest. Lost replies remain Unknown, confirmed bytes are not resent, and original private runner/job/mutation failures and receipt-write errors retain their cleanup duty. Actual protected executor, owner approval, signing/provenance/publication/recovery acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -220,13 +220,21 @@
         {
           "kind": "Existing cold wheel reader with inert job and physical receipt-write refusal controls only; no PyPI action, live child settlement or signing",
           "test": "Python publish failure custody: Unknown receipt write refusal retains BOTH original job failure and physical write error"
+        },
+        {
+          "kind": "Full inert Native archive/ABI reader with injected owner/mutation responses only; no executable, credential, real GitHub mutation or approval",
+          "test": "Native publish: lost create upload or publish terminal reply stays failed, next same-byte attempt never resends confirmed work"
+        },
+        {
+          "kind": "Inert original mutation and physical receipt-write refusal component only; no live request settlement, credentials, actual GitHub API or publication",
+          "test": "Native mutation failure custody: refused Unknown write keeps its physical error and SAME private original"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Public and pending npm byte readers reject conflicting length/SHA256/SRI or immutable stage identity before send. Existing PyPI/Native checks remain; actual protected executor/live candidate acceptance remains pending",
+      "currentSlice": "Public/pending npm and Native Draft readers reject conflicting original length/digest/identity before send. Mutable or incomplete published Native releases cannot be repaired by append/delete/replace. Existing PyPI checks remain; actual protected executor/live candidate acceptance remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
