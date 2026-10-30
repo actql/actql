@@ -505,7 +505,13 @@ pub fn restore_accounted_client_source_capture(
   }
   let quantities = installed_capture_capacity_values(capacity)
   let reservation = match
-    @resources.reserve_attempt(ledger, 0L, quantities[0], quantities[1]) {
+    @resources.reserve_attempt(
+      ledger,
+      0L,
+      quantities[0],
+      quantities[1],
+      quantities=@resources.quantity_neutral_amounts(ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }

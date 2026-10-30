@@ -132,7 +132,13 @@ fn start_client_keyed_lookup_input_owned(
   // Admit the existing layout/workspace envelope before materializing the
   // input buffer. The original per-key holdings are independent live owners.
   let reserve = match
-    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
+    @resources.reserve_attempt(
+      ledger,
+      0L,
+      retained_bytes,
+      execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }

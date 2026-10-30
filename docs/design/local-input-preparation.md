@@ -3983,6 +3983,24 @@ before entry, together with its complete Model construction/read envelope.
 This Resource entrance does not provide that physical recipe, a normal Model
 constructor or dispatch authority.
 
+Input IO, Source reads, captured restoration, keyed assembly and the checked
+serialization prefix do not consume Model token/cost/duration quantities.
+Their existing owners explicitly pass `quantity_neutral_amounts` to the same
+reservation allocator. Without a quantity budget it returns None; with one it
+borrows fixed immutable zero-amount DATA from the Resource module baseline.
+No per-child Some/amount body, new Ledger or remembered Allow is created.
+This projection is not evidence that arbitrary work is non-Model: the actual
+selected constructor establishes that meaning, and Model startup retains its
+original selected per-attempt quantity quote.
+
+The existing reservation still observes current configuration and all attempt,
+transfer, byte and quantity limits. A projection made before reentrant quantity
+configuration cannot turn missing quantities into a waiver. Generic quantity
+omission remains invalid when configured, and even neutral work refuses an
+already exceeded Model quantity ceiling. Original Source/capture/provider
+currentness, authorization, page and cleanup duties are unchanged. Source
+duration/listing limits also remain their separate original boundaries.
+
 
 ### Keyed Content construction on the original Request
 

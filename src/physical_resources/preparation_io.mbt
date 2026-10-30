@@ -43,7 +43,7 @@ pub fn[I, P] begin_preparation_io(
         transfer_bytes,
         0L,
         0L,
-        None,
+        quantity_neutral_amounts(owner.ledger),
         preparation_input=true,
       )
   }

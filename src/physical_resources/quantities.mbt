@@ -94,6 +94,25 @@ pub fn quantity_configuration_matches(
 }
 
 ///|
+/// DATA for an already selected operation that consumes no Model quantities.
+/// Source/input/serialization owners still reserve their actual attempts,
+/// transfer and bytes on this SAME Ledger. This is not a reservation, proof
+/// of non-Model work or permission to replace a Model's actual quantity quote.
+/// The ordinary reservation rechecks current configuration and all limits.
+pub fn quantity_neutral_amounts(ledger : Ledger) -> QuantityAmounts? {
+  match ledger.quantity_limits {
+    None => None
+    Some(_) => no_model_quantity_amounts
+  }
+}
+
+///|
+// Fixed immutable module DATA, not a remembered admission. Every reservation
+// already owns its optional amount reference; neutral Source children borrow
+// this same value rather than allocate a new Some/amount at each constructor.
+let no_model_quantity_amounts : QuantityAmounts? = Some(zero_quantities())
+
+///|
 fn check_quantity_reservation(
   ledger : Ledger,
   amount : QuantityAmounts?,
