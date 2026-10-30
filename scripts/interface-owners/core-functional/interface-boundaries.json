@@ -8585,7 +8585,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9384,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28136,11 +28136,15 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2cc325bc844484f0be7679f43381fa200fcfa1e8902df7088c1150aed88c1e4b",
+      "sha256": "da87454d8d23fd83a61a81dfc10b00c2419bf20791b73fdb0a702217dd4bbd93",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]finish_request_computation_check",
+          "declaration": "[ I ] finish_request_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
         {
           "name": "[I]finish_request_computation_preparation",
           "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , update_targets ? : @ update_targets . UpdateTargetPublication ?"
@@ -28155,7 +28159,8 @@
           "operations": [
             "<module>",
             "[I]finish_request_computation_preparation",
-            "[I]prepare_request_computation_check_preparation"
+            "[I]prepare_request_computation_check_preparation",
+            "[I]finish_request_computation_check"
           ],
           "exports": [],
           "attributes": {
@@ -28271,7 +28276,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d6642ee41567c5e27404b6f9dfee8ace97854a653cd57f883030f210c7c80e53",
+      "sha256": "3875bb01be86c3349e7714b538d9c3d62ba258d509d55529f156ead3e1875f5e",
       "role": "common-semantics",
       "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
       "exports": [],
@@ -28281,8 +28286,32 @@
           "declaration": "[ I , T ] prepare_request_native_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
         },
         {
+          "name": "[I,T]prepare_request_native_computation_check",
+          "declaration": "[ I , T ] prepare_request_native_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]finish_request_checked_computation",
+          "declaration": "[ I ] finish_request_checked_computation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]finish_request_checked_computation_targets",
+          "declaration": "[ I ] finish_request_checked_computation_targets ( owner : ClientRequestPreparation [ I ] , input : I , update : @ update_targets . UpdateTargetPublication ? , store : @ update_targets . StoreTargetPublication ? , command : @ update_targets . CommandTargetPublication ? , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
           "name": "[I]finish_request_original_computation",
           "declaration": "[ I ] finish_request_original_computation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_original_computation_check",
+          "declaration": "[ I ] prepare_request_original_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_original_computation_check_owned",
+          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]request_preparation_parameters_original",
@@ -28299,7 +28328,13 @@
             "<module>",
             "[I,T]prepare_request_native_computation",
             "[I]request_preparation_parameters_original",
-            "[I]request_prepared_computation_kind"
+            "[I]request_prepared_computation_kind",
+            "[I,T]prepare_request_native_computation_check",
+            "[I,T]prepare_request_native_computation_input",
+            "[I]finish_request_checked_computation",
+            "[I]finish_request_checked_computation_targets",
+            "[I]prepare_request_original_computation_check",
+            "[I]prepare_request_original_computation_check_owned"
           ],
           "exports": [],
           "attributes": {
@@ -28307,54 +28342,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
               }
             ],
             "verification": [
@@ -28369,6 +28440,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal generic Native Request prepares"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"native policy boundary"
               }
             ]
           }
@@ -33611,12 +33690,16 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "c3b0b3826770ec45ec6db943bc3cfe09b64ea5ef9f1bd03cbfc236b0635c23f8",
+      "sha256": "528f1978a5fcd6cb9c1313ec2c04c8f5778e331963da73808fdae9e96a204155",
       "exports": [],
       "operations": [
         {
           "name": "[I,T]prepare_request_native_query_computation",
           "declaration": "[ I , T ] prepare_request_native_query_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_query_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , supplied ? : T ?"
         },
         {
           "name": "[I,T]prepare_request_native_query_input",
@@ -33625,6 +33708,14 @@
         {
           "name": "[I,T]prepare_request_native_source_computation",
           "declaration": "[ I , T ] prepare_request_native_source_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_source_computation_check",
+          "declaration": "[ I , T ] prepare_request_native_source_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I,T]prepare_request_native_source_computation_input",
+          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , limits : @ syntax . Limits , supplied ? : T ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -33637,7 +33728,10 @@
             "<module>",
             "[I,T]prepare_request_native_query_computation",
             "[I,T]prepare_request_native_query_input",
-            "[I,T]prepare_request_native_source_computation"
+            "[I,T]prepare_request_native_source_computation",
+            "[I,T]prepare_request_native_query_computation_input",
+            "[I,T]prepare_request_native_source_computation_check",
+            "[I,T]prepare_request_native_source_computation_input"
           ],
           "exports": [],
           "attributes": {
@@ -33809,7 +33903,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
-      "sha256": "d339071e3ef8165c1c0a5f8230bbaa78443ee8abb80aba0f8246bce346aabef3",
+      "sha256": "109a882073b00c9e18e0e759d03f9d857c4223e37ef488fb860ef10cb89fc2c6",
       "exports": [],
       "operations": [
         {
@@ -33858,54 +33952,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ],
             "verification": [
@@ -33916,6 +34046,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
               }
             ]
           }
@@ -34164,12 +34298,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_document.mbt",
-      "sha256": "f4ff66c868fe6c040cb6f8679a187ecdb12f09c1e873b24dd67c6fbbe3ccb955",
+      "sha256": "0628e53b68e15d3293e7ec1f92edfad3e7fb897694de50805693eaaf495bea9a",
       "exports": [],
       "operations": [
         {
-          "name": "[I]prepare_request_document_computation",
-          "declaration": "[ I ] prepare_request_document_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+          "name": "[I]prepare_request_document_computation_input",
+          "declaration": "[ I ] prepare_request_document_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , limits : @ syntax . Limits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]prepare_request_document_input",
@@ -34188,9 +34322,9 @@
         {
           "operations": [
             "<module>",
-            "[I]prepare_request_document_computation",
             "[I]prepare_request_document_input",
-            "request_document_parse_bytes"
+            "request_document_parse_bytes",
+            "[I]prepare_request_document_computation_input"
           ],
           "exports": [],
           "attributes": {
@@ -34265,7 +34399,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1378e3f244f984178b2115eba62e7564526135bcfb7e75f8f7a24cf98d433d6f",
+      "sha256": "1bd84128506dc8f8cc90e39d172d9a3157c25ae24d6c3e286b92c07f61d68e46",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -34297,6 +34431,10 @@
         {
           "name": "client_program_begin_request_preparation",
           "declaration": "client_program_begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_bind_request_policy_subject",
+          "declaration": "client_program_bind_request_policy_subject ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , index : Int , policy_cid : String ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_borrow_request_effect_plan_input",
@@ -34348,7 +34486,11 @@
         },
         {
           "name": "client_program_finish_request_computation",
-          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_finish_request_policy_subjects",
+          "declaration": "client_program_finish_request_policy_subjects ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_finish_request_submitted_intent",
@@ -34420,11 +34562,15 @@
         },
         {
           "name": "client_program_prepare_request_native_computation",
-          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_prepare_request_native_program_input",
           "declaration": "client_program_prepare_request_native_program_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_policy_subjects",
+          "declaration": "client_program_prepare_request_policy_subjects ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , ) - > Result [ Int , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_prepare_request_program_check",
@@ -34440,7 +34586,7 @@
         },
         {
           "name": "client_program_prepare_request_source_computation",
-          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_prepare_request_submitted_intent",
@@ -34449,6 +34595,10 @@
         {
           "name": "client_program_prepared_request_query_lowering",
           "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_read_request_policy_subject",
+          "declaration": "client_program_read_request_policy_subject ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , index : Int , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
           "name": "client_program_reconcile_program_check_carriers",
@@ -34582,7 +34732,11 @@
             "client_program_request_submitted_intent_original",
             "client_program_reserve_request_snapshot",
             "strategy_begin_original_effect_free_captured_run",
-            "strategy_captured_run_preparation_limits"
+            "strategy_captured_run_preparation_limits",
+            "client_program_bind_request_policy_subject",
+            "client_program_finish_request_policy_subjects",
+            "client_program_prepare_request_policy_subjects",
+            "client_program_read_request_policy_subject"
           ],
           "exports": [],
           "attributes": {
@@ -40499,6 +40653,271 @@
         }
       ],
       "referenceQualification": "Original Source read contract and receipts remain unchanged. New Request captured-module delegate and its underlying captured compilation case are SOURCE/FORMAT ONLY; Core/Node canonical API generation, compiler, external ABI and actual normal caller/backing remain UNEXECUTED."
+    },
+    {
+      "module": "src/program_check/request_policy_subject_preparation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "6a773cb29c38dec85fb97b515daa9d2ae4911cbc3fd0fe659213aabe8dd8baff",
+      "role": "common-semantics",
+      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_request_policy_subjects",
+          "declaration": "begin_request_policy_subjects ( original : CheckedProgram , limits : CompileLimits , ) - > RequestPolicySubjectPreparation raise UnitBuildFailure"
+        },
+        {
+          "name": "bind_prepared_request_policy_subject",
+          "declaration": "bind_prepared_request_policy_subject ( prepared : RequestPolicySubjectPreparation , index : Int , policy_cid : String ? , ) - > HostRequestValuePolicyEvidence ? raise UnitBuildFailure"
+        },
+        {
+          "name": "construct_request_policy_subjects",
+          "declaration": "construct_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
+        },
+        {
+          "name": "measure_request_policy_subjects",
+          "declaration": "measure_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subject_bindings_complete",
+          "declaration": "request_policy_subject_bindings_complete ( prepared : RequestPolicySubjectPreparation , ) - > Bool"
+        },
+        {
+          "name": "request_policy_subject_count",
+          "declaration": "request_policy_subject_count ( prepared : RequestPolicySubjectPreparation , ) - > Int"
+        },
+        {
+          "name": "request_policy_subject_output_extent",
+          "declaration": "request_policy_subject_output_extent ( prepared : RequestPolicySubjectPreparation , ) - > ( Int64 , Int64 , Int ) raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subject_wire",
+          "declaration": "request_policy_subject_wire ( prepared : RequestPolicySubjectPreparation , index : Int , ) - > String raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subjects_spent_work",
+          "declaration": "request_policy_subjects_spent_work ( prepared : RequestPolicySubjectPreparation , ) - > Int64"
+        },
+        {
+          "name": "retire_request_policy_subjects",
+          "declaration": "retire_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_request_policy_subjects",
+            "bind_prepared_request_policy_subject",
+            "construct_request_policy_subjects",
+            "measure_request_policy_subjects",
+            "request_policy_subject_bindings_complete",
+            "request_policy_subject_count",
+            "request_policy_subject_output_extent",
+            "request_policy_subject_wire",
+            "request_policy_subjects_spent_work",
+            "retire_request_policy_subjects"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "src/program_check/request_policy_subject_preparation_wbtest.mbt",
+                "anchor": "test \"request policy subjects preserve the exact legacy logical bound"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_policy_subjects.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e221e965c60f41602bcf5a834b58c5aa1cfe2d5516395ba4e119f9cd14391ccf",
+      "role": "common-semantics",
+      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]bind_request_computation_policy_subject",
+          "declaration": "[ I ] bind_request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , policy_cid : String ? , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]charge_request_policy_subjects",
+          "declaration": "[ I ] charge_request_policy_subjects ( child : ClientProgramCheckPreparation [ I , Unit ] , before : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]finish_request_computation_policy_subjects",
+          "declaration": "[ I ] finish_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]grow_request_policy_subjects",
+          "declaration": "[ I ] grow_request_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , bytes : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_computation_policy_subjects",
+          "declaration": "[ I ] prepare_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_policy_subjects_owned",
+          "declaration": "[ I ] prepare_request_policy_subjects_owned ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , prelude_bytes : Int64 , inspection : Int , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_computation_policy_subject",
+          "declaration": "[ I ] request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_policy_subject_prelude_bytes",
+          "declaration": "[ I ] request_policy_subject_prelude_bytes ( owner : ClientRequestPreparation [ I ] , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , limits : @ checked . CompileLimits , ) - > ( Int64 , Int ) ?"
+        },
+        {
+          "name": "request_policy_subject_output_bytes",
+          "declaration": "request_policy_subject_output_bytes ( original : @ checked . RequestPolicySubjectPreparation , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]bind_request_computation_policy_subject",
+            "[I]charge_request_policy_subjects",
+            "[I]finish_request_computation_policy_subjects",
+            "[I]grow_request_policy_subjects",
+            "[I]prepare_request_computation_policy_subjects",
+            "[I]prepare_request_policy_subjects_owned",
+            "[I]request_computation_policy_subject",
+            "[I]request_policy_subject_prelude_bytes",
+            "request_policy_subject_output_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_policy_check_js_wbtest.mbt",
+                "anchor": "test \"funded policy subjects"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
     }
   ]
 }

@@ -60,6 +60,7 @@ pub(all) enum PreparationWorkPhase {
   PublicationProof
   // Appended to preserve existing constructor tags; execution ordering is below.
   RequestValuePolicyCheck
+  RequestPolicySubjectPreparation
 } derive(Eq, Debug)
 
 ///|
@@ -194,10 +195,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     SourceTopologyEntry => 50
     SourceTopologyBody => 51
     SemanticCheck => 52
-    RequestValuePolicyCheck => 53
-    LowerAndGraph => 54
-    ExecutionPlan => 55
-    PublicationProof => 56
+    RequestPolicySubjectPreparation => 53
+    RequestValuePolicyCheck => 54
+    LowerAndGraph => 55
+    ExecutionPlan => 56
+    PublicationProof => 57
   }
 }
 
