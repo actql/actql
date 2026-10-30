@@ -73,9 +73,9 @@ test "keyed UPSERT response keeps the selected original branch and independent w
       100,
       10,
     ).unwrap()
-    assert_eq(
-      @json.object_field(admitted, "action"),
-      Some(@json.String(if present { "updated" } else { "created" })),
+    assert_true(
+      @json.object_field(admitted, "action") is Some(@json.String(action)) &&
+      action == (if present { "updated" } else { "created" }),
     )
     assert_eq(
       record_key_upsert_effect_outcome_wire(outcome),
