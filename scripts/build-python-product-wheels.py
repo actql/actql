@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from email.parser import BytesParser
 import hashlib
 import importlib.util
@@ -15,7 +16,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
-from python_release_cohort import read_cohort
+from python_release_cohort import (read_cohort, select_release_version,
+                                   release_project_metadata, release_runtime_metadata)
 from python_interface_inventory import wheel_source_correspondence
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,12 +86,17 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
 
 
 def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path, *,
-                             selected_recipe: _SelectedImageRecipe | None = None) -> dict[str, str]:
+                             selected_recipe: _SelectedImageRecipe | None = None,
+                             release_manifest: bytes | None = None) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
                      'client_host_wasm.wasm', 'libduckdb.dylib',
                      'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
+            if name == 'artifact.json' and release_manifest is not None:
+                if archive.read('actql_local_runtime/' + name) != release_manifest:
+                    raise ValueError('Python wheel release metadata differs from its fixed projection')
+                continue
             original = artifact / name
             info = archive.getinfo('actql_local_runtime/' + name)
             if info.file_size != original.stat().st_size:
@@ -172,12 +179,14 @@ def copy_source(source: str, original: Path, target: Path) -> None:
     target.write_bytes(expected)
 
 
-def build(artifact: Path, destination: Path, *, bindings_source: Path | None = None,
+def build(artifact: Path, destination: Path, *, version: str, bindings_source: Path | None = None,
           native_libraries: Path | None = None) -> dict[str, object]:
+    release = select_release_version(version)
+    version = str(release['pythonVersion'])
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Build Python wheels from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    version = read_cohort(ROOT)
+    source_version = read_cohort(ROOT)
     subprocess.run(['node', str(ROOT / 'scripts/check-interface-owners.mjs'),
                     '--manifest', 'packages/python-product/pyproject.toml',
                     '--manifest', 'packages/python-sdk/pyproject.toml',
@@ -189,10 +198,9 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path | None = N
     recipe = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recipe)
     components = recipe.verify_artifact(artifact)
-    artifact_digest = sha256(artifact / 'artifact.json')
+    original_components = components
+    source_artifact_digest = sha256(artifact / 'artifact.json')
     artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
-    capacity = (None if components.image_recipe.runtime_allocation == 'platform'
-                else host_capacity_original(source, components))
     destination.mkdir()
     stages = destination / 'stages'
     stages.mkdir()
@@ -213,6 +221,39 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path | None = N
         for name in tracked:
             path = ROOT / name
             copy_source(source, path, stage / path.relative_to(original))
+    transforms = []
+    for package, distribution in [('python-product', 'actql'), ('python-sdk', 'actql-sdk'),
+                                  ('python-local-runtime', 'actql-local-runtime')]:
+        path = stages / package / 'pyproject.toml'
+        before = path.read_bytes()
+        after = release_project_metadata(before, distribution, source_version, version)
+        path.write_bytes(after)
+        transforms.append({'file': path.relative_to(destination).as_posix(),
+                           'before_sha256': hashlib.sha256(before).hexdigest(),
+                           'after_sha256': hashlib.sha256(after).hexdigest()})
+    runtime_root = runtime / 'src/actql_local_runtime'
+    manifest = runtime_root / 'artifact.json'
+    before = manifest.read_bytes()
+    if hashlib.sha256(before).hexdigest() != source_artifact_digest:
+        raise ValueError('Original runtime metadata changed before version staging')
+    after = release_runtime_metadata(before, source, source_version, version)
+    release_manifest = after
+    manifest.write_bytes(after)
+    transforms.append({'file': manifest.relative_to(destination).as_posix(),
+                       'before_sha256': source_artifact_digest,
+                       'after_sha256': hashlib.sha256(after).hexdigest()})
+    components = recipe.inspect_local_components(runtime_root, package_version=version)
+    if (components.source_sha != original_components.source_sha
+            or components.module_sha256 != original_components.module_sha256
+            or components.duckdb_sha256 != original_components.duckdb_sha256
+            or components.image_sha256 != original_components.image_sha256
+            or components.image_bytes != original_components.image_bytes
+            or components.engine_recipe_sha256 != original_components.engine_recipe_sha256
+            or components.image_recipe != replace(original_components.image_recipe, package_version=version)):
+        raise ValueError('Python release staging changed original runtime components or recipe')
+    artifact_digest = sha256(manifest)
+    capacity = (None if components.image_recipe.runtime_allocation == 'platform'
+                else host_capacity_original(source, components))
     binding_body = {'source_sha': source, 'package_version': version,
         'core_abi': artifact_body['core_abi'], 'artifact_sha256': artifact_digest}
     if capacity is None:
@@ -245,7 +286,7 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path | None = N
                 sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
             verified_components = runtime_wheel_components(wheel, artifact, runtime,
-                selected_recipe=components.image_recipe)
+                selected_recipe=components.image_recipe, release_manifest=release_manifest)
         wheel_source_correspondence(ROOT, wheel,
             'packages/' + package + '/pyproject.toml', source, verified_components)
         records.append({'distribution': distribution, 'file': wheel.name,
@@ -256,15 +297,21 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path | None = N
     # Reinspect the same original artifact after copying/building. Wheel success
     # is component packaging evidence, never Core execution or public acceptance.
     final = recipe.verify_artifact(artifact)
-    if final != components or sha256(artifact / 'artifact.json') != artifact_digest:
+    if final != original_components or sha256(artifact / 'artifact.json') != source_artifact_digest:
         raise ValueError('Python cohort original components changed during build')
+    if (manifest.read_bytes() != release_manifest
+            or recipe.inspect_local_components(runtime_root, package_version=version) != components):
+        raise ValueError('Python release stage changed during wheel construction')
     result: dict[str, object] = {'source_sha': source, 'package_version': version,
         'artifact_sha256': artifact_digest,
         'platform': artifact_body['platform'], 'core_abi': artifact_body['core_abi'],
         'module_sha256': components.module_sha256, 'duckdb_sha256': components.duckdb_sha256,
         'image_sha256': components.image_sha256, 'engine_recipe_sha256': components.engine_recipe_sha256,
         'host_capacity_sha256': None if capacity is None else hashlib.sha256(capacity).hexdigest(),
-        'wheels': records, 'runtime_executed': False, 'public_local_accepted': False,
+        'wheels': records, 'release_metadata': {'version': release['version'],
+            'source_package_version': source_version, 'source_artifact_sha256': source_artifact_digest,
+            'transforms': transforms},
+        'runtime_executed': False, 'public_local_accepted': False,
         'recovery_accepted': False, 'published': False}
     (destination / 'cohort.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
@@ -274,8 +321,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--version', required=True, help='Explicit complete SemVer; mapped by the shared release parser')
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
     arguments = parser.parse_args()
     print(json.dumps(build(arguments.artifact_directory, arguments.destination,
-        bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries)))
+        version=arguments.version, bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries)))

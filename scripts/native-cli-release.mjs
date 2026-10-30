@@ -10,6 +10,7 @@ import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
+import {releaseVersion} from './release-version.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.mjs';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
@@ -43,7 +44,30 @@ async function pack(directory, output, productMembers) {
     ...(productMembers ? {productMembers} : {})};
 }
 
-export async function prepareNativeCliRelease(destination, artifacts) {
+export function admitNativeReleaseCohort(value) {
+  assert(value && typeof value === 'object' && !Array.isArray(value), 'Supply an explicit Native release cohort');
+  exact(value, ['packageVersion', 'registry', 'access', 'tag']);
+  releaseVersion(value.packageVersion);
+  assert.notEqual(value.packageVersion, '0.0.1', 'The published placeholder remains immutable');
+  assert.equal(value.registry, 'https://registry.npmjs.org/');
+  assert.equal(value.access, 'public');
+  assert(typeof value.tag === 'string' && /^[a-z][a-z0-9-]*$/u.test(value.tag) &&
+    value.tag === value.tag.trim(), 'Select one literal Native candidate tag');
+  return structuredClone(value);
+}
+
+// Apply only package metadata to an isolated clone; this does not choose a
+// number, modify source metadata or qualify a platform/profile for publication.
+export function nativeReleaseMetadata(original, selected) {
+  const cohort = admitNativeReleaseCohort(selected);
+  assert.equal(original.name, 'actql');
+  assert.equal(original.scripts, undefined);
+  return {...structuredClone(original), version: cohort.packageVersion,
+    publishConfig: {registry: cohort.registry, access: cohort.access}};
+}
+
+export async function prepareNativeCliRelease(destination, artifacts, selected) {
+  const cohort = admitNativeReleaseCohort(selected);
   const source = checkoutState(repository); assert(source.clean, 'CLI release requires clean source HEAD');
   const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
   const records = await Promise.all(artifacts.map(path => admitNativeArtifact(resolve(path), source.revision)));
@@ -56,9 +80,7 @@ export async function prepareNativeCliRelease(destination, artifacts) {
       assert.equal(digest, hash(await readFile(join(repository, 'packages/local-node', filename))));
     }
   }
-  const cli = JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8'));
-  assert.equal(cli.name, 'actql'); assert.notEqual(cli.version, '0.0.1');
-  assert.match(cli.version, /^\d+\.\d+\.\d+$/u); assert.equal(cli.scripts, undefined);
+  const cli = nativeReleaseMetadata(JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8')), cohort);
   destination = resolve(destination); await mkdir(destination);
   const scratch = await mkdtemp(join(destination, '.stage-')), packages = [], mapping = {};
   try {
@@ -111,7 +133,7 @@ export async function prepareNativeCliRelease(destination, artifacts) {
     assert.deepEqual(checkoutState(repository), source);
     const manifest = {version: 'actql-native-cli-release/0.1', sourceSha: source.revision,
       preparedAt: new Date().toISOString(), recipeSha256: hash(await readFile(join(repository, 'scripts/native-cli-release.mjs'))),
-      cohort: {registry: cli.publishConfig.registry, access: 'public', tag: 'latest', packageVersion: cli.version},
+      cohort,
       platforms: mapping, artifacts: records, packages};
     await writeFile(join(destination, 'release.json'), `${JSON.stringify(manifest, null, 2)}\n`, {flag: 'wx'});
     return manifest;
@@ -122,8 +144,7 @@ export async function verifyNativeCliRelease(directory) {
   const manifest = JSON.parse(await readFile(join(directory, 'release.json'), 'utf8'));
   exact(manifest, ['version', 'sourceSha', 'preparedAt', 'recipeSha256', 'cohort', 'platforms', 'artifacts', 'packages']);
   assert.equal(manifest.version, 'actql-native-cli-release/0.1'); assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
-  assert.equal(manifest.cohort.registry, 'https://registry.npmjs.org/'); assert.equal(manifest.cohort.access, 'public');
-  assert.equal(manifest.cohort.tag, 'latest'); assert.notEqual(manifest.cohort.packageVersion, '0.0.1');
+  admitNativeReleaseCohort(manifest.cohort);
   const names = Object.keys(manifest.platforms); assert(names.length > 0 && names.length <= 2);
   assert.deepEqual(manifest.packages.map(v => v.name), [...names.map(key => `@actql/cli-${key}`), 'actql']);
   assert.deepEqual(manifest.artifacts.map(v => v.platform), names);
@@ -180,12 +201,15 @@ export async function verifyNativeCliRelease(directory) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [command, input, ...artifacts] = process.argv.slice(2);
+  const [command, input, ...tail] = process.argv.slice(2);
   assert(input && ['prepare', 'verify', 'plan', '--publish'].includes(command),
-    'usage: native-cli-release.mjs prepare <new-directory> <artifact-directories...> | verify|plan <directory> | --publish <directory> after GO');
+    'usage: native-cli-release.mjs prepare <new-directory> <explicit-cohort-json> <artifact-directories...> | verify|plan <directory>');
   if (command === '--publish') refuseUnconfiguredPublication();
+  assert(command === 'prepare' ? tail.length >= 2 : tail.length === 0,
+    'Native preparation requires an explicit cohort file and artifact directories');
   const directory = resolve(input);
-  const manifest = command === 'prepare' ? await prepareNativeCliRelease(directory, artifacts) : await verifyNativeCliRelease(directory);
+  const manifest = command === 'prepare' ? await prepareNativeCliRelease(directory, tail.slice(1),
+    JSON.parse(await readFile(resolve(tail[0]), 'utf8'))) : await verifyNativeCliRelease(directory);
   if (command === '--publish') {
     execFileSync('npm', ['whoami', '--registry', manifest.cohort.registry, '--fetch-timeout=15000', '--fetch-retries=0'], {stdio: 'inherit', timeout: 20_000});
     console.log(JSON.stringify(await publishPackageRelease({directory, verify: verifyNativeCliRelease,
