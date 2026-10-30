@@ -214,3 +214,165 @@ test "pure CREATE Form request projection retains actual native originals withou
     ),
   )
 }
+
+///|
+// Actual compiled native semantics and complete standard mapper/recovery body.
+// Namespace and limit constructors are explicit DATA ports. No Account, grant,
+// Resource call, durable claim, terminal settlement or normal backing is made.
+extern "js" fn standard_create_declaration(
+  loader : CreateStandardLoader,
+  mapping : RecordCreateMapping,
+  declaration : RecordDeclaration,
+  mapping_declaration : (RecordCreateMapping, RecordDeclaration) -> Bool,
+  mapping_request : (RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool,
+  legacy_execution : (
+    RecordCreateMapping,
+    Bytes,
+    Int,
+    @catalog.RecordWriteLimits,
+    @catalog.RecordMutationLimits,
+  ) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue],
+  write_limits : (Int, Int, Int, Int, Int, Int) -> @catalog.RecordWriteLimits,
+  mutation_limits : (Int, Int, Int, Int, Int, Int) -> @catalog.RecordMutationLimits,
+  resource : (RecordCreateMapping) -> Result[String, RecordCreateExecutionIssue],
+  prepare : (
+    RecordCreateMapping,
+    Bytes,
+    Int,
+    @catalog.RecordWriteLimits,
+    @catalog.RecordMutationLimits,
+  ) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue],
+  restore : (
+    RecordCreateMapping,
+    Bytes,
+    String,
+    Int,
+    @catalog.RecordWriteLimits,
+    @catalog.RecordMutationLimits,
+  ) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue],
+  body : (@catalog.RecordCreateRequest) -> String,
+  app : (@catalog.RecordCreateRequest) -> String,
+  count : (@catalog.RecordCreateRequest) -> Int,
+  form_limits : (Int, Int, Int, Int, Int) -> @catalog.FormFieldLimits,
+  recheck : (@catalog.RecordCreateRequest, Bytes, @catalog.FormFieldLimits) -> Result[
+    Unit,
+    @catalog.RecordMutationIssue,
+  ],
+  response : (
+    @catalog.RecordCreateRequest,
+    Int,
+    Bytes,
+    @catalog.RecordMutationLimits,
+  ) -> Result[
+    @catalog.RecordCreateAcknowledgement,
+    @catalog.RecordMutationIssue,
+  ],
+  outcome : (
+    @catalog.RecordCreateRequest,
+    @catalog.RecordCreateAcknowledgement,
+    @catalog.RecordMutationLimits,
+  ) -> Result[@catalog.RecordCreateEffectOutcome, @catalog.RecordMutationIssue],
+  wire : (@catalog.RecordCreateEffectOutcome) -> String,
+  digest : (@catalog.RecordCreateEffectOutcome) -> String,
+  matches : (@catalog.RecordCreateEffectOutcome, @catalog.RecordCreateRequest) -> Bool,
+) -> Bool =
+  #|(loader,mapping,declaration,mapping_declaration,mapping_request,legacy_execution,write_limits,mutation_limits,resource,prepare,restore,body,app,count,form_limits,recheck,response,outcome,wire,digest,matches) => {
+  #| const assert=loader('node:assert/strict'),fs=loader('node:fs'),crypto=loader('node:crypto'),types=loader('node:util').types;
+  #| const site=loader('../../../../../../../adapters/connectors/kintone/site/kintone-create-execution.mjs');
+  #| const own=loader('../../../../../../../adapters/host-common/http-exchange.mjs'),invocation=loader('../../../../../../../adapters/host-common/owned-invocation-context.mjs');
+  #| const local=loader('../../../../../../../adapters/host-node/local-values-plan.mjs');
+  #| const source=fs.readFileSync(loader.resolve('../../../../../../../adapters/host-node/installed-row-effect.mjs'),'utf8');
+  #| const start=source.indexOf('function deriveInstalledRowWrite('),end=source.indexOf('\nfunction checkDriver(',start);
+  #| assert(start>=0&&end>start);
+  #| const derive=Function('createHash','nodeTypes','ownHttpRequest','ownRequestHeaders','ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits','return ('+source.slice(start,end)+');')(crypto.createHash,types,own.ownHttpRequest,own.ownRequestHeaders,own.ownResponseHeaderNames,invocation.invokeScopedCredentialOperation,local.localContractLimits);
+  #| let prepares=0,restores=0;
+  #| const moon={clientProgramKintoneCreateMappingMatchesDeclaration:mapping_declaration,clientProgramKintoneCreateMappingMatchesRequest:mapping_request,
+  #| clientProgramKintoneCreateExecutionRequest:legacy_execution,clientProgramKintoneWriteLimits:write_limits,clientProgramKintoneMutationLimits:mutation_limits,
+  #| clientProgramKintoneCreateMappingResource:resource,clientProgramKintonePrepareCreateExecutionProposal:function(...args){assert.equal(this,moon);prepares++;return prepare(...args);},
+  #| clientProgramKintoneRestoreCreateExecutionProposal:function(...args){assert.equal(this,moon);restores++;return restore(...args);},
+  #| clientProgramKintoneCreateBody:body,clientProgramKintoneCreateApp:app,clientProgramKintoneCreateCount:count,clientProgramKintoneFormLimits:form_limits,
+  #| clientProgramKintoneCreateRecheckForm:recheck,clientProgramKintoneCreateResponse:response,clientProgramKintoneCreateEffectOutcome:outcome,
+  #| clientProgramKintoneCreateEffectOutcomeWire:wire,clientProgramKintoneCreateEffectOutcomeResponseSha256:digest,clientProgramKintoneCreateEffectOutcomeMatchesRequest:matches};
+  #| const limits={maxInputBytes:8192,maxRequestBytes:8192,maxResponseBytes:8192,maxNodes:1000,maxDepth:16,maxFields:16,maxNameUnits:512,maxRows:1,maxIdentityBytes:1000,maxComparisonWork:10000};
+  #| const args={moon,mapping,declaration,resource:'inquiries',formResource:'forms',origin:'https://tenant.example.test',boundaryCid:'sha256:'+'b'.repeat(64),limits};
+  #| const write=site.createMappedKintoneCreateWrite(args),driver=derive(write,'kintone');
+  #| const proposalWire='{"state":"present","value":{"Subject":"next 東京","Tags":["red","red"]}}',value=JSON.parse(proposalWire).value;
+  #| const member=Object.freeze({kind:'create',resource:'inquiries'}),prepared=driver.prepareRequest({member,value,proposalWire});
+  #| assert.equal(prepared.request.body,'{"app":"12","records":[{"Subject":{"value":"next 東京"},"Tags":{"value":["red","red"]}}]}');
+  #| assert.equal(prepared.request.proposalWire,proposalWire);assert.equal(driver.requestFacts(prepared.request).value,value);assert.equal(prepares,1);
+  #| const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]}),coldWrite=site.createMappedKintoneCreateWrite(args),cold=derive(coldWrite,'kintone');
+  #| moon.clientProgramKintonePrepareCreateExecutionProposal=()=>{throw new Error('later export replacement');};
+  #| const restored=cold.recoverRequests({members:[member],durable:{connectorRecovery:[{...saved,memberIndex:0}]}}).requests[0][0];
+  #| assert.equal(cold.requestCid(restored),prepared.requestCid);assert.equal(restored.body,prepared.request.body);assert.equal(prepares,1);assert.equal(restores,0);
+  #| const restoredValue=cold.requestFacts(restored).value,context={resource:'forms',value:restoredValue,request:restored};
+  #| assert.equal(coldWrite.check.body(context),'{"app":"12"}');assert.equal(restores,1);assert.equal(prepares,1);
+  #| const form=Buffer.from('{"revision":"7","properties":{"Subject":{"code":"Subject","type":"SINGLE_LINE_TEXT","expression":"","required":true,"defaultValue":"server"},"Tags":{"code":"Tags","type":"MULTI_SELECT","required":false,"defaultValue":["server"]},"Optional":{"code":"Optional","type":"MULTI_LINE_TEXT","required":false,"defaultValue":"server"},"Computed":{"code":"Computed","type":"SINGLE_LINE_TEXT","expression":"\\"server\\"","required":true}}}');
+  #| assert.equal(coldWrite.check.project({...context,observation:{statusCode:200,body:form}}),undefined);
+  #| const projected=cold.project({request:restored,observation:{statusCode:200,body:Buffer.from('{"ids":["9007199254740993"],"revisions":["0007"]}')}});
+  #| assert.equal(JSON.stringify(projected.outcome),'{"result":{"created":true,"record_id":"9007199254740993","revision":"0007"},"state":"applied"}');
+  #| assert.equal(prepares,1);assert.equal(restores,1);
+  #| for(const change of [{resource:'foreign'},{mapping:{...mapping}},{limits:{...limits,maxRows:2}}])assert.throws(()=>site.createMappedKintoneCreateWrite({...args,...change}));
+  #| assert.throws(()=>write.request({resource:'inquiries',value}),{code:'KintoneCreateProposalLimit'});
+  #| assert.throws(()=>write.request({resource:'inquiries',value,proposalWire:'x'.repeat(8193)}),{code:'KintoneCreateProposalLimit'});
+  #| assert.equal(prepares,1);assert.equal(restores,1);
+  #| const changed=Object.freeze({...restored,body:restored.body.replace('next 東京','foreign')});
+  #| assert.throws(()=>coldWrite.check.body({...context,request:changed}));assert.equal(prepares,1);
+  #| return true;
+  #| }
+
+///|
+test "standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare" {
+  let declaration = create_mapping_declaration(create_mapping_catalog())
+  let mapping = prepare_record_create_mapping(
+    declaration,
+    "inquiries",
+    create_mapping_sources(),
+    "required",
+    delete_declaration_limits(),
+  ).unwrap()
+  assert_true(
+    standard_create_declaration(
+      create_standard_loader(create_standard_url()),
+      mapping,
+      declaration,
+      record_create_mapping_matches_declaration,
+      record_create_mapping_matches_request,
+      prepare_record_create_execution_request,
+      (fields, names, nodes, depth, text, output) => {
+        max_fields: fields,
+        max_name_bytes: names,
+        max_nodes: nodes,
+        max_depth: depth,
+        max_text_bytes: text,
+        max_output_bytes: output,
+      },
+      (rows, identity, work, bytes, nodes, depth) => {
+        max_records: rows,
+        max_identity_bytes: identity,
+        max_comparison_work: work,
+        max_output_bytes: bytes,
+        max_output_nodes: nodes,
+        max_output_depth: depth,
+      },
+      record_create_mapping_resource,
+      prepare_record_create_execution_proposal,
+      restore_record_create_execution_proposal,
+      @catalog.record_create_request_body,
+      @catalog.record_create_request_app_id,
+      @catalog.record_create_request_count,
+      (bytes, nodes, depth, fields, names) => {
+        max_bytes: bytes,
+        max_nodes: nodes,
+        max_depth: depth,
+        max_fields: fields,
+        max_name_units: names,
+      },
+      @catalog.recheck_record_create_form,
+      @catalog.project_record_create_acknowledgement,
+      @catalog.project_record_create_effect_outcome,
+      @catalog.record_create_effect_outcome_wire,
+      @catalog.record_create_effect_outcome_response_sha256,
+      @catalog.record_create_effect_outcome_matches_request,
+    ),
+  )
+}
