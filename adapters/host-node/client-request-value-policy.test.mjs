@@ -104,3 +104,27 @@ test('raised subject failure is not mistaken for an empty successful evidence in
   assert.equal(verified, 0);
   assert.equal(value.calls.length, 1);
 });
+
+test('funded policy preparation forwards the original verifier without compiled-owner fallback', async () => {
+  const environment = {}, prepared = {}, parametersCursor = {};
+  const controller = new AbortController();
+  const request = {kind: 'program', parameters: null, signal: controller.signal,
+    input: {toJSON() {assert.fail('The original funded snapshot must not be serialized again');}}};
+  const verify = async () => assert.fail('The funded Request owns policy verification before compilation');
+  let preparations = 0;
+  const prepare = installNodeClientProgramPreparation({moon: {}, environment,
+    verifyRequestValuePolicy: verify,
+    getFundedPreparation(actual, selected, originalVerifier) {
+      assert.strictEqual(actual, request);
+      assert.strictEqual(selected, environment);
+      assert.strictEqual(originalVerifier, verify);
+      preparations++;
+      return {kind: 'effect_free', prepared,
+        originalInputs: {environment, parameters: undefined, parametersCursor}};
+    }});
+  assert.strictEqual(await prepare(request), prepared);
+  assert.equal(preparations, 1);
+  assert.strictEqual(prepare.originalInputs(prepared).environment, environment);
+  assert.strictEqual(prepare.originalInputs(prepared).parametersCursor, parametersCursor);
+  prepare.retireOriginal(prepared);
+});
