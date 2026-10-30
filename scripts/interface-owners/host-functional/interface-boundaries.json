@@ -87839,7 +87839,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6315e265f870e6775e9e41c521cc2d697f3b6f94cfbb6e4348b01786c73dbfb8",
+      "sha256": "80816b9df8462418c1eff31683dc938e8dfba50263471c48092bb15d8889d3b7",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -87947,6 +87947,27 @@
           "async": false
         },
         {
+          "name": "createInstalledRestSource/load/pageBounds/pageBounds",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/pageBounds/pageBounds#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/pageBounds/pageBounds#3",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRestSource/load/pages/pages",
           "parameters": [
             "source"
@@ -88034,6 +88055,9 @@
             "createInstalledRestSource/load/limits/limits#3",
             "createInstalledRestSource/load/limits/limits#4",
             "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
+            "createInstalledRestSource/load/pageBounds/pageBounds",
+            "createInstalledRestSource/load/pageBounds/pageBounds#2",
+            "createInstalledRestSource/load/pageBounds/pageBounds#3",
             "createInstalledRestSource/load/pages/pages",
             "createInstalledRestSource/load/physicalTarget/physicalTarget",
             "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
@@ -88145,6 +88169,10 @@
               {
                 "path": "adapters/host-node/installed-rest-source.mjs",
                 "anchor": "// Both constructors select the same already-validated Source demand."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const pageBounds = Object.freeze({maxNodes:"
               }
             ],
             "extension": [
@@ -88810,7 +88838,7 @@
   ],
   "counts": {
     "modules": 180,
-    "operations": 4518,
+    "operations": 4521,
     "exports": 1082,
     "explicitContractGroups": 285
   },
