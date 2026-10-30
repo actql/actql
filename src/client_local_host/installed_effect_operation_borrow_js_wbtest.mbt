@@ -301,3 +301,38 @@ test "actual Node Effect plan helper returns the original typed Core Plan for sa
   )
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "Effect spent occurrence controls stay debited on the same Ledger until Run retirement" {
+  let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
+  let before = @resources.ledger_usage(ledger)
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(held.live_reservations, before.live_reservations + 2)
+  assert_true(
+    held.reserved_retention_bytes > before.reserved_retention_bytes + 50L,
+  )
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
+  let closed_child = @resources.ledger_usage(ledger)
+  assert_eq(closed_child.live_reservations, before.live_reservations + 1)
+  assert_true(
+    closed_child.reserved_retention_bytes > before.reserved_retention_bytes,
+  )
+  assert_eq(owner.effect_operations.length(), 1)
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, true, 2, 0, "operation",
+    )
+    is Err(AlreadyBound),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(owner.effect_operations.length(), 0)
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, true, 2, 0, "operation",
+    )
+    is Err(_),
+  )
+}
