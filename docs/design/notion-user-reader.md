@@ -189,3 +189,15 @@ Account denial, original journal Unknown/nonresend and preserved cleanup debt.
 Normal original capacity supply, installed/public acceptance, same-Run durable
 recovery and the other Notion Source/write/content profiles remain required.
 This factory does not narrow the full public Notion target to users.
+
+
+### Remaining-row request bounds
+
+The original users-list caller subtracts successfully delivered rows from its
+`maxTotalRows` before each next request. It sends the smaller of that remainder
+and `pageSize`; a nonpositive remainder refuses before another indexed
+Credential authorization or send. The database query caller applies the same
+rule to the existing POST body and retains its original query cursor. This does
+not truncate a response, change a declared limit or turn an already delivered
+prefix into a complete Source. Provider over-return, malformed/full-row checks,
+identity/cursor checks, current refusal and original cleanup duties remain.

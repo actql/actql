@@ -3370,3 +3370,18 @@ preparation retirement pending without refunding consumed attempts. The
 separately selected Model admission/Scope remains until its own original first
 census and preparation connection are installed; it cannot use an ordinary
 purpose or a later reconstructed census as a substitute.
+
+
+## Source-free Tasks publication
+
+An adopted pure Request may retain either a Values or a Tasks compilation.
+The compiled Run's semantic owner selects the existing source-free invocation
+issuer from that original typed compilation. The Host does not guess a kind,
+recompile a Plan or supply a substitute invocation. The existing Values and
+Tasks issuers keep their definition, input and policy laws.
+
+The preparation owner binds the same checked Program, original compiled Run
+and definition to its one issued invocation before publication reservation.
+The same configured Compute and captured DAG remain on the adopted Run until
+execution and publication cleanup finish. This route does not admit a Source,
+INFER, serialization or Effect invocation through a source-free issuer.
