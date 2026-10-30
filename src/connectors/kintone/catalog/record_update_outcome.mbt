@@ -13,6 +13,20 @@ pub fn project_record_update_effect_outcome(
   response : RecordUpdateAcknowledgement,
   limits : RecordMutationLimits,
 ) -> Result[RecordUpdateEffectOutcome, RecordMutationIssue] {
+  project_record_update_effect_outcome_for_operation(
+    request, response, limits, false,
+  )
+}
+
+///|
+// The original keyed UPSERT issuer selects this branch before response
+// decoding. Standalone UPDATE retains its exact original wire.
+fn project_record_update_effect_outcome_for_operation(
+  request : RecordUpdateRequest,
+  response : RecordUpdateAcknowledgement,
+  limits : RecordMutationLimits,
+  upsert : Bool,
+) -> Result[RecordUpdateEffectOutcome, RecordMutationIssue] {
   if !mutation_limits_valid(limits) {
     return Err(InvalidLimits)
   }
@@ -37,6 +51,10 @@ pub fn project_record_update_effect_outcome(
   }
   let document = try {
     @encode.begin_ordered_object(writer)
+    if upsert {
+      @encode.ordered_key(writer, "action")
+      @encode.string_value(writer, "updated")
+    }
     @encode.ordered_key(writer, "result")
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "record_id")

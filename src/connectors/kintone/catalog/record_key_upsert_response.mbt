@@ -135,7 +135,10 @@ pub fn project_record_key_upsert_effect_outcome(
       guard request.create is Some(native) && response.create is Some(ack) else {
         return Err(UncorrelatedResult)
       }
-      match project_record_create_effect_outcome(native, ack, limits) {
+      match
+        project_record_create_effect_outcome_for_operation(
+          native, ack, limits, true,
+        ) {
         Ok(value) => (Some(value), None)
         Err(issue) => return Err(issue)
       }
@@ -144,7 +147,10 @@ pub fn project_record_key_upsert_effect_outcome(
       guard request.update is Some(native) && response.update is Some(ack) else {
         return Err(UncorrelatedResult)
       }
-      match project_record_update_effect_outcome(native, ack, limits) {
+      match
+        project_record_update_effect_outcome_for_operation(
+          native, ack, limits, true,
+        ) {
         Ok(value) => (None, Some(value))
         Err(issue) => return Err(issue)
       }
