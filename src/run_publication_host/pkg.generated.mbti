@@ -367,6 +367,8 @@ pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> 
 
 pub fn client_compiled_run_matches_effect(ClientCompiledRun, PreparedClientEffectComputation, ClientEffectCompilation) -> Bool
 
+pub fn client_compiled_run_matches_pure_compilation(ClientCompiledRun, PreparedClientProgram, ClientRunCompilation) -> Bool
+
 pub fn client_compiled_run_matches_tasks(ClientCompiledRun, PreparedClientProgram, ClientTaskCompilation) -> Bool
 
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
@@ -959,7 +961,11 @@ pub fn client_query_requirement_matches_program(PreparedClientProgram, Int, Int,
 
 pub fn client_query_time_preparation_context(ClientQueryTimePreparation) -> @run_publication.QueryEvaluationTime?
 
+pub fn client_query_time_preparation_context_for_run(ClientQueryTimePreparation, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, ClientQueryTimeIssue]
+
 pub fn client_query_time_preparation_created_at(ClientQueryTimePreparation) -> String
+
+pub fn client_query_time_preparation_invocation(ClientQueryTimePreparation, PreparedClientProgram) -> (ClientQueryTimePreparation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract)?
 
 pub fn client_remote_effect_task_progress_computation_complete(ClientRemoteEffectTaskProgress) -> Bool
 
