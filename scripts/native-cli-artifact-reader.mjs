@@ -14,7 +14,7 @@ async function readArtifact(directory, sourceSha, binaryMember) {
   exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'notices', 'toolchain', 'abi', 'testedHost', 'generation',
     ...(Object.hasOwn(record, 'localRuntime') ? ['localRuntime'] : [])]);
   assert.equal(record.version, 'actql-native-cli-artifact/0.1'); assert.equal(record.sourceSha, sourceSha);
-  assert(platforms[record.platform]);
+  assert(Object.hasOwn(platforms, record.platform), 'Unknown Native artifact platform');
   for (const key of ['binarySha256', 'generatedCSha256', 'toolchainPinSha256']) assert.match(record[key], /^[a-f0-9]{64}$/u);
   assert(Number.isSafeInteger(record.binaryBytes) && record.binaryBytes > 0 && record.binaryBytes <= 64 * 1024 * 1024);
   const bytes = await readFile(join(directory, binaryMember));

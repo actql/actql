@@ -34,7 +34,7 @@ test('existing lint opt-in selects the release files without new publication aut
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
     if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-registry.test.mjs scripts/release-lanes.test.mjs'});
+    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-registry.test.mjs scripts/release-lanes.test.mjs scripts/native-standalone-release.test.mjs'});
 });
 
 test('dotted channel schema and shared owner match independent literal channel oracles', () => {
