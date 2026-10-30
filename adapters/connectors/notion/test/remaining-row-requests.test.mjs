@@ -46,7 +46,7 @@ function queryOriginals(){
   const readContracts=checked(provider.notionBindDataSourceReadContracts(declaration,source,...declarationLimits));
   return{declaration,source,readContracts};
 }
-function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false}={}){
+function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false,names=['id','name']}={}){
   const operation=family==='users'?usersOperation:queryOperation,requests=[],grants=[],charges=[],rows=[];
   const bodies=(pages??(family==='users'?[userPage(['one','two'],cursor),userPage(['three'],null)]:
     [queryPage(['one','two'],cursor),queryPage(['three'],null)])).map(page=>Buffer.from(JSON.stringify(page)));
@@ -59,7 +59,7 @@ function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false}={}){
   };
   const create=caller(family==='users'?'user-list-read.mjs':'data-source-read.mjs',
     family==='users'?'createNotionUserListReader':'createNotionDataSourceReader',transport);
-  const reader=create({moon:provider,...(family==='users'?{names:['id','name']}:queryOriginals()),
+  const reader=create({moon:provider,...(family==='users'?{names}:queryOriginals()),
     initialAuthorization:{grant:{},scope,useId:'original'},credential:{binding:{}},limits:{...bounds,maxTotalRows},
     current:verify,authorizationFor(input){grants.push(input);return{grant:{},scope,useId:'page-'+input.index};},
     chargeResponse(body){assert.equal(body,bodies[requests.length-1]);const charge=Object.freeze({body});charges.push(charge);return charge;},
@@ -103,3 +103,16 @@ for(const family of ['users','query']){
     assert.equal(f.rows.length,2);assert.equal(f.reader.observe().cleanupConfirmed,false);
   });
 }
+
+
+test('Notion users delivers every declared Source cell before subset or empty user projection',async()=>{
+  const original={object:'user',id:'original-é',name:'一\r\n',type:'person',person:{email:'original@example.test'}};
+  const page={object:'list',type:'user',user:{},results:[original],has_more:false,next_cursor:null};
+  for(const names of [['name'],[]]){
+    const f=fixture('users',{names,pages:[page]});
+    const result=await f.reader.read();assert.equal(result.pages,1);assert.equal(result.rowCount,1);
+    assert.deepEqual(f.rows,[{email:'original@example.test',id:'original-é',name:'一\r\n',type:'person'}]);
+    assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
+    assert.equal(f.reader.observe().cleanupConfirmed,false);
+  }
+});
