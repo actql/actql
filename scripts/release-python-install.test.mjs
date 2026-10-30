@@ -2,10 +2,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {spawn} from 'node:child_process';
-import {mkdtemp, mkdir, rm, symlink, realpath} from 'node:fs/promises';
+import {mkdtemp, mkdir, rm, symlink, realpath, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination} from './release-public-install.mjs';
+import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination,
+  pythonUvConsumerEnvironment, pythonUvInstallCommand, pythonUvProject, pythonUvProjectParents} from './release-public-install.mjs';
 import {runPythonReleaseInstall, observeChildFds} from './test-python-release-install.mjs';
 
 test('Python public consumer: fixed digest, target, absolute interpreter and new destination are explicit', () => {
@@ -39,6 +40,37 @@ test('Python public consumer: pip requests only the exact public entry using the
 
 test('Python public consumer: invalid launcher input stops before registry, installation or business execution', async () => {
   await assert.rejects(runPythonReleaseInstall([]), /usage:/u);
+});
+
+test('Python uv consumer: explicit tool, exact entry and isolated no-cache wheel-only command', () => {
+  const args = ['fixed', 'a'.repeat(64), 'python', '/selected/python', '/new/consumer'];
+  assert.equal(pythonReleaseInstallSelection(args).manager, 'pip');
+  assert.equal(pythonReleaseInstallSelection([...args, '--uv', '/selected/uv']).uv, '/selected/uv');
+  assert.throws(() => pythonReleaseInstallSelection([...args, '--uv', 'uv']));
+  assert.throws(() => pythonReleaseInstallSelection([...args, '--uv', '/selected/uv', '--index', '/old']));
+  assert.deepEqual(pythonUvInstallCommand('0.0.7-rc.1', 'actql', '/selected/python'),
+    ['add', '--python', '/selected/python', '--no-managed-python', '--no-python-downloads', '--no-config',
+      '--default-index', 'https://pypi.org/simple', '--no-build', '--no-sources', '--no-cache', '--link-mode', 'copy',
+      '--no-install-project', '--no-workspace', '--bounds', 'exact', '--keyring-provider', 'disabled', 'actql==0.0.7rc1']);
+  assert.throws(() => pythonUvInstallCommand('patch', 'actql', '/selected/python'));
+  assert.throws(() => pythonUvInstallCommand('0.0.7', 'actql-local-runtime', '/selected/python'));
+});
+
+test('Python uv consumer: actual fresh project and environment exclude shared caches, active venv and injected sources', () => {
+  const env = pythonUvConsumerEnvironment({PATH: '/old', HOME: '/old', UV_CACHE_DIR: '/shared',
+    UV_INDEX: 'https://private', UV_PROJECT_ENVIRONMENT: '/old/venv', VIRTUAL_ENV: '/old/venv',
+    UV_PYTHON: '/other/python', UV_CONFIG_FILE: '/old/uv.toml', LANG: 'C'}, '/fresh');
+  assert.equal(env.PATH, ''); assert.equal(env.HOME, '/fresh/home'); assert.equal(env.UV_CACHE_DIR, '/fresh/uv-cache');
+  assert.deepEqual(Object.keys(env).sort(), ['HOME', 'LANG', 'PATH', 'PIP_CONFIG_FILE', 'TEMP', 'TMP', 'TMPDIR', 'UV_CACHE_DIR'].sort());
+  assert.equal(pythonUvProject('3.12'), '[project]\nname = "release-consumer-check"\nversion = "0.0.0"\nrequires-python = "==3.12.*"\ndependencies = []\n');
+  assert.throws(() => pythonUvProject('3.12\n[tool.uv.sources]'));
+});
+
+test('Python uv consumer: enclosing workspace refuses before the new manager can mutate it', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-uv-ancestor-')); t.after(() => rm(root, {recursive: true}));
+  await pythonUvProjectParents(join(root, 'new-consumer'));
+  await writeFile(join(root, 'pyproject.toml'), '[tool.uv.workspace]\nmembers=["*"]\n');
+  await assert.rejects(pythonUvProjectParents(join(root, 'new-consumer')), /enclosing project/u);
 });
 
 test('Python public consumer: actual own-child state descriptor observation distinguishes closed and still-held files', async t => {
