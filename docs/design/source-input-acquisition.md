@@ -180,8 +180,9 @@ The Node consumer decodes the original whole-input identity's optional Array
 through the pinned compiler binding before checking its two CIDs. An absent
 identity or malformed pair refuses; it cannot become Query evidence or a new
 request identity. Once the managed parent opens a Source read, the Source
-retains that same constructor read until preparation hands it off. Any earlier
-failure retires the original read. A pending retirement stays with the same
+retains that same constructor read until the accounted RowRun constructor
+returns. Returning a prepared JS value or installing a managed-wrapper
+association does not transfer this read. Any earlier failure retires the original read. A pending retirement stays with the same
 Source close retry, before Site and constructor-material retirement; returning
 a failed preparation does not acknowledge that cleanup or release its parent.
 A close that retires this constructor read during an authorization await also
