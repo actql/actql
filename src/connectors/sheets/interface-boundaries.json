@@ -2273,7 +2273,7 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "bf37a245e85fbf55849ef0ec11b56e056fb3effec406cc2f9cf3620feac9e0de",
+    "sha256": "d87289d9cc48df2585e873daa1396d52c877c75f7104cd3056b805bdbf52e9ee",
     "exports": [
       "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
       "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
@@ -2298,6 +2298,7 @@
       "pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]",
       "pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeRequest, RangeFailure]",
       "pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]",
+      "pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]",
       "pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]",
       "pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
       "pub fn range_failure_code(RangeFailure) -> String",
@@ -2312,13 +2313,18 @@
       "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]",
       "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]",
       "pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]",
+      "pub fn sheet_tabs_column_names() -> Array[String]",
+      "pub fn sheet_tabs_row_count(SheetTabsPage) -> Int",
+      "pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, SheetTabsIssue]",
+      "pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]",
       "pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]",
       "pub struct ClearRangeBinding {",
       "pub struct ClearRangeRequest {",
       "pub struct Page {",
       "pub struct RangeBinding {",
       "pub struct RangeFailure {",
-      "pub struct RangeRequest {"
+      "pub struct RangeRequest {",
+      "pub struct SheetTabsPage {"
     ],
     "operations": [
       {
@@ -2414,6 +2420,10 @@
         "declaration": "pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]"
       },
       {
+        "name": "project_sheet_tabs",
+        "declaration": "pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]"
+      },
+      {
         "name": "range_catalog_json",
         "declaration": "pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]"
       },
@@ -2468,6 +2478,22 @@
       {
         "name": "recover_range_requests",
         "declaration": "pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]"
+      },
+      {
+        "name": "sheet_tabs_column_names",
+        "declaration": "pub fn sheet_tabs_column_names() -> Array[String]"
+      },
+      {
+        "name": "sheet_tabs_row_count",
+        "declaration": "pub fn sheet_tabs_row_count(SheetTabsPage) -> Int"
+      },
+      {
+        "name": "sheet_tabs_rows_wire",
+        "declaration": "pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, SheetTabsIssue]"
+      },
+      {
+        "name": "sheet_tabs_schema_wire",
+        "declaration": "pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]"
       },
       {
         "name": "update_request",
@@ -2883,6 +2909,85 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
               "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "project_sheet_tabs",
+          "sheet_tabs_column_names",
+          "sheet_tabs_row_count",
+          "sheet_tabs_rows_wire",
+          "sheet_tabs_schema_wire"
+        ],
+        "exports": [
+          "pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]",
+          "pub fn sheet_tabs_column_names() -> Array[String]",
+          "pub fn sheet_tabs_row_count(SheetTabsPage) -> Int",
+          "pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, SheetTabsIssue]",
+          "pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]",
+          "pub struct SheetTabsPage {"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Typed tab metadata"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn project_sheet_tabs"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet binding. IDs and positions"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "opaque page retains typed values"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "There is no I/O in the projection or callback"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs_wbtest.mbt",
+              "anchor": "Sheets tabs reject original numeric fractions foreign identity duplicates and absent selected cells"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "cancellation, stop and cleanup remain"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Raw body/decode workspace, typed rows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Normal adoption still requires"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
         }
@@ -3591,7 +3696,7 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "bcbb84e047d5a272259421cd30698d0410ede4d3efd40ccf902b6647e7771bfb",
+    "sha256": "ce12c5b1689f4671f9cb0bc3d349fb1df3fd04876117a01d37d741acb198cbd6",
     "exports": [
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
       "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
@@ -3608,6 +3713,7 @@
       "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool",
       "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
+      "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]",
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
       "pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
@@ -3620,6 +3726,10 @@
       "pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_request_json(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool",
+      "pub fn sheets_tabs_column_names() -> Array[String]",
+      "pub fn sheets_tabs_row_count(@catalog.SheetTabsPage) -> Int",
+      "pub fn sheets_tabs_rows_wire(@catalog.SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]",
+      "pub fn sheets_tabs_schema_wire(Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]",
       "pub fn sheets_target_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_update_request_json(String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
     ],
@@ -3685,6 +3795,10 @@
         "declaration": "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String"
       },
       {
+        "name": "sheets_project_tabs",
+        "declaration": "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]"
+      },
+      {
         "name": "sheets_range_binding",
         "declaration": "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]"
       },
@@ -3731,6 +3845,22 @@
       {
         "name": "sheets_range_target_matches",
         "declaration": "pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool"
+      },
+      {
+        "name": "sheets_tabs_column_names",
+        "declaration": "pub fn sheets_tabs_column_names() -> Array[String]"
+      },
+      {
+        "name": "sheets_tabs_row_count",
+        "declaration": "pub fn sheets_tabs_row_count(@catalog.SheetTabsPage) -> Int"
+      },
+      {
+        "name": "sheets_tabs_rows_wire",
+        "declaration": "pub fn sheets_tabs_rows_wire(@catalog.SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]"
+      },
+      {
+        "name": "sheets_tabs_schema_wire",
+        "declaration": "pub fn sheets_tabs_schema_wire(Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]"
       },
       {
         "name": "sheets_target_json",
@@ -4126,6 +4256,84 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
               "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_project_tabs",
+          "sheets_tabs_column_names",
+          "sheets_tabs_row_count",
+          "sheets_tabs_rows_wire",
+          "sheets_tabs_schema_wire"
+        ],
+        "exports": [
+          "pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SheetTabsPage, @catalog.SheetTabsIssue]",
+          "pub fn sheets_tabs_column_names() -> Array[String]",
+          "pub fn sheets_tabs_row_count(@catalog.SheetTabsPage) -> Int",
+          "pub fn sheets_tabs_rows_wire(@catalog.SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]",
+          "pub fn sheets_tabs_schema_wire(Int, Int, Int) -> Result[String, @catalog.SheetTabsIssue]"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Typed tab metadata"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_project_tabs"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet binding. IDs and positions"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "opaque page retains typed values"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "There is no I/O in the projection or callback"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs_wbtest.mbt",
+              "anchor": "Sheets tabs reject original numeric fractions foreign identity duplicates and absent selected cells"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "cancellation, stop and cleanup remain"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Raw body/decode workspace, typed rows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Normal adoption still requires"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
         }
@@ -5676,6 +5884,428 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
               "anchor": "actual Sheets callback codec retains full grid duplicate rows blanks formula result and exact literal text"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/tabs.mbt",
+    "sha256": "6bead24b2d0eeb760564e79d2a0f6853c4421b96adc800871fbe4f579732b2f4",
+    "operations": [
+      {
+        "name": "project_sheet_tabs",
+        "declaration": "project_sheet_tabs ( bytes : Bytes , spreadsheet_id : String , limits : SheetTabsLimits , ) - > Result [ SheetTabsPage , SheetTabsIssue ]"
+      },
+      {
+        "name": "sheet_tabs_column_names",
+        "declaration": "sheet_tabs_column_names ( ) - > Array [ String ]"
+      },
+      {
+        "name": "sheet_tabs_contract",
+        "declaration": "sheet_tabs_contract ( name : String ) - > @ contract . Contract"
+      },
+      {
+        "name": "sheet_tabs_integer",
+        "declaration": "sheet_tabs_integer ( bytes : Bytes , cursor : @ decode . Cursor , max_bytes : Int ) - > Int ?"
+      },
+      {
+        "name": "sheet_tabs_row_count",
+        "declaration": "sheet_tabs_row_count ( page : SheetTabsPage ) - > Int"
+      },
+      {
+        "name": "sheet_tabs_rows_wire",
+        "declaration": "sheet_tabs_rows_wire ( page : SheetTabsPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , SheetTabsIssue ]"
+      },
+      {
+        "name": "sheet_tabs_schema_wire",
+        "declaration": "sheet_tabs_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , SheetTabsIssue ]"
+      }
+    ],
+    "exports": [],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets typed tab metadata and pure callback DATA under existing Common/shared Host owners; no Source authority/grant/funding/physical send/ACK/cleanup",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "project_sheet_tabs",
+          "sheet_tabs_column_names",
+          "sheet_tabs_contract",
+          "sheet_tabs_integer",
+          "sheet_tabs_row_count",
+          "sheet_tabs_rows_wire",
+          "sheet_tabs_schema_wire"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Typed tab metadata"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs.mbt",
+              "anchor": "pub fn project_sheet_tabs"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet binding. IDs and positions"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "opaque page retains typed values"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "There is no I/O in the projection or callback"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs_wbtest.mbt",
+              "anchor": "Sheets tabs reject original numeric fractions foreign identity duplicates and absent selected cells"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "cancellation, stop and cleanup remain"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Raw body/decode workspace, typed rows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Normal adoption still requires"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/host_node/tabs.mbt",
+    "sha256": "dc56b4c723d35e9447ccd041598dac4c423e465f6a9508cbcc638309d2b1a180",
+    "operations": [
+      {
+        "name": "sheets_project_tabs",
+        "declaration": "sheets_project_tabs ( bytes : Bytes , spreadsheet_id : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_value_nodes : Int , max_value_text_bytes : Int , ) - > Result [ @ catalog . SheetTabsPage , @ catalog . SheetTabsIssue ]"
+      },
+      {
+        "name": "sheets_tabs_column_names",
+        "declaration": "sheets_tabs_column_names ( ) - > Array [ String ]"
+      },
+      {
+        "name": "sheets_tabs_row_count",
+        "declaration": "sheets_tabs_row_count ( page : @ catalog . SheetTabsPage ) - > Int"
+      },
+      {
+        "name": "sheets_tabs_rows_wire",
+        "declaration": "sheets_tabs_rows_wire ( page : @ catalog . SheetTabsPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . SheetTabsIssue ]"
+      },
+      {
+        "name": "sheets_tabs_schema_wire",
+        "declaration": "sheets_tabs_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . SheetTabsIssue ]"
+      }
+    ],
+    "exports": [],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets typed tab metadata and pure callback DATA under existing Common/shared Host owners; no Source authority/grant/funding/physical send/ACK/cleanup",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "sheets_project_tabs",
+          "sheets_tabs_column_names",
+          "sheets_tabs_row_count",
+          "sheets_tabs_rows_wire",
+          "sheets_tabs_schema_wire"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Typed tab metadata"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/host_node/tabs.mbt",
+              "anchor": "pub fn sheets_project_tabs"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet binding. IDs and positions"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "opaque page retains typed values"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "There is no I/O in the projection or callback"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs_wbtest.mbt",
+              "anchor": "Sheets tabs reject original numeric fractions foreign identity duplicates and absent selected cells"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "cancellation, stop and cleanup remain"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Raw body/decode workspace, typed rows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Normal adoption still requires"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "adapters/connectors/sheets/site/sheets-tabs-pages.mjs",
+    "sha256": "ebba3982319b804b5503847f6b5337e8bc2831213e33e6dd539348eab0e28e0d",
+    "exports": [
+      "SHEETS_TABS_PAGES_OPERATION",
+      "SheetsTabsPagesFailure",
+      "prepareSheetsTabsPages"
+    ],
+    "operations": [
+      {
+        "name": "fail/fail",
+        "parameters": [
+          "code"
+        ],
+        "async": false
+      },
+      {
+        "name": "positive/positive",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages",
+        "parameters": [
+          "moon",
+          "spreadsheetId",
+          "names",
+          "limits",
+          "applySynchronousProjection"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/frame/frame",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/init:decodePage/init:decodePage",
+        "parameters": [
+          "response",
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/init:fetchPage/init:fetchPage",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/init:onError/init:onError",
+        "parameters": [
+          "cause"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/prepareSheetsTabsPages",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/prepareSheetsTabsPages#2",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/prepareSheetsTabsPages#3",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/provider/provider",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsTabsPages/provider/provider/provider",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "SheetsTabsPagesFailure/constructor:constructor/constructor:constructor",
+        "parameters": [
+          "cause"
+        ],
+        "async": false
+      }
+    ],
+    "imports": [
+      "../../../host-common/runtime-result.mjs"
+    ],
+    "compilerFields": [],
+    "unresolvedSyntax": [],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets typed tab metadata and pure callback DATA under existing Common/shared Host owners; no Source authority/grant/funding/physical send/ACK/cleanup",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "fail/fail",
+          "positive/positive",
+          "prepareSheetsTabsPages",
+          "prepareSheetsTabsPages/frame/frame",
+          "prepareSheetsTabsPages/init:decodePage/init:decodePage",
+          "prepareSheetsTabsPages/init:fetchPage/init:fetchPage",
+          "prepareSheetsTabsPages/init:onError/init:onError",
+          "prepareSheetsTabsPages/prepareSheetsTabsPages",
+          "prepareSheetsTabsPages/prepareSheetsTabsPages#2",
+          "prepareSheetsTabsPages/prepareSheetsTabsPages#3",
+          "prepareSheetsTabsPages/provider/provider",
+          "prepareSheetsTabsPages/provider/provider/provider",
+          "SheetsTabsPagesFailure/constructor:constructor/constructor:constructor"
+        ],
+        "exports": [
+          "SHEETS_TABS_PAGES_OPERATION",
+          "SheetsTabsPagesFailure",
+          "prepareSheetsTabsPages"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Typed tab metadata"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "adapters/connectors/sheets/site/sheets-tabs-pages.mjs",
+              "anchor": "export function prepareSheetsTabsPages"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet binding. IDs and positions"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "opaque page retains typed values"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "There is no I/O in the projection or callback"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/tabs_wbtest.mbt",
+              "anchor": "Sheets tabs reject original numeric fractions foreign identity duplicates and absent selected cells"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "cancellation, stop and cleanup remain"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Raw body/decode workspace, typed rows"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Normal adoption still requires"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
         }
