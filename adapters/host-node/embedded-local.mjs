@@ -3279,7 +3279,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     return dispatchOwner.track(facts.ref, {
         run: async ({signal, retainExecution, beginPhysicalWork,
           observePreEffectFailure}) => {
-          const managedRun = preparation.effectManagedRun(moon, facts.prepared, facts.identity);
+          const managedEffect = preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity);
+          const managedRun = managedEffect.value;
           let targetReads;
           try {
             targetReads = await openEffectTargetReads(facts, {signal,
@@ -3288,7 +3289,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               observeCancellation});
           } catch (error) { observePreEffectFailure(); throw error; }
           return effectInstallation.execute(
-          Object.freeze({...facts, signal, retainExecution, targetReads, observation,
+          Object.freeze({...facts, signal, retainExecution, targetReads, observation, managedEffect,
             beginPhysicalWork, observePreEffectFailure, moon, control,
             assertContinuationCurrent: activeResume?.assertCurrent,
             publicationPlan: facts.preparedExecution,
@@ -5566,13 +5567,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
+      return preparation.effectManagedPlanRun(runtime, prepared, request).value;
+    },
+    effectManagedPlanRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
       const manager = computeManaged ?? sourceManaged;
       if (manager === undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
       const current = () => (computeManaged === undefined
         ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent)(manager, originals);
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
-        runtime, prepared, request, assertCurrent: current, checked}).value;
+        runtime, prepared, request, assertCurrent: current, checked});
     },
     prepareManagedComputeRun(runtime, prepared, request, sourceProfile) {
       const manager = computeManaged ?? sourceManaged;

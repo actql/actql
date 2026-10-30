@@ -304,3 +304,105 @@ test "one-short same-parent CREATE debit refuses before running the native const
   @resources.settle_capacity(ledger, pressure).unwrap()
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+#external
+priv type InstalledCreateChildLoader
+
+///|
+#module("node:module")
+extern "js" fn installed_create_child_loader(
+  url : String,
+) -> InstalledCreateChildLoader = "createRequire"
+
+///|
+extern "js" fn installed_create_child_url() -> String =
+  #|() => import.meta.url
+
+///|
+// Actual shared JS child with original compiled native reservation/Plan and
+// Kintone constructor callees. This is not a generated Node namespace, initial
+// Host metadata backing, captured Result, Account/physical operation or normal Run.
+extern "js" fn installed_create_original_child(
+  loader : InstalledCreateChildLoader,
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  read : (
+    ClientInstalledManagedRun,
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientRequestIdentity,
+  ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue],
+  borrow : (
+    ClientInstalledManagedRun,
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientRequestIdentity,
+    ClientInstalledEffectManagedPlan,
+    Int,
+    Bool,
+    Int,
+    Int,
+    String,
+  ) -> Result[
+    ClientInstalledEffectOperationBorrow,
+    ClientInstalledManagedRunIssue,
+  ],
+  retire : (ClientInstalledEffectOperationBorrow, Bool) -> Result[
+    Bool,
+    ClientInstalledManagedRunIssue,
+  ],
+  construct : () -> Result[
+    @kintone_catalog.RecordCreateRequest,
+    @kintone_host.RecordCreateExecutionIssue,
+  ],
+  matches : (@kintone_catalog.RecordCreateRequest) -> Bool,
+) -> Bool =
+  #|(loader,owner,prepared,request,plan,read,borrow,retire,construct,matches)=>{
+  #| const {prepareInstalledEffectRequestChild:create}=loader('../../../../../adapters/host-node/installed-effect-plan.mjs');
+  #| const runtime={clientProgramInstalledEffectManagedOperationPlan:read,clientProgramInstalledEffectOperationBorrow:borrow,clientProgramInstalledEffectOperationRetire:retire};
+  #| const run={runtime,value:owner,prepared,request,operationPlan:plan,readPlan:read};
+  #| let aliasesRetired=false,calls=0;
+  #| const child=create({run,memberIndex:0,rowIndex:0,operationIndex:0,operation:'kintone:create:construct',requestsRetired:()=>aliasesRetired,
+  #|   construct(){calls++;const r=construct();if(r.$tag!==1)throw r._0;return r._0;}});
+  #| if(calls!==0||child.status().pending!==true)return false;
+  #| let native=child.prepare();
+  #| if(calls!==1||!matches(native)||child.release()!==false)return false;
+  #| native=undefined;aliasesRetired=true;
+  #| return child.release()===true&&child.status().pending===false;
+  #| }
+
+///|
+test "actual shared JS constructor child retains the original native Kintone request debit" {
+  let (prepared, request, plan, mapping, write, mutation, _) = installed_kintone_create_constructor_plan()
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    installed_create_original_child(
+      installed_create_child_loader(installed_create_child_url()),
+      owner,
+      prepared,
+      request,
+      plan,
+      installed_effect_managed_operation_plan,
+      borrow_installed_effect_operation,
+      retire_installed_effect_operation,
+      () => {
+        @kintone_host.prepare_record_create_execution_request(
+          mapping, b"[{\"Subject\":\"requested 東京\"}]", 8192, write, mutation,
+        )
+      },
+      native => {
+        @kintone_host.record_create_mapping_matches_request(mapping, native)
+      },
+    ),
+  )
+  assert_eq(owner.effect_operations.length(), 1)
+  assert_true(owner.effect_operations[0].retired)
+  retire_installed_managed_run(owner).unwrap()
+}

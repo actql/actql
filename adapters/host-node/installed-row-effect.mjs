@@ -91,7 +91,7 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan} from './installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
@@ -1297,144 +1297,164 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     // Every apply carries its exact returned refresh into dispatch. A later
     // refresh may finish before this one is sent; equal capability DATA does
     // not substitute that later Catalog for this original current observation.
-    const currentsByPreflight = new WeakMap();
-    let hasRefreshed = false;
-    const current = async ({signal, preflight}) => {
-      assertCurrent?.();
-      if (preflight === null || typeof preflight !== 'object') {
-        fail('InvalidInstalledRowEffectRoute');
-      }
-      for (const member of members) {
-        const {installed, installedCommands} = ownerOf(member);
-        const available = member.kind === 'command'
-          ? installedCommands.includes(member.command) : installed.includes(member.mapping);
-        if (!available) {
-          fail('InstalledRowEffectMappingNotInstalled');
-        }
-      }
-      // Every read is decided before this refresh's provider I/O.
-      const reads = [];
-      for (const [index, member] of members.entries()) {
-        reads.push(!guarded(member.kind) ? undefined :
-          await decideTargetRead({member, runInvocationCid,
-            dispatchRequestCid: dispatches[index], subjectCid, signal,
-            targetReads, assertCurrent}));
-        assertCurrent?.();
-      }
-      const fresh = [];
-      for (const [index, member] of members.entries()) {
-        const {owned} = ownerOf(member);
-        assertCurrent?.();
-        const description = owned.describe === undefined ? undefined :
-          await owned.describe({member, runInvocationCid,
-            dispatchRequestCid: dispatches[index], label: `apply-${index}`,
-            approval: reads[index]?.approval, signal, ...resourceFields(member)});
-        assertCurrent?.();
-        await owned.recheckRequests?.({member, entries: entries[index],
-          current: description, ...resourceFields(member)});
-        assertCurrent?.();
-        fresh.push(description);
-      }
-      await checkRows({members, entries, runInvocationCid, dispatches,
-        subjectOf: () => subjectCid, signal, assertCurrent});
-      assertCurrent?.();
-      const currentVersions = new Map();
-      for (const [index, member] of members.entries()) {
-        if (!guarded(member.kind)) continue;
-        const observed = await observeRows({member, entries: entries[index],
-          current: fresh[index], read: reads[index], signal, assertCurrent});
-        assertCurrent?.();
-        for (const [rowIndex, row] of observed.entries()) {
-          const original = previewRows[index][rowIndex];
-          if ((row.state === 'absent') !== (original.before.state === 'absent')) {
-            // A fresh read cannot switch a sealed creation into an update, or
-            // a sealed update into creation. Nothing has been claimed/sent.
-            fail('InstalledRowEffectTargetPresenceChanged');
-          }
-          if (row.state !== 'absent') currentVersions.set(original.row_preview_cid, row.versionCid);
-        }
-      }
-      const capabilities = members.map((member, index) => admitCapability(
-        member, entries[index], fresh[index], runInvocationCid,
-        dispatches[index]));
-      signal?.throwIfAborted();
-      assertCurrent?.();
-      if (currentVersions.size !== preflight.observedRows.length) fail('ForeignInstalledRowEffectObservation');
-      const refreshed = Object.freeze({...preflight,
-        guardVersions: Object.freeze(preflight.observedRows.map(row => {
-          if (!currentVersions.has(row)) fail('ForeignInstalledRowEffectObservation');
-          return currentVersions.get(row);
-        })),
-        capabilities: Object.freeze(capabilities.map(value => value.identity)),
-        routes: Object.freeze(capabilities.map(routeOf))});
-      currentsByPreflight.set(refreshed, Object.freeze(fresh));
-      hasRefreshed = true;
-      return refreshed;
+    let currentsByPreflight = new WeakMap();
+    let hasRefreshed = false, closing = false, active = 0;
+    const requireOpen = () => { if (closing) fail('InstalledRowEffectRouteRetired'); };
+    const retire = () => {
+      closing = true;
+      if (active !== 0) return false;
+      // SAME route/closure inventory. A fulfilled prepare did not sever these
+      // aliases, and an active refresh/send still owns its original locals.
+      currentsByPreflight = new WeakMap();
+      entries = undefined;
+      previewRows = undefined;
+      return true;
     };
-    const bindDispatch = ({members: claims, subjectCid: active, signal,
+    const current = async ({signal, preflight}) => {
+      requireOpen();
+      active++;
+      try {
+        assertCurrent?.();
+        if (preflight === null || typeof preflight !== 'object') {
+          fail('InvalidInstalledRowEffectRoute');
+        }
+        for (const member of members) {
+          const {installed, installedCommands} = ownerOf(member);
+          const available = member.kind === 'command'
+            ? installedCommands.includes(member.command) : installed.includes(member.mapping);
+          if (!available) {
+            fail('InstalledRowEffectMappingNotInstalled');
+          }
+        }
+        // Every read is decided before this refresh's provider I/O.
+        const reads = [];
+        for (const [index, member] of members.entries()) {
+          reads.push(!guarded(member.kind) ? undefined :
+            await decideTargetRead({member, runInvocationCid,
+              dispatchRequestCid: dispatches[index], subjectCid, signal,
+              targetReads, assertCurrent}));
+          assertCurrent?.();
+        }
+        const fresh = [];
+        for (const [index, member] of members.entries()) {
+          const {owned} = ownerOf(member);
+          assertCurrent?.();
+          const description = owned.describe === undefined ? undefined :
+            await owned.describe({member, runInvocationCid,
+              dispatchRequestCid: dispatches[index], label: `apply-${index}`,
+              approval: reads[index]?.approval, signal, ...resourceFields(member)});
+          assertCurrent?.();
+          await owned.recheckRequests?.({member, entries: entries[index],
+            current: description, ...resourceFields(member)});
+          assertCurrent?.();
+          fresh.push(description);
+        }
+        await checkRows({members, entries, runInvocationCid, dispatches,
+          subjectOf: () => subjectCid, signal, assertCurrent});
+        assertCurrent?.();
+        const currentVersions = new Map();
+        for (const [index, member] of members.entries()) {
+          if (!guarded(member.kind)) continue;
+          const observed = await observeRows({member, entries: entries[index],
+            current: fresh[index], read: reads[index], signal, assertCurrent});
+          assertCurrent?.();
+          for (const [rowIndex, row] of observed.entries()) {
+            const original = previewRows[index][rowIndex];
+            if ((row.state === 'absent') !== (original.before.state === 'absent')) {
+              // A fresh read cannot switch a sealed creation into an update, or
+              // a sealed update into creation. Nothing has been claimed/sent.
+              fail('InstalledRowEffectTargetPresenceChanged');
+            }
+            if (row.state !== 'absent') currentVersions.set(original.row_preview_cid, row.versionCid);
+          }
+        }
+        const capabilities = members.map((member, index) => admitCapability(
+          member, entries[index], fresh[index], runInvocationCid,
+          dispatches[index]));
+        signal?.throwIfAborted();
+        assertCurrent?.();
+        if (currentVersions.size !== preflight.observedRows.length) fail('ForeignInstalledRowEffectObservation');
+        const refreshed = Object.freeze({...preflight,
+          guardVersions: Object.freeze(preflight.observedRows.map(row => {
+            if (!currentVersions.has(row)) fail('ForeignInstalledRowEffectObservation');
+            return currentVersions.get(row);
+          })),
+          capabilities: Object.freeze(capabilities.map(value => value.identity)),
+          routes: Object.freeze(capabilities.map(routeOf))});
+        currentsByPreflight.set(refreshed, Object.freeze(fresh));
+        hasRefreshed = true;
+        return refreshed;
+      } finally { active--; }
+    };
+    const bindDispatch = ({members: claims, subjectCid: activeSubject, signal,
       decisions}) => {
+      requireOpen();
       assertCurrent?.();
-      if (active !== subjectCid || !hasRefreshed) {
+      if (activeSubject !== subjectCid || !hasRefreshed) {
         fail('InvalidInstalledRowEffectRoute');
       }
       const commits = commitDecisions(decisions, subjectCid, members);
       return async ({memberIndex, rowIndex, claim, currentPreflight}) => {
-        assertCurrent?.();
-        const now = currentsByPreflight.get(currentPreflight);
-        if (now === undefined) fail('InvalidInstalledRowEffectRoute');
-        const member = members[memberIndex];
-        const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
-        const entry = entries[memberIndex]?.[sourceIndex];
-        const expected = claims[memberIndex]?.claims[rowIndex];
-        if (member === undefined || entry === undefined || !claim ||
-            !expected || ['scope', 'locator', 'key', 'basis',
-              'intentFingerprintCid', 'canonicalRequestCid'].some(field =>
-              expected[field] === undefined ||
-              expected[field] !== claim[field])) {
-          fail('InvalidInstalledRowEffectDispatch');
-        }
-        const {owned, site} = ownerOf(member);
-        signal?.throwIfAborted();
-        requireApproval(member, commits.get(scopeKey(member)));
-        const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
-          claim, member, entry,
-          previewRow: previewRows[memberIndex][sourceIndex]});
-        await owned.recheckRequests?.({member, entries: [entry],
-          current: now[memberIndex], ...resourceFields(member)});
-        assertCurrent?.();
-        const grant = site.issueEffectGrant({
-          operation: owned.writeOperation(member),
-          decision: commits.get(scopeKey(member)), resource: member.resource,
-          runInvocationCid, dispatchRequestCid: dispatches[memberIndex],
-          subjectCid});
-        const captured = await captureClaimedEffectResponse({ledger,
-          claim: ownedClaim, requestCid: entry.requestCid,
-          execute: () => {
-            assertClaimedCurrent();
-            return owned.send({member, request: entry.request,
-              current: now[memberIndex],
-              authorization: {...grant, useId:
-                `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`},
-              credential: site.credential, callResource: site.callResource,
-              signal, ...resourceFields(member)});
-          }});
-        assertClaimedCurrent();
-        if (!captured.claimed) {
-          return Object.freeze({claimed: false,
-            ownership: Object.freeze({action: captured.ownership.action})});
-        }
-        const projected = owned.project({member, memberIndex, rowIndex,
-          preview: applyPreview, request: entry.request,
-          current: now[memberIndex],
-          observation: captured.physical.observation,
-          headers: captured.physical.headers});
-        const settled = settle({ledger, claim: ownedClaim, applyPreview,
-          memberIndex, rowIndex, projected});
-        return Object.freeze({claimed: true, physical: projected,
-          ...(settled ?? {})});
+        requireOpen();
+        active++;
+        try {
+          assertCurrent?.();
+          const now = currentsByPreflight.get(currentPreflight);
+          if (now === undefined) fail('InvalidInstalledRowEffectRoute');
+          const member = members[memberIndex];
+          const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
+          const entry = entries[memberIndex]?.[sourceIndex];
+          const expected = claims[memberIndex]?.claims[rowIndex];
+          if (member === undefined || entry === undefined || !claim ||
+              !expected || ['scope', 'locator', 'key', 'basis',
+                'intentFingerprintCid', 'canonicalRequestCid'].some(field =>
+                expected[field] === undefined ||
+                expected[field] !== claim[field])) {
+            fail('InvalidInstalledRowEffectDispatch');
+          }
+          const {owned, site} = ownerOf(member);
+          signal?.throwIfAborted();
+          requireApproval(member, commits.get(scopeKey(member)));
+          const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
+            claim, member, entry,
+            previewRow: previewRows[memberIndex][sourceIndex]});
+          await owned.recheckRequests?.({member, entries: [entry],
+            current: now[memberIndex], ...resourceFields(member)});
+          assertCurrent?.();
+          const grant = site.issueEffectGrant({
+            operation: owned.writeOperation(member),
+            decision: commits.get(scopeKey(member)), resource: member.resource,
+            runInvocationCid, dispatchRequestCid: dispatches[memberIndex],
+            subjectCid});
+          const captured = await captureClaimedEffectResponse({ledger,
+            claim: ownedClaim, requestCid: entry.requestCid,
+            execute: () => {
+              assertClaimedCurrent();
+              return owned.send({member, request: entry.request,
+                current: now[memberIndex],
+                authorization: {...grant, useId:
+                  `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`},
+                credential: site.credential, callResource: site.callResource,
+                signal, ...resourceFields(member)});
+            }});
+          assertClaimedCurrent();
+          if (!captured.claimed) {
+            return Object.freeze({claimed: false,
+              ownership: Object.freeze({action: captured.ownership.action})});
+          }
+          const projected = owned.project({member, memberIndex, rowIndex,
+            preview: applyPreview, request: entry.request,
+            current: now[memberIndex],
+            observation: captured.physical.observation,
+            headers: captured.physical.headers});
+          const settled = settle({ledger, claim: ownedClaim, applyPreview,
+            memberIndex, rowIndex, projected});
+          return Object.freeze({claimed: true, physical: projected,
+            ...(settled ?? {})});
+        } finally { active--; }
       };
     };
-    return {current, bindDispatch, assertClaimedCurrent};
+    return {current, bindDispatch, assertClaimedCurrent, retire};
   };
 
   const basePreflight = ({effects, members, requestScope, keys}) => ({
@@ -1687,7 +1707,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, contentOwner, own, ownInputs, ownChildren, assertCurrent}) {
+    targetReads, contentOwner, managedEffect, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
@@ -1696,11 +1716,23 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
+    const proposals = members.map(() => []), currents = [], rowsOf = [], observations = [];
+    let entries, route, captureOpen = true;
+    const retireRequestAliases = () => {
+      if (captureOpen || (route !== undefined && !route.retire())) return false;
+      entries = undefined;
+      currents.length = 0;
+      rowsOf.length = 0;
+      observations.length = 0;
+      proposals.length = 0;
+      return true;
+    };
     ownChildren(requestChildren);
     const childrenPending = () => requestChildren.some(value =>
       typeof value?.prepared?.status !== 'function' ||
       value.prepared.status()?.pending !== false);
     const releaseInputs = async () => {
+      if (!retireRequestAliases()) fail('InstalledRowEffectRequestCleanupPending');
       // This is the same prepared cleanup owner as on capture failure. Never
       // retire the parent pin/Artifact/Source based on Promise completion alone.
       if (requestChildren.length) {
@@ -1731,8 +1763,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       commandKeys.length = 0;
       moon.clientProgramReleaseEffectInputs(inputs);
     };
-    ownInputs(releaseInputs);
-    const proposals = members.map(() => []);
+    ownInputs(releaseInputs, () => { captureOpen = false; });
     let proposalCount = 0;
     const sourceLimits = moon.clientProgramEffectInputExportLimits(
       ...exportLimits(plan.outputLimits));
@@ -1823,9 +1854,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           targetReads, assertCurrent}));
       assertCurrent?.();
     }
-    const currents = [];
-    const rowsOf = [];
-    const observations = [];
     for (const [index, member] of members.entries()) {
       const {owned} = ownerOf(member);
       assertCurrent?.();
@@ -1852,7 +1880,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         for (let row = 0; row < rows.length; row++) rows[row] = createRows[row].entry;
       }
       let entries;
-      if (owned.prepareRequestChild !== undefined) {
+      const recipe = ownerOf(member).managedPlanRecipe;
+      const constructor = recipe?.requestConstruction;
+      if (constructor !== undefined && (managedEffect?.runtime !== moon ||
+          managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
+        fail('ForeignInstalledEffectManagedRun');
+      }
+      if (constructor !== undefined && owned.prepareRequestChild !== undefined) {
+        fail('InstalledEffectConstructorChildUnavailable');
+      }
+      if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
@@ -1865,7 +1902,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
               {authorizationForRow: reads[index]?.authorizationForRow})};
           const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
-            create: () => owned.prepareRequestChild(context), assertCurrent, signal});
+            create: () => constructor === undefined ? owned.prepareRequestChild(context) :
+              prepareInstalledEffectRequestChild({run: managedEffect, memberIndex: member.memberIndex,
+                rowIndex, operationIndex: constructor.operationIndex,
+                operation: recipe.rowOperations[constructor.operationIndex].operation,
+                construct: () => owned.prepareRequest(context), requestsRetired: retireRequestAliases}),
+            assertCurrent, signal});
           preparedEntries.push(requestEntry(member, row, preparedRequest));
         }
         entries = Object.freeze(preparedEntries);
@@ -1895,7 +1937,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         entry, state: observed[row].state, versionCid: observed[row].versionCid,
         before: observed[row].before}))));
     }
-    const entries = Object.freeze(rowsOf.map(rows =>
+    entries = Object.freeze(rowsOf.map(rows =>
       Object.freeze(rows.map(row => row.entry))));
     // Every create row passes the provider check before a Preview.
     await checkRows({members, entries, runInvocationCid, dispatches,
@@ -2005,7 +2047,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         members, unitCids: members.map(member => cid({version: ownerOf(member).profile.unit,
           run_definition_cid: plan.runDefinition.identity, stage_index: member.stageIndex})),
         retentionId: plan.effectInputRetention.identity});
-      const route = physicalRoute({members, entries,
+      route = physicalRoute({members, entries,
         previewRows: body.effects.map(member => member.changes),
         dispatchIndexes: body.effects.map(orderedSourceIndexes),
         runInvocationCid, dispatches,
@@ -2078,14 +2120,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
     let sourceSet;
     let releaseInputs;
-    let requestChildren;
+    let requestChildren, finishCapture;
     try {
-      return await captureStage({control, store, execution, checkedHost,
-        prepared, identity, plan, previewContext, unit, members,
-        runInvocationCid, dispatches, requestScope, storedResults, signal,
-        targetReads, contentOwner, assertCurrent, own: value => { sourceSet = value; },
-        ownChildren: value => { requestChildren = value; },
-        ownInputs: release => { releaseInputs = release; }});
+      try {
+        return await captureStage({control, store, execution, checkedHost,
+          prepared, identity, plan, previewContext, unit, members,
+          runInvocationCid, dispatches, requestScope, storedResults, signal,
+          targetReads, contentOwner, managedEffect: facts.managedEffect, assertCurrent, own: value => { sourceSet = value; },
+          ownChildren: value => { requestChildren = value; },
+          ownInputs: (release, finish) => { releaseInputs = release; finishCapture = finish; }});
+      } finally { finishCapture?.(); }
     } catch (error) {
       await releaseInstalledRowCapture({payloads: sourceSet?.payloads,
         children: requestChildren,

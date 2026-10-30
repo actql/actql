@@ -1583,6 +1583,26 @@ identity, changed policy selection and stale current checks cannot substitute
 for any of these originals.
 
 
+The installed Row Effect retains its implementation's original typed operation
+recipe before Request completion/adoption. An optional internal
+`requestConstruction.operationIndex` selects one declared per-row occurrence;
+it neither derives a slot from a row number nor provides a complete recipe by
+itself. The enclosing checked preparation and request must be the same originals
+as the selected managed Run. Its native occurrence reservation precedes the
+provider constructor, and the existing capture retains the same request child
+before awaiting preparation. Constructor-only bounds do not fund metadata,
+transport, response, recovery or failed physical children.
+
+Request construction returning does not retire its output. The same capture
+keeps the debit while its apply route, refresh, dispatch or original request
+aliases can still use it. Original cleanup first closes that route to new work,
+waits for active calls to finish, and severs its captured request/current arrays;
+only then can the existing child settle its body reservation. Its spent
+occurrence/control inventory remains on the original Run until that Run retires.
+A forbidden asynchronous constructor remains joined through settlement before
+refusal and cleanup; neither Promise settlement nor a numeric quote is a
+physical cleanup acknowledgement.
+
 ## Model demand on the original installed Effect Plan
 
 The Node bridge obtains Model/read/bootstrap bounds through the same checked

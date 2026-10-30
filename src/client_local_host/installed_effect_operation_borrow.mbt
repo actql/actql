@@ -42,10 +42,35 @@ fn installed_effect_operation_control_capacity(
   // Shared original control reservation/wrapper/observed tuple/Some adds
   // (4H,7R,12W); one appended array backing adds (1H,slotsR). The existing
   // fixed Host/Run prelude and B original-inventory owner are not re-quoted.
+  // The actual JS request child also survives body settlement in the SAME
+  // capture retry inventory, so its controls belong HERE, not in provider body
+  // capacity. Co-count this branch for every occurrence: child factory frame
+  // (1H15R3W), current/drain/prepare/status closures(4H4R), child(1H4R),
+  // original RSE context(1H11R1W), options(1H7R3W), constructor closure(1H2R),
+  // capture retainer frame(1H3R2W), two wrappers(2H4R), captured methods(1H4R),
+  // six drain/retry/async-finally closures(6H6R), four invalid-thenable join
+  // callbacks(4H4R), and two live status snapshots(2H2W): 25H64R11W.
+  // Three original Reflect.apply argument vectors have9+3+2 entries. Use the
+  // pinned array representation; Promise engine backing stays opaque runtime
+  // support, as in managed_cleanup_control_inventory, not a guessed RSS price.
+  guard @shape.collection_construction_extent({
+      records: 25L,
+      record_references: 64L,
+      record_words: 11L,
+      reference_arrays: 3L,
+      reference_items: 14L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(host) else {
+    return None
+  }
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 5L + 9L * count,
-    reference_slots: 7L + slots + 15L * count,
-    scalar_words: 12L + 22L * count,
+    record_headers: 5L + (9L + host.record_headers) * count,
+    reference_slots: 7L + slots + (15L + host.reference_slots) * count,
+    scalar_words: 12L + (22L + host.scalar_words) * count,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

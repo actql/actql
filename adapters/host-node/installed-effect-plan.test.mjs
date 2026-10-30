@@ -81,3 +81,72 @@ test('constructor child debits the same original before work and retains it unti
   assert.equal(children[0].prepared.status().pending, false);
   assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
 });
+
+
+function constructorControlFixture(construct) {
+  const prepared = {}, request = {}, parent = {}, plan = {}, token = {};
+  let retired = false, debits = 0, settlements = 0;
+  const runtime = {
+    clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
+    clientProgramInstalledEffectOperationBorrow() {debits++; return {$tag: 1, _0: token};},
+    clientProgramInstalledEffectOperationRetire(original) {
+      assert.equal(original, token); settlements++; return {$tag: 1, _0: true};
+    },
+  };
+  const run = {runtime, prepared, request, value: parent, operationPlan: plan,
+    readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan, closed: false};
+  return {run, construct, requestsRetired: () => retired,
+    memberIndex: 0, rowIndex: 0, operationIndex: 0, operation: 'construct',
+    retireAliases() {retired = true;}, debits: () => debits, settlements: () => settlements};
+}
+
+test('invalid asynchronous constructor remains borrowed through both original settlements', async () => {
+  const {prepareInstalledEffectRequestChild: create} = await import('./installed-effect-plan.mjs');
+  for (const rejected of [false, true]) {
+    let resolve, reject;
+    const original = new Promise((yes, no) => {resolve = yes; reject = no;});
+    const f = constructorControlFixture(() => original), child = create(f);
+    const pending = child.prepare();
+    const refused = assert.rejects(pending, {code: 'InstalledEffectConstructorNotSynchronous'});
+    f.retireAliases();
+    assert.equal(child.release(), false);
+    assert.equal(f.settlements(), 0);
+    if (rejected) reject(new Error('original async failure')); else resolve({original: true});
+    await refused;
+    assert.equal(child.retry(), true);
+    assert.equal(f.debits(), 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('constructor failure and original Plan replacement never retry or release a live alias', async () => {
+  const {prepareInstalledEffectRequestChild: create} = await import('./installed-effect-plan.mjs');
+  const primary = new Error('original constructor prefix');
+  const f = constructorControlFixture(() => {throw primary;}), child = create(f);
+  assert.throws(() => child.prepare(), error => error === primary);
+  assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildAlreadyPrepared'});
+  assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
+  f.retireAliases(); assert.equal(child.release(), true);
+  const foreign = constructorControlFixture(() => assert.fail('must not construct'));
+  const retained = create(foreign);
+  foreign.run.operationPlan = {};
+  assert.throws(() => retained.prepare(), {code: 'ForeignInstalledEffectManagedRun'});
+  foreign.retireAliases(); assert.equal(retained.release(), true);
+});
+
+
+test('constructor selection stays on its exact declared original row occurrence',()=>{
+  const row=Object.freeze({operation:'construct',extent:{}});
+  const base={memberOperations:Object.freeze([]),rowOperations:Object.freeze([row])};
+  const plain=captureInstalledEffectPlanRecipe(Object.freeze(base),1);
+  assert.equal(Object.hasOwn(plain,'requestConstruction'),false);
+  let callbacks=0;
+  const accessor=Object.freeze({...base,get requestConstruction(){callbacks++;return {operationIndex:0};}});
+  assert.throws(()=>captureInstalledEffectPlanRecipe(accessor,1),{code:'InvalidInstalledEffectPlanRecipe'});
+  const proxy=new Proxy(Object.freeze({...base}),{getOwnPropertyDescriptor(){callbacks++;throw new Error('proxy must not run');}});
+  assert.throws(()=>captureInstalledEffectPlanRecipe(proxy,1),{code:'InvalidInstalledEffectPlanRecipe'});
+  assert.equal(callbacks,0);
+  for(const operationIndex of [-1,1,0.5])assert.throws(()=>captureInstalledEffectPlanRecipe(
+    Object.freeze({...base,requestConstruction:Object.freeze({operationIndex})}),1),{code:'InvalidInstalledEffectPlanRecipe'});
+  const selected=captureInstalledEffectPlanRecipe(Object.freeze({...base,requestConstruction:Object.freeze({operationIndex:0})}),1);
+  assert.equal(selected.rowOperations[0].extent,row.extent);assert.equal(selected.requestConstruction.operationIndex,0);
+});
