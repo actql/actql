@@ -807,7 +807,7 @@ fn command() -> @argparse.Command {
   @argparse.Command(
     "actql-native-client",
     about="Bounded Native Client operations",
-    version="0.1",
+    version=native_package_version(),
     subcommand_required=true,
     options=[
       @argparse.OptionArg("mode", default_values=["remote"], global=true),

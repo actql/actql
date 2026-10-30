@@ -28,13 +28,15 @@ test('actual schema version regex and shared parser match independent literal ve
 test('existing lint opt-in selects the release files without new publication authority', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs.lint;
+  assert.deepEqual(workflow.jobs.native.steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
+    {name: 'Test immutable Native package-version C mechanism', run: 'node --test scripts/native-cli-version-native.test.mjs'});
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
   assert.equal(job.if, "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
     if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-lanes.test.mjs scripts/native-standalone-release.test.mjs'});
+    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-lanes.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs'});
 });
 
 test('dotted channel schema and shared owner match independent literal channel oracles', () => {

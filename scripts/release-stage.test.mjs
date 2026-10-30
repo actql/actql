@@ -8,7 +8,7 @@ import {chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test, {before, after} from 'node:test';
-import {admitCohort, stagePackage} from './package-release.mjs';
+import {admitCohort, stagePackage, inventory} from './package-release.mjs';
 import {freezeReleaseSet, prepareReleaseReview, verifyReleaseSet} from './release-set.mjs';
 import {publicConsumerEnvironment} from './release-public-install.mjs';
 import {observeNpmStageTarget} from './release-registry.mjs';
@@ -71,10 +71,10 @@ after(async () => {if (root) await rm(root, {recursive: true, force: true});});
 
 const uuid = index => `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
 
-async function fixture(t) {
+async function fixture(t, selected = reviewed, originalDirectory = join(root, 'reviewed')) {
   const own = await mkdtemp(join(root, 'case-')); t.after(() => rm(own, {recursive: true, force: true}));
-  const directory = join(own, 'fixed'); await cp(join(root, 'reviewed'), directory, {recursive: true});
-  const artifacts = reviewed.manifest.artifacts, originals = new Map();
+  const directory = join(own, 'fixed'); await cp(originalDirectory, directory, {recursive: true});
+  const artifacts = selected.manifest.artifacts, originals = new Map();
   for (const item of artifacts) originals.set(item.name, await readFile(join(directory, item.path)));
   const pending = new Map(), published = new Map(), calls = [], commands = [], namesAbsent = new Set();
   const control = {ownerUnavailable: false, ownerAfterSendUnavailable: false, throwAfterSend: false, malformedReply: false, wrongTool: false,
@@ -121,7 +121,7 @@ async function fixture(t) {
       name: item.name, version: item.version, size: item.bytes, integrity: item.integrity, stageId: id + control.stageIdSuffix}})};
   };
   const receiptsDirectory = join(own, 'receipts');
-  const options = {directory, expectedSha256: reviewed.sha256, targetId: 'node', receiptsDirectory,
+  const options = {directory, expectedSha256: selected.sha256, targetId: selected.manifest.request.targets[0].id, receiptsDirectory,
     npmVersion: '11.15.0', runNpm: run('stage-only'), fetchStage, fetchResponse};
   return {own, directory, artifacts, originals, pending, published, calls, commands, namesAbsent, control, options,
     executeInitialStage: run('initial-owner'), stage: extra => stagePackageRelease({...options, ...extra})};
@@ -292,4 +292,59 @@ test('npm stage: final stable channels cannot be applied through stage approval 
   const destination = join(f.own, 'latest-review'), fixed = await prepareReleaseReview({directory: base, expectedSha256: sha256, reviewFile: file, destination});
   await assert.rejects(npmStagePlan(destination, fixed.sha256, 'node'), /separate staging tag/u);
   assert.deepEqual(f.commands, []);
+});
+
+test('npm stage: original Native omitted-private metadata and version-bound artifacts use the same staging protocol', async t => {
+  const own = await mkdtemp(join(root, 'native-shape-')), base = join(own, 'base'), target = 'native';
+  await mkdir(join(base, target), {recursive: true});
+  const version = reviewed.manifest.release.version, source = reviewed.manifest.request.source.commit;
+  const names = ['@actql/cli-darwin-arm64', '@actql/cli-linux-x64-gnu', 'actql'], packages = [], records = [];
+  for (const [index, name] of names.entries()) {
+    const input = join(own, `package-${index}`), payload = join(input, 'package'); await mkdir(payload, {recursive: true});
+    const metadata = {name, version, license: 'Apache-2.0', publishConfig: {registry, access: 'public'},
+      ...(name === 'actql' ? {optionalDependencies: Object.fromEntries(names.slice(0, 2).map(value => [value, version]))} : {})};
+    await writeFile(join(payload, 'package.json'), JSON.stringify(metadata));
+    await writeFile(join(payload, 'LICENSE'), 'inert Native staging fixture');
+    if (name !== 'actql') {
+      const binary = Buffer.alloc(64), platform = index === 0 ? 'darwin-arm64' : 'linux-x64-gnu';
+      if (index === 0) {binary.writeUInt32LE(0xfeedfacf); binary.writeUInt32LE(0x0100000c, 4);}
+      else {binary.writeUInt32BE(0x7f454c46); binary[4] = 2; binary[5] = 1; binary.writeUInt16LE(62, 18);}
+      const record = {version: 'actql-native-cli-artifact/0.1', sourceSha: source, platform, binarySha256: hash(binary),
+        binaryBytes: binary.length, generatedCSha256: 'b'.repeat(64), toolchainPinSha256: 'c'.repeat(64), notices: {},
+        toolchain: {fixture: true}, abi: index === 0 ? {format: 'Mach-O', minimumMacOS: '11.0'} : {format: 'ELF', minimumGlibc: '2.17'},
+        testedHost: {}, generation: ['inert metadata; never executed'], packageVersion: version,
+        packageVersionObservation: {argv: ['--version'], stdout: `${version}\n`, code: 0, signal: null,
+          binarySha256: hash(binary), binaryBytes: binary.length, buildInputSha256: 'd'.repeat(64)}};
+      await mkdir(join(payload, 'bin')); await writeFile(join(payload, 'bin/actql-native-client'), binary);
+      await writeFile(join(payload, 'artifact.json'), JSON.stringify(record)); records.push(record);
+    }
+    const file = `${name.replace('@', '').replace('/', '-')}-${version}.tgz`;
+    execFileSync('tar', ['-czf', join(base, target, file), '-C', input, 'package']);
+    const bytes = await readFile(join(base, target, file));
+    packages.push({name, version, file, bytes: bytes.length, sha256: hash(bytes),
+      integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`, files: await inventory(payload)});
+  }
+  const child = {version: 'actql-native-cli-release/0.1', sourceSha: source, preparedAt: '2000-01-01T00:00:00Z',
+    recipeSha256: 'e'.repeat(64), cohort: {packageVersion: version, registry, access: 'public', tag: 'candidate-synthetic'},
+    platforms: Object.fromEntries(records.map(record => [record.platform, {}])), artifacts: records, packages};
+  const childBytes = Buffer.from(JSON.stringify(child)); await writeFile(join(base, target, 'release.json'), childBytes);
+  const manifest = structuredClone(reviewed.manifest); delete manifest.review;
+  manifest.request.targets = [{id: target, ecosystem: 'npm', packages: names, platforms: records.map(record => record.platform),
+    profiles: ['remote'], destination: registry, channels: ['candidate-synthetic']}];
+  manifest.cohorts = [{targetId: target, kind: 'native-npm', path: `${target}/release.json`, bytes: childBytes.length,
+    sha256: hash(childBytes), verification: 'Independent Native-shaped staging fixture; no actual Native artifact or install acceptance'}];
+  manifest.artifacts = packages.map(({files, ...item}) => ({targetId: target, ecosystem: 'npm', ...item, path: `${target}/${item.file}`}));
+  const bytes = Buffer.from(JSON.stringify(manifest)), digest = hash(bytes);
+  await writeFile(join(base, 'release-set.json'), bytes); await writeFile(join(base, 'release-set.sha256'), `${digest}  release-set.json\n`);
+  const review = structuredClone(reviewRequest); review.manifestSha256 = digest;
+  review.provenance[0].targetId = target;
+  Object.assign(review.environments[0], {targetId: target, platforms: manifest.request.targets[0].platforms, profiles: ['remote']});
+  for (const row of review.acceptance) row.targetId = target;
+  review.executionScope = {publish: [target], promote: [], resumeIdenticalMissing: [target]};
+  const reviewPath = join(dirname(reviewFile), 'native-review.json'); await writeFile(reviewPath, JSON.stringify(review));
+  const directory = join(own, 'reviewed');
+  const fixed = await prepareReleaseReview({directory: base, expectedSha256: digest, reviewFile: reviewPath, destination: directory});
+  const f = await fixture(t, fixed, directory), result = await f.stage();
+  assert.equal(result.results.length, 3); assert(result.results.every(value => value.state === 'pending'));
+  assert.deepEqual(f.commands.map(value => value.name), names);
 });

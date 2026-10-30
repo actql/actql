@@ -128,6 +128,10 @@
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: pinned tool and separate read port are required before any actual send, not actor/approved JSON"
+        },
+        {
+          "kind": "Inert Native-shaped archives and injected stage/read ports; no registry credentials, trust or actual stage",
+          "test": "npm stage: original Native omitted-private metadata and version-bound artifacts use the same staging protocol"
         }
       ]
     },
@@ -277,12 +281,20 @@
     {
       "id": "A20",
       "required": "Native standalone works without Node and refuses missing binary",
-      "currentSlice": "Standalone archive adapter reuses original verified Native npm payload, byte/mode/ABI/Local metadata readers and exact checksum inventory. Inert packaging controls pass; complete real producer, Node-free CLI/Local bootstrap/version display/public download acceptance remain pending",
+      "currentSlice": "Explicit Native build-time package version reaches only its immutable version stub; actual banner observation binds the same binary before release admission. Legacy byte reads remain historical. Focused real C/pinned-runtime/types and inert metadata/staging controls only; complete versioned Native supplier, Node-free install/bootstrap/Local/Remote/close/public acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Inert archive/header/Local metadata component only; no Native execution or Node-free consumer acceptance",
           "test": "standalone archive retains every original OS payload byte and mode with noncircular build/checksum metadata"
+        },
+        {
+          "kind": "Actual small C/O0/pinned-runtime version getter and real Native consuming types, not a complete CLI/normal supplier or installed acceptance",
+          "test": "Native package version: actual compiled getter uses immutable bounded literals and ignores runtime version inputs"
+        },
+        {
+          "kind": "Inert artifact/package metadata only, no actual versioned CLI or registry operation",
+          "test": "standalone release requires the original matching compiled-version observation without rewriting a legacy artifact"
         }
       ]
     },
@@ -331,6 +343,10 @@
         {
           "kind": "Inert packaging/metadata only; full release acceptance remains pending",
           "test": "versioned Python metadata lineage feeds the fixed release set without granting runtime acceptance"
+        },
+        {
+          "kind": "Native literal argument/observed-banner component, not selected RC/final CLI artifacts or approval",
+          "test": "Native package version: shared grammar and finite literal bind only the original stub, never another compiler step"
         }
       ]
     },

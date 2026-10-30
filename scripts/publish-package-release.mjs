@@ -11,6 +11,7 @@ import {inventory, publicationPlan, publishedVersion, unpack, verifyPackageRelea
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {readFrozenReleaseArtifact, verifyReleaseSet} from './release-set.mjs';
 import {observeNpmStageTarget} from './release-registry.mjs';
+import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const stageUuid = value => typeof value === 'string' && value.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
@@ -38,6 +39,7 @@ async function stageSelection(directory, expectedSha256, targetId) {
   const child = fixed.manifest.cohorts.find(value => value.targetId === targetId);
   assert(['node-npm', 'native-npm'].includes(child.kind));
   const manifest = JSON.parse(await readFile(join(directory, child.path)));
+  if (child.kind === 'native-npm') requireNativeCohortPackageVersions(manifest);
   assert.equal(manifest.cohort.registry, 'https://registry.npmjs.org/');
   assert.equal(manifest.cohort.access, 'public'); assert(target.channels.includes(manifest.cohort.tag));
   assert(manifest.cohort.tag !== 'latest' && !/^release-[0-9]+\.[0-9]+$/u.test(manifest.cohort.tag) &&
@@ -102,7 +104,10 @@ async function inspectStagePayload(directory, expectedSha256, targetId, item, se
     const original = selected.child.packages.find(value => value.name === item.name);
     assert.deepEqual(await inventory(payload), original.files, 'Stage payload differs from its complete original inventory');
     const metadata = JSON.parse(await readFile(join(payload, 'package.json')));
-    assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version); assert.equal(metadata.private, false);
+    assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version);
+    // Preserve each existing producer's metadata contract: Native intentionally
+    // omits private; Node projects it explicitly to false. Neither accepts true.
+    assert.equal(metadata.private, selected.child.version === 'actql-native-cli-release/0.1' ? undefined : false);
     assert.deepEqual(metadata.publishConfig, {registry: selected.registry, access: 'public'}, 'Unexpected publisher configuration in artifact');
     for (const name of ['preinstall', 'install', 'postinstall', 'prepublish', 'prepublishOnly', 'prepare', 'prepack', 'postpack', 'publish', 'postpublish'])
       assert.equal(metadata.scripts?.[name], undefined, 'Publication jobs never run or prepare artifact lifecycle scripts');
