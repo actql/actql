@@ -63,6 +63,7 @@ test "ordinary values document prepares one named Effect-free result" {
     max_parameter_name_bytes: 1000,
     max_tasks: 2,
     max_graph_work: 10000,
+    values_max_rows: None,
   }
   let selected = @checked.checking_environment(
     environment,
