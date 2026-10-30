@@ -82,6 +82,8 @@ pub fn begin_installed_effect_mock_model_managed_run(@physical_resources.NodeMan
 
 pub fn begin_installed_managed_capture_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_managed_capture_source_read(ClientInstalledManagedRun, @client_row_source_host.RowDeclaration, Int) -> Result[(ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, ClientInstalledCaptureCapacity), ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_managed_keyed_content_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_managed_keyed_source_read(ClientInstalledManagedRun, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowDeclaration) -> Result[ClientInstalledKeyedSourceRead, ClientInstalledSourceReadIssue]

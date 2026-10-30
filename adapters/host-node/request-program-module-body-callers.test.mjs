@@ -22,7 +22,8 @@ const ports = () => ({
   clientProgramPrepareRequestNativeComputation() {},
   clientProgramPrepareRequestProgramModuleBody() {},
   clientProgramRequestProgramModuleIssueCode() {},
-  clientProgramBorrowRequestProgramPreparation() {},
+  clientProgramBorrowRequestProgramPlanInput() {},
+  clientProgramAcquisitionCount() {return 0;},
   clientProgramAdoptRequestProgramPreparation() {},
   clientProgramReserveRequestSnapshot() {},
 });
@@ -63,8 +64,8 @@ test('funded caller passes the same installed mode to one original Request compi
         assert.deepEqual(args, [parent, receipt, admission, mode]);
         constructing = true; calls.push('body'); constructing = false;
       },
-      clientProgramBorrowRequestProgramPreparation(value) {
-        assert.strictEqual(this, moon); assert.strictEqual(value, parent);
+      clientProgramBorrowRequestProgramPlanInput(value, original) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, parent); assert.strictEqual(original, receipt);
         assert.equal(constructing, false); calls.push('borrow'); return holder;
       },
       clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
@@ -88,11 +89,11 @@ test('funded caller passes the same installed mode to one original Request compi
       assert.equal(Object.isFrozen(original),true);
       assert.equal(Object.isFrozen(original.originalInputs),true);
     }
-    assert.deepEqual(calls, ['compiler', 'body', 'borrow', 'parameters']);
+    assert.deepEqual(calls, ['compiler', 'borrow', 'body', 'parameters']);
     assert.strictEqual(state.prepared, prepared);
     state.context = context(moon, undefined);
     await assert.rejects(read({}, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
-    assert.deepEqual(calls, ['compiler', 'body', 'borrow', 'parameters']);
+    assert.deepEqual(calls, ['compiler', 'borrow', 'body', 'parameters']);
   }
 });
 

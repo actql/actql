@@ -42,7 +42,8 @@ async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,1
     clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
-    clientProgramBorrowRequestProgramPreparation(){assert.fail('No Prepared borrow selected');},
+    clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
+    clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
   const context=Object.freeze({runtime:moon,preparedEnvironment:{},retainedRelationOutput:false});
@@ -346,7 +347,7 @@ test('normal generic Native Request prepares the original Parameters compiler mo
     assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
     assert.equal(contracts,selectedContract);assert.equal(retained,false);calls.push('module-original');return ok(undefined);
   };
-  moon.clientProgramBorrowRequestProgramPreparation=function(parent){
+  moon.clientProgramBorrowRequestProgramPlanInput=function(parent){
     assert.equal(parent,f.parent);calls.push('borrow-original');return ok(holder);
   };
   moon.clientProgramPreparationBorrowRead=value=>{assert.equal(value,holder);return prepared;};
@@ -373,13 +374,13 @@ test('normal generic Native Request prepares the original Parameters compiler mo
     assert.equal(first.prepared,prepared);assert.equal(second.prepared,prepared);
     assert.equal(first.kind,'effect_free');assert.equal(first.originalInputs.parametersCursor,parametersCursor);
     assert.equal(first.originalInputs.parameters,undefined);
-    assert.deepEqual(calls,['compile-original','module-original','borrow-original']);
+    assert.deepEqual(calls,['compile-original','borrow-original','module-original']);
     assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.equal(f.calls.includes('select'),false);
   }finally{
     f.view.finishSourceProducer(receipt,'failed');await f.view.close();
   }
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
-  assert.deepEqual(calls,['compile-original','module-original','borrow-original','return-original']);
+  assert.deepEqual(calls,['compile-original','borrow-original','module-original','return-original']);
 });
 
 test('normal generic Native Request preserves its first compiler refusal without a second preparation', async () => {
@@ -408,6 +409,14 @@ test('normal generic Native Request preserves failed Plan construction and rejec
   f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
   f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
   const failure=new Error('OriginalModuleConstructorFailed');let compiles=0,modules=0,reentry;
+  const prepared = {}, holder = {};
+  moon.clientProgramBorrowRequestProgramPlanInput = () => ok(holder);
+  moon.clientProgramPreparationBorrowRead = value => {assert.equal(value, holder); return prepared;};
+  moon.clientProgramPreparationBorrowRetirementStarted = value => {assert.equal(value, holder); return true;};
+  const abort = moon.clientProgramAbortRequestPreparation; let returned = false;
+  moon.clientProgramAbortRequestPreparation = owner => returned
+    ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalInputPending')};
+  moon.clientProgramPreparationBorrowReturn = value => {assert.equal(value, holder); returned = true; return ok(true);};
   moon.clientProgramPrepareRequestNativeComputation=()=>{compiles++;return ok('effect_free');};
   moon.clientProgramPrepareRequestProgramModuleBody=function(){
     modules++;
@@ -437,7 +446,7 @@ test('normal generic Native Request adopts the same Run and retains its current 
   moon.clientProgramClosedValuesCompilationOriginal=()=>assert.fail('The parent-only Run has no ClosedValues phase');
   moon.clientProgramPrepareRequestNativeComputation=()=>ok('effect_free');
   moon.clientProgramPrepareRequestProgramModuleBody=()=>ok(undefined);
-  moon.clientProgramBorrowRequestProgramPreparation=()=>ok(holder);
+  moon.clientProgramBorrowRequestProgramPlanInput=()=>ok(holder);
   moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
   moon.clientProgramRequestParametersOriginal=()=>ok(undefined);
   moon.clientProgramAdoptRequestProgramPreparation=function(parent,actualIdentity){
@@ -542,7 +551,7 @@ test('normal default and empty options use the same Request without legacy Close
     for (const name of Object.keys(f.context.runtime)) if (name.includes('ClosedValues')) delete f.context.runtime[name];
     const never=()=>assert.fail('No semantic/module or legacy scanner work during SDK capture');
     for (const name of ['clientProgramPrepareRequestNativeComputation','clientProgramPrepareRequestProgramModuleBody',
-      'clientProgramBorrowRequestProgramPreparation','clientProgramRequestParametersOriginal',
+      'clientProgramBorrowRequestProgramPlanInput','clientProgramRequestParametersOriginal',
       'clientProgramAdoptRequestProgramPreparation','clientProgramInstalledManagedRunCompilationOriginal',
       'clientProgramPreparationBorrowRead','clientProgramPreparationBorrowSibling',
       'clientProgramPreparationBorrowRetirementStarted','clientProgramPreparationBorrowReturn']) f.context.runtime[name]=never;
@@ -591,7 +600,7 @@ test('normal SQL and AQL Request keeps native Parameters declarations and one co
       assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(selected,contracts);
       assert.equal(retained,false);calls.push('module-original');return ok(undefined);
     };
-    moon.clientProgramBorrowRequestProgramPreparation=actual=>{assert.equal(actual,f.parent);return ok(holder);};
+    moon.clientProgramBorrowRequestProgramPlanInput=actual=>{assert.equal(actual,f.parent);return ok(holder);};
     moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
     moon.clientProgramRequestParametersOriginal=()=>ok(parametersCursor);
     let returned=false;const abort=moon.clientProgramAbortRequestPreparation;
@@ -631,7 +640,7 @@ test('normal JSON and YAML Source forwards one captured document and Parameters 
     moon.clientProgramPrepareRequestProgramModuleBody=function(parent,original,selected){
       assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(selected,contracts);calls.push('module');return ok(undefined);
     };
-    moon.clientProgramBorrowRequestProgramPreparation=actual=>{assert.equal(actual,f.parent);return ok(holder);};
+    moon.clientProgramBorrowRequestProgramPlanInput=actual=>{assert.equal(actual,f.parent);return ok(holder);};
     moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
     moon.clientProgramRequestParametersOriginal=()=>ok(parametersCursor);
     let returned=false;const abort=moon.clientProgramAbortRequestPreparation;
@@ -675,7 +684,16 @@ test('normal first Request Plan keeps its original typed row refusal or unclassi
     moon.clientProgramRequestProgramModuleIssueCode = function(original) {
       assert.equal(this, moon); assert.equal(original, result); projections++; return category;
     };
-    moon.clientProgramBorrowRequestProgramPreparation = () => assert.fail('No body after Plan refusal');
+    const prepared = {}, holder = {};
+    moon.clientProgramBorrowRequestProgramPlanInput = (parent, original) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt); return ok(holder);
+    };
+    moon.clientProgramPreparationBorrowRead = value => {assert.equal(value, holder); return prepared;};
+    moon.clientProgramPreparationBorrowRetirementStarted = value => {assert.equal(value, holder); return true;};
+    const abort = moon.clientProgramAbortRequestPreparation; let returned = false;
+    moon.clientProgramAbortRequestPreparation = owner => returned
+      ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalInputPending')};
+    moon.clientProgramPreparationBorrowReturn = value => {assert.equal(value, holder); returned = true; return ok(true);};
     try {
       for (let attempt = 0; attempt < 2; attempt++) {
         await assert.rejects(f.view.fundedPreparation(request, undefined), error => {
@@ -895,4 +913,103 @@ test('captured Pure Request keeps its original compiler input before Source Plan
   assert.equal(events.filter(value => value === 'compile').length, 1);
   assert.equal(events.filter(value => value === 'input-return').length, 1);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+async function originalCapturedRequest({completeFailure, adoptFailure} = {}) {
+  const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {}, identity = {}, plan = {}, value = {};
+  const events = []; let retiring = false, returned = false;
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const originalInput = {version: 'actql/0.1', id: 'source-compute',
+    results: {answer: {from: {result: 'r', stage: 'compute'}}}, stages: [
+      {id: 'acquire', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+        results: {r: {fields: ['id'], from: 'captured'}},
+        steps: [{as: 'filtered', filter: 'id > 0'}, {as: 'captured', select: ['id']}]},
+      {id: 'compute', inputs: {x: {result: {result: 'r', stage: 'acquire'}}},
+        results: {r: {fields: ['id'], from: 'out'}},
+        steps: [{filter: 'id > 2'}, {as: 'out', select: ['id']}]},
+    ]};
+  const receipt = f.view.beforeSourceSnapshot('program', originalInput, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: originalInput, parameters: null}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  moon.clientProgramPrepareRequestNativeComputation = () => {events.push('compile'); return ok('effect_free');};
+  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, input) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt);
+    events.push('borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = original => {assert.equal(original, holder); return returned ? undefined : prepared;};
+  moon.clientProgramAcquisitionCount = original => {assert.equal(original, prepared); return 1;};
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  moon.clientProgramPrepareRequestProgramModuleBody = () => assert.fail('no Source-free module for captured Program');
+  moon.clientProgramAdoptRequestProgramPreparation = () => assert.fail('no Source-free adoption for captured Program');
+  moon.clientProgramCompleteRequestCapturePreparation = function(parent, input, selected) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt); assert.equal(selected, plan);
+    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+  };
+  moon.clientProgramAdoptRequestCapturePreparation = function(parent, selected) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(selected, identity);
+    events.push('adopt'); if (adoptFailure) throw adoptFailure; return ok(value);
+  };
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = parent => {
+    assert.equal(parent, f.parent); retiring = true;
+    return returned ? Reflect.apply(abort, moon, [parent]) : {$tag: 0, _0: new Error('OriginalCaptureInputPending')};
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = original => {assert.equal(original, holder); return retiring;};
+  moon.clientProgramPreparationBorrowReturn = original => {
+    assert.equal(original, holder); assert(retiring); assert(!returned);
+    returned = true; events.push('return'); return ok(true);
+  };
+  return {...f, moon, request, prepared, identity, plan, value, receipt, events,
+    failedCleanup: async () => {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();},
+    retireAdopted: async () => {
+      retiring = true; f.view.severPreparation(prepared, f.original);
+      Reflect.apply(abort, moon, [f.parent]); f.view.retireSeveredPreparation(f.original);
+      f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
+    }};
+}
+
+test('captured Request completes one original Plan and adopts its same parent without an independent Run', async () => {
+  const f = await originalCapturedRequest();
+  await f.view.fundedPreparation(f.request, undefined);
+  let constructors = 0;
+  const construct = () => {
+    constructors++;
+    assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
+      {code: 'ForeignInstalledSourceProducer'});
+    f.moon.clientProgramCompleteRequestCapturePreparation = f.moon.clientProgramAdoptRequestCapturePreparation =
+      () => assert.fail('original Core methods and namespace receiver were captured before constructor entry');
+    return f.plan;
+  };
+  assert.throws(() => f.view.adoptPreparation(f.prepared, f.request, f.identity), {code: 'ForeignInstalledSourceProducer'});
+  assert.throws(() => f.view.adoptCapturePreparation({...f.prepared}, f.request, f.identity, construct),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.adoptCapturePreparation(f.prepared, {}, f.identity, construct), undefined);
+  assert.equal(constructors, 0);
+  const run = f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct);
+  assert.equal(run.original, f.original); assert.equal(run.value, f.value);
+  assert.equal(constructors, 1); assert.deepEqual(f.events, ['compile', 'borrow', 'complete', 'adopt']);
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
+    {code: 'ForeignInstalledSourceProducer'});
+  await f.retireAdopted();
+  assert.equal(f.events.filter(value => value === 'return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('captured Request keeps original failed completion or adoption without replaying its constructor', async () => {
+  for (const phase of ['completeFailure', 'adoptFailure']) {
+    const failure = new Error(phase), f = await originalCapturedRequest({[phase]: failure});
+    await f.view.fundedPreparation(f.request, undefined);
+    let constructors = 0;
+    const construct = () => {constructors++; return f.plan;};
+    for (let attempt = 0; attempt < 2; attempt++) {
+      assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct), error => error === failure);
+    }
+    assert.equal(constructors, 1); assert.equal(f.events.filter(value => value === 'complete').length, 1);
+    assert.equal(f.events.filter(value => value === 'adopt').length, phase === 'adoptFailure' ? 1 : 0);
+    await f.failedCleanup();
+    assert.equal(f.events.filter(value => value === 'return').length, 1);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
 });

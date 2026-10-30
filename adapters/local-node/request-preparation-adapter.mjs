@@ -57,7 +57,8 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
     typeof own(moon,'clientProgramRequestProgramModuleIssueCode')==='function' &&
-    typeof own(moon,'clientProgramBorrowRequestProgramPreparation')==='function' &&
+    typeof own(moon,'clientProgramBorrowRequestProgramPlanInput')==='function' &&
+    typeof own(moon,'clientProgramAcquisitionCount')==='function' &&
     typeof own(moon,'clientProgramAdoptRequestProgramPreparation')==='function' &&
     typeof own(moon,'clientProgramReserveRequestSnapshot')==='function';
 }
@@ -187,5 +188,6 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
+  state.capturePlan=state.acquisitionCount=undefined;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;
 }

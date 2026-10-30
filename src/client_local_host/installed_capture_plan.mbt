@@ -371,3 +371,53 @@ pub fn begin_installed_managed_capture_read(
   read.acquisition = Some(acquisition)
   Ok(read)
 }
+
+///|
+/// Reuse this captured Plan's original Row acquisition at the installed
+/// Source consumer. Declaration matching is immutable provenance; the one
+/// read constructor below crosses the actual Run current boundary.
+pub fn begin_installed_managed_capture_source_read(
+  value : ClientInstalledManagedRun,
+  declaration : @row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @planning.QueryRequirement,
+    @row_source_host.RowAcquisition,
+    ClientInstalledCaptureCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  guard value.captured_preparation is Some(plan) &&
+    plan.captures.get(occurrence) is Some(capacity) &&
+    capacity.original_input &&
+    capacity.acquisition is Some(acquisition) else {
+    return Err(Unsupported)
+  }
+  match
+    @row_source_host.check_row_acquisition_original(
+      acquisition,
+      declaration,
+      capacity.requirement,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(_) => ()
+  }
+  let read = match begin_installed_managed_capture_read(value, occurrence) {
+    Err(issue) => return Err(issue)
+    Ok(read) => read
+  }
+  // The current callback may reenter retirement. Keep the issued read on its
+  // existing Run even when that original Plan was severed during the call.
+  guard value.captured_preparation is Some(original) &&
+    physical_equal(original, plan) &&
+    read.requirement is Some(requirement) &&
+    physical_equal(requirement, capacity.requirement) &&
+    read.acquisition is Some(selected) &&
+    physical_equal(selected, acquisition) else {
+    return Err(ForeignOriginal)
+  }
+  read.declaration = Some(declaration)
+  Ok((read, capacity.requirement, acquisition, capacity))
+}
