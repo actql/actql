@@ -40,28 +40,30 @@ function fixture() {
       assert.strictEqual(r, request); assert.strictEqual(scope, plan); calls.push('begin'); return ok(parent);
     },
   };
-  const manager = {prepareEffectPlanRun(p, scope) {
-    assert.strictEqual(this, manager); assert.strictEqual(p, prepared); assert.strictEqual(scope, plan);
-    assert.strictEqual(runs.get(p).operationPlan, scope, 'retain before quote/admission');
-    calls.push('quote'); return original;
+  const requestInput = {};
+  const manager = {adoptEffectPreparation(p, input, identity, scope) {
+    assert.strictEqual(this, manager); assert.strictEqual(p, prepared); assert.strictEqual(input, requestInput);
+    assert.strictEqual(identity, request); assert.strictEqual(scope, plan);
+    assert.strictEqual(runs.get(p).operationPlan, scope, 'retain before original completion/adoption');
+    calls.push('adopt-request'); return {original, value: parent, operationPlan: plan};
   }};
   const selection = Object.freeze({prepareManagedPlan(f, i) {
     assert.strictEqual(this, selection); assert.strictEqual(f, facts); assert.strictEqual(i, inputs);
     assert(liveRuns.has(runs.get(prepared)), 'retain partial selection before callback');
     calls.push('select'); if (selected instanceof Error) throw selected; return selected;
   }});
-  const options = {runs, liveRuns, runtime, manager, prepared, request, selection, facts, inputs,
+  const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput, selection, facts, inputs,
     sourceProfile, checked, assertCurrent() {if (!current) throw failure;}};
   return {options, calls, plan, parent, facts, runs, liveRuns, prepared, request, runtime,
     setCheck(fn) {checkCallback = fn;}, setSelected(value) {selected = value;},
     revoke() {current = false;}, failure};
 }
 
-test('Effect plan is retained before quote and remains the same admission and execution scope', () => {
+test('Effect plan is retained before Request adoption and remains the same execution scope', () => {
   const f = fixture();
   assert.strictEqual(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
   assert.strictEqual(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
-  assert.deepEqual(f.calls, ['select', 'quote', 'admit', 'begin']);
+  assert.deepEqual(f.calls, ['select', 'adopt-request']);
   const run = readInstalledEffectManagedPlanRun(f.options);
   assert.strictEqual(run.operationPlan, f.plan); assert.strictEqual(run.value, f.parent);
   assert.throws(() => prepareInstalledEffectManagedPlanRun({...f.options, request: {}}),
@@ -100,14 +102,14 @@ test('missing or failed selected Effect inventory cannot retry under a scalar qu
   }
 });
 
-test('Effect partial begin retains its same admission and original cleanup without a second construction', () => {
+test('Effect failed original Request adoption cannot retry through independent admission', () => {
   const f = fixture(), failure = new Error('original-begin-failed');
-  f.runtime.clientProgramInstalledEffectManagedPlanBegin = () => {throw failure;};
+  f.options.manager.adoptEffectPreparation = () => {throw failure;};
   assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
   const run = f.runs.get(f.prepared);
-  assert.notEqual(run.admission, undefined); assert.equal(typeof run.cleanup, 'function');
+  assert.equal(run.admission, undefined); assert.equal(run.cleanup, undefined);
   assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
-  assert.deepEqual(f.calls, ['select', 'quote', 'admit']);
+  assert.deepEqual(f.calls, ['select']);
 });
 
 test('Source selection and preparation borrow the same retained Effect plan and managed parent', async () => {
