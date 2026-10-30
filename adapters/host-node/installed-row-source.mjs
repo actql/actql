@@ -996,6 +996,18 @@ export async function openRowSourceCredentialSite({profile, principalId,
   }
   const declaredHeaders = new Set(responseHeaders);
   const selectedAcquisitionLimits = ownCredentialAcquisitionLimits(runAcquisitionLimits);
+  // Capture the SAME Source reader before metadata/current work can await.
+  // The existing issuer-byte bound remains mandatory on this original read.
+  let metadataKeyRead;
+  if (installationMetadata !== undefined && configurationReader !== undefined) {
+    if (configurationReader === null || typeof configurationReader !== 'object' ||
+        nodeTypes.isProxy(configurationReader)) fail('InvalidRowSourceCredentialSite');
+    const method = Object.getOwnPropertyDescriptor(configurationReader, 'readText');
+    if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+      fail('InvalidRowSourceCredentialSite');
+    }
+    metadataKeyRead = method.value;
+  }
   const metadata = installationMetadata === undefined ? undefined
     : await prepareInstallationMetadataSite({installationMetadata, profile,
       principalId, authorization, connection, connectorRegistration,
@@ -1014,8 +1026,10 @@ export async function openRowSourceCredentialSite({profile, principalId,
     // initialization/current carrier. It does not adopt legacy Run defaults.
     let privateKey;
     try {
-      privateKey = createPrivateKey(await readBoundedConfigurationText(
-        metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes}));
+      privateKey = createPrivateKey(await (metadataKeyRead === undefined
+        ? readBoundedConfigurationText(metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes})
+        : Reflect.apply(metadataKeyRead, configurationReader,
+          [metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes}])));
     } catch (error) {
       throw await retainInstalledHostInitializationFailure(error, {sourceProfile: metadata});
     }
