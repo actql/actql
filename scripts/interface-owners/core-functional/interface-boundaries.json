@@ -44971,6 +44971,185 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/local/driver/managed_dispatch.mbt",
+      "sha256": "9db4f5b54f62f7d63d57f672195317a1d0b9374b58d190b98d00673d890857c1",
+      "role": "common-semantics",
+      "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
+      "responsibilityFacet": "primary",
+      "operations": [
+        {
+          "name": "[A]with_managed_scratch_use",
+          "declaration": "[ A ] with_managed_scratch_use ( uses : Ref [ Int ] , release : ( ) - > Unit , action : ( ) - > A , ) - > A"
+        },
+        {
+          "name": "[T]install_local_managed_input_read",
+          "declaration": "[ T ] install_local_managed_input_read ( reads : Array [ T ? ] , pending : Ref [ Int ] , index : Int , value : T , ) - > Bool"
+        },
+        {
+          "name": "[T]local_managed_captured_relation_input",
+          "declaration": "[ T ] local_managed_captured_relation_input ( ) - > LocalManagedAvailableOutput [ T , ]"
+        },
+        {
+          "name": "[T]local_managed_carrier_output",
+          "declaration": "[ T ] local_managed_carrier_output ( output : @ execution . CarrierManagedCompletedOutput , material : @ carrier_runtime . Material , ) - > LocalManagedAvailableOutput [ T ]"
+        },
+        {
+          "name": "[T]local_managed_dispatch_duration",
+          "declaration": "[ T ] local_managed_dispatch_duration ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Int64 ?"
+        },
+        {
+          "name": "[T]local_managed_dispatch_site_capacity",
+          "declaration": "[ T ] local_managed_dispatch_site_capacity ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "[T]local_managed_dispatch_uses_provider",
+          "declaration": "[ T ] local_managed_dispatch_uses_provider ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Bool"
+        },
+        {
+          "name": "[T]local_managed_relation_output",
+          "declaration": "[ T ] local_managed_relation_output ( output : @ execution . ManagedCompletedOutput [ T ] , ) - > LocalManagedAvailableOutput [ T ]"
+        },
+        {
+          "name": "[T]local_managed_supplied_relation_input",
+          "declaration": "[ T ] local_managed_supplied_relation_input ( ) - > LocalManagedAvailableOutput [ T , ]"
+        },
+        {
+          "name": "[T]prepare_local_managed_dispatch",
+          "declaration": "[ T ] prepare_local_managed_dispatch ( installed : LocalDispatchModule , outputs : Array [ @ execution . ManagedCompletedOutput [ T ] ] , obligations : @ execution . ManagedObligations , _output_file_bytes : Int64 , ) - > Result [ LocalManagedDispatchConfiguration [ T ] ? , LocalDispatchIssue ]"
+        },
+        {
+          "name": "[T]prepare_local_managed_dispatch_with_outputs",
+          "declaration": "[ T ] prepare_local_managed_dispatch_with_outputs ( installed : LocalDispatchModule , outputs : Array [ LocalManagedAvailableOutput [ T ] ] , obligations : @ execution . ManagedObligations , _output_file_bytes : Int64 , ) - > Result [ LocalManagedDispatchConfiguration [ T ] ? , LocalDispatchIssue ]"
+        },
+        {
+          "name": "[T]start_local_managed_dispatch",
+          "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Result [ LocalManagedDispatchOperations [ T ] , LocalDispatchIssue ]"
+        },
+        {
+          "name": "bind_physical_operation_input",
+          "declaration": "bind_physical_operation_input ( run : @ strategy . CapturedDAG , index : Int , binding : @ execution . ManagedInputBinding , ) - > @ execution . ManagedInputBinding ?"
+        },
+        {
+          "name": "managed_row_transfer_bytes",
+          "declaration": "managed_row_transfer_bytes ( row : String , max_bytes : Int , ) - > Result [ Int64 , LocalDispatchIssue ]"
+        },
+        {
+          "name": "start_local_managed_dispatch_node",
+          "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , ) - > Result [ LocalManagedDispatchOperations [ Int ] , LocalDispatchIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[A]with_managed_scratch_use",
+            "[T]install_local_managed_input_read",
+            "[T]local_managed_captured_relation_input",
+            "[T]local_managed_carrier_output",
+            "[T]local_managed_dispatch_duration",
+            "[T]local_managed_dispatch_site_capacity",
+            "[T]local_managed_dispatch_uses_provider",
+            "[T]local_managed_relation_output",
+            "[T]local_managed_supplied_relation_input",
+            "[T]prepare_local_managed_dispatch",
+            "[T]prepare_local_managed_dispatch_with_outputs",
+            "[T]start_local_managed_dispatch",
+            "bind_physical_operation_input",
+            "managed_row_transfer_bytes",
+            "start_local_managed_dispatch_node"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Local managed dispatch distinguishes native supplied reads from imported"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "struct LocalManagedDispatchConfiguration[T]"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "@strategy.captured_supplied_task_input("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "physical_equal("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "owned by its Source; it constructs no wire importer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn[A] with_managed_scratch_use("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn[T] install_local_managed_input_read("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "return Err(Configuration(InputUnavailable))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "cancel_finalization()"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "stop_owned_inputs()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "only the inputs that require import storage and transfer"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "input_counts[slot] += 1"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "pub enum LocalManagedAvailableOutput[T]"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_result_js_wbtest.mbt",
+                "anchor": "whole Source executes its authored root and publishes the same original Result before release"
+              },
+              {
+                "path": "src/query_integration/local_managed_values_wbtest.mbt",
+                "anchor": "standard Host bounds supplied Relation chains and retains two consumers"
+              },
+              {
+                "path": "src/query_integration/local_managed_join_wbtest.mbt",
+                "anchor": "Local managed full join imports both producer identities"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

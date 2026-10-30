@@ -94,6 +94,14 @@ there is no second Ledger or independent cleanup engine. Whole input remains
 in its Source holding alongside Compute rather than being mislabeled as the
 root's output allocation.
 
+Local managed dispatch distinguishes native supplied reads from imported
+producer representations. A supplied read is already admitted and remains
+owned by its Source; it constructs no wire importer and incurs no second
+wire transfer. Both the retained Plan and actual candidate therefore count
+only the inputs that require import storage and transfer. Native input work,
+Source retention and output overlap remain in their original reservations;
+this distinction neither enlarges a task envelope nor bypasses its check.
+
 The standard installed adapter selects the closed input variant from its
 original Plan. It forwards the same acquisition, request wire and provider
 response borrow; a missing matched callee refuses. The provider still supplies
