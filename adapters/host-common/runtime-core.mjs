@@ -3140,7 +3140,8 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
       limits = captureContractLimits(limits, 'Client Run Invocation');
-      if (publicationPreparation !== undefined && (compiled.kind !== 'values' || source !== undefined)) {
+      if (publicationPreparation !== undefined &&
+          ((compiled.kind !== 'values' && compiled.kind !== 'tasks') || source !== undefined)) {
         throw new TypeError('Invalid original publication invocation profile');
       }
       const issued = compiledRunResult(publicationPreparation !== undefined
