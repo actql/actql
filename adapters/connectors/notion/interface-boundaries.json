@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "5c0056e581d3a66ab00d3e303d660fab64dd7379e1b174abf05b9be29499cb9f",
+      "sha256": "8797c37fc2805e66c202995c23e8eae421912b1affa26dbd12c68db022442562",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -228,6 +228,10 @@
               {
                 "path": "src/connectors/notion/catalog/users.mbt",
                 "anchor": "pub fn project_notion_user_list("
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The physical user-list reader supplies all declared columns to Source capture,"
               }
             ],
             "identity": [
@@ -320,6 +324,10 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               }
             ]
           }
