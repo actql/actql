@@ -49,17 +49,19 @@ test "closed checked Values derive envelopes while retaining explicit Host row p
       ),
     )
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     let plan = client_local_capacity_plan(
       sequences,
       @publication_host.prepared_client_values_max_rows(prepared),
@@ -97,7 +99,7 @@ test "closed checked Values derive envelopes while retaining explicit Host row p
         Some(assets.fragment),
         assets.ordered,
         false,
-      )
+      ).to_option()
       is Some(_),
     )
     println(

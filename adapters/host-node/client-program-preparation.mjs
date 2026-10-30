@@ -14,6 +14,7 @@ const issueCodes = Object.freeze({
   supplied_too_large: 'ClientParametersTooLarge',
   program_syntax: 'ClientProgramInvalidInput',
   effect_not_supported: 'ClientProgramUnsupported',
+  values_profile_unsupported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
   check_invalid_configuration: 'ClientProgramPreparationFailure',
@@ -56,9 +57,10 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 // Read only the original typed Request result. The existing Common projection
 // owns categories; JS never decodes an error constructor or checks input again.
 // Foreign/current/capacity/Host failures stay outside semantic nonacceptance.
-export function checkedRequestProgramPreparation(moon, result) {
+export function checkedRequestProgramPreparation(moon, result,
+  projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
-    const category = moon.clientProgramRequestPreparationIssueCode(result);
+    const category = projectIssue.call(moon, result);
     const code = issueCodes[category] ?? effectIssueCodes[category];
     if (code !== undefined) {
       throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
@@ -102,10 +104,11 @@ export function installNodeClientProgramPreparation({moon, environment,
   allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
   verifyRequestValuePolicy, restoreEffectOriginal, restoreInferOriginal,
   getPreparedSourceEnvironment, getFundedPreparation}) {
-  if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
+  const funded = getFundedPreparation !== undefined;
+  if (!moon || (!funded && (typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
-      typeof moon.clientProgramPreparationIssueCode !== 'function' ||
+      typeof moon.clientProgramPreparationIssueCode !== 'function')) ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
       (restoreEffectOriginal !== undefined && typeof restoreEffectOriginal !== 'function') ||
@@ -120,14 +123,15 @@ export function installNodeClientProgramPreparation({moon, environment,
           typeof moon.clientProgramCheckEnvironmentWithRequestValuePolicies !== 'function' ||
           allowEffects && (typeof moon.clientProgramEffectRequestValuePolicySubjects !== 'function' ||
             typeof moon.clientProgramEffectBindHostVerifiedRequestValuePolicy !== 'function'))) ||
-      (allowEffects &&
+      (!funded && allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
   if (valuesMaxRows !== undefined && (!Number.isSafeInteger(valuesMaxRows) ||
       valuesMaxRows < 1 || valuesMaxRows > 10000 ||
-      typeof moon.clientProgramWithValuesRowLimit !== 'function' || allowEffects)) {
+      (funded ? typeof moon.clientProgramValuesMaxRows !== 'function'
+        : typeof moon.clientProgramWithValuesRowLimit !== 'function') || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
   const owned = new WeakMap();
@@ -151,12 +155,12 @@ export function installNodeClientProgramPreparation({moon, environment,
     return effectPreparation(moon, publicSourcePreparation(selectedEnvironment)
       .prepareEffect({document, format, supplied}));
   };
-  if (allowEffects && sourcePublication !== undefined) {
+  if (!funded && allowEffects && sourcePublication !== undefined) {
     // The Source and JSON Effect frontends borrow the same admitted
     // publication, not two independently reconstructed catalogs.
     publicSourcePreparation(environment);
   }
-  let prepareEffect = !allowEffects ? undefined : sourcePublication === undefined
+  let prepareEffect = funded || !allowEffects ? undefined : sourcePublication === undefined
     ? installNodeClientEffectProgramPreparation({moon,
       environment, evidence: installedEvidence})
     : request => preparePublishedEffect(request, environment);
@@ -178,6 +182,10 @@ export function installNodeClientProgramPreparation({moon, environment,
         if (!allowEffects) fail('ClientProgramUnsupported');
         effectOwned.add(prepared);
       } else {
+        if (valuesMaxRows !== undefined &&
+            moon.clientProgramValuesMaxRows(prepared) !== valuesMaxRows) {
+          fail('ClientProgramPreparationFailure');
+        }
         // This is original DATA from the same fixed Request owner. It neither
         // certifies a Run nor supplies a second preparation/cleanup authority.
         owned.set(prepared, Object.freeze({...original.originalInputs}));
@@ -199,8 +207,9 @@ export function installNodeClientProgramPreparation({moon, environment,
     // Fixed Local owner may already have parsed/checked this exact pending
     // original under its same preparation reservation. Ask BEFORE serializing
     // so the funded route never makes an unquoted second document/AST copy.
-    // No values override is silently applied to that original owner.
-    if (getFundedPreparation !== undefined && valuesMaxRows === undefined) {
+    // The installed row ceiling was selected by that same Request before its
+    // compiler/Plan. Never clone a Prepared here or divert into the serializer.
+    if (funded) {
       // Selection is mandatory. A missing/failed owner cannot silently choose
       // the old serializer or return a Promise as if it were a Prepared token.
       return prepareFunded(request, selectedEnvironment);

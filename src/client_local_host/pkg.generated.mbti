@@ -992,6 +992,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Resource(@physical_resources.ImportedChildLedgerIssue)
   Ledger(@physical_resources.LedgerIssue)
   ModelRead(@run_publication_host.ClientModelReadPreparationIssue)
+  Sequence(@lowering_relation.SequenceIssue)
 }
 
 type ClientInstalledManagedSourceFreePreparation

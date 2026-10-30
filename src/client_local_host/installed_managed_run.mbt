@@ -95,6 +95,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Resource(@resources.ImportedChildLedgerIssue)
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
+  Sequence(@lower.SequenceIssue)
 }
 
 ///|
@@ -166,37 +167,43 @@ fn source_free_installed_managed_preparation_owned(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
-) -> ClientInstalledManagedSourceFreePreparation? {
+) -> Result[
+  ClientInstalledManagedSourceFreePreparation,
+  ClientInstalledManagedRunIssue,
+] {
   let graph = installed_managed_owner_graph(owner)
   if !installed_managed_owner_shape_supported(owner, mock_model) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
-    return None
+    return Err(Unsupported)
   }
   let task_count = @strategy.graph_task_count(graph)
   if task_count < 1 {
-    return None
+    return Err(Unsupported)
   }
-  guard prepare_client_local_sequences_owned(
+  let sequences = match
+    prepare_client_local_sequences_owned(
       owner,
       installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
       query_time~,
-    )
-    is Some(sequences) &&
-    sequences.length() == task_count else {
-    return None
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if sequences.length() != task_count {
+    return Err(Unsupported)
   }
   let inputs = Array::make(task_count, 0)
   for index in 0..<@strategy.graph_data_count(graph) {
     guard @strategy.graph_data_at(graph, index) is Some(edge) else {
-      return None
+      return Err(Unsupported)
     }
     let consumer = @strategy.data_edge_consumer(edge)
     if consumer < 0 || consumer >= task_count {
-      return None
+      return Err(Unsupported)
     }
     inputs[consumer] += 1
   }
@@ -223,9 +230,9 @@ fn source_free_installed_managed_preparation_owned(
       max_rows~,
     )
     is Some((limits, provider_retained_bytes, provider_execution_bytes)) else {
-    return None
+    return Err(Unsupported)
   }
-  Some({
+  Ok({
     owner,
     installed_contracts,
     values_body,
@@ -268,8 +275,8 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       ordered_body,
       false,
     ) {
-    Some(value) => value
-    None => return Err(Unsupported)
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let configuration = match
     prepare_client_local_configuration(
@@ -480,11 +487,12 @@ fn installed_managed_run_requirements_owned(
       !transport_execution_bytes.is_empty() {
       return Err(Unsupported)
     }
-    guard source_free_installed_managed_preparation_owned(
+    let original = match
+      source_free_installed_managed_preparation_owned(
         owner, installed_contracts, values_body, fragment_body, ordered_body, mock_model,
-      )
-      is Some(original) else {
-      return Err(Unsupported)
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     let limits = original.limits
     return Ok([
@@ -959,16 +967,17 @@ fn prepare_installed_managed_run_ledger_owned(
         Some(original.limits)
       }
       None => {
-        guard source_free_installed_managed_preparation_owned(
+        let original = match
+          source_free_installed_managed_preparation_owned(
             owner,
             installed_contracts,
             values_body,
             fragment_body,
             ordered_body,
             installed_managed_owner_shape_supported(owner, true),
-          )
-          is Some(original) else {
-          return Err(Unsupported)
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
         }
         // Retain the first checked plan before projecting its limits. Host
         // opening and publication borrow this original until Run retirement.

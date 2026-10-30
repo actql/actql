@@ -487,10 +487,15 @@ export function readLocalPreparationContext(originals) {
   assertSourceManagedHostPreparation(originals);
   const installation = originals.installation;
   const context = installation.closedValuesPreparationContext;
-  if (installation.valuesMaxRows !== undefined || installation.verifyRequestValuePolicy !== undefined) return undefined;
+  if (installation.verifyRequestValuePolicy !== undefined) return undefined;
   if (context === undefined || context.runtime !== installation.projectRuntime ||
       context.control !== installation.initialControl ||
       installation.sequenceContractOriginal === undefined) return undefined;
+  const rows = Object.getOwnPropertyDescriptor(context, 'valuesMaxRows');
+  if ((rows !== undefined && !Object.hasOwn(rows, 'value')) ||
+      rows?.value !== installation.valuesMaxRows) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
   const mode = Object.getOwnPropertyDescriptor(context, 'retainedRelationOutput');
   if (mode === undefined || !Object.hasOwn(mode, 'value') || typeof mode.value !== 'boolean' ||
       mode.value !== installation.retainedRelationOutput) {
@@ -1552,7 +1557,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (preparation !== undefined) {
           originalInstallation.closedValuesPreparationContext = Object.freeze({runtime: moon,
             control: originalInstallation.initialControl, environment,
-            preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput});
+            preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput,
+            valuesMaxRows: originalInstallation.valuesMaxRows});
         }
       }
     }

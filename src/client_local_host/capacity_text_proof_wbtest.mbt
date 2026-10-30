@@ -66,17 +66,19 @@ test "text-free capacity proof checks every typed child and original step" {
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
-      Pure(prepared),
-      prepare_installed_sequence_contracts(
-        assets.registry,
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
-      ).unwrap(),
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+      )
+      .to_option()
+      .unwrap()
     assert_eq(client_local_text_free_scalar_sequences(sequences), expected)
     let rows = @publication_host.prepared_client_values_max_rows(prepared)
     let plan = client_local_capacity_plan(
@@ -125,17 +127,19 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
   let sequences = prepare_client_local_sequences_owned(
-    Pure(prepared),
-    prepare_installed_sequence_contracts(
-      assets.registry,
+      Pure(prepared),
+      prepare_installed_sequence_contracts(
+        assets.registry,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
-    ).unwrap(),
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-  ).unwrap()
+    )
+    .to_option()
+    .unwrap()
   let rows = @publication_host.prepared_client_values_max_rows(prepared)
   let plan = client_local_capacity_plan(
     sequences,

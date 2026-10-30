@@ -5,6 +5,7 @@
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits {
   let graph_work = 1000000
   {
+    values_max_rows: None,
     checking: {
       input: {
         source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },

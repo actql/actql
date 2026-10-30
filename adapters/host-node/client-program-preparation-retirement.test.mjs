@@ -135,3 +135,39 @@ test('typed Request projection preserves result and thrown-failure identity with
   assert.equal(preparations,1);assert.equal(checks,0);assert.equal(projections,1);
   assert.equal(prepare.sourceCheckFailure(first),false,'No audience-bound report is fabricated');
 });
+
+test('selected Local row limit uses its first funded original without legacy runtime exports', async () => {
+  const environment = {}, original = {}, parametersCursor = {};
+  let preparations = 0, reads = 0, serialized = 0;
+  const moon = {clientProgramValuesMaxRows(prepared) {
+    assert.strictEqual(prepared, original); reads++; return 2;
+  }};
+  const prepare = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 2,
+    getFundedPreparation(request, selected) {
+      assert.strictEqual(selected, environment); preparations++;
+      return {kind: 'effect_free', prepared: original,
+        originalInputs: {environment, parameters: undefined, parametersCursor}};
+    }});
+  const prepared = await prepare({kind: 'program', parameters: null,
+    input: {toJSON() {serialized++; throw Error('No second serializer');}}});
+  assert.strictEqual(prepared, original);
+  assert.strictEqual(prepare.originalInputs(original).parametersCursor, parametersCursor);
+  assert.equal(preparations, 1); assert.equal(reads, 1); assert.equal(serialized, 0);
+});
+
+test('selected funded row limit refuses an unmatched original bound without legacy rescue', async () => {
+  for (const observed of [undefined, 1, 3]) {
+    const environment = {}, original = {}; let preparations = 0, serialized = 0;
+    const moon = {clientProgramValuesMaxRows(prepared) {
+      assert.strictEqual(prepared, original); return observed;
+    }};
+    const prepare = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 2,
+      getFundedPreparation() {preparations++; return {kind: 'effect_free', prepared: original,
+        originalInputs: {environment}};}});
+    await assert.rejects(prepare({kind: 'program', parameters: null,
+      input: {toJSON() {serialized++; throw Error('No old path');}}}),
+    {code: 'ClientProgramPreparationFailure'});
+    assert.equal(preparations, 1); assert.equal(serialized, 0);
+    assert.throws(() => prepare.assertOwned(original), /Foreign Client preparation/);
+  }
+});

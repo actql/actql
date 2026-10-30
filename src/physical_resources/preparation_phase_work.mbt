@@ -141,8 +141,10 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     OwnDataScan => 1
     TextEligibility => 2
     SnapshotSerialization => 3
-    LexicalScan => 4
-    IntentIdentity => 5
+    // The ordinary SDK finishes its original intent before compiling SQL/Pipe.
+    // Enum declaration order is not the execution order of this private fence.
+    IntentIdentity => 4
+    LexicalScan => 5
     SourceAndIndex => 6
     ShapeInspection => 7
     ProgramStructure => 8

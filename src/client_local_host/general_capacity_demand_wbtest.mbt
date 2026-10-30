@@ -80,7 +80,7 @@ test "closed text UNION keeps its checked finite demand through installed prepar
     Some(assets.fragment),
     assets.ordered,
     false,
-  )
+  ).to_option()
   println(
     "GENERAL_CAPACITY text rows=\{plan.execution.rows.max_rows} proven=4 nodes=\{plan.values.max_nodes} tasks=\{tasks} ports=\{ports} provider=\{provider} imports=\{imports} exports=\{exports} metadata=\{plan.metadata_retained_bytes} retained=\{retained} accepted=\{original is Some(_)}",
   )

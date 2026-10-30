@@ -41,6 +41,7 @@ async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,1
     clientProgramCleanupLocalPreparationAdmission(actual){assert.equal(this,moon);assert.equal(actual,admission);calls.push('cancel-admission');assert.equal(admission.ports.cancelUnpublished(),0);return ok(undefined);},
     clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
+    clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
     clientProgramBorrowRequestProgramPreparation(){assert.fail('No Prepared borrow selected');},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
@@ -645,5 +646,46 @@ test('normal JSON and YAML Source forwards one captured document and Parameters 
       assert.deepEqual(calls,['document','module']);assert.equal(f.calls.filter(x=>x==='parent').length,1);
     } finally {f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});
+
+
+test('normal first Request Plan keeps its original typed row refusal or unclassified failure without rebuilding', async () => {
+  for (const [category, code] of [
+    ['values_profile_unsupported', 'ClientProgramUnsupported'],
+    [undefined, 'MoonBitHostFailure'],
+  ]) {
+    const f = await fixture(), moon = f.context.runtime, request = {};
+    const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt,
+      {kind: 'program', input: input(), parameters: null}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    const contracts = {};
+    f.originals.installation = {sequenceContractOriginal: {moon, admission: contracts}};
+    const issue = Object.freeze({}), result = Object.freeze({$tag: 0, _0: issue});
+    let compilers = 0, modules = 0, projections = 0, first;
+    moon.clientProgramPrepareRequestNativeComputation = function(parent, original) {
+      assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+      compilers++; return ok('effect_free');
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody = function(parent, original, selected) {
+      assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(selected, contracts); modules++; return result;
+    };
+    moon.clientProgramRequestProgramModuleIssueCode = function(original) {
+      assert.equal(this, moon); assert.equal(original, result); projections++; return category;
+    };
+    moon.clientProgramBorrowRequestProgramPreparation = () => assert.fail('No body after Plan refusal');
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await assert.rejects(f.view.fundedPreparation(request, undefined), error => {
+          assert.equal(error.code ?? error.message, code);
+          if (category !== undefined) assert.equal(error.cause, issue);
+          if (attempt === 0) first = error; else assert.equal(error, first);
+          return true;
+        });
+      }
+      assert.deepEqual([compilers, modules, projections], [1, 1, 1]);
+    } finally { f.view.finishSourceProducer(receipt, 'failed'); await f.view.close(); }
   }
 });

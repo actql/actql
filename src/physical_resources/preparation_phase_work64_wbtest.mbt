@@ -84,3 +84,56 @@ test "wide preparation work preserves selected original parent phase and cleanup
   assert_eq(finish_preparation_phase_work(semantic), Ok(0))
   abort_preparation_capacity_after_cleanup(owner, input).unwrap() |> ignore
 }
+
+///|
+test "original snapshot intent and lexical work retain ordered single claims across receipt widths" {
+  let ledger = create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let input = [1]
+  let owner : PreparationCapacity[Array[Int], Unit] = reserve_preparation_capacity(
+    ledger,
+    input,
+    40L,
+    40L,
+    max_borrowers=1,
+  ).unwrap()
+  let snapshot = begin_preparation_phase_work(
+    owner,
+    input,
+    SnapshotSerialization,
+    2,
+  ).unwrap()
+  spend_preparation_phase_work(snapshot, 2).unwrap()
+  assert_eq(finish_preparation_phase_work(snapshot), Ok(2))
+  let intent = begin_preparation_phase_work64(owner, input, IntentIdentity, 3L).unwrap()
+  spend_preparation_phase_work64(intent, 3L).unwrap()
+  assert_eq(finish_preparation_phase_work64(intent), Ok(3L))
+  assert_true(
+    begin_preparation_phase_work(owner, input, IntentIdentity, 1)
+    is Err(AlreadyClaimed),
+  )
+  let lexical = begin_preparation_phase_work(owner, input, LexicalScan, 4).unwrap()
+  spend_preparation_phase_work(lexical, 4).unwrap()
+  assert_eq(finish_preparation_phase_work(lexical), Ok(4))
+  assert_true(
+    begin_preparation_phase_work64(owner, input, IntentIdentity, 1L)
+    is Err(AlreadyClaimed),
+  )
+  assert_true(
+    begin_preparation_phase_work64(owner, input, LexicalScan, 1L)
+    is Err(AlreadyClaimed),
+  )
+  let source = begin_preparation_phase_work64(owner, input, SourceAndIndex, 1L).unwrap()
+  spend_preparation_phase_work64(source, 1L).unwrap()
+  assert_eq(finish_preparation_phase_work64(source), Ok(1L))
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger_usage(ledger).planning_work, 0)
+  abort_preparation_capacity_after_cleanup(owner, input).unwrap() |> ignore
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+}

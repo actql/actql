@@ -173,6 +173,7 @@ test "Request failure projection uses the original semantic issue without anothe
       request_diagnostic_test_json(parameters.unwrap_or("null")),
       environment,
       publication,
+      None,
     )
     assert_true(result is Err(_))
     assert_eq(
@@ -202,6 +203,7 @@ test "Request failure projection keeps input admission and nonsemantic uncertain
     request_diagnostic_test_json("null"),
     environment,
     publication,
+    None,
   )
   assert_true(foreign is Err(_))
   assert_eq(client_program_request_preparation_issue_code(foreign), None)
@@ -213,6 +215,7 @@ test "Request failure projection keeps input admission and nonsemantic uncertain
     request_diagnostic_test_json("null"),
     environment,
     publication,
+    None,
   )
   assert_true(retired is Err(_))
   assert_eq(client_program_request_preparation_issue_code(retired), None)
@@ -321,6 +324,7 @@ test "native Query terminal projects original syntax declaration and missing-inp
       request_diagnostic_test_json("null"),
       environment,
       publication,
+      None,
     )
     assert_true(result is Err(_))
     assert_eq(
@@ -352,12 +356,19 @@ test "native Query terminal keeps foreign and retired originals outside semantic
     supplied,
     environment,
     publication,
+    None,
   )
   assert_true(foreign is Err(_))
   assert_eq(client_program_request_preparation_issue_code(foreign), None)
   @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   let retired = client_program_prepare_request_source_computation(
-    parent, receipt, source, supplied, environment, publication,
+    parent,
+    receipt,
+    source,
+    supplied,
+    environment,
+    publication,
+    None,
   )
   assert_true(retired is Err(_))
   assert_eq(client_program_request_preparation_issue_code(retired), None)
@@ -384,6 +395,7 @@ test "native Source document terminal projects original invalid Program instead 
       request_diagnostic_test_json("null"),
       environment,
       publication,
+      None,
     )
     assert_true(
       result

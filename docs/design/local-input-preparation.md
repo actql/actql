@@ -2410,6 +2410,18 @@ the retained original Row acquisition directly. The acquisition already owns
 its admitted declaration; reading this Plan does not restore a declaration,
 prepare another query or regenerate a sequence.
 
+The Node Request bridge also accepts original captured Source Plans. Its Plan
+constructor forwards the selected nominal capture inventory, ordered transport
+bounds, contracts, output mode and optional query-time original to the existing
+Core constructor and installed provider factory. Completion and Run adoption
+use the existing Request operations, with the same construction-input borrow
+remaining live across the handoff. No new Plan wrapper or second parent is
+issued. Missing, foreign or differently bound capture/query-time inputs are
+typed refusals, never a reason to substitute a default or prepare another
+acquisition. The Host must back the constructor, selected providers, transport
+and failed-child overlap on that same parent before entering this bridge;
+forwarding logical limits does not supply those physical resources.
+
 Ledger binding first checks immutable original references, then crosses the
 existing current callback and post-callback reentry fence once. Host opening
 uses the same retained configuration and accounted captured sources. It never
@@ -3326,3 +3338,39 @@ original Plan/Run retirement remains responsible for its existing owner.
 This immutable DATA reuse carries no currentness, permission, physical-start
 or cleanup result. It avoids a repeated variable allocation, but does not price
 all first-pass lowering/Fragment/Carrier scratch or complete compiler work.
+
+
+## Selected Local Values row limits enter the first Request
+
+The installed Local `valuesMaxRows` setting is immutable preparation DATA. The
+normal Request context forwards it into the existing Program preparation limits
+before the first checked Program becomes a `PreparedClientProgram`. The shared
+row-profile eligibility predicate is the same predicate used by the independent
+raw preparation API: one source-free Values task, no Graph carrier and no INFER.
+No permission, capacity credit or additional work allowance follows from this
+setting. Default demand-derived bounds and all independent cell/value/work/byte
+limits retain their existing meanings.
+
+The funded Local route requires neither the old raw preparation exports nor the
+post-preparation row-limit copy API. It cannot serialize or check the same input
+again when a selected bound is refused. The original prepared body, installed
+sequence, Plan and Run retain that first selection; the thin installer reads the
+original immutable row bound before retaining its normal metadata.
+
+The existing sequence constructor returns its original typed failure through
+the installed Plan constructor. A Values limit is not converted to `None` and
+then to a generic unsupported installation. Node projects only that original
+`Sequence(ValuesFailure(_, ValuesLimit))` into its existing implementation-limit
+refusal category. Foreign/current/resource/cleanup and other unclassified causes
+remain uncertain. Projection performs no second input admission, sequence
+construction, public check or error-string classification. Existing Option-only
+consumers keep their own established interface; the normal Result path preserves
+the typed cause. Request abort and the original body borrower still govern
+retirement, independently of the diagnostic projection.
+
+The same Request constructs and finishes its submitted intent before parsing
+the selected SQL/Pipe input. The private monotone work-phase fence therefore
+orders snapshot serialization, intent identity, lexical scanning and Source
+construction in that order. The public phase enumeration and each phase's work
+limit remain unchanged. Finishing an intent does not refund consumed work or
+permit an earlier or repeated phase; narrow and wide receipts share this fence.
