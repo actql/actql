@@ -128,12 +128,15 @@ pub fn record_create_mapped_request_construction_inventory(
   // 3H7R. Native source/target Strings and installed Form metadata are borrowed.
   // Shared Request/WriteValues/self Some/two EncodedDocuments/five success
   // Results/WireEmitCursor/captured Mapping predicates add16H22R13W.
+  // The extracted checked-row parser adds one Ok(Array) and the shared request
+  // validation adds one Ok(Unit):2H1R1W. The emitted document remains co-counted
+  // as constructor workspace even though the request now retains only its text.
   // Four field arrays + two one-element lookup-path arrays per field; three
   // one-record request/value copies. The seen-field Map owns F keys.
   guard @shape.collection_construction_extent({
-      records: 16L + 17L * f,
-      record_references: 22L + 31L * f,
-      record_words: 13L + 10L * f,
+      records: 18L + 17L * f,
+      record_references: 23L + 31L * f,
+      record_words: 14L + 10L * f,
       reference_arrays: 7L + 2L * f,
       reference_items: 3L + 6L * f,
       scalar_arrays: 0L,
