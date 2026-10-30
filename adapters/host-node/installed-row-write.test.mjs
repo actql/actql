@@ -122,9 +122,9 @@ test('standard declared read check owns fixed HTTP while pure callbacks retain o
   const nativeObservation=Object.freeze({useCid:providerCid,statusCode:200,body:Buffer.from('{"revision":"7"}'),headers:[]});
   const check={resource:'forms',operation:'fixture:form',beforeSend:true,
     http:{origin,method:'POST',path:'/form',headers:[['x-http-method-override','GET']],maxRequestBytes:200,maxResponseBytes:400},
-    body(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','request']);assert(Object.isFrozen(context));
+    body(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request']);assert(Object.isFrozen(context));
       assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);bodyCalls++;return '{"app":"12"}';},
-    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','request','observation','headers']);
+    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request','observation','headers']);
       assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);assert.equal(context.observation.body,nativeObservation.body);
       assert.equal(context.observation.statusCode,200);assert.equal(context.headers,nativeObservation.headers);assert(Object.isFrozen(context));projectCalls++;}};
   const driver=deriveInstalledRowWrite(declaration({check}),'fixture');

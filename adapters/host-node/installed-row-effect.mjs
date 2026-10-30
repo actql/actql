@@ -457,10 +457,10 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         query: data(checkHttp, 'query', true), headers: readHeaders});
       checkOptions = {check: description,
         async checkRequest({request, authorization, credential, callResource, signal}) {
-          original(request);
+          const {value: mappedValue} = original(request);
           if (authorization?.scope?.resourceOrigin !== checkOrigin) fail();
           signal?.throwIfAborted();
-          const context = Object.freeze({resource, request});
+          const context = Object.freeze({resource, value: mappedValue, request});
           const value = Reflect.apply(body, check, [context]);
           if (typeof value !== 'string') {
             // Invalid async provider work stays in this SAME original child
@@ -473,7 +473,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
             operation, method: checkMethod, path: template.target, headers: template.headers, body: value,
             responseHeaders: readResponseHeaders, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, signal});
           signal?.throwIfAborted();
-          const projected = Reflect.apply(project, check, [Object.freeze({resource, request,
+          const projected = Reflect.apply(project, check, [Object.freeze({resource, value: mappedValue, request,
             observation: Object.freeze({useCid: observed.useCid, statusCode: observed.statusCode, body: observed.body}),
             ...(Object.hasOwn(observed, 'headers') ? {headers: observed.headers} : {})})]);
           if (projected !== undefined) {await projected; fail();}
