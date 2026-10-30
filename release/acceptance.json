@@ -154,7 +154,7 @@
     {
       "id": "A13",
       "required": "Maintenance publication cannot roll newer latest backward",
-      "currentSlice": "Read-only channel plan preserves prior/destination checks. A separate post-freeze promotion review binds that exact plan/report and upper-bound Node receipt identities without changing original artifacts or earlier acceptance fields. Claims remain unaccepted DATA; protected promotion, GitHub Latest and actual public acceptance remain pending",
+      "currentSlice": "Exact plan and separate post-freeze review preserve original artifact and prior-value identities. Existing publisher channel protocol uses complete public-byte checks, fresh before/after selected-channel fences, synced intent/Unknown receipts and explicit same-digest remaining-move recovery. Claims remain unaccepted DATA; actual protected exclusive promotion, GitHub Latest and public acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -166,8 +166,20 @@
           "test": "promotion review: separate acyclic bundle binds original upper plan and receipt without changing artifact or earlier acceptance"
         },
         {
+          "kind": "Inert cold bytes, actual bounded readers and injected npm command port only; no real channel mutation, independent approval or exclusive executor",
+          "test": "npm promotion: lost real mutation response stops once, explicit same-digest recovery reobserves and skips confirmed channel"
+        },
+        {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
           "test": "npm stage: final stable channels cannot be applied through stage approval instead of the promotion boundary"
+        },
+        {
+          "kind": "Inert injected npm mutation and receipt-write refusal component only; no actual protected channel operation or publication acceptance",
+          "test": "npm promotion failure custody: private original survives without exception text in Unknown or cause output"
+        },
+        {
+          "kind": "Inert injected npm mutation and receipt-write refusal component only; no actual protected channel operation or publication acceptance",
+          "test": "npm promotion failure custody: refused Unknown write keeps its physical error and SAME private original"
         }
       ]
     },
