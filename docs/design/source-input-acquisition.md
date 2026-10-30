@@ -184,3 +184,5 @@ retains that same constructor read until preparation hands it off. Any earlier
 failure retires the original read. A pending retirement stays with the same
 Source close retry, before Site and constructor-material retirement; returning
 a failed preparation does not acknowledge that cleanup or release its parent.
+A close that retires this constructor read during an authorization await also
+fences its later handoff; resolving the authorization Promise cannot revive it.

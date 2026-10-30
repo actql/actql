@@ -1795,6 +1795,9 @@ export async function createInstalledRowSource({moon, declaration,
         fail('InstalledSourceCapacityUnavailable');
       }
       if (directReadIdentity === undefined) await authorizePreparation();
+      if (plannedRead !== undefined && !preparingSourceReads.has(plannedRead)) {
+        fail('InstalledSourceReadUnavailable');
+      }
       preparations.set(prepared, Object.freeze({checkedOwner, effectful,
         requirement, resource, access, acquisition, wholeInput,
         occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
@@ -1802,7 +1805,7 @@ export async function createInstalledRowSource({moon, declaration,
       preparingSourceReads.delete(plannedRead);
       return prepared;
     } catch (error) {
-      if (plannedRead !== undefined) {
+      if (plannedRead !== undefined && preparingSourceReads.has(plannedRead)) {
         try {
           checked(moon.clientProgramInstalledSourceReadRetire(plannedRead));
           preparingSourceReads.delete(plannedRead);

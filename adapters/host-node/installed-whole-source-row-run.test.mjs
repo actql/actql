@@ -98,7 +98,7 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
   }
 });
 
-async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity} = {}) {
+async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
   const {readFile} = await import('node:fs/promises');
   const {types} = await import('node:util');
   const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
@@ -142,7 +142,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     preparingSourceReads: new Set(), sourceRefs: new Set(['source']), preparations: new WeakMap(),
     cidPattern: /^sha256:[0-9a-f]{64}$/u,
     physicalTarget: (resource, fields) => ({resource, fields}), valueCid: value => JSON.stringify(value),
-    decideRead: async () => ({action: 'dispatch'}), ordinaryRecoveryBinding() {}};
+    decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
   const fixture = new Function(...Object.keys(bindings), source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
   return {fixture, input: {preparedProgram, managedRun},
@@ -187,4 +187,17 @@ test('whole Source identity keeps boxed payload and refuses None or malformed or
     assert.equal(refused.retireCalls(), 1);
     refused.fixture.close();
   }
+});
+
+
+test('whole Source close cannot return a constructor read retired during authorization await', async () => {
+  let resume;
+  const authorization = new Promise(resolve => {resume = resolve;});
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}, authorization});
+  const preparing = f.fixture.prepare(f.input);
+  f.fixture.close();
+  assert.equal(f.retireCalls(), 1);
+  resume({action: 'dispatch'});
+  await assert.rejects(preparing, {code: 'InstalledSourceReadUnavailable'});
 });
