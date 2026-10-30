@@ -48,6 +48,22 @@ are not a normal installation factory. A matching original Profile getter and
 the complete checked Source/parent/backing connection remain required. Raw API
 time parameters do not by themselves establish exact SQL predicate pushdown.
 
+The Events request adapter consumes the same parameter-bound `requestWire`
+provided by the existing RowAcquisition caller. Its complete `request_schema`
+body is an object contract with four required non-null strings: `calendar_id`,
+`time_min`, `time_max` and `time_zone`. It is distinct from the response row's
+column-schema map. Missing/null/extra fields do not select a calendar, timezone
+or time bound by default. Original business strings are preserved, including
+offsets, fractional seconds and non-normalized calendar identifiers. JSON
+serialization is provider DATA, not the Request/Source identity or authority.
+
+`prepareCalendarEventsRequestPages` makes that one synchronous provider
+projection with the caller's same original Profile, then supplies the resulting
+query to the existing pure page hooks. It captures methods/receiver and limits
+before use and performs no exchange, accounting, grant or cleanup itself.
+Actual Source publication, the complete parent and the original Profile getter
+must be connected by their existing owners before this is a normal reader.
+
 Publication and physical reading must still bind the actual original calendar,
 timezone, selected profile and response to the same checked acquisition. The
 shared Host owns current authorization, original request/response custody,

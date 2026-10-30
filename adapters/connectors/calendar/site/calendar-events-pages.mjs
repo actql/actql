@@ -19,6 +19,25 @@ export class CalendarEventsReadFailure extends Error{
   constructor(cause){super('CalendarEventsReadFailed',{cause});this.code='CalendarEventsReadFailed';}
 }
 
+// Adapter for the existing managed reader's original requestWire input. The
+// selected Profile must arrive from its original checking/installation owner;
+// this port neither admits profile JSON nor recovers a RowAcquisition from wire.
+export function prepareCalendarEventsRequestPages({moon,requestWire,profile,names,limits},applySynchronousProjection){
+  if(typeof requestWire!=='string'||!requestWire.isWellFormed()||profile===undefined||profile===null||
+      !limits||typeof limits!=='object'||typeof applySynchronousProjection!=='function')fail('InvalidCalendarEventsRead');
+  const bound=Object.freeze({...limits});
+  if(!positiveLimits.every(name=>positive(bound[name]))||bound.perPage>2500||
+      !count(bound.maxAttendees)||!count(bound.maxResolutionWork))fail('InvalidCalendarEventsRead');
+  if(Buffer.byteLength(requestWire)>bound.maxQueryBytes)fail('CalendarEventsRequestLimit');
+  const prepare=moon?.calendarEventsQueryFromRequestWire;
+  if(typeof prepare!=='function')fail('InvalidCalendarEventsRead');
+  const query=checked(applySynchronousProjection(prepare,moon,[requestWire,profile,
+    bound.maxQueryBytes,bound.maxNodes,bound.maxDepth,bound.maxRows,
+    bound.maxIdentityBytes,bound.maxCursorBytes,bound.maxAttendees,
+    bound.maxValueNodes,bound.maxValueTextBytes,bound.maxResolutionWork]));
+  return prepareCalendarEventsPages({moon,query,names,limits:bound},applySynchronousProjection);
+}
+
 export function prepareCalendarEventsPages({moon,query,names,limits},applySynchronousProjection){
   if(!Array.isArray(names)||new Set(names).size!==names.length||!limits||typeof limits!=='object'||
       typeof applySynchronousProjection!=='function'||query===undefined)fail('InvalidCalendarEventsRead');

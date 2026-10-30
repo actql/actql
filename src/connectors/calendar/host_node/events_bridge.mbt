@@ -52,6 +52,46 @@ pub fn calendar_events_query_wire(
 }
 
 ///|
+#export_name("calendarEventsQueryFromRequestWire")
+pub fn calendar_events_query_from_request_wire(
+  wire : String,
+  profile : @calendar_profile.Profile,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_identity_bytes : Int,
+  max_cursor_bytes : Int,
+  max_attendees : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_resolution_work : Int,
+) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue] {
+  @catalog.prepare_calendar_events_request(wire, profile, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_rows,
+    max_identity_bytes,
+    max_cursor_bytes,
+    max_attendees,
+    max_value_nodes,
+    max_value_text_bytes,
+    max_resolution_work,
+  })
+}
+
+///|
+#export_name("calendarEventsRequestSchemaWire")
+pub fn calendar_events_request_schema_wire(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.CalendarEventsIssue] {
+  @catalog.calendar_events_request_schema_wire(max_bytes, max_nodes, max_depth)
+}
+
+///|
 #export_name("calendarProjectEvents")
 pub fn calendar_project_events(
   bytes : Bytes,
