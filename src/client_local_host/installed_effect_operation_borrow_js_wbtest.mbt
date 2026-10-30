@@ -159,18 +159,18 @@ test "Effect operation constructor fences same-parent reentry before current cal
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let owner_ref : Ref[ClientInstalledManagedRun?] = Ref(None)
   let refusals : Ref[Int] = Ref(0)
+  let valid : Ref[Bool] = Ref(true)
   let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
     current=() => {
       if owner_ref.val is Some(owner) && owner.effect_operation_opening {
-        assert_true(
+        valid.val = valid.val &&
           borrow_installed_effect_operation(
             owner, prepared, request, plan, 0, true, 2, 0, "operation",
           )
-          is Err(AlreadyBound),
-        )
-        assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+          is Err(AlreadyBound) &&
+          retire_installed_managed_run(owner) is Err(CleanupPending)
         refusals.val += 1
       }
     },
@@ -182,7 +182,7 @@ test "Effect operation constructor fences same-parent reentry before current cal
   let operation = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, true, 2, 0, "operation",
   ).unwrap()
-  assert_true(refusals.val > 0)
+  assert_true(refusals.val > 0 && valid.val)
   assert_eq(owner.effect_operations.length(), 1)
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   retire_installed_managed_run(owner).unwrap()

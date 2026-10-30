@@ -16,7 +16,6 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv row_index : Int
   priv mut backing : ClientEffectOperationBacking?
   priv mut started : Bool
-  priv mut remaining_transfer : Int64
   priv mut retired : Bool
 }
 
@@ -129,7 +128,6 @@ fn borrow_installed_effect_operation_original(
     row_index,
     backing: Some(backing),
     started: false,
-    remaining_transfer: extent.transfer_bytes,
     retired: false,
   }
   owner.effect_operations.push(value)
@@ -192,10 +190,7 @@ pub fn charge_installed_effect_operation(
   }
   match @resources.charge_transfer(ledger, original, bytes) {
     Err(issue) => Err(Ledger(issue))
-    Ok(_) => {
-      value.remaining_transfer -= bytes
-      Ok(())
-    }
+    Ok(_) => Ok(())
   }
 }
 
@@ -215,10 +210,7 @@ pub fn mark_installed_effect_operation_transfer_uncertain(
   }
   match @resources.mark_transfer_uncertain(ledger, original, bytes) {
     Err(issue) => Err(Ledger(issue))
-    Ok(_) => {
-      value.remaining_transfer -= bytes
-      Ok(())
-    }
+    Ok(_) => Ok(())
   }
 }
 
