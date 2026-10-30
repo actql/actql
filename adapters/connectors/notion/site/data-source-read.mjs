@@ -81,7 +81,9 @@ async function executeRead(prepared,state){
   try{
     for(let index=0;index<b.maxPages;index++){
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
-      const body=JSON.stringify({page_size:b.pageSize,...(cursor===undefined?{}:{start_cursor:cursor})});
+      const remaining=b.maxTotalRows-totalRows;
+      if(remaining<=0)fail('NotionDataSourceRowLimit');
+      const body=JSON.stringify({page_size:Math.min(b.pageSize,remaining),...(cursor===undefined?{}:{start_cursor:cursor})});
       if(Buffer.byteLength(body)>b.maxRequestBytes)fail('NotionDataSourceRequestLimit');
       const authorization=await authorizationFor({operation:NOTION_DATA_SOURCE_READ_OPERATION,index});
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
