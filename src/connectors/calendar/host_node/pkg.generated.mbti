@@ -15,7 +15,11 @@ pub fn calendar_events_matches_query(@catalog.CalendarEventsPage, @catalog.Calen
 
 pub fn calendar_events_metadata_wire(@catalog.CalendarEventsPage, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
 
+pub fn calendar_events_query_from_request_wire(String, @calendar_profile.Profile, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarEventsQuery, @catalog.CalendarEventsIssue]
+
 pub fn calendar_events_query_wire(@catalog.CalendarEventsQuery, Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
+
+pub fn calendar_events_request_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
 
 pub fn calendar_events_rows_wire(@catalog.CalendarEventsPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarEventsIssue]
 
