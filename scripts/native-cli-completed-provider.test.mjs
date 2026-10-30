@@ -65,6 +65,35 @@ test('completed Local provider keeps exact source, bytes and actual generation w
   await assert.rejects(readFile(join(f.artifact, 'artifact.json')), {code: 'ENOENT'});
 });
 
+test('completed versioned Local provider retains the actual original version C step and cannot relabel an old provider', async t => {
+  const f = await fixture(t), version = '0.0.7-rc.1';
+  const admit = () => admitCompletedNativeLocalProvider(f.artifact, source, f.repository, f.moon, {packageVersion: version});
+  await assert.rejects(admit(), /another or no explicit package version/u);
+  f.receipt.package_version = version;
+  await f.json(join(f.provider, 'build.json'), f.receipt);
+  await assert.rejects(admit());
+  const object = {path: join(f.provider, 'emission/version.o'), bytes: 1, sha256: sha(Buffer.from('v'))};
+  await writeFile(object.path, 'v');
+  const original = ['-c', './src/cmd/native_client/version_stub.c', '-o', object.path];
+  const selected = ['selected-clang', ...original, `-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION=${JSON.stringify(version)}`];
+  const step = {original, selected, receipt: join(f.provider, 'cc-version.json')};
+  await f.json(step.receipt, {...step, exit: 0, output: object});
+  const commands = [f.step.selected, selected];
+  await f.json(join(f.provider, 'commands.json'), commands);
+  await f.json(join(f.provider, 'cc-plan.json'), {steps: [f.step, step]});
+  Object.assign(f.receipt, {commands_completed: 2, completed_c_steps: 2});
+  await f.json(join(f.provider, 'build.json'), f.receipt);
+  for (const name of ['scripts/release-version.mjs', 'scripts/python_release_cohort.py', 'src/cmd/native_client/version_stub.c']) {
+    const path = join(f.repository, name); await mkdir(dirname(path), {recursive: true}); await writeFile(path, 'inert original version helper');
+    f.inputs.push({path, bytes: 29, sha256: sha(Buffer.from('inert original version helper'))});
+  }
+  await f.json(join(f.provider, 'inputs.json'), f.inputs);
+  assert.equal((await admit()).receipt.package_version, version);
+  selected[selected.length - 1] = '-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION="0.0.7"';
+  await f.json(join(f.provider, 'cc-plan.json'), {steps: [f.step, {...step, selected}]});
+  await assert.rejects(admit());
+});
+
 test('foreign, planned, incomplete and wrong-entry providers cannot become fresh artifacts', async t => {
   const f = await fixture(t);
   for (const delta of [{source: 'd'.repeat(40)}, {plan_only: true}, {moon_build_exit: 1},

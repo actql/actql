@@ -28,13 +28,15 @@ test('actual schema version regex and shared parser match independent literal ve
 test('existing lint opt-in selects the release files without new publication authority', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs.lint;
+  assert.deepEqual(workflow.jobs.native.steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
+    {name: 'Test immutable Native package-version C mechanism', run: 'node --test scripts/native-cli-version-native.test.mjs'});
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
   assert.equal(job.if, "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
     if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-registry.test.mjs scripts/release-lanes.test.mjs'});
+    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs'});
 });
 
 test('dotted channel schema and shared owner match independent literal channel oracles', () => {
@@ -47,4 +49,15 @@ test('dotted channel schema and shared owner match independent literal channel o
     'release-0.1' + String.fromCharCode(0)]) {
     assert.equal(pattern.test(channel), false); assert.throws(() => admitReleaseChannel(channel));
   }
+});
+
+test('existing public lint gate selects cross-host packaging controls without runtime or publisher setup', () => {
+  const workflow=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+  const job=workflow.jobs.lint;
+  assert.equal(job.steps.find(step=>step.uses==='./.github/actions/setup-toolchain').with.python,'true');
+  const selected=job.steps.filter(step=>step.name==='Test cross-host Python release preparation without runtime loading');
+  assert.deepEqual(selected,[{name:'Test cross-host Python release preparation without runtime loading',
+    if:"${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
+    run:'python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk\npython3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py\n'}]);
+  assert(!job.environment);assert(!job.permissions?.['id-token']);
 });

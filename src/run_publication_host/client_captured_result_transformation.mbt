@@ -15,6 +15,28 @@ pub(all) enum CapturedClientResultTransformationIssue {
 }
 
 ///|
+/// A supplied Source input gives the same checked Program a physical graph
+/// view. The logical Result selection follows its original occurrence; it
+/// does not require that view to be the original graph allocation. The live
+/// Run, completion and bridge still pass their existing export checks below.
+fn captured_client_result_selection_matches(
+  selection : ClientResultTransformation,
+  run : @strategy.CapturedDAG,
+  result : Int,
+) -> Bool {
+  let graph = @strategy.captured_dag_graph(run)
+  guard selection.result == result &&
+    physical_equal(
+      @strategy.graph_program(graph),
+      @strategy.graph_program(selection.owner.graph),
+    ) &&
+    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    return false
+  }
+  physical_equal(occurrence, selection.occurrence)
+}
+
+///|
 pub fn start_captured_client_result_transformation(
   selection : ClientResultTransformation,
   run : @strategy.CapturedDAG,
@@ -26,8 +48,7 @@ pub fn start_captured_client_result_transformation(
   CapturedClientResultTransformation,
   CapturedClientResultTransformationIssue,
 ] {
-  let graph = @strategy.captured_dag_graph(run)
-  if !physical_equal(graph, selection.owner.graph) || selection.result != result {
+  if !captured_client_result_selection_matches(selection, run, result) {
     return Err(ForeignSelection)
   }
   start_captured_result_publication_export(
@@ -172,8 +193,7 @@ pub fn[T] start_captured_managed_result_transformation(
   CapturedClientResultTransformation,
   CapturedClientResultTransformationIssue,
 ] {
-  let graph = @strategy.captured_dag_graph(run)
-  if !physical_equal(graph, selection.owner.graph) || selection.result != result {
+  if !captured_client_result_selection_matches(selection, run, result) {
     return Err(ForeignSelection)
   }
   start_captured_managed_result_publication_export(

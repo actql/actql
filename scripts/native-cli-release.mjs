@@ -17,7 +17,7 @@ import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.m
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 
 import {nativeCliPackageInputs, nativeCliPlatforms as platforms} from './native-cli-package-inputs.mjs';
-import {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
+import {admitNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 export {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
 
@@ -75,6 +75,7 @@ export async function prepareNativeCliRelease(destination, artifacts, selected) 
   const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));
   for (const record of records) assert.equal(record.toolchainPinSha256, pinDigest);
   for (const record of records) {
+    requireNativePackageVersion(record, cohort.packageVersion);
     exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
     for (const [filename, digest] of Object.entries(record.notices)) {
       assert.equal(digest, hash(await readFile(join(repository, 'packages/local-node', filename))));
@@ -140,14 +141,19 @@ export async function prepareNativeCliRelease(destination, artifacts, selected) 
   } finally {await rm(scratch, {recursive: true});}
 }
 
-export async function verifyNativeCliRelease(directory) {
-  const manifest = JSON.parse(await readFile(join(directory, 'release.json'), 'utf8'));
+export function admitNativeReleaseManifest(manifest) {
   exact(manifest, ['version', 'sourceSha', 'preparedAt', 'recipeSha256', 'cohort', 'platforms', 'artifacts', 'packages']);
   assert.equal(manifest.version, 'actql-native-cli-release/0.1'); assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
   admitNativeReleaseCohort(manifest.cohort);
   const names = Object.keys(manifest.platforms); assert(names.length > 0 && names.length <= 2);
   assert.deepEqual(manifest.packages.map(v => v.name), [...names.map(key => `@actql/cli-${key}`), 'actql']);
   assert.deepEqual(manifest.artifacts.map(v => v.platform), names);
+  return structuredClone(manifest);
+}
+
+export async function verifyNativeCliRelease(directory) {
+  const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
+  const names = Object.keys(manifest.platforms);
   const source = checkoutState(repository);
   assert(source.clean, 'CLI interface verification requires clean checked source');
   const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});

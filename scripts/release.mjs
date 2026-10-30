@@ -7,10 +7,12 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {releasePlan} from './release-policy.mjs';
-import {freezeReleaseSet, verifyReleaseSet, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
+import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseSet, releaseSetSummary,
+  prepareReleasePromotionReview, verifyReleasePromotionReview, releasePromotionReviewSummary} from './release-set.mjs';
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
-import {promotionPlan} from './release-channels.mjs';
-import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
+import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
+import {inspectReleaseSource, maintenanceReviewPlan, inspectFixedReleaseSource} from './release-source.mjs';
+import {nativePublishPlan, npmStagePlan, pythonPublishPlan} from './publish-package-release.mjs';
 
 export async function runReleasePlan(args) {
   const [command, requestFile, ...rest] = args;
@@ -34,11 +36,37 @@ export async function runRelease(args) {
     assert.equal(values.length, 2, 'usage: release.mjs observe|channels <fixed-directory> <externally-retained-sha256>');
     return (command === 'observe' ? observeReleaseSet : observeReleaseChannels)(values[0], values[1]);
   }
-  if (command === 'promotion-plan') {
+  if (command === 'review') {
+    assert.equal(values.length, 4, 'usage: release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-directory>');
+    return prepareReleaseReview({directory: values[0], expectedSha256: values[1], reviewFile: values[2], destination: values[3]});
+  }
+  if (command === 'promotion-review') {
+    assert.equal(values.length, 6, 'usage: release.mjs promotion-review <fixed-directory> <upper-SHA256> <plan.json> <channel-report.json> <public-evidence-request.json> <new-review-directory>');
+    return prepareReleasePromotionReview({directory: values[0], expectedSha256: values[1], planFile: values[2],
+      channelReportFile: values[3], reviewFile: values[4], destination: values[5]});
+  }
+  if (command === 'verify-promotion-review' || command === 'promotion-summary') {
+    assert.equal(values.length, 4, 'Supply original fixed directory/SHA256 and original promotion review directory/SHA256');
+    const checked = await verifyReleasePromotionReview({directory: values[0], expectedSha256: values[1], reviewDirectory: values[2], expectedReviewSha256: values[3]});
+    return command === 'promotion-summary' ? releasePromotionReviewSummary(checked) : checked;
+  }
+  if (command === 'npm-stage-plan') {
+    assert.equal(values.length, 3, 'usage: release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>');
+    return npmStagePlan(values[0], values[1], values[2]);
+  }
+  if (command === 'python-publish-plan') {
+    assert.equal(values.length, 5, 'usage: release.mjs python-publish-plan <fixed-directory> <SHA256> <target-id> <absolute-verifier-python> <protected-action-revision>');
+    return pythonPublishPlan(values[0], values[1], values[2], values[3], values[4]);
+  }
+  if (command === 'native-publish-plan') {
+    assert.equal(values.length, 3, 'usage: release.mjs native-publish-plan <fixed-directory> <SHA256> <native-target-id>');
+    return nativePublishPlan(values[0], values[1], values[2]);
+  }
+  if (command === 'promotion-plan' || command === 'native-latest-plan') {
     assert.equal(values.length, 4, 'usage: release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>');
     const fixed = await verifyReleaseSet(values[0], {expectedSha256: values[1]});
     const report = await readFile(resolve(values[3]));
-    return promotionPlan(fixed, JSON.parse(await readFile(resolve(values[2]), 'utf8')),
+    return (command==='native-latest-plan'?nativeLatestPromotionPlan:promotionPlan)(fixed, JSON.parse(await readFile(resolve(values[2]), 'utf8')),
       JSON.parse(report), createHash('sha256').update(report).digest('hex'));
   }
   if (command === 'source-plan' || command === 'maintenance-plan') {
@@ -52,6 +80,16 @@ export async function runRelease(args) {
       request: JSON.parse(await readFile(resolve(values[0]), 'utf8'))});
     return command === 'source-plan' ? source : maintenanceReviewPlan(source,
       JSON.parse(await readFile(resolve(values[2]), 'utf8')));
+  }
+  if (command === 'fixed-source-plan') {
+    assert(values.length === 4 || values.length === 5,
+      'usage: fixed-source-plan <fixed-directory> <upper-SHA256> <repository> <history.json> [branches.json]');
+    const policy = JSON.parse(await readFile(new URL('../release/policy.json', import.meta.url), 'utf8'));
+    const branches = JSON.parse(await readFile(values[4] ? resolve(values[4])
+      : new URL('../release/branches.json', import.meta.url), 'utf8'));
+    return inspectFixedReleaseSource({directory: resolve(values[0]), expectedSha256: values[1],
+      repository: resolve(values[2]), policy, branches,
+      history: JSON.parse(await readFile(resolve(values[3]), 'utf8'))});
   }
   if (['verify', 'summary', 'resume-plan'].includes(command)) {
     assert.equal(values.length, command === 'resume-plan' ? 3 : 2,

@@ -2,7 +2,9 @@
 // an author-written maintenance label proves protected review or publication.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {isAbsolute} from 'node:path';
 import {admitReleasePolicy, admitReleaseRequest} from './release-policy.mjs';
+import {compareReleaseVersions, releaseVersion} from './release-version.mjs';
 
 const exact = (value, keys) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
@@ -26,7 +28,7 @@ export function admitReleaseBranches(value, policy) {
   return structuredClone(value);
 }
 
-export function inspectReleaseSource({repository, request, policy, branches}) {
+export function inspectReleaseSource({repository, request, policy, branches, previousRelease}) {
   const selected = admitReleaseRequest(request, policy);
   const configuration = admitReleaseBranches(branches, policy);
   const line = configuration.lines.find(value => value.line === selected.version.line);
@@ -42,6 +44,18 @@ export function inspectReleaseSource({repository, request, policy, branches}) {
   const branchTip = ref(line.sourceBranch), mainTip = ref('main');
   commit(request.source.commit);
   assert(ancestor(request.source.commit, branchTip), 'Fixed source is not on its named source branch');
+  if (previousRelease !== undefined && previousRelease !== null) {
+    exact(previousRelease, ['version', 'source']);
+    const previous = releaseVersion(previousRelease.version);
+    assert.equal(previous.line, selected.version.line, 'Previous release must belong to the same selected line');
+    assert(compareReleaseVersions(previous.version, selected.version.version) < 0,
+      'A new candidate must follow the complete previous version; same-byte resume is a separate operation');
+    exact(previousRelease.source, ['repository', 'commit', 'branch']);
+    assert.equal(previousRelease.source.repository, request.source.repository);
+    commit(previousRelease.source.commit);
+    assert(ancestor(previousRelease.source.commit, request.source.commit),
+      'Fixed candidate does not descend from the selected previous release source');
+  }
   const findings = [], commits = [];
   if (line.maintenanceCut !== null) {
     commit(line.maintenanceCut);
@@ -73,10 +87,47 @@ export function inspectReleaseSource({repository, request, policy, branches}) {
   return {schemaVersion: 'actql-release-source-plan/0.1', source: structuredClone(request.source),
     version: selected.version.version, line: selected.version.line, sourceBranch: line.sourceBranch,
     branchTip, mainTip, maintenanceCut: line.maintenanceCut, findings, commits,
+    ...(previousRelease === undefined ? {} : {previousRelease: structuredClone(previousRelease)}),
     execution: 'unavailable',
     pending: ['Protected source/policy revision and independent owner approval',
       ...(line.maintenanceCut ? ['Complete maintenance change/contract/regression/adaptation/forward-port review'] : [])],
     qualification: 'local Git-object/branch structure only; not remote repository authentication, semantic compatibility, artifact acceptance or release authority'};
+}
+
+// Connect the original byte and Git owners. All history inputs remain DATA:
+// the protected executor must independently select/authenticate the actual
+// previous release (or initial scope), policy revision and remote branch.
+export async function inspectFixedReleaseSource({directory, expectedSha256, repository, policy, branches, history}) {
+  assert(typeof expectedSha256 === 'string' && /^[a-f0-9]{64}$/u.test(expectedSha256));
+  assert(history && ['initial', 'previous'].includes(history.kind),
+    'Explicitly select initial history or the original previous fixed release');
+  exact(history, history.kind === 'initial' ? ['kind'] : ['kind', 'directory', 'manifestSha256']);
+  if (history.kind === 'previous') {
+    assert(typeof history.directory === 'string' && isAbsolute(history.directory),
+      'Previous fixed release directory must be absolute');
+    assert(typeof history.manifestSha256 === 'string' && /^[a-f0-9]{64}$/u.test(history.manifestSha256));
+  }
+  // Retain this call's original inputs before byte I/O yields. These immutable
+  // planning inputs are not cached permission or later current-state evidence.
+  history = structuredClone(history);
+  const selectedPolicy = admitReleasePolicy(policy);
+  const selectedBranches = admitReleaseBranches(branches, selectedPolicy);
+  const {verifyReleaseSet} = await import('./release-set.mjs');
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const previous = history.kind === 'previous'
+    ? await verifyReleaseSet(history.directory, {expectedSha256: history.manifestSha256}) : null;
+  const previousRelease = previous ? {version: previous.manifest.request.version,
+    source: previous.manifest.request.source} : null;
+  const source = inspectReleaseSource({repository, request: fixed.manifest.request,
+    policy: selectedPolicy, branches: selectedBranches, previousRelease});
+  await verifyReleaseSet(directory, {expectedSha256});
+  if (previous) await verifyReleaseSet(history.directory, {expectedSha256: history.manifestSha256});
+  return {schemaVersion: 'actql-fixed-release-source-plan/0.1', manifestSha256: fixed.sha256,
+    history: {kind: history.kind, ...(previous ? {manifestSha256: previous.sha256} : {})}, source,
+    execution: 'unavailable', pending: [...source.pending,
+      'Independently authenticate the selected initial scope or actual previous published release',
+      'Protected remote branch/policy/history and exact owner-approved candidate still required'],
+    qualification: 'original fixed bytes plus local Git ancestry only; no publication history discovery, remote authentication, accepted artifact, approval or permission'};
 }
 
 export function maintenanceReviewPlan(source, review) {

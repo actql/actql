@@ -83,6 +83,9 @@ def _sync(version: str, phase: str, receipt: Path) -> None:
             if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
                 raise AssertionError('Lookup did not return the original admitted Run')
             run = client.attach(saved['run'])
+        if saved is None:
+            _record(receipt.with_name(receipt.name + '.submitted'), version=version,
+                    facade='sync', submission=submission, run=_plain(run.ref))
         state = run.wait()
         if state['status'] != 'succeeded':
             raise AssertionError('Original Run did not succeed')
@@ -108,6 +111,9 @@ async def _async(version: str, phase: str, receipt: Path) -> None:
             if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
                 raise AssertionError('Lookup did not return the original admitted Run')
             run = await client.attach(saved['run'])
+        if saved is None:
+            _record(receipt.with_name(receipt.name + '.submitted'), version=version,
+                    facade='async', submission=submission, run=_plain(run.ref))
         state = await run.wait()
         if state['status'] != 'succeeded':
             raise AssertionError('Original Run did not succeed')
@@ -142,7 +148,7 @@ def installed(version: str, mode: str, *, facade: str | None = None,
     if (mode != 'local' or facade not in ('sync', 'async') or phase not in ('initial', 'resume')
             or receipt is None):
         raise AssertionError('Local consumer requires an explicit facade/phase/private receipt')
-    if phase == 'initial' and os.path.lexists(receipt):
+    if phase == 'initial' and (os.path.lexists(receipt) or os.path.lexists(receipt.with_name(receipt.name + '.submitted'))):
         raise AssertionError('Initial consumer requires a fresh receipt, not a repeated submission')
     if metadata.version('actql') != version or metadata.version('actql-local-runtime') != version:
         raise AssertionError('Installed product/runtime cohort differs')
@@ -155,6 +161,15 @@ def installed(version: str, mode: str, *, facade: str | None = None,
         'original_run_reused': phase == 'resume', 'closed': True}))
 
 
+def _observe_closed() -> None:
+    # The same original process acknowledges the observation after its close;
+    # an exited child's empty descriptor snapshot is never sufficient.
+    print(json.dumps({'stage': 'closed', 'pid': os.getpid()}), flush=True)
+    if sys.stdin.readline().strip() != 'observed':
+        raise RuntimeError('Original installed consumer close observation incomplete')
+    print(json.dumps({'stage': 'close-observation-ack', 'pid': os.getpid()}), flush=True)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', required=True)
@@ -162,5 +177,8 @@ if __name__ == '__main__':
     parser.add_argument('--facade', choices=('sync', 'async'))
     parser.add_argument('--phase', choices=('initial', 'resume'))
     parser.add_argument('--receipt', type=Path)
+    parser.add_argument('--await-close-observation', action='store_true')
     options = parser.parse_args()
     installed(options.version, options.mode, facade=options.facade, phase=options.phase, receipt=options.receipt)
+    if options.await_close_observation:
+        _observe_closed()

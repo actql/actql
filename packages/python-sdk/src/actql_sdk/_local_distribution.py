@@ -23,6 +23,7 @@ WASMTIME_VERSION = '38.0.0'
 # Selected standalone profile, shared with the pinned vendor/artifact producer.
 # This is not the older private Node/DuckDB physical diagnostic profile.
 DUCKDB_VERSION = 'v1.4.3'
+_LOCAL_COMPONENT_PLATFORM = 'darwin-arm64'
 _NOTICES = ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
 
 
@@ -145,17 +146,17 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
-def inspect_local_components(root: Path, *, package_version: str,
-                             artifact_sha256: str | None = None) -> LocalComponents:
-    """Inspect an installed supplier, before optional engines or foreign loading.
+def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
+                                           package_version: str,
+                                           artifact_sha256: str | None = None) -> LocalComponents:
+    """Read the selected target's original bytes without adopting or loading it.
 
-    These hashes are release integrity, not current Host publisher authority.
-    The existing Wasm/DuckDB loaders still validate the exact bytes they load.
-    The producer owns binary target and ABI evidence; this inspection is not
-    execution or a claim that an artifact passed product acceptance.
+    A release preparation host need not execute its artifact target. This is
+    the same full component/recipe predicate, not a Linux runtime grant. The
+    producer still owns actual library format/ABI inspection and source gates.
     """
-    if sys.platform != 'darwin' or platform.machine() != 'arm64':
-        raise LocalInstallationError('Python Local is not available for this platform')
+    if type(target_platform) is not str or target_platform != _LOCAL_COMPONENT_PLATFORM:
+        raise LocalInstallationError('No selected component verifier for this packaging target')
     try:
         if artifact_sha256 is not None and not _hex(artifact_sha256, 64):
             raise LocalInstallationError('Invalid SDK-bound Local artifact digest')
@@ -165,7 +166,7 @@ def inspect_local_components(root: Path, *, package_version: str,
             'module', 'duckdb', 'duckdb_version', 'notices', 'compiled_image', 'engine_recipe'))
         if (not _hex(body['source_sha'], 40) or type(package_version) is not str
                 or not package_version or body['package_version'] != package_version
-                or body['platform'] != 'darwin-arm64'
+                or body['platform'] != _LOCAL_COMPONENT_PLATFORM
                 or type(body['core_abi']) is not int or body['core_abi'] != LOCAL_CORE_ABI
                 or body['wasmtime_version'] != WASMTIME_VERSION
                 or body['duckdb_version'] != DUCKDB_VERSION):
@@ -196,6 +197,21 @@ def inspect_local_components(root: Path, *, package_version: str,
                                image['sha256'], image['bytes'], recipe, recipe_path, recipe_hash)
     except (OSError, ValueError, UnicodeError, RecursionError) as original:
         raise LocalInstallationError('Installed Local components are unavailable or invalid') from original
+
+
+def inspect_local_components(root: Path, *, package_version: str,
+                             artifact_sha256: str | None = None) -> LocalComponents:
+    """Inspect an installed supplier, before optional engines or foreign loading.
+
+    These hashes are release integrity, not current Host publisher authority.
+    The existing Wasm/DuckDB loaders still validate the exact bytes they load.
+    The producer owns binary target and ABI evidence; this inspection is not
+    execution or a claim that an artifact passed product acceptance.
+    """
+    if sys.platform != 'darwin' or platform.machine() != 'arm64':
+        raise LocalInstallationError('Python Local is not available for this platform')
+    return _inspect_local_components_for_packaging(root, target_platform=_LOCAL_COMPONENT_PLATFORM,
+        package_version=package_version, artifact_sha256=artifact_sha256)
 
 
 def installed_local_components() -> LocalComponents:

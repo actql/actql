@@ -57,12 +57,16 @@
     {
       "id": "A05",
       "required": "Owner approval binds exact version and bytes",
-      "currentSlice": "Fixed release-set and protected executor pending",
+      "currentSlice": "Fixed release-set plus a distinct immutable review enrichment binds raw build/acceptance evidence and proposed publish/promotion/identical-missing scope. Supplied claims stay unaccepted; protected owner approval/executor remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "fixed header binds the explicit release line and every version projection"
+        },
+        {
+          "kind": "Inert cold-byte/evidence component only; no trusted approval or actual candidate acceptance",
+          "test": "release review: CLI creates a distinct bound evidence set and both summaries without mutating or approving preparation"
         }
       ]
     },
@@ -81,7 +85,7 @@
     {
       "id": "A07",
       "required": "Changed source/scope/channel/digest invalidates approval",
-      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests and exact artifact identity; protected approval/executor pending",
+      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests, exact artifacts and separately supplied review evidence/scope. Evidence/proposal changes yield a new digest; protected approval/executor pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -118,50 +122,95 @@
     {
       "id": "A11",
       "required": "Stage-only identity cannot publish/approve",
-      "currentSlice": "Registry-side configuration and actual refusal evidence pending",
+      "currentSlice": "Stage-only protocol retains its separate owner reader and no approval runner. A distinct owner-terminal helper binds original stage IDs, displays the full cohort, keeps 2FA/output outside receipts and confirms original public bytes. Port presence is not identity or authority; actual registry-side trust separation and owner-terminal provisioning/refusal evidence remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: pinned tool and separate read port are required before any actual send, not actor/approved JSON"
+        },
+        {
+          "kind": "Inert staged archives and injected owner terminal only; no real npm approval, 2FA, owner identity or registry permission acceptance",
+          "test": "npm owner helper: lost response stops once without auth capture and explicit recovery skips original public bytes"
+        },
+        {
+          "kind": "Inert Native-shaped archives and injected stage/read ports; no registry credentials, trust or actual stage",
+          "test": "npm stage: original Native omitted-private metadata and version-bound artifacts use the same staging protocol"
+        }
+      ]
     },
     {
       "id": "A12",
       "required": "No unauthorized initial npm placeholder stage",
-      "currentSlice": "New entry refuses all stage; protected staging adapter pending",
+      "currentSlice": "An absent public namespace requires a distinct supplied owner operation with the explicit npm pin at the actual send boundary. Port presence is not authority; actual owner-approved placeholder operation remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: initial public placeholder needs the separate supplied owner operation, never a local boolean"
         }
       ]
     },
     {
       "id": "A13",
       "required": "Maintenance publication cannot roll newer latest backward",
-      "currentSlice": "Read-only channel plan binds exact prior value/report and destination artifact, rejects normal downgrade/stable prerelease alias/wrong maintenance line. Actual protected promotion, GitHub Latest and public install remain pending",
+      "currentSlice": "Existing npm and Native Latest protocols bind exact original upper/review digests, current identities and complete bytes. Native conditional first-Latest initialization requires fresh complete sole-eligible-candidate inventory and positive exact post-readback; 404 remains unresolved. Owner/exclusive executor, real public acceptance and actual channel mutations remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Synthetic local channel-plan component; no actual registry channel mutation",
           "test": "release lanes: newer latest cannot be rolled back by a maintenance release"
+        },
+        {
+          "kind": "Inert cold bytes and supplied receipt DATA only; not actual trusted public installation, channel currentness, approval or mutation",
+          "test": "promotion review: separate acyclic bundle binds original upper plan and receipt without changing artifact or earlier acceptance"
+        },
+        {
+          "kind": "Inert cold bytes, actual bounded readers and injected npm command port only; no real channel mutation, independent approval or exclusive executor",
+          "test": "npm promotion: lost real mutation response stops once, explicit same-digest recovery reobserves and skips confirmed channel"
+        },
+        {
+          "kind": "Inert Native archive and synthetic consumer receipt with injected API only; no real Latest, owner settings, credentials or public installation",
+          "test": "Native Latest: conditional first promotion is not 404 absence and positively confirms exact immutable id"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: final stable channels cannot be applied through stage approval instead of the promotion boundary"
+        },
+        {
+          "kind": "Inert injected npm mutation and receipt-write refusal component only; no actual protected channel operation or publication acceptance",
+          "test": "npm promotion failure custody: private original survives without exception text in Unknown or cause output"
+        },
+        {
+          "kind": "Inert injected npm mutation and receipt-write refusal component only; no actual protected channel operation or publication acceptance",
+          "test": "npm promotion failure custody: refused Unknown write keeps its physical error and SAME private original"
         }
       ]
     },
     {
       "id": "A14",
       "required": "Maintenance line excludes new features/breaking contracts",
-      "currentSlice": "Local Git branch/cut/cherry-pick inspection and complete maintenance review-DATA shape implemented. Broad main merge and explicitly incompatible categories refuse; protected semantic hunk review, actual branch operation and owner approval remain pending",
+      "currentSlice": "Original local branch/cut/maintenance review now also connects exact upper artifact bytes and an explicitly selected same-line prior fixed set to actual Git ancestry. Full original current/final byte checks, maintenance findings and commit/hunk review remain. Initial history is a supplied scope claim, not proven absence; actual published history, protected remote/semantic review, branch operation and owner approval remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Real temporary Git histories, not actual product/maintenance acceptance",
           "test": "release lanes: whole development merge into maintenance is detected from real history even with bugfix labels"
+        },
+        {
+          "kind": "Real temporary Git plus inert fixed files only; not actual published history, remote trust, maintenance compatibility or owner approval",
+          "test": "fixed source: original upper and prior bytes bind real ancestry while an advanced branch cannot replace fixed SHA"
         }
       ]
     },
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Anonymous bounded npm/PyPI HTTP byte observations feed the fixed same-bytes classifier. Actual protected upload/partial-publication recovery and standalone Native remain pending",
+      "currentSlice": "npm, one-project Python and Native Draft protocols preserve fixed original bytes, durable intent, original terminal status and independent complete byte readback. Python facade waits for exact SDK/runtime; Native uses original owner-visible Draft/settings/upload route and explicitly avoids Latest. Lost replies remain Unknown, confirmed bytes are not resent, and original private runner/job/mutation failures and receipt-write errors retain their cleanup duty. Actual protected executor, owner approval, signing/provenance/publication/recovery acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -175,13 +224,45 @@
         {
           "kind": "Injected HTTP/cold-byte transport component only; no actual public publication or approval",
           "test": "registry observation: actual npm identity owner and bounded remote bytes feed same-bytes resume without writing the fixed set"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no real release/draft/install or approval",
+          "test": "Native observation: visible immutable tag/source and actual asset bytes use one complete inventory without changing fixed bytes"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: partial lost response preserves Unknown intent and resumes original pending bytes without sending them again"
+        },
+        {
+          "kind": "Full original inert archives/readers with injected terminal/status ports; no registry, credential, provenance, approval or actual stage acceptance",
+          "test": "npm stage terminal: signalled original send stops once with raw status and explicit no-resend recovery"
+        },
+        {
+          "kind": "Inert injected runner and physical receipt-write refusal controls only; no live child settlement, credentials, actual registry or publication",
+          "test": "npm stage failure custody: Unknown receipt write refusal retains BOTH original failure and physical write error"
+        },
+        {
+          "kind": "Existing full cold wheel/fixed/review verifier with inert wheels and injected HTTP/project jobs; no PyPI/action/signing/owner trust",
+          "test": "Python publish: lost original terminal response keeps Unknown intent and same-byte resume does not resend"
+        },
+        {
+          "kind": "Existing cold wheel reader with inert job and physical receipt-write refusal controls only; no PyPI action, live child settlement or signing",
+          "test": "Python publish failure custody: Unknown receipt write refusal retains BOTH original job failure and physical write error"
+        },
+        {
+          "kind": "Full inert Native archive/ABI reader with injected owner/mutation responses only; no executable, credential, real GitHub mutation or approval",
+          "test": "Native publish: lost create upload or publish terminal reply stays failed, next same-byte attempt never resends confirmed work"
+        },
+        {
+          "kind": "Inert original mutation and physical receipt-write refusal component only; no live request settlement, credentials, actual GitHub API or publication",
+          "test": "Native mutation failure custody: refused Unknown write keeps its physical error and SAME private original"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Existing npm identity owner plus actual remote byte comparisons; PyPI checks complete selected release files/size/SHA256 and downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
+      "currentSlice": "Public/pending npm and Native Draft readers reject conflicting original length/digest/identity before send. Mutable or incomplete published Native releases cannot be repaired by append/delete/replace. Existing PyPI checks remain; actual protected executor/live candidate acceptance remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -195,6 +276,18 @@
         {
           "kind": "Injected HTTP component only; no real registry write",
           "test": "registry observation: old foreign or empty PyPI releases cannot acquire a new platform/product by append"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no actual release mutation",
+          "test": "Native observation: foreign, missing and duplicate asset inventories block before any download"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: reader denial, wrong immutable tag, or different pending bytes stop the whole cohort before a send"
+        },
+        {
+          "kind": "Inert same-byte publication boundary with injected registry only; not actual publisher authority",
+          "test": "Python publish: whole-target unknown conflict and foreign placeholder stop before any project send"
         }
       ]
     },
@@ -208,19 +301,27 @@
     {
       "id": "A18",
       "required": "Exact public Node entry installs outside repository",
-      "currentSlice": "Candidate-specific tar/platform/consumer and public registry acceptance pending",
+      "currentSlice": "Existing Node public install harness can bind its full original development/final cohort to an explicitly supplied upper release-set digest and target, preserving clean-source/interface/business checks. Initial/final public bytes and original upper/child inputs are reobserved. Inert components only; actual selected public candidate/runtime/platform acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "actual Node release verifier feeds a fixed upper set without rebuilding its original archives"
+        },
+        {
+          "kind": "Inert archive/injected-HTTP/installed-tree component only; not actual public npm or runtime acceptance",
+          "test": "public consumer: real original cohort verifier and existing npm identity/byte reader precede installation, without changing fixed bytes"
+        },
+        {
+          "kind": "Original inert archive/fixed-set byte-lineage component only; no real public npm install, business execution, platform or owner acceptance",
+          "test": "fixed Node public consumer: full original cohort binds the same fixed child and upper without copying or changing files"
         }
       ]
     },
     {
       "id": "A19",
       "required": "Python entry works without Node/npm/ActQL CLI",
-      "currentSlice": "Existing actual Python builder now requires explicit shared version projection; original/full staged component readers and fixed version/byte-bound wheel checks remain; product candidate/Node-free installation/public acceptance pending",
+      "currentSlice": "Digest-bound official PyPI consumer launcher uses the original complete wheel verifier and sync/async fixture with separate pip/uv fresh Node-free environments. uv project/lock resolution evidence stays distinct from pip report; exact original installed payload and original Run ref/close/live-FD fences remain. Inert/local-index controls only; selected real public candidate/runtime acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -230,20 +331,49 @@
         {
           "kind": "Inert packaging and metadata-component evidence, not product runtime/install acceptance",
           "test": "test_full_original_and_staged_component_readers_keep_exact_binary_and_recipe_identity"
+        },
+        {
+          "kind": "Inert wheel/actual local pip/injected public report component only; no public PyPI or product runtime acceptance",
+          "test": "test_real_pip_inert_entry_install_audits_actual_tree_but_local_report_is_not_public_acceptance"
+        },
+        {
+          "kind": "Independent inert uv resolution/installed-tree controls; actual loopback uv mechanism plus injected public URL/size DATA is not public installation or runtime acceptance",
+          "test": "test_exact_sdk_and_product_use_resolution_evidence_and_full_original_payload_reader"
         }
       ]
     },
     {
       "id": "A20",
       "required": "Native standalone works without Node and refuses missing binary",
-      "currentSlice": "Existing native builder/reader inventoried; candidate-specific acceptance pending",
+      "currentSlice": "Explicit compiled Native version plus a digest-bound public standalone consumer reuse original GitHub byte/archive/ABI readers. Direct Native child has empty PATH/fresh HOME; separate exact public Node Host uses original Remote fixture and same-process close/FD observation. Inert HTTP/payload and own-child mechanism controls only; real versioned CLI/provider, public install, full Local/Remote/README/platform acceptance remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert archive/header/Local metadata component only; no Native execution or Node-free consumer acceptance",
+          "test": "standalone archive retains every original OS payload byte and mode with noncircular build/checksum metadata"
+        },
+        {
+          "kind": "Actual small C/O0/pinned-runtime version getter and real Native consuming types, not a complete CLI/normal supplier or installed acceptance",
+          "test": "Native package version: actual compiled getter uses immutable bounded literals and ignores runtime version inputs"
+        },
+        {
+          "kind": "Inert artifact/package metadata only, no actual versioned CLI or registry operation",
+          "test": "standalone release requires the original matching compiled-version observation without rewriting a legacy artifact"
+        },
+        {
+          "kind": "Injected public HTTP and inert Native archive/payload only, no real Native execution or public install",
+          "test": "Native public consumer: actual same-reader download feeds complete unchanged standalone extraction, never a local archive substitute"
+        },
+        {
+          "kind": "Own Node-child descriptor/acknowledgement mechanism only; not Native/Host/public runtime acceptance",
+          "test": "Native public consumer: SAME own child acknowledges an actual live closed descriptor observation; held reader stays failed"
+        }
+      ]
     },
     {
       "id": "A21",
       "required": "Unaccepted Linux runtime/profile cannot be declared supported",
-      "currentSlice": "Request plan explicitly leaves platform acceptance pending; publication gate pending",
+      "currentSlice": "Read-only packaging now uses the same full selected-target component/recipe predicate independently of preparation host. Installed inspectors retain early actual-host refusal; producer ABI/source/copy/final checks and Darwin-only target/tag remain. Unsupported Linux runtime targets refuse before pack. Host-override/inert controls are not actual Linux build/runtime or release acceptance; publication gate and real platform evidence remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -251,8 +381,16 @@
           "test": "Python has an explicit package/platform/profile selection and no npm-style channel"
         },
         {
+          "kind": "Inert selected-target bytes and controlled preparation-host observations only; no Linux runtime, engine load, real product build or ordinary install acceptance",
+          "test": "test_full_same_target_predicate_is_host_independent_without_loading_or_changing_bytes"
+        },
+        {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
-          "test": "unsupported Linux Python and standalone Native paths cannot inherit another verifier"
+          "test": "unsupported Linux Python and unverified Native archives cannot inherit another verifier"
+        },
+        {
+          "kind": "Inert Linux ELF packaging/ABI metadata only, not Linux execution or Local acceptance",
+          "test": "standalone Linux Remote archive keeps original ELF bytes and ABI facts without a Linux Local claim"
         }
       ]
     },
@@ -281,15 +419,28 @@
         {
           "kind": "Inert packaging/metadata only; full release acceptance remains pending",
           "test": "versioned Python metadata lineage feeds the fixed release set without granting runtime acceptance"
+        },
+        {
+          "kind": "Native literal argument/observed-banner component, not selected RC/final CLI artifacts or approval",
+          "test": "Native package version: shared grammar and finite literal bind only the original stub, never another compiler step"
         }
       ]
     },
     {
       "id": "A23",
       "required": "Loopback/private install is not public install acceptance",
-      "currentSlice": "Separate acceptance/provenance records pending",
+      "currentSlice": "Node/Python launchers and new standalone Native consumer distinguish official public byte/install scope from private or inert mechanisms. Native retains the actual checked GitHub stream; no local archive substitution/rebuild. Real selected public candidate/platform/profile acceptance remains pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert mode/argument guard only; no real public installation",
+          "test": "public consumer: mode is explicit, digest-bound and never falls back to loopback or an arbitrary registry"
+        },
+        {
+          "kind": "Argument/environment/injected-HTTP controls only; no real public install",
+          "test": "Python public consumer: pip requests only the exact public entry using the shared version projection and no source builds"
+        }
+      ]
     },
     {
       "id": "A24",
@@ -300,6 +451,18 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "fixed artifact tamper and missing bytes remain failures, never absence or rebuild permission"
+        },
+        {
+          "kind": "Inert archive byte/absence control only; no approval or published recovery",
+          "test": "standalone archive tamper missing bytes and changed checksum inventory remain failures"
+        },
+        {
+          "kind": "Inert installed wheel/RECORD/source-link controls; no published recovery or owner approval",
+          "test": "test_changed_original_wheel_or_record_and_linked_site_cannot_supply_correspondence"
+        },
+        {
+          "kind": "Inert downloads/installed payload and original platform predicate only; no actual Native runtime or approval",
+          "test": "Native public consumer: original installed payload and ABI checks refuse missing changed linked and nonexecutable binaries"
         }
       ]
     },

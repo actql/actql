@@ -104,3 +104,50 @@ normal software or creating a Host, keys or TLS server. The separate
 are not registered in the Ubuntu distribution job. Those mechanism cases
 do not qualify the normal case or establish a portable descriptor observer.
 The prepared ordinary case retains that same explicit observation dependency.
+
+
+## Opt-in cancellation and construction controls
+
+`cancel-normal-case.test.mjs` consumes the same explicit descriptor as the
+positive normal case, with `mode: "paged"`. It holds the original second
+cursor response through the existing asynchronous HTTPS handler, captures
+the admitted original Run, and sends one public cancellation with its observed
+control revision. Acceptance, the later `cancelled`/physical-stop observation,
+and the first public close and live descriptor observations are independent.
+The barrier releases only after the original cancellation returns; it is test
+scheduling, not cancellation authority or a product fault flag. No Result or
+successful Saved claim is made by this case.
+
+`construction-normal-case.test.mjs` creates two distinct absolute files with
+identical valid generated Source-profile bytes and supplies them through the
+existing public `sourceProfilePaths` installation input. Its closed authored
+`constructor-oracles.json` identifies the expected duplicate-binding primary.
+It records the actual initialization error, original cause/primaryFailure,
+cleanup-pending value and exposed handle presence without invoking a handle.
+A generic initialization error is not the selected primary or proof of
+nonacceptance. With no returned Client, there is no public close call or ACK.
+Live scoped descriptor observations after rejection remain separate; absent
+roots are recorded as absent and never counted as empty descriptor proofs.
+
+The shared installed-module preflight forces the lazy generated installation
+to load and checks its four original exports before Host construction. Its two
+portable mechanism fixtures import synthetic packages only and create no Host,
+keys, TLS or normal software. They stay in the already selected
+`preparation.test.mjs`; no package-command or workflow registration is added.
+
+The two new ordinary controls are explicit artifact consumers. Select one file
+through the existing bounded/nonzero local-check wrappers, with
+`ACTQL_REST_CONFORMANCE_INPUT` bound to an actual same-source normal-five
+manifest, fresh output and explicit Account inputs. Retain artifact verification,
+the default npm lifecycle, actual source qualification and original failure
+records. Do not substitute a checkout module, replacement manifest, old failed
+state or a claimed cleanup result.
+
+Both ordinary controls retain the current Darwin `/usr/sbin/lsof` observation
+dependency, Node/npm/openssl tooling and a live parent-owned TLS event loop.
+They are not selected by default package commands or Ubuntu CI. The existing
+`check:distribution-client` selection remains `preparation.test.mjs` only;
+that source/preflight coverage cannot establish these ordinary lifetimes.
+Publishing caller sources does not supply matching runtime artifacts, qualify
+current-main ordinary execution, or make the fixture's diagnostic tag a new
+stable public error contract.
