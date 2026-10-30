@@ -8926,7 +8926,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "0e5fcd4a0bffeadd893f64ae934b3fa2632f6872759e1497cd223046c4df82f5",
+      "sha256": "8a2d2170cc7a6802c362b515d8523b900f081872bf62e4fd1f8a883c3044b37b",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11157,6 +11157,18 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -11867,6 +11879,10 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -11960,6 +11976,10 @@
               {
                 "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
                 "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -12069,6 +12089,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -12191,6 +12215,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
               }
             ]
           }
@@ -12287,6 +12319,10 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -12356,6 +12392,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -12443,6 +12483,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }
@@ -12512,6 +12556,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
               }
             ]
           }

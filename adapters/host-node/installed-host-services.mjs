@@ -879,7 +879,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         constructor.scope.readerDemand = Object.freeze({nested: nested !== undefined,
           responses: nested?.responses ?? limits.maxPages, queryPages: limits.maxPages,
           propertyPages: nested?.propertyPages, propertyOccurrences: nested?.propertyOccurrences,
-          maxResponseBytes: limits.maxResponseBytes, maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
+          maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
+          maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
           transferBytes: nested === undefined || all < prefix ? all : prefix});
       }
       return factory;
