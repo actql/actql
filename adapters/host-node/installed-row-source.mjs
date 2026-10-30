@@ -1030,12 +1030,14 @@ export async function openRowSourceCredentialSite({profile, principalId,
         ? readBoundedConfigurationText(metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes})
         : Reflect.apply(metadataKeyRead, configurationReader,
           [metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes}])));
+      if (privateKey.asymmetricKeyType !== 'ed25519') fail('InvalidRowSourceCredentialSite');
+      metadata.assertInitializingCurrent();
+      custody = openRowSourceCredentialCustody({...custodyOptions, privateKey});
     } catch (error) {
+      // The same metadata view already exists even when no Site was returned.
+      // Its existing cleanup waits for any original failed child first.
       throw await retainInstalledHostInitializationFailure(error, {sourceProfile: metadata});
     }
-    if (privateKey.asymmetricKeyType !== 'ed25519') fail('InvalidRowSourceCredentialSite');
-    metadata.assertInitializingCurrent();
-    custody = openRowSourceCredentialCustody({...custodyOptions, privateKey});
   }
   if (metadata !== undefined) {
     const attached = metadata.attach(custody);
