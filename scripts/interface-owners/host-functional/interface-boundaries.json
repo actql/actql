@@ -77601,7 +77601,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "5323811976dd7f64033dafeb33f363f7c6f5ee621a20ffdcfa7d2bcf6ab73049",
+      "sha256": "faf648491cae09bea01e3aa1250c95a9abf629d7cf0b84f638bb89bda49daef9",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -80117,6 +80117,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "timed Request original defers module through one borrower and forwards opaque invocation before adoption"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "timed whole Source manager hands the same opaque invocation to Plan before Module and adoption"
               }
             ]
           }

@@ -39835,7 +39835,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d5e74a09c72595b8bc79440a79806ce45fb203a9903a6c378b3d98c25853b255",
+      "sha256": "f9ddee7170c6e43275359ed5be015529db8eeb952abaefb88370101e05bb1147",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -40388,7 +40388,9 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
-          "parameters": [],
+          "parameters": [
+            "invocation"
+          ],
           "async": false
         },
         {
@@ -42639,7 +42641,8 @@
           "name": "prepareManagedComputeCapturePlan",
           "parameters": [
             "originals",
-            "run"
+            "run",
+            "invocationOriginal"
           ],
           "async": false
         },
@@ -46295,7 +46298,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "inputsOutputs": [
@@ -46305,7 +46308,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "identity": [
@@ -46315,7 +46318,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "ownership": [
@@ -46325,7 +46328,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "synchronization": [
@@ -46335,7 +46338,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "failure": [
@@ -46345,7 +46348,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "cancellation": [
@@ -46355,7 +46358,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "resources": [
@@ -46365,7 +46368,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "extension": [
@@ -46375,7 +46378,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "verification": [
@@ -46386,6 +46389,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('ordinary captured Source Host adopts its same Request Plan without detached admission ports'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "timed whole Source caller uses the exact transient Core Option at the matching typed port"
               }
             ]
           }

@@ -3894,3 +3894,13 @@ selected Model or serialization purposes keep their original paths. Captured
 whole-Source execution additionally requires its matching typed QueryTime port
 and complete same-parent backing; a JS view or a numeric limit is not that
 backing.
+
+The captured constructor forwards that same temporary invocation Option into
+its Plan callback before passing it to ModuleBody. A timed whole-Source Plan
+selects the typed whole-Source constructor with that unchanged Option; it does
+not select the untimed constructor or substitute a Query capacity. Absence of
+the typed port refuses construction. The Option is not stored on the Run or in
+the publication view. Untimed whole-Source construction retains its original
+argument shape, and Query capture retains its existing QueryTime preparation.
+The typed binding and complete physical backing remain separate constructor
+obligations; forwarding an Option does not supply either of them.
