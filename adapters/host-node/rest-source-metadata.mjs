@@ -49,7 +49,6 @@ export function createRestSourceMetadata(definition) {
   const definitionWire = JSON.stringify(original);
 
   function authoredDeclarationWire() {
-    if (typeof original.authoredViewsWire !== 'string') fail('RestSourceAuthoredDeclarationInputUnavailable');
     return original.authoredViewsWire;
   }
 
@@ -77,7 +76,7 @@ export function createRestSourceMetadata(definition) {
     // The original Host reader owns the selected bound and physical read.
     // Keep its exact CA text; no author limit or unrelated secret bound is used.
     const ca = site.caPath === undefined ? undefined : await reads.readText(site.caPath);
-    if (ca !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');
+    if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');
     return Object.freeze({installed, site, ca, definition: original,
       // Canonical configuration identities alone normalize descriptive text.
       // Keep exact original strings too, including the Account wire, so that
