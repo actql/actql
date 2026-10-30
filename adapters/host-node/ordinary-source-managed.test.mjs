@@ -154,21 +154,12 @@ test('ordinary Source original cannot later acquire the separate Mock purpose', 
   assert.equal((await f.view.close()).pending, false);
 });
 
-test('ordinary Effect preparation uses its original typed quote and cannot switch to Pure', async () => {
-  const f = await fixture(), original = f.view.prepareEffectRun(f.prepared);
-  assert.strictEqual(f.view.prepareEffectRun(f.prepared), original);
-  assert.deepEqual(f.quotes, {pure: 0, effect: 1});
-  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
-  const ports = runtime.prepareOriginalManagedRunPorts(original, f.prepared);
-  assert.equal(ports.status(0), 0);
-  const children = f.declarations.map(declaration => f.view.prepareRead(f.prepared, declaration, original));
-  const bytes = await Promise.all(children.map(child => child.readOriginalBytes()));
-  assert.deepEqual(bytes[0], bytes[1]); assert.notStrictEqual(bytes[0], bytes[1]);
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
-  assert.equal(ports.status(2), -42);
-  for (const child of children) await child.close();
-  assert.equal(ports.status(2), 0);
+test('ordinary raw Effect preparation refuses without a quote or replacement Root', async () => {
+  const f = await fixture();
+  assert.throws(() => f.view.prepareEffectRun(f.prepared), {code: 'InstalledEffectPlanUnavailable'});
+  assert.throws(() => f.view.prepareEffectRun(f.prepared), {code: 'InstalledEffectPlanUnavailable'});
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });
 

@@ -106,3 +106,13 @@ test('retired Mock Effect discriminator cannot enter the Pure Run constructor', 
     {code: 'InstalledEffectPlanUnavailable'});
   assert.equal(current, 0); assert.equal(factories, 0); assert.equal(f.held(), undefined);
 });
+
+test('retired Mock Effect read context refuses before Source custody or current callbacks', () => {
+  let current = 0, acquisitions = 0;
+  const f = make({sourceManaged: {assertCurrent() {current++;},
+    prepareRead() {acquisitions++; assert.fail('No legacy Effect Source child');}}, moon: {}},
+    value => value, fail);
+  assert.throws(() => f.reader.prepareSourceRead({checkedOwner: {}, effectful: true,
+    declaration: {}, occurrence: {stage: 0, input: 0}}), {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(current, 0); assert.equal(acquisitions, 0);
+});
