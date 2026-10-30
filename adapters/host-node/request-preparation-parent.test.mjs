@@ -996,7 +996,7 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramRequestParametersOriginal = () => ok(undefined);
   moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt); assert.equal(actualPlan, plan);
-    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
+    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
