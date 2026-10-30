@@ -465,6 +465,14 @@ refusal callback; a returning callback still refuses. Connector adapters retain
 their error identity, profile validation, CA bounds and byte/hash semantics.
 This shared selection does not replace currentness or resource admission.
 
+When the initializer supplies its existing `readOriginalText` method, selection
+captures that own data method and the same receiver before any read awaits.
+The initializer funds the opened file's observed extent and retains its physical
+cleanup; connectors neither select a replacement byte ceiling nor fall back to
+the bounded text reader. An omitted capability remains absent. Malformed or
+accessor-backed capabilities refuse without invoking them. Original text and
+pending cleanup failures pass through unchanged.
+
 ## Standard CREATE declaration
 
 Standard JSON write requests use the existing captured connector-recovery
