@@ -5892,7 +5892,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/tabs.mbt",
-    "sha256": "c5671ee768dbc021ff8ccea4f8ca6dd2f6080ac7b0a91dee57bec866bd2f989c",
+    "sha256": "6bead24b2d0eeb760564e79d2a0f6853c4421b96adc800871fbe4f579732b2f4",
     "operations": [
       {
         "name": "project_sheet_tabs",
