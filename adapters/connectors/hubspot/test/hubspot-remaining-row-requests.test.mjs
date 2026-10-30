@@ -67,3 +67,33 @@ test('HubSpot list request and actual decoder share the remaining row allowance 
   assert.equal(f.requests.length,5);assert.equal(f.charges.length,5);assert.equal(f.observed.length,3);assert.equal(f.spent.size,5);
   assert.deepEqual(result.observations,f.responses);
 });
+
+test('HubSpot remaining allowance keeps a next cursor at exhaustion as refusal without another request',async()=>{
+  const f=fixture({selectedLimits:{...limits,maxRows:1},
+    selectedPages:[{results:[record('101')],paging:{next:{after:next}}}]});
+  await assert.rejects(f.read(),error=>{
+    assert.equal(error.code,'HubSpotReadRowLimit');
+    assert.equal(error.observations.length,3);
+    assert(error.observations.every((response,index)=>response===f.responses[index]));
+    return true;
+  });
+  assert.equal(f.requests.length,3);assert.equal(f.charges.length,3);
+  assert.equal(f.observed.length,2);assert.equal(f.rows.length,1);
+  assert.equal(f.requests[2].url.searchParams.get('limit'),'1');
+  assert.deepEqual(f.decodeBounds,[1]);
+});
+
+test('HubSpot remaining allowance refuses a server over-response without clipping or admitting rows',async()=>{
+  const f=fixture({selectedLimits:{...limits,maxRows:1},
+    selectedPages:[{results:[record('101'),record('102')]}]});
+  await assert.rejects(f.read(),error=>{
+    assert.equal(error.code,'MoonBitHostFailure');
+    assert.equal(error.observations.length,3);
+    assert(error.observations.every((response,index)=>response===f.responses[index]));
+    return true;
+  });
+  assert.equal(f.requests.length,3);assert.equal(f.charges.length,3);
+  assert.equal(f.observed.length,2);assert.equal(f.rows.length,0);
+  assert.equal(f.requests[2].url.searchParams.get('limit'),'1');
+  assert.deepEqual(f.decodeBounds,[1]);
+});
