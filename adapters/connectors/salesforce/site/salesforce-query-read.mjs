@@ -131,12 +131,13 @@ async function driveQueryPages({
         maxResponseBytes: limits.maxBytes,
         signal,
       });
-      if (!response.accepted) {
-        fail('SalesforceQueryResourceRejected');
-      }
+      const accepted = response.accepted;
       // Account the exact received body before any provider decoding. The
       // neutral owner binds this single-use admission to the selected run.
       const charge = await chargePage?.(response.body);
+      if (!accepted) {
+        fail('SalesforceQueryResourceRejected');
+      }
       const page = checked(owner.acceptPage(path, response.body));
       await consumePage(page, Object.freeze({path, pageIndex: pages.length,
         charge}));
