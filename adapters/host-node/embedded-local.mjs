@@ -683,20 +683,19 @@ export function readLocalContentRunRequirements(originals, prepared, selected) {
 
 // Mock preparation remains a distinct operational purpose on the same Host.
 export function readLocalMockModelRunRequirements(originals, prepared, model) {
+  if (model?.compilation !== undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const contracts = installedManagedRunContracts(originals);
-  const declarations = (model.compilation === undefined ? moon.clientProgramAcquisitionCount(prepared)
-    : moon.clientProgramEffectAcquisitionCount(prepared)) === 0 ? []
+  const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
   const documentBytes = declarations.map(() => 1048576n);
   const control = runtimeCore(moon).publicationControl;
-  const limits = (model.compilation === undefined
-    ? control.checkedClientMockModelRunRequirements
-    : control.checkedClientEffectMockModelRunRequirements)(
-    prepared, model.compiled, ...(model.compilation === undefined ? [] : [model.compilation]),
+  // Preserve the original extracted method's undefined receiver.
+  const limits = (0, control.checkedClientMockModelRunRequirements)(
+    prepared, model.compiled,
     model.runDefinition, model.occurrence, model.graph,
     declarations, asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
