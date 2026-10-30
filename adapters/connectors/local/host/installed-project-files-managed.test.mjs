@@ -134,11 +134,12 @@ test('Local concurrent closes await the same original external cleanup without r
 
 // Actual shared Source and RowRun consumer, with explicit nominal Core ports.
 // This checks routing/retirement; it does not issue a Ledger or file authority.
-async function rowFixture({pending = false, empty = true, readFailure, recoveryGate, accountFailureAfterClose = false} = {}) {
+async function rowFixture({pending = false, empty = true, readFailure, recoveryGate,
+  accountFailureAfterClose = false, localEffect = false, currentAfterRead = true, deferPrepare = false} = {}) {
   const owner = {}, request = {}, parent = {}, declaration = {}, originalRead = {}, requirement = {};
   const acquisition = {}, capacity = {}, ledger = {}, row = {}, captured = {}, source = {};
   const calls = [], occurrence = {stage: 0, input: 0, task: 0};
-  let closeAllowed = !pending;
+  let closeAllowed = !pending, localCurrent = true;
   const originalRecovery = {
     async cleanup() {assert.strictEqual(this, originalRecovery); calls.push('original-native-recovery');
       if (recoveryGate !== undefined) await recoveryGate; return closeAllowed;},
@@ -194,7 +195,7 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
     },
     clientProgramRowSourceCaptureCleanupAdvance: () => ok(true),
   };
-  const adapter = await createInstalledRowSource({moon, declaration,
+  const options = {moon, declaration,
     declared: {views: [{resource: 'files', source_ref: 'local:files'}]},
     environmentWire: '{}', connectorId: 'local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
     bindingCid: 'sha256:' + 'c'.repeat(64), site: {connection: 'local', close() {},
@@ -213,11 +214,76 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
       assert.strictEqual(read, originalRead); calls.push('close-native'); return {pending: !closeAllowed};
     },
     async readPages() {calls.push('read-native'); if (readFailure !== undefined) throw originalFailure;},
-  });
-  const prepared = await adapter.prepare({preparedProgram: owner, requestIdentity: request, managedRun: parent, occurrence});
-  return {calls, capacity, adapter, prepared, originalRecovery, originalFailure, accountFailure, allowClose() {closeAllowed = true;},
+  };
+  let adapter, profile;
+  if (localEffect) {
+    moon.clientProgramLocalFileTimestamp = () => assert.fail('No Native constructor');
+    moon.clientProgramResourceReferenceIssuer = () => ({});
+    moon.clientProgramInstalledEffectManagedRunCheck = (run, checkedOwner, intent) => {
+      assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
+      assert.strictEqual(intent, request); calls.push('check-effect'); return ok();
+    };
+    moon.clientProgramInstalledEffectManagedSourceRead = (run, selected, index) => {
+      assert.strictEqual(run, parent); assert.strictEqual(selected, declaration); assert.equal(index, 0);
+      calls.push('same-plan-tuple');
+      return ok({_0: originalRead, _1: requirement, _2: acquisition, _3: capacity});
+    };
+    moon.clientProgramInstalledSourceReadBindEffectProgram = (read, checkedOwner) => {
+      assert.strictEqual(read, originalRead); assert.strictEqual(checkedOwner, owner);
+      calls.push('bind-original'); return ok();
+    };
+    for (const name of ['clientProgramNodeEffectManagedRunPrepare', 'clientProgramInstalledEffectManagedRunBegin',
+      'clientProgramInstalledManagedRunRetire', 'clientProgramNodeEffectManagedRunCleanup',
+      'clientProgramInstalledKeyedSourceReadCheckCurrent', 'clientProgramInstalledKeyedSourceReadAcquisition',
+      'clientProgramInstalledKeyedSourceReadRetire']) {
+      moon[name] = () => assert.fail('No Connector Root, admission or Host Run retirement');
+    }
+    const entry = {connection: 'local', rootPath: '/not-opened', declaration,
+      scopeCid: 'sha256:' + 'a'.repeat(64), queryAliases: [],
+      limits: {maxReadBytes: 4096, maxPages: 2, maxPageBytes: 1024, maxFileBytes: 1024,
+        maxPageRows: 4, maxFiles: 4},
+      wire: JSON.stringify(options.declared)};
+    const bundle = {sources: [entry]};
+    const raw = {retainChild() {assert.fail('No Native constructor');},
+      close() {assert.strictEqual(this, raw); calls.push('close-native'); return {pending: !closeAllowed};}};
+    const sourceManaged = {
+      assertCurrent() {if (!localCurrent) throw new Error('OriginalProjectSourceChanged');},
+      prepareEffectRun() {assert.fail('No Connector Root');},
+      prepareRead(checkedOwner, selected, run, selectedOccurrence) {
+        assert.strictEqual(checkedOwner, owner); assert.strictEqual(selected, declaration);
+        assert.strictEqual(run, parent); assert.deepEqual(selectedOccurrence, occurrence);
+        calls.push('retain-native'); localCurrent = currentAfterRead; return raw;
+      },
+    };
+    const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
+      createInstalledRowSource, () => ({wire: '{}'}), () => '{}', async cause => cause,
+      AcquisitionOpenError, () => assert.fail('No Native constructor'), mime);
+    profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
+      baseEnvironmentWire: '{}', authorizationFor: async () => ({...options.authorization,
+        context: {contextCid: 'sha256:' + 'b'.repeat(64)}, assertAccountCurrent() {assert.fail('No native grant');}})});
+    adapter = profile.sources[0];
+  } else adapter = await createInstalledRowSource(options);
+  const facts = { ...(localEffect ? {preparedEffect: owner} : {preparedProgram: owner}),
+    requestIdentity: request, managedRun: parent, occurrence};
+  const prepared = deferPrepare ? undefined : await adapter.prepare(facts);
+  return {calls, capacity, adapter, prepared, profile, facts, originalRecovery, originalFailure, accountFailure, allowClose() {closeAllowed = true;},
     open: () => adapter.openCapture({preparedProgram: owner, preparedSource: prepared, ledger, occurrence})};
 }
+
+test('Local Effect Source consumes the actual Host Run and original retained Plan without a Connector Root', async () => {
+  const f = await rowFixture({localEffect: true});
+  assert.equal(f.profile.prepareManagedEffectRun, undefined);
+  const capacity = f.adapter.ledgerCapacity(f.prepared);
+  assert.strictEqual(capacity.capacity, f.capacity);
+  assert.strictEqual(capacity.managedRun, f.facts.managedRun);
+  assert.equal(f.calls.filter(value => value === 'same-plan-tuple').length, 1);
+  assert.equal(f.calls.filter(value => value === 'retain-native').length, 1);
+  assert.equal(f.calls.filter(value => value === 'bind-original').length, 1);
+  // No RowRun or file was opened. Local closes only the retained original
+  // child/read; the shared Host still owns its Run and admission.
+  await f.profile.close();
+  assert.deepEqual(f.calls.slice(-2), ['close-native', 'retire-core']);
+});
 
 test('shared native Source uses its retained Plan tuple and closes empty listing control before completion', async () => {
   const f = await rowFixture();
