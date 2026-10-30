@@ -30,7 +30,9 @@ test('RelA bridge uses the exact shared body with package-local provider selecti
     'client_program_open_captured_local_retained_host',
   ], 'all standard memory/retained/managed factories share family installation');
   assert.ok(!shared.includes('SELECTED_SGA_PROVIDER_BEGIN'));
-  for (const file of ['client_source_preparation.mbt', 'client_table_write_publication.mbt',
+  for (const file of ['client_source_preparation.mbt', 'client_preparation_root_bridge.mbt',
+    'client_native_snapshot_reader.mbt',
+    'client_table_write_publication.mbt',
     'client_prepared_public_environment.mbt',
     'client_effect_content_bridge.mbt', 'client_salesforce_row_source_bridge.mbt',
     'client_bigquery_read_bridge.mbt']) {

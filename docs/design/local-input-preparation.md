@@ -3548,3 +3548,19 @@ boundary before entering this typed consumer. This does not regrant dispatch,
 weaken saved-Run or Source custody checks, or turn an uncertain physical stop
 into an acknowledgment. Content/keyed combinations and other unmigrated
 callers retain their distinct obligations.
+
+
+### Shared RelA Request root
+
+The RelA Node bridge uses the existing Request root bridge and native snapshot
+reader through the same canonical mirror owner as its other shared bridges.
+The original `ClientLocalPreparationInputOriginal`, native DATA reader, and
+Request/Parameter/check/Plan delegates are generated unchanged from their Node
+source. A backend does not declare a substitute receipt type, fork snapshot
+semantics, or select another Resource parent merely to satisfy a signature.
+
+These bindings expose the existing constructors and lifetime operations; they
+do not admit arbitrary receipt-shaped DATA. The original supplier still checks
+membership and purpose, while the real caller must retain the same initial
+parent and satisfy its physical backing and retirement obligations. Compiled
+RelA and ordinary acceptance require matching artifacts and callers separately.
