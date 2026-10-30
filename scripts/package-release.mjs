@@ -8,6 +8,7 @@ import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, packClientPackages, packedClientPackage} from './packed-client-packages.mjs';
 import {releaseVersion} from './release-version.mjs';
+import {admitReleaseChannel} from './release-policy.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -22,7 +23,7 @@ export function admitCohort(value) {
   releaseVersion(value.packageVersion);
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
-  assert.match(value.tag, /^[a-z][a-z0-9-]*$/u);
+  admitReleaseChannel(value.tag);
   assert.deepEqual(value.packages, value.version === 'actql-explorer-release-cohort/0.1'
     ? ['client-wire', 'sdk', 'local-node', 'node', 'explorer-ui', 'explorer']
     : ['client-wire', 'sdk', 'local-node', 'node']);
