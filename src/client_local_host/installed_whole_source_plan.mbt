@@ -144,6 +144,70 @@ pub fn installed_managed_source_input_kind(
 }
 
 ///|
+/// Result placement belongs to this exact adopted Plan's physical graph.
+/// This is immutable DATA; it does not authorize execution or check current.
+pub fn installed_managed_acquisition_result_publication(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Bool, ClientInstalledManagedRunIssue] {
+  match installed_managed_source_input_kind(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.captured_preparation is Some(plan) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(@strategy.graph_requires_acquisition_result_publication(plan.graph))
+}
+
+///|
+/// Reuse the existing admitted Run Ledger for its exact complete-input Plan.
+/// No Query-capacity array, new limits, reservation or Ledger is constructed.
+pub fn installed_managed_whole_source_ledger(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : ClientInstalledWholeSourceCapacity,
+  transfer : Int64,
+  scratch : Int64,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  match check_installed_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard value.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    plan.whole_input is Some(selected) &&
+    physical_equal(selected, capacity) &&
+    plan.transport_bytes.length() == 1 &&
+    plan.transport_bytes[0] == transfer &&
+    plan.transport_execution_bytes.length() == 1 &&
+    plan.transport_execution_bytes[0] == scratch &&
+    value.reads.length() == 1 &&
+    value.reads[0] is Some(read) &&
+    read.original is Some(original) &&
+    physical_equal(original, read) &&
+    read.ledger is Some(original_ledger) &&
+    physical_equal(original_ledger, ledger) &&
+    read.managed_run is Some((original_run, 0)) &&
+    physical_equal(original_run, value) &&
+    read.whole_input is Some(original_capacity) &&
+    physical_equal(original_capacity, selected) else {
+    return Err(ForeignOriginal)
+  }
+  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+    return Err(InsufficientCapacity)
+  }
+  Ok(ledger)
+}
+
+///|
 pub fn installed_whole_source_capture_capacity(
   original : @sourceviews.SourceAcquisition,
   acquisition : @row_source_host.RowInputAcquisition,

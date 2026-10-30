@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -42696,7 +42696,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "37e90d8d6885c98eb0dd6a2c5c779cf476ec23f63bd04fddf8c88966fcfac483",
+      "sha256": "d9a8537ee13dd7824ad3e53819f4db80d22a8fa4bebb7e787a547af4139d556a",
       "exports": [],
       "operations": [
         {
@@ -42708,8 +42708,16 @@
           "declaration": "check_installed_whole_source_capacity ( value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         },
         {
+          "name": "installed_managed_acquisition_result_publication",
+          "declaration": "installed_managed_acquisition_result_publication ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_managed_source_input_kind",
           "declaration": "installed_managed_source_input_kind ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ String , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_whole_source_ledger",
+          "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_whole_source_acquisition",
@@ -42755,7 +42763,9 @@
             "installed_whole_source_original",
             "prepare_installed_managed_whole_source_plan",
             "prepare_installed_whole_source_capacity",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "installed_managed_acquisition_result_publication",
+            "installed_managed_whole_source_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -43153,12 +43163,20 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "60aa4a33166500ca53113b9898c4fb08206674767ddafe5e848023d8362a3c41",
+      "sha256": "1e8c57cbba7507d99983399937760aee8d9c2d0fad8ccc6dbf3a81b7a6d9c81a",
       "exports": [],
       "operations": [
         {
+          "name": "client_program_installed_managed_requires_acquisition_result_publication",
+          "declaration": "client_program_installed_managed_requires_acquisition_result_publication ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_managed_source_input_kind",
           "declaration": "client_program_installed_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_managed_whole_source_ledger",
+          "declaration": "client_program_installed_managed_whole_source_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_whole_source_read",
@@ -43265,7 +43283,9 @@
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
-            "client_program_open_installed_managed_capture_host"
+            "client_program_open_installed_managed_capture_host",
+            "client_program_installed_managed_requires_acquisition_result_publication",
+            "client_program_installed_managed_whole_source_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -43405,12 +43425,20 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "a0564c4bbe5ef27080e205ff7d3c5739136c383f5b681630ec5a7078e7343f86",
+      "sha256": "e5dc3a952c2e42a3f5f34e25e40c0778cfb3512f706b9582bc50c6984e425baa",
       "exports": [],
       "operations": [
         {
+          "name": "client_program_installed_managed_requires_acquisition_result_publication",
+          "declaration": "client_program_installed_managed_requires_acquisition_result_publication ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_managed_source_input_kind",
           "declaration": "client_program_installed_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_managed_whole_source_ledger",
+          "declaration": "client_program_installed_managed_whole_source_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_whole_source_read",
@@ -43517,7 +43545,9 @@
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
-            "client_program_open_installed_managed_capture_host"
+            "client_program_open_installed_managed_capture_host",
+            "client_program_installed_managed_requires_acquisition_result_publication",
+            "client_program_installed_managed_whole_source_ledger"
           ],
           "exports": [],
           "attributes": {

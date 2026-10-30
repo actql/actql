@@ -113,6 +113,13 @@ Source capacity preparation and Plan construction obtain task zero through
 the existing prepared full-sequence helper with the same original limits;
 neither path lowers a duplicate root sequence outside that retained original.
 
+Dispatch projects acquisition-Result placement from this same adopted Plan's
+physical graph. The original Query graph predicate retains its old meaning.
+Whole-input dispatch also reuses the Run Ledger through its exact Plan,
+capacity and retained Source-read association; a Query-capacity array cannot
+stand in for that different typed input. The existing current callback and
+post-callback original fences precede returning that same Ledger.
+
 The focused Core and explicit-port Node cases exercise full input beyond a
 Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.

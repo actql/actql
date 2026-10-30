@@ -151,6 +151,36 @@ pub fn client_program_whole_source_check_compute_binding(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedRequiresAcquisitionResultPublication")
+pub fn client_program_installed_managed_requires_acquisition_result_publication(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_managed_acquisition_result_publication(
+    owner, prepared, request,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourceLedger")
+pub fn client_program_installed_managed_whole_source_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  transfer : Int64,
+  scratch : Int64,
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_whole_source_ledger(
+    owner, prepared, request, capacity, transfer, scratch,
+  )
+}
+
+///|
 #export_name("clientProgramWholeSourceFacts")
 pub fn client_program_whole_source_facts(
   acquisition : @client_row_source_host.RowInputAcquisition,
