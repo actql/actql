@@ -179,3 +179,31 @@ response classification; its typed Node bridge only transports original
 handles. It adds no new execution, approval, claim or recovery owner. Google
 references: [UpdateCellsRequest](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#UpdateCellsRequest)
 and [developer metadata](https://developers.google.com/workspace/sheets/api/guides/metadata).
+
+## Pure grid pages for the shared Reader
+
+`site/sheets-grid-pages.mjs::prepareSheetsGridPages` captures the exact
+spreadsheet ID, numeric rectangle, complete declared scalar columns, finite
+codec limits and original portable provider methods/receiver. Its synchronous
+callbacks encode the existing `getByDataFilter` request and project one complete
+typed grid page. All declared cells are checked before downstream column
+selection, preserving blank-row exclusion, duplicate rows, exact literal text,
+formula results and refusal of error cells or foreign grid identity.
+
+The fixed configuration is DATA; it does not issue an original Source request,
+publication, Account decision, credential or grant. The synchronous projection
+invoker belongs to the same Reader callback frame. Request/response/page bounds
+remain the existing finite Sheets limits, not constructor or retained-workspace
+funding. The callbacks do not send, charge, cancel, close, retry or acknowledge
+physical release. Current checks, attempt/byte accounting, response custody,
+stop and cleanup remain with the same shared Reader and Host owners. Any error
+keeps its original cause through `SheetsGridPagesFailure`.
+
+The installed loader's existing physical path is separate from these callbacks;
+normal adoption requires its actual original Source, parent construction and
+failed-child/output overlap backing. The callback API does not select a second
+Reader, Ledger or cleanup engine and does not enable a partial normal path.
+`test/sheets-grid-pages.test.mjs` checks callback capture, bounds and refusals;
+`test/sheets-grid-pages.actual.test.mjs` consumes the actual portable provider
+and independently authored Google-shaped grid fixtures. These selected tests
+are registered in the existing remote-site runtime check, not a new CI lane.
