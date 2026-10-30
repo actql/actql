@@ -60,7 +60,7 @@ export function prepareMappedKintoneCreateFormCheck({moon, mapping, declaration,
     fail('ForeignKintoneCreateRequest');
   }
   const appId = Reflect.apply(app,moon,[request]);
-  if (!/^[1-9][0-9]*$/u.test(appId ?? '') || appId.length > limits.maxRequestBytes - 10) {
+  if (typeof appId !== 'string' || !/^[1-9][0-9]*$/u.test(appId) || appId.length > limits.maxRequestBytes - 10) {
     fail('KintoneWriteRequestLimit');
   }
   const maxResponseBytes = limits.maxResponseBytes;

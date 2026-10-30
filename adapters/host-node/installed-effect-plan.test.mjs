@@ -169,3 +169,12 @@ test('physical recipe snapshots distinct phase occurrences without sharing the c
   ])assert.throws(()=>captureInstalledEffectPlanRecipe(Object.freeze({...original,credentialOperations:Object.freeze(changes)}),5),
     {code:'InvalidInstalledEffectPlanRecipe'});
 });
+
+test('fresh pre-write check keeps its fifth physical slot distinct from capture apply resume and send',()=>{
+  const phases=['capture-check','apply-check','resume-check','write-check','write'];
+  const selected=captureInstalledEffectPlanRecipe(Object.freeze({memberOperations:Object.freeze([]),
+    rowOperations:Object.freeze(phases.map(phase=>Object.freeze({operation:phase==='write'?'create':'same Form read',extent:{}}))),
+    credentialOperations:Object.freeze(phases.map((phase,operationIndex)=>Object.freeze({phase,operationIndex,maxRequestBytes:64,maxResponseBytes:128})))}),5);
+  assert.deepEqual(selected.credentialOperations.map(row=>row.operationIndex),[0,1,2,3,4]);
+  assert.equal(selected.rowOperations[3].operation,selected.rowOperations[0].operation);
+});

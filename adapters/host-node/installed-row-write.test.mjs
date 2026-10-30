@@ -138,6 +138,38 @@ test('standard declared read check owns fixed HTTP while pure callbacks retain o
   assert.deepEqual(driver.check,{resource:'forms',operation:'fixture:form',beforeSend:true});
 });
 
+test('declared read refuses foreign input origin or mixed callback mode before HTTP',async()=>{
+  const check={resource:'forms',operation:'fixture:form',http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+    body:()=> '{}',project(){}};
+  assert.throws(()=>deriveInstalledRowWrite(declaration({check:{...check,request(){}}}),'fixture'),{code:'InvalidInstalledRowWrite'});
+  assert.throws(()=>deriveInstalledRowWrite(declaration({check:{...check,http:{...check.http,origin:'https://foreign.test'}}}),'fixture'),{code:'InvalidInstalledRowWrite'});
+  let calls=0;
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture'),{request}=driver.prepareRequest({member,value:{}});
+  for(const change of [{request:{...request}},{authorization:authorization('foreign-operation')},
+    {authorization:{...authorization('fixture:form'),scope:{operation:'fixture:form',resourceOrigin:'https://foreign.test'}}}]){
+    await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+      callResource(){calls++;return response;},...change}),{code:'InvalidInstalledRowWrite'});
+  }
+  assert.equal(calls,0);
+});
+
+test('invalid asynchronous declared read projection stays joined through original fulfillment and rejection',async()=>{
+  for(const rejected of [false,true]){
+    let resolve,reject,entered;
+    const original=new Promise((yes,no)=>{resolve=yes;reject=no;}),observed=new Promise(yes=>{entered=yes;});
+    const primary=new Error('original read projection rejection');
+    const driver=deriveInstalledRowWrite(declaration({check:{resource:'forms',operation:'fixture:form',
+      http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},body:()=> '{}',
+      project(){entered();return original;}}}),'fixture');
+    const {request}=driver.prepareRequest({member,value:{}});let completed=false;
+    const preparing=assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},callResource:()=>response}),
+      error=>rejected?error===primary:error.code==='InvalidInstalledRowWrite').then(()=>{completed=true;});
+    await observed;await new Promise(setImmediate);assert.equal(completed,false);
+    if(rejected)reject(primary);else resolve(undefined);
+    await preparing;
+  }
+});
+
 test('standard request callbacks receive only original provider DATA, not the RSE lifetime context', () => {
   const value = {name: 'original'}, internal = Object.freeze({});
   const write = declaration({request(context) {
