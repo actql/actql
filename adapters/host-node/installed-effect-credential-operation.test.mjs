@@ -25,6 +25,7 @@ test('same original Effect operation reserves before binding and accounts exact 
   const runtime={clientProgramInstalledEffectManagedPlanOperation:()=>({$tag:1,_0:extent}),
     clientProgramInstalledEffectOperationExtentPhysical:original=>{assert.equal(original,extent);return true;},
     clientProgramInstalledEffectOperationExtentTransfer:original=>{assert.equal(original,extent);return 1089n;},
+    clientProgramInstalledEffectOperationResponseBackingFits(original,bytes){assert.equal(this,runtime);assert.equal(original,extent);assert.equal(bytes,64);return true;},
     clientProgramInstalledEffectManagedOperationPlan(owner,p,r){assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);return {$tag:1,_0:plan};},
     clientProgramInstalledEffectOperationBorrow(owner,p,r,original,member,perRow,index,row,operation){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(original,plan);
@@ -63,10 +64,11 @@ async function operationFixture(t,{reply=()=>({body:'{}'})}={}){
   const scope=Object.freeze({issuerAuthority:'authority',principal:'principal',namespaceId:'namespace',environment:'fixture',
     siteKey:'site',siteGeneration:1,runtimeBundleCid:'runtime',connectorRegistration:'fixture',connectorRevision:'fixture/1',
     resourceOrigin:server.origin,runInvocationCid:'run',taskAttempt:1,dispatchRequestCid:'dispatch',operation:'create'});
-  const raw=Object.freeze({grant,scope}),controls={borrows:0,bindings:0,starts:0,settles:0,charges:[],retiredAliases:false,physical:true,transfer:1089n};
+  const raw=Object.freeze({grant,scope}),controls={borrows:0,bindings:0,starts:0,settles:0,charges:[],retiredAliases:false,physical:true,transfer:1089n,responseBacking:true,responseChecks:0};
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
     clientProgramInstalledEffectManagedPlanOperation:()=>({$tag:1,_0:extent}),clientProgramInstalledEffectOperationExtentPhysical:()=>controls.physical,
     clientProgramInstalledEffectOperationExtentTransfer:()=>controls.transfer,
+    clientProgramInstalledEffectOperationResponseBackingFits(original,bytes){assert.equal(this,runtime);assert.equal(original,extent);assert.equal(bytes,64);controls.responseChecks++;return controls.responseBacking;},
     clientProgramInstalledEffectOperationBorrow(){controls.borrows++;return {$tag:1,_0:token};},
     clientProgramInstalledEffectOperationStart(){controls.starts++;return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationCharge(original,bytes){assert.equal(original,token);controls.charges.push(bytes);return {$tag:1,_0:undefined};},
@@ -158,4 +160,18 @@ test('an asynchronous current fence remains joined before binding or physical st
   f.controls.retiredAliases=true;assert.equal(await child.release(),false);
   finish();await preparing;
   assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);assert.equal(f.server.seen().length,0);
+});
+
+
+// Capacity fit is an explicit native port here. The shared original child must
+// consume that exact extent check before any borrow, binding or physical use.
+test('response backing shortage refuses the original physical extent before borrow or binding',async t=>{
+  const f=await operationFixture(t);f.controls.responseBacking=false;
+  let child;
+  try{
+    assert.throws(()=>{child=f.create();},{code:'InsufficientInstalledEffectResponseBacking'});
+    assert.equal(f.controls.responseChecks,1);assert.equal(f.controls.borrows,0);
+    assert.equal(f.controls.bindings,0);assert.equal(f.controls.starts,0);
+    assert.equal(f.controls.settles,0);assert.equal(f.server.seen().length,0);
+  }finally{if(child!==undefined){f.controls.retiredAliases=true;await child.release();}}
 });
