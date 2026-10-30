@@ -1,4 +1,4 @@
-// Anonymous read-only registry observations. These are historical DATA, not
+// Public and explicitly supplied owner read observations are historical DATA, not
 // owner approval, a publication lease, upload permission or public install.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -99,6 +99,7 @@ const githubApi = 'https://api.github.com/repos/actql/actql';
 const githubHeaders = {accept: 'application/vnd.github+json', 'x-github-api-version': '2026-03-10'};
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
 const gitObject = value => value && typeof value.sha === 'string' && /^[a-f0-9]{40}$/u.test(value.sha) && ['commit', 'tag'].includes(value.type);
+const stageId = value => typeof value === 'string' && value.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
 
 async function githubGet(url, fetchResponse, accept = githubHeaders.accept) {
   try {
@@ -213,7 +214,13 @@ async function npmObservation(artifact, fetchResponse, requests) {
     state = await publishedVersion(artifact, registry, async () => ({status: reply.status, json: async () => reply.body}));
   } catch {conflict(`Occupied npm version differs from its fixed original: ${artifact.name}`);}
   if (state === 'absent') return 'absent';
-  const url = publicUrl(reply.body.dist.tarball, 'https://registry.npmjs.org');
+  let tarball = reply.body.dist.tarball;
+  // The official npm publisher may record http metadata for its own registry;
+  // npm's consumer upgrades that exact host to HTTPS. Never issue an HTTP GET
+  // or broaden this into a redirect/foreign-origin/credential exception.
+  if (typeof tarball === 'string' && tarball.startsWith('http://registry.npmjs.org/'))
+    tarball = `https://${tarball.slice('http://'.length)}`;
+  const url = publicUrl(tarball, 'https://registry.npmjs.org');
   await artifactBytes(url, artifact, fetchResponse, requests);
   return 'present';
 }
@@ -282,6 +289,100 @@ export async function observeNpmPackageRelease(directory, expectedSha256, {fetch
   return {schemaVersion: 'actql-npm-public-observation/0.1', manifestSha256: sha256, sourceSha: manifest.sourceSha,
     startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
     qualification: 'anonymous historical npm byte observations only; no install, publisher authority, approval, lock or CAS'};
+}
+
+function stagedIdentity(body, artifact, tag, id) {
+  if (!body || !stageId(body.id) || typeof body.packageName !== 'string' || typeof body.version !== 'string' ||
+      typeof body.tag !== 'string' || typeof body.status !== 'string') unavailable('Incomplete owner stage observation');
+  if (body.id !== id || body.packageName !== artifact.name || body.version !== artifact.version || body.tag !== tag)
+    conflict('Occupied stage has another original name/version/tag/id');
+  if (body.status !== 'awaiting_approval') conflict('Selected stage is no longer awaiting owner approval');
+  return fields(body, ['id', 'packageName', 'version', 'tag', 'status']);
+}
+
+async function pendingStage(artifact, tag, fetchStage, requests) {
+  const matches = [], ids = new Set(); let observed = 0, total;
+  for (let page = 0; ; page++) {
+    if (page === 10) unavailable('Owner stage inventory exceeds its finite page bound');
+    const reply = await metadata(`https://registry.npmjs.org/-/stage?page=${page}&perPage=100&package=${encodeURIComponent(artifact.name)}`,
+      fetchStage, requests);
+    // Neither an anonymous nor authenticated error establishes no pending stage.
+    if (reply.status !== 200 || !reply.body || !Array.isArray(reply.body.items) || reply.body.items.length > 100 ||
+        !Number.isSafeInteger(reply.body.total) || reply.body.total < 0)
+      unavailable('Complete owner stage inventory unavailable');
+    if (total !== undefined && total !== reply.body.total) unavailable('Owner stage inventory changed during pagination');
+    total = reply.body.total; observed += reply.body.items.length;
+    if (observed > total) unavailable('Owner stage inventory count differs');
+    for (const item of reply.body.items) {
+      if (!item || !stageId(item.id) || ids.has(item.id) || typeof item.packageName !== 'string' || typeof item.version !== 'string')
+        unavailable('Malformed or duplicated owner stage inventory');
+      ids.add(item.id);
+      if (item.packageName === artifact.name && item.version === artifact.version) matches.push(item);
+    }
+    if (observed === total) break;
+    if (reply.body.items.length !== 100) unavailable('Incomplete owner stage inventory page');
+  }
+  if (matches.length > 1) conflict('More than one stage occupies the exact selected version');
+  if (matches.length === 0) return null;
+  const id = matches[0].id;
+  stagedIdentity(matches[0], artifact, tag, id);
+  const url = `https://registry.npmjs.org/-/stage/${id}`;
+  const before = await metadata(url, fetchStage, requests);
+  if (before.status !== 200) unavailable('Exact owner stage unavailable');
+  const original = stagedIdentity(before.body, artifact, tag, id);
+  // View/list shasum is insufficient: stream the exact pending tarball through
+  // the existing full length/SHA256/SRI owner, with the same finite byte bound.
+  await artifactBytes(`${url}/tarball`, artifact, fetchStage, requests);
+  const after = await metadata(url, fetchStage, requests);
+  if (after.status !== 200) unavailable('Exact owner stage unavailable after byte read');
+  if (JSON.stringify(stagedIdentity(after.body, artifact, tag, id)) !== JSON.stringify(original))
+    unavailable('Owner stage changed during byte observation');
+  return id;
+}
+
+// fetchStage is a separately supplied protected read port. Stage-only trust
+// tokens cannot list/view/download, so there is deliberately no default reader
+// and no environment/token discovery or anonymous-404 absence inference.
+export async function observeNpmStageTarget(directory, expectedSha256, targetId,
+  {fetchStage, fetchResponse = fetch, file = null} = {}) {
+  assert.equal(typeof fetchStage, 'function', 'A separate original owner stage reader is required');
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === targetId);
+  assert(target?.ecosystem === 'npm', 'Select an original npm target');
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === targetId);
+  assert(['node-npm', 'native-npm'].includes(cohort.kind));
+  const child = JSON.parse(await readFile(join(directory, cohort.path))), tag = child.cohort.tag;
+  assert(target.channels.includes(tag));
+  const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === targetId && (file === null || value.file === file));
+  assert(artifacts.length && (file === null || artifacts.length === 1), 'Select exact original npm files');
+  const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
+  for (const artifact of artifacts) {
+    const base = fields(artifact, ['targetId', 'file', 'name', 'version']);
+    try {
+      const published = await npmObservation(artifact, fetchResponse, requests);
+      if (published === 'present') {observations.push({...base, state: 'published', identity: identity(artifact)}); continue;}
+      const pending = await pendingStage(artifact, tag, fetchStage, requests);
+      if (pending) {observations.push({...base, state: 'pending', stageId: pending, tag, identity: identity(artifact)}); continue;}
+      const namespace = await metadata(`https://registry.npmjs.org/${encodeURIComponent(artifact.name)}`, fetchResponse, requests);
+      if (namespace.status === 200 && (namespace.body?.name !== artifact.name || !namespace.body.versions ||
+          typeof namespace.body.versions !== 'object' || Array.isArray(namespace.body.versions) || Object.keys(namespace.body.versions).length === 0))
+        unavailable('Exact active public package namespace unavailable');
+      if (namespace.status === 200) {
+        const tags = namespace.body['dist-tags'];
+        if (!tags || typeof tags !== 'object' || Array.isArray(tags)) unavailable('Current staging tag map unavailable');
+        if (Object.hasOwn(tags, tag)) conflict('Selected staging tag is already occupied; no implicit channel move');
+      }
+      observations.push({...base, state: 'missing', namespace: namespace.status === 404 ? 'absent' : 'present'});
+    } catch (failure) {
+      if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
+      const state = failure instanceof RegistryConflict ? 'conflict' : 'unknown';
+      observations.push({...base, state}); issues.push({...base, state, reason: failure.message});
+    }
+  }
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {schemaVersion: 'actql-npm-stage-observation/0.1', manifestSha256: fixed.sha256, targetId,
+    files: artifacts.map(value => value.file), startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
+    qualification: 'historical original public/owner-read-port observations only; no owner approval, stage send, exclusive execution, lock or CAS'};
 }
 
 export async function observeReleaseSet(directory, expectedSha256, {fetchResponse = fetch} = {}) {
