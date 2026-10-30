@@ -748,7 +748,8 @@ function heldSteps(marker, release) {
 }
 
 test('heavy admission refuses memory, disk, CPU pressure and more than four reservations', () => {
-  const available = {memoryBytes: 1024 ** 3, diskBytes: 1024 ** 3, cpuThreads: 4};
+  const available = {memoryBytes: 1024 ** 3, totalMemoryBytes: 2 * 1024 ** 3,
+    diskBytes: 1024 ** 3, cpuThreads: 4};
   assert.equal(heavyResourceAdmission(tinyResources, [], available).admitted, true);
   for (const key of Object.keys(available)) {
     assert.equal(heavyResourceAdmission(tinyResources, [], {...available, [key]: 0}).admitted,
@@ -760,6 +761,19 @@ test('heavy admission refuses memory, disk, CPU pressure and more than four rese
     {memoryBytes: 1.5}, {memoryBytes: Number.MAX_SAFE_INTEGER + 1}]) {
     assert.throws(() => heavyResourceRequest(value), /resources|request/u);
   }
+});
+
+test('heavy admission does not subtract existing memory estimates from current availability again', () => {
+  const gib = 1024 ** 3;
+  const request = {memoryBytes: 6 * gib, diskBytes: 2 * gib, cpuThreads: 1};
+  const members = [{memoryBytes: 8 * gib, diskBytes: 2 * gib, cpuThreads: 1}];
+  const available = {memoryBytes: 15118284881, totalMemoryBytes: 32 * gib,
+    diskBytes: 40 * gib, cpuThreads: 10};
+  assert.equal(heavyResourceAdmission(request, members, available).admitted, true);
+  assert.equal(heavyResourceAdmission(request, members,
+    {...available, memoryBytes: 6 * gib}).admitted, false);
+  assert.equal(heavyResourceAdmission(request, members,
+    {...available, totalMemoryBytes: 14 * gib}).admitted, false);
 });
 
 test('available memory uses OS availability rather than cache-depleted raw free pages', () => {
