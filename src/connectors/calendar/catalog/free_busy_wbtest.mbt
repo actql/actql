@@ -339,3 +339,29 @@ test "Calendar free busy preserves canonical submillisecond Request bounds witho
     )
   }
 }
+
+///|
+test "Calendar free busy response retains distinct original data keys without NFC aliasing" {
+  let query = free_busy_query(ids=["calendar/é", "calendar/é"])
+  let page = project_calendar_free_busy(
+    @utf8.encode(
+      (
+        #|{"kind":"calendar#freeBusy","timeMin":"2026-10-17T00:00:00Z","timeMax":"2026-10-18T00:00:00Z","calendars":{"calendar/é":{"busy":[{"start":"2026-10-17T01:00:00Z","end":"2026-10-17T02:00:00Z"}]},"calendar/é":{"busy":[{"start":"2026-10-17T03:00:00Z","end":"2026-10-17T04:00:00Z"}]}}}
+      ),
+    ),
+    query,
+    free_busy_limits(),
+  ).unwrap()
+  assert_eq(
+    calendar_free_busy_rows_wire(
+      page,
+      ["calendar_id", "start", "end"],
+      4096,
+      100,
+      8,
+    ).unwrap(),
+    (
+      #|[{"calendar_id":"calendar/é","start":"2026-10-17T01:00:00.000Z","end":"2026-10-17T02:00:00.000Z"},{"calendar_id":"calendar/é","start":"2026-10-17T03:00:00.000Z","end":"2026-10-17T04:00:00.000Z"}]
+    ),
+  )
+}
