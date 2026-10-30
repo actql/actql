@@ -137,7 +137,10 @@ pub fn project_sheet_tabs(
       } else {
         let value : @admitted.Value = if (name == "row_count" || name == "column_count") &&
           kind == "OBJECT" {
-          @admitted.Null
+          guard @admitted.checked_null_value(contract) is Some(value) else {
+            return Err(InvalidCell(name))
+          }
+          value.value
         } else {
           let selected = if name == "id" || name == "index" {
             @decode.lookup(properties, if name == "id" { "sheetId" } else { "index" })
