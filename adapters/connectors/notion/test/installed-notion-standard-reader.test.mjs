@@ -31,7 +31,7 @@ const readLimits = Object.freeze({maxResponseBytes: 8192, maxTotalResponseBytes:
   maxRowsWireNodes: 200, maxRowsWireDepth: 8});
 
 function fixture({mutateMethods = false, implementationFailure, sourceFailure} = {}) {
-  const events = [], installation = {}, declaration = {}, capacity = {}, acquisition = {};
+  const events = [], cleanup = [], installation = {}, declaration = {}, capacity = {}, acquisition = {};
   const environment = Object.freeze({wire: 'original-environment'});
   const declared = Object.freeze({catalog_cid: 'original-catalog', views: [
     {resource: 'users', fields: ['email', 'id', 'name', 'type']},
@@ -113,15 +113,15 @@ function fixture({mutateMethods = false, implementationFailure, sourceFailure} =
     },
     retainInstalledHostInitializationFailure(cause, original) {
       assert.equal(cause, sourceFailure); assert.equal(original.sourceProfile, site);
-      assert.equal(original.sourceReader, reader); return cause;
+      assert.equal(original.sourceReader, reader); cleanup.push(original); return cause;
     },
   };
   const load = Function(...Object.keys(ports), body + '\nreturn loadInstalledNotionSource;')(...Object.values(ports));
-  return {events, profile, sourceInitialization, services, provider, result,
+  return {events, cleanup, profile, sourceInitialization, services, provider, result,
     get selected() {return {implementationInput, readerInput, sourceInput};},
-    load: () => load(profile, {moon: {}, providerMoon: provider, runtimeBundleCid: 'original-runtime',
+    load: (overrides = {}) => load(profile, {moon: {}, providerMoon: provider, runtimeBundleCid: 'original-runtime',
       configurationReader, installation, sourceInitialization, installationServices: services,
-      resolveSecret() {assert.fail('No credential resolution in constructor scope');}})};
+      resolveSecret() {assert.fail('No credential resolution in constructor scope');}, ...overrides})};
 }
 
 test('Notion users constructs through the same current Host Source services without external reader capacity', async () => {
@@ -135,4 +135,28 @@ test('Notion users constructs through the same current Host Source services with
   assert.equal(implementationInput.limits.maxTotalRows, sourceInput.limits.maxCaptureRows);
   assert.equal(readerInput.operation, 'notion:users:list');
   assert.equal(typeof readerInput.preparePageReader, 'function');
+});
+
+test('Notion standard loader refuses unowned constructor and service accessors before configuration', async () => {
+  const missing = fixture();
+  await assert.rejects(missing.load({sourceInitialization: undefined}), {code: 'NotionSourceInitializationUnavailable'});
+  assert.deepEqual(missing.events, []);
+  const accessor = fixture(), services = {...accessor.services};
+  Object.defineProperty(services, 'openRowSite', {get() {assert.fail('Service accessor invoked');}});
+  await assert.rejects(accessor.load({installationServices: services}), {code: 'InstalledNotionSourceServicesUnavailable'});
+  assert.deepEqual(accessor.events, []);
+});
+
+test('Notion standard loader retains original implementation refusal and failed Source children', async () => {
+  const original = Object.assign(new Error('OriginalImplementationPending'), {cleanupPending: true,
+    cleanupHandle: Object.freeze({retry() {assert.fail('No constructor retry');}})});
+  const implementation = fixture({implementationFailure: original});
+  await assert.rejects(implementation.load(), cause => cause === original);
+  assert.deepEqual(implementation.events, ['configuration', 'profile', 'implementation']);
+  assert.deepEqual(implementation.cleanup, []);
+  const sourceFailure = Object.assign(new Error('OriginalSourceConstructionPending'), {cleanupPending: true});
+  const source = fixture({sourceFailure});
+  await assert.rejects(source.load(), cause => cause === sourceFailure);
+  assert.equal(source.cleanup.length, 1);
+  assert.equal(sourceFailure.cleanupPending, true);
 });
