@@ -21,6 +21,7 @@ priv enum ClientRequestPreparationPhase {
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
+  ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
   Selected
@@ -96,6 +97,8 @@ struct ClientRequestPreparation[I] {
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model : ClientInstalledManagedModelPlan?
+  mut program_keyed : ClientInstalledManagedKeyedPreparation?
+  mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -217,11 +220,11 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    // Resident selected Model Plan link. Its Some/Plan/Scope constructor
-    // remains in the actual before-call domain backing.
+    // Resident Model Plan and Content Plan/Request links. Selected Some and
+    // domain construction are separately funded before their allocation.
     reference_slots: 21L +
     inventory_refs +
-    1L +
+    3L +
     js_refs +
     import_refs +
     ledger_refs +
@@ -346,6 +349,8 @@ pub fn[I] begin_request_preparation(
     program_source_free: None,
     program_captured: None,
     program_model: None,
+    program_keyed: None,
+    program_content_request: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -653,6 +658,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model = None
+  owner.program_keyed = None
+  owner.program_content_request = None
 
   let retiring = owner.phase == Retiring
   owner.phase = Retiring

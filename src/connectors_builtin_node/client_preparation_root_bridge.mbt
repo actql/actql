@@ -1135,3 +1135,95 @@ pub fn client_program_adopt_request_effect_model_preparation(
     parent, request, scope,
   )
 }
+
+///|
+#export_name("clientProgramBorrowRequestContentPlanInput")
+pub fn client_program_borrow_request_content_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_content_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramCompleteRequestContentPreparation")
+pub fn client_program_complete_request_content_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_content_preparation(
+    parent, input, request, selected,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestContentPreparation")
+pub fn client_program_adopt_request_content_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_content_managed_run(parent, request)
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentPrepare")
+pub fn client_program_installed_managed_keyed_content_prepare(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : @client_local_host.ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  row_work : Int,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task : Int,
+  step : Int,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+) -> Result[
+  @client_local_host.ClientInstalledManagedKeyedPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_keyed_content(
+    prepared,
+    direct,
+    keyed,
+    declaration,
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, row_work,
+    ),
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task,
+    step,
+    prefix_retained_bytes,
+    prefix_execution_bytes,
+  )
+}

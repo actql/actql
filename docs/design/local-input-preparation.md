@@ -3696,3 +3696,24 @@ module/provider/codec/output overlap must be backed before allocation on
 that same parent. Fixed caller controls and compiler measurements do not
 establish physical funding or grant Model execution. Scope and body
 retirement retain their distinct original cleanup obligations.
+
+### Keyed Content on the original Request
+
+The Content constructor borrows the same compiled Program before allocating
+its selected Plan. An outstanding Program inventory borrower may coexist;
+Content selection preserves the actual grown extents and adds its selected
+links once. Returning the older inventory borrow cannot release the retained
+Content material. Model and Content constructor purposes remain distinct.
+
+The keyed Plan retains its original Direct acquisition, coordinates,
+contracts, transport and completed requirements. Later Source and Ledger
+selection checks those same originals and reads that retained demand without
+reconstructing the query or calculating another capacity. Changed or foreign
+material requires its own full preparation.
+
+Content adoption transfers the original initial admission and reservation.
+Only an unused unbound input census can leave at that handoff; a bound or
+active census retains its original cleanup obligation. Metadata disposal
+does not refund consumed input work/attempts or any byte debit. The selected
+keyed/declaration/transport/prefix/provider/codec/output and constructor
+overlap still needs complete backing before allocation on this same parent.

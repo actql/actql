@@ -270,6 +270,9 @@ test "Model construction input preserves grown Program backing and funds its act
     borrow_request_program_plan_input(parent, input) is Err(WrongPhase),
   )
   assert_true(
+    borrow_request_content_plan_input(parent, input) is Err(WrongPhase),
+  )
+  assert_true(
     abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
   )
   assert_false(@resources.return_preparation_body_borrow(model).unwrap())

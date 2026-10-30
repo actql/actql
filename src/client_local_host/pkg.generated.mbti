@@ -100,6 +100,8 @@ pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> R
 
 pub fn[I] begin_preparation_owned_installed_capture_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedCapturePlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
+pub fn[I] begin_preparation_owned_installed_content_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
 pub fn[I] begin_preparation_owned_installed_effect_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_preparation_owned_installed_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -115,6 +117,8 @@ pub fn[I, P] begin_program_json_preparation(@physical_resources.PreparationCapac
 pub fn begin_program_snapshot(ClientProgramPublication, @run_publication_host.PublicationOutputExport) -> Result[ClientProgramSnapshot, ClientClosedValuesPreparationIssue]
 
 pub fn[I] begin_request_capture_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
+pub fn[I] begin_request_content_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
@@ -135,6 +139,8 @@ pub fn borrow_installed_effect_dispatch_preparation(ClientInstalledManagedRun, C
 pub fn borrow_installed_effect_operation(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[ClientInstalledEffectOperationBorrow, ClientInstalledManagedRunIssue]
 
 pub fn borrow_installed_managed_dispatch_preparation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]?, ClientInstalledManagedRunIssue]
+
+pub fn[I] borrow_request_content_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
 pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], ClientRequestPreparationIssue]
 
@@ -292,6 +298,8 @@ pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisitio
 
 pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
+pub fn[I] complete_request_content_preparation(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] complete_request_effect_preparation(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_model_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan) -> Result[Unit, ClientRequestPreparationIssue]
@@ -373,6 +381,8 @@ pub fn installed_json_effect_response_construction_capacity(@execution_relation.
 pub fn installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_source_reader_profile(Int, Int) -> Array[Int]?
+
+pub fn installed_keyed_row_limits(Int, Int, Int) -> @client_row_source_host.RowKeyedLimits
 
 pub fn installed_keyed_source_read_acquisition(ClientInstalledKeyedSourceRead) -> Result[@client_row_source_host.RowKeyedAcquisition, ClientInstalledSourceReadIssue]
 

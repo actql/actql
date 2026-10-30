@@ -10,7 +10,8 @@ pub fn[I] borrow_request_model_plan_input(
   @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
   ClientRequestPreparationIssue,
 ] {
-  if owner.program_source_free is Some(_) ||
+  if owner.phase == ContentPlanReserved ||
+    owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
     owner.program_model_compilation_inputs is Some(_) ||

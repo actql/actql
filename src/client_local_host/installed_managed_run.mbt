@@ -20,6 +20,10 @@ priv enum ClientInstalledManagedRunOriginal {
     @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
+  PreparationContentManaged(
+    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @publication_host.PreparedClientProgram
+  )
 }
 
 ///|
@@ -678,6 +682,7 @@ fn installed_managed_run_owner(
     Some(EffectManaged(_, prepared)) => Ok(Effect(prepared))
     Some(PlannedEffectManaged(_, plan)) => Ok(Effect(plan.prepared))
     Some(ContentManaged(_, prepared)) => Ok(Pure(prepared))
+    Some(PreparationContentManaged(_, prepared)) => Ok(Pure(prepared))
     None => Err(Retired)
   }
 }
@@ -714,6 +719,7 @@ fn new_installed_managed_run_owned(
             EffectManaged(_, prepared) => Effect(prepared)
             PlannedEffectManaged(_, plan) => Effect(plan.prepared)
             ContentManaged(_, prepared) => Pure(prepared)
+            PreparationContentManaged(_, prepared) => Pure(prepared)
           },
         ),
       ),
@@ -756,6 +762,8 @@ fn require_installed_managed_run(
       check_installed_managed_run_admission(admission, prepared, ledger)
     PlannedEffectManaged(admission, plan) =>
       check_installed_managed_run_admission(admission, plan, ledger)
+    PreparationContentManaged(admission, prepared) =>
+      check_installed_managed_run_admission(admission, prepared, ledger)
     ContentManaged(admission, prepared) =>
       match
         @resources.check_node_local_content_run_preparation(admission, prepared) {
@@ -786,6 +794,8 @@ fn require_installed_managed_run(
     (PlannedEffectManaged(a, p), PlannedEffectManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
     (ContentManaged(a, p), ContentManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    (PreparationContentManaged(a, p), PreparationContentManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
     _ => false
   }
@@ -859,6 +869,7 @@ fn check_installed_managed_run_binding(
   let selected = match preparation {
     PureManaged(_, prepared) => Some(prepared)
     ContentManaged(_, prepared) => Some(prepared)
+    PreparationContentManaged(_, prepared) => Some(prepared)
     EffectManaged(_, _) => None
     PlannedEffectManaged(_, _) => None
   }
@@ -952,6 +963,12 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
+  if value.keyed is Some(selected) {
+    return prepare_retained_installed_keyed_content_ledger(
+      value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
+  }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
     Ok(owner) => owner
@@ -973,21 +990,7 @@ fn prepare_installed_managed_run_ledger_owned(
       values_body, fragment_body, ordered_body,
     )
   }
-  let required = if value.keyed is Some(keyed) {
-    guard capacities.length() == 1 else { return Err(Unsupported) }
-    guard owner is Pure(prepared) else { return Err(Unsupported) }
-    installed_managed_keyed_content_limits(
-      keyed,
-      prepared,
-      capacities[0],
-      transport_bytes[0],
-      transport_execution_bytes[0],
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-    )
-  } else if value.reads.is_empty() {
+  let required = if value.reads.is_empty() {
     if !capacities.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {
@@ -1277,6 +1280,8 @@ pub fn retire_installed_managed_run(
     PlannedEffectManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
     ContentManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
+    PreparationContentManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
   }
   match cleaned {

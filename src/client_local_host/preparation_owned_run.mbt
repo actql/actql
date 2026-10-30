@@ -367,3 +367,61 @@ fn[P] preparation_retirement_payload_severed(
   @resources.check_node_preparation_cleanup_original(original.admission, ledger)
   is Ok(_)
 }
+
+///|
+/// The fixed Content constructor has already retained its selected keyed and
+/// serialization material under the same Request construction borrow. Adopt
+/// that exact preparation without selecting the legacy Content Root or scope.
+/// The complete provider/output/constructor overlap must already be funded;
+/// numerical compatibility here does not issue that physical backing.
+pub fn[I] begin_preparation_owned_installed_content_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  selected : ClientInstalledManagedKeyedPreparation,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  if !physical_equal(selected.prepared, prepared) ||
+    identity.program_definition_cid !=
+    @publication_host.client_request_program_cid(request) ||
+    identity.parameter_values_cid !=
+    @publication_host.client_request_parameters_cid(request) {
+    return Err(ForeignOriginal)
+  }
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(selected.limits, limits) {
+    return Err(InsufficientCapacity)
+  }
+  // This actual Content constructor excludes Model. Retire only its unused
+  // input census metadata; consumed IO/work and byte debit are unchanged.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  let (admission, ledger, retirement, holder) = match
+    @resources.adopt_node_preparation_admission(
+      initial, input, capacity, prepared,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  let run = new_installed_managed_run_owned(
+    PreparationContentManaged(admission, prepared),
+    request,
+    ledger,
+  )
+  run.keyed = Some(selected)
+  run.preparation_retirement = Some(
+    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  )
+  Ok(run)
+}

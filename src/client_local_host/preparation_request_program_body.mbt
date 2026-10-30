@@ -69,7 +69,9 @@ fn[I] request_program_plan_quote(
       owner.phase == ProgramCompiled ||
       owner.phase == ProgramPlanQuoted ||
       owner.phase == ProgramPlanReserved ||
-      owner.phase == ModelPlanReserved
+      owner.phase == ProgramPlanReserved ||
+      owner.phase == ModelPlanReserved ||
+      owner.phase == ContentPlanReserved
     ) &&
     owner.program_capacity is Some(capacity) &&
     owner.program_data is Some(data) else {
@@ -126,7 +128,7 @@ pub fn[I] borrow_request_program_plan_input(
   @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
   ClientRequestPreparationIssue,
 ] {
-  if owner.phase == ModelPlanReserved {
+  if owner.phase == ModelPlanReserved || owner.phase == ContentPlanReserved {
     return Err(WrongPhase)
   }
 
