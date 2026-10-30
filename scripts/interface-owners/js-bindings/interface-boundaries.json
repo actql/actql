@@ -50600,6 +50600,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -50707,9 +50708,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
