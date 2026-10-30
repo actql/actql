@@ -145,7 +145,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
   const fixture = new Function(...Object.keys(bindings), source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
-  return {fixture, input: {preparedProgram, managedRun},
+  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses,
     allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
 }
@@ -200,4 +200,76 @@ test('whole Source close cannot return a constructor read retired during authori
   assert.equal(f.retireCalls(), 1);
   resume({action: 'dispatch'});
   await assert.rejects(preparing, {code: 'InstalledSourceReadUnavailable'});
+});
+
+
+test('whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare', async () => {
+  const {bindInstalledManagedSources} = await import('./installed-managed-source.mjs');
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}});
+  const parent = f.input.managedRun, currentLoss = new Error('OriginalParentNoLongerCurrent');
+  const source = {prepare: f.fixture.prepare, close: f.fixture.close,
+    managedCaptureCapacity() {}, ledgerCapacity() {assert.fail('No association after lost current');}};
+  let observations = 0;
+  const view = bindInstalledManagedSources(source, checked => {
+    assert.equal(checked, f.input.preparedProgram);
+    if (++observations === 2) throw currentLoss;
+    return parent;
+  });
+  await assert.rejects(view.prepare({preparedProgram: f.input.preparedProgram}), error => error === currentLoss);
+  assert.throws(() => view.ledgerCapacity({}), /ForeignInstalledManagedSource/);
+  view.close();
+  assert.equal(f.retireCalls(), 1);
+  assert.equal(f.siteCloses(), 1);
+});
+
+test('whole Source closes an original prepared read which was never given to a RowRun', async () => {
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}});
+  const prepared = await f.fixture.prepare(f.input);
+  assert.deepEqual(prepared.checkedSource.sourceInput, pair);
+  assert.equal(f.retireCalls(), 0);
+  f.fixture.close();
+  assert.equal(f.retireCalls(), 1);
+  assert.equal(f.siteCloses(), 1);
+});
+
+
+test('whole Source transfers its original reference only after the RowRun constructor returns', async () => {
+  const {readFile} = await import('node:fs/promises');
+  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const begin = source.indexOf('    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,');
+  const end = source.indexOf('    let externalClosed', begin);
+  assert(begin > 0 && end > begin);
+  const handoff = new Function('startInstalledRowRun', 'owner', 'preparingSourceReads',
+    'const moon={},acquisition={},nonce="original",ledger={},capacity={};' +
+    source.slice(begin, end) + 'return session;');
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  for (const fails of [true, false]) {
+    const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}});
+    await f.fixture.prepare(f.input);
+    assert(f.pendingReads.has(f.originalRead));
+    const originalFailure = new Error('OriginalRowConstructorFailure');
+    const session = {run: {}, close: () => f.retireOriginal()};
+    const start = options => {
+      assert.equal(options.originalRead, f.originalRead);
+      assert(f.pendingReads.has(f.originalRead));
+      if (fails) throw originalFailure;
+      return session;
+    };
+    const enter = () => handoff(start, {originalRead: f.originalRead, wholeInput: true}, f.pendingReads);
+    if (fails) {
+      assert.throws(enter, error => error === originalFailure);
+      assert(f.pendingReads.has(f.originalRead));
+      f.fixture.close();
+      assert.equal(f.retireCalls(), 1);
+    } else {
+      assert.equal(enter(), session);
+      assert.equal(f.pendingReads.has(f.originalRead), false);
+      f.fixture.close();
+      assert.equal(f.retireCalls(), 0, 'Source close cannot retire a read already handed to its RowRun');
+      session.close();
+      assert.equal(f.retireCalls(), 1);
+    }
+  }
 });

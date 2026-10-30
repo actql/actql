@@ -1420,7 +1420,7 @@ export async function createInstalledRowSource({moon, declaration,
     fail('InvalidInstalledRowSourceOperations');
   }
   const preparations = new WeakMap();
-  // SAME pending constructor read, retained only until handoff or original retirement.
+  // SAME prepared read, retained until the accounted RowRun takes custody.
   const preparingSourceReads = new Set();
   const keyedPreparations = new WeakMap();
   function prepareOriginalAcquisition(requirement) {
@@ -1801,7 +1801,6 @@ export async function createInstalledRowSource({moon, declaration,
         requirement, resource, access, acquisition, wholeInput,
         occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
       ordinaryRecoveryBinding(prepared);
-      preparingSourceReads.delete(plannedRead);
       return prepared;
     } catch (error) {
       if (plannedRead !== undefined && preparingSourceReads.has(plannedRead)) {
@@ -2405,6 +2404,7 @@ export async function createInstalledRowSource({moon, declaration,
     }
     const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,
       originalRead: owner.originalRead, wholeInput: owner.wholeInput});
+    preparingSourceReads.delete(owner.originalRead);
     const {run} = session;
     let externalClosed = closeSourceRead === undefined || owner.managedRun === undefined;
     let externalCloseAttempted = false;
