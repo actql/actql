@@ -71,6 +71,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
     run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsBegin;
+    const beginOperations = run.beginOperations;
     if (![run.retire, run.readPlan, run.beginOperations].every(value => typeof value === 'function')) {
       fail('NodeManagedRunRuntimeUnavailable');
     }
@@ -109,11 +110,15 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // The original Request/Model adoption above supplies the SAME Ledger.
     // Quote DATA alone cannot back the consumer's later operation controls.
     const parent = run.value;
-    checked(Reflect.apply(run.beginOperations, runtime, [parent, prepared, request, operationPlan]));
-    if (run.value !== parent || run.operationPlan !== operationPlan) fail('ForeignInstalledEffectManagedRun');
+    checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
+    if (Object.hasOwn(run, 'failure')) throw run.failure;
+    if (run.value !== parent || run.operationPlan !== operationPlan || run.beginOperations !== beginOperations) fail('ForeignInstalledEffectManagedRun');
     run.operationsBegun = true;
     return same(run);
-  } catch (cause) {run.failure = cause; throw cause;}
+  } catch (cause) {
+    if (!Object.hasOwn(run, 'failure')) run.failure = cause;
+    throw run.failure;
+  }
 }
 
 // Only the existing complete dispatch/initialization retirement caller supplies

@@ -103,3 +103,59 @@ test('a provider that omits its physical await cannot detach the same operation 
   }finally{finish({body:'{}'});await preparing;f.controls.retiredAliases=true;await child.release();}
   assert.equal(f.server.seen().length,1);
 });
+
+test('physical original boundaries refuse an unfunded extent or foreign issued purpose before transport',async t=>{
+  for(const mode of ['pure','short','foreign','read-purpose']){
+    const f=await operationFixture(t);
+    if(mode==='pure')f.controls.physical=false;
+    if(mode==='short')f.controls.transfer=1088n;
+    if(mode==='pure'||mode==='short'){
+      assert.throws(()=>f.create(),{code:'InsufficientInstalledEffectOperationTransfer'});
+      assert.equal(f.controls.borrows,0);
+    }else{
+      const child=f.create(undefined,mode==='foreign'?{originalAuthorization:{...f.raw}}:{purpose:'read'});
+      await assert.rejects(child.prepare(),{code:mode==='foreign'?'ForeignIssuerOriginal':'ForeignInstalledEffectAuthorizationPurpose'});
+      f.controls.retiredAliases=true;assert.equal(await child.release(),true);
+    }
+    assert.equal(f.controls.bindings,0);assert.equal(f.controls.starts,0);assert.equal(f.server.seen().length,0);
+  }
+});
+
+test('failed physical charge remains pending after the same actual binding has stopped',async t=>{
+  const f=await operationFixture(t),primary=new Error('original response charge refused');
+  let calls=0;
+  f.runtime.clientProgramInstalledEffectOperationCharge=(original,bytes)=>{
+    if(++calls===1){f.controls.charges.push(bytes);return {$tag:1,_0:undefined};}
+    return {$tag:0,_0:primary};
+  };
+  const child=f.create();
+  await assert.rejects(child.prepare(),error=>error.code==='MoonBitHostFailure'&&error.cause===primary);
+  assert.deepEqual(f.controls.charges,[2n]);assert.equal(f.server.seen().length,1);
+  f.controls.retiredAliases=true;
+  assert.equal(await child.release(),false);assert.equal(child.status().pending,true);assert.equal(f.controls.settles,0);
+});
+
+test('a second physical call refuses while the original call stays joined through failure',async t=>{
+  let entered,finish;
+  const observed=new Promise(yes=>{entered=yes;}),gate=new Promise(yes=>{finish=yes;});
+  const f=await operationFixture(t,{reply:()=>{entered();return gate;}});
+  const child=f.create(context=>{f.send(context);return f.send(context);});
+  let completed=false;
+  const preparing=assert.rejects(child.prepare(),{code:'InstalledEffectOperationAlreadyUsed'}).then(()=>{completed=true;});
+  try{
+    await observed;assert.equal(completed,false);assert.equal(f.controls.starts,1);assert.equal(f.server.seen().length,1);
+  }finally{finish({body:'{}'});await preparing;f.controls.retiredAliases=true;await child.release();}
+});
+
+test('an asynchronous current fence remains joined before binding or physical start',async t=>{
+  const f=await operationFixture(t);let finish;
+  const original=new Promise(yes=>{finish=yes;});
+  const child=f.create(undefined,{assertCurrent:()=>original});
+  let completed=false;
+  const preparing=assert.rejects(child.prepare(),{code:'InvalidInstalledEffectCurrentFence'}).then(()=>{completed=true;});
+  await new Promise(setImmediate);
+  assert.equal(completed,false);assert.equal(f.controls.bindings,0);assert.equal(f.controls.starts,0);
+  f.controls.retiredAliases=true;assert.equal(await child.release(),false);
+  finish();await preparing;
+  assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);assert.equal(f.server.seen().length,0);
+});
