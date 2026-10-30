@@ -1405,3 +1405,43 @@ test('whole Source submission retains its returned same-parent Run before prepar
   const result = new Function(...Object.keys(ports), matches[0].map(text).join('\n') + '\nreturn managedRun;')(...Object.values(ports));
   assert.equal(result, original); assert.deepEqual(calls, ['adopt-original']);
 });
+
+async function wholeSourceLedgerBlock({foreign = false, missing = false, currentFailure} = {}) {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'});
+  const matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' && node.test.name === 'singleAccounted' &&
+        actual.slice(node.consequent.start, node.consequent.end).includes('const capacity = installedSource.ledgerCapacity(')) {
+      matches.push(node.consequent);
+    }
+  });
+  assert.equal(matches.length, 1);
+  const parent = {}, prepared = {}, request = {}, selected = {}, ledger = {}, access = {}, preparedSource = {}, entry = {}, calls = [];
+  const moon = {clientProgramInstalledManagedWholeSourceLedger(owner, p, r, capacity, transfer, execution) {
+    assert.equal(this, moon); assert.equal(owner, parent); assert.equal(p, prepared); assert.equal(r, request);
+    assert.equal(capacity, selected); assert.equal(transfer, 19n); assert.equal(execution, 31n);
+    calls.push('same-whole-ledger'); if (currentFailure !== undefined) throw currentFailure; return ledger;
+  }, clientProgramInstalledManagedRunPrepareLedger() {assert.fail('Whole capacity is not an array of Query capacities');},
+  clientProgramPrepareSingleCapturedLocalInstalledLedger() {assert.fail('No legacy scalar or replacement Ledger');}};
+  if (missing) delete moon.clientProgramInstalledManagedWholeSourceLedger;
+  const ports = {entry, moon, checkpoints: undefined, submission: {requestId: 'same-request'},
+    installedSource: {sourceAccess: access, ledgerCapacity(value) {
+      assert.equal(value, preparedSource); return {managedRun: foreign ? {} : parent, wholeInput: true,
+        capacity: selected, transferBytes: 19n, executionBytes: 31n};
+    }}, held: {managedRun: parent, preparedSourceAccess: access, preparedSource},
+    preparedProgram: prepared, requested: request, checked: value => value};
+  const result = await new AsyncFunction(...Object.keys(ports), 'let ledger;\n' +
+    actual.slice(matches[0].start, matches[0].end) + '\nreturn ledger;')(...Object.values(ports));
+  assert.equal(result, ledger); assert.equal(entry.acquisitionLedger, ledger);
+  assert.deepEqual(calls, ['same-whole-ledger']);
+}
+
+test('whole Source ledger selection consumes only its same original Run and typed capacity with current refusal intact', async () => {
+  await wholeSourceLedgerBlock();
+  for (const options of [{foreign: true}, {missing: true}]) {
+    await assert.rejects(wholeSourceLedgerBlock(options), {message: 'InstalledSingleSourceOriginalRunUnavailable'});
+  }
+  const original = new Error('original current refused');
+  await assert.rejects(wholeSourceLedgerBlock({currentFailure: original}), error => error === original);
+});
