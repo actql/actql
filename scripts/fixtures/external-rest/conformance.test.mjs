@@ -99,3 +99,25 @@ test('a throwing canonical submission getter keeps the same pending rejection ob
   assert.equal(report.publicCloseAcknowledged, true);
   assert.equal(Object.hasOwn(report, 'knownNotAccepted'), false);
 });
+
+test('an original failed wait cannot be replaced by later successful status or rows', async t => {
+  const f = await fixture(t), events = [];
+  const reference = {run: 'synthetic-original-failed-wait'};
+  const waited = {status: 'failed', result_available: false};
+  const pending = Promise.resolve({ref: reference,
+    wait: async () => {events.push('wait');return waited;},
+    status: async () => {events.push('status');return {status: 'succeeded'};},
+    result: () => ({all: async () => {events.push('rows');return [];}})});
+  const client = {startSource: () => {events.push('start');return pending;},
+    close: async () => {events.push('first-close');}};
+  await assert.rejects(captureStandardRestRead(client, {
+    publicSdk: {getSubmissionInput(value) {assert.equal(value, pending);return {original: 'failed-wait'};}},
+    program: {}, assertRows: rows => assert.deepEqual(rows, []),
+    outputRoot: f.outputRoot, stateRoots: [f.state]}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(events, ['start', 'wait', 'first-close']);
+  assert.deepEqual(await f.read('original-reference.json'), reference);
+  assert.deepEqual(await f.read('original-wait.json'), waited);
+  const outcome = await f.read('outcome.json');
+  assert.equal(outcome.passed, false);assert.equal(outcome.publicCloseAcknowledged, true);
+  assert.equal(outcome.scopedStateFd0, true);
+});
