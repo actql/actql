@@ -3786,11 +3786,17 @@ release and separate-process Saved remain necessary consuming evidence.
 An ordinary Project Local Files source delegates Run preparation to the Host's
 original managed Source service. The installed profile retains a weak original
 lookup, not a second Resource Root, admission, reservation, or strong Run-count
-inventory. Effect and keyed Content retain their separate purpose-specific
-constructors until those actual consumers migrate. Ordinary adoption does not
-confer either purpose or a Source permission.
+inventory. Its Effect Source caller likewise retains and forwards the Host's
+already adopted Prepared/Run/Request tuple; it does not publish a detached
+Effect Run constructor or retire that Host Run. Own DATA snapshots bind the
+same tuple before the first await. The real shared Source/Core consumer still
+admits its Plan/read and all purpose, Account and physical requirements. A
+copied or missing Run field cannot select another preparation, and an initial
+Source failure remains attached to that same retained original. Keyed Content
+retains its separate constructor until that actual consumer migrates.
+Ordinary adoption does not confer either purpose or a Source permission.
 
-Reusing an existing purpose-specific Run crosses the Project-current boundary
+Reusing an existing keyed Content Run crosses the Project-current boundary
 once, reads its private retained tuple without another callback, and calls the
 existing Core binding/current operation once with the requested Request.
 Core retains ownership of Request equivalence and its refusal/current ordering;

@@ -236,8 +236,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   };
   const sameRun=prepared=>{
     current();const run=retainedRun(prepared);
-    checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-      (run.value,prepared,run.request));return run;
+    const check=run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck;
+    checked(Reflect.apply(check,moon,[run.value,prepared,run.request]));return run;
   };
   function prepareRun(prepared,request){
     current();
@@ -250,26 +250,6 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior!==undefined&&(prior.value!==value||prior.request!==request))fail('ForeignLocalFilesPreparation');
     if(prior===undefined)sharedRuns.set(prepared,{prepared,request,value,effectful:false,reads:new Map()});
     current();
-  }
-  function prepareEffectRun(prepared,request){
-    const effectful=true;
-    current();let run=runs.get(prepared);
-    if(sharedRuns.has(prepared))fail('ForeignLocalFilesPreparation');
-    if(run!==undefined){if(run.effectful!==effectful)fail('ForeignLocalFilesPreparation');run=retainedRun(prepared);
-      checked((effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-        (run.value,prepared,request));return;}
-    if(runs.size===4096)fail('LocalFilesRunLimit');
-    run={prepared,request,effectful,original:undefined,admission:undefined,value:undefined,reads:new Map(),retired:false,
-      failed:false,failure:undefined};
-    runs.set(prepared,run);
-    try{
-      run.original=sourceManaged.prepareEffectRun(prepared);
-      current();
-      run.admission=checked((effectful?moon.clientProgramNodeEffectManagedRunPrepare:moon.clientProgramNodeManagedRunPrepare)
-        (run.original,prepared));
-      run.value=checked((effectful?moon.clientProgramInstalledEffectManagedRunBegin:moon.clientProgramInstalledManagedRunBegin)
-        (run.admission,prepared,request));sameRun(prepared);
-    }catch(cause){run.failed=true;run.failure=cause;throw cause;}
   }
   function prepareContentRun(prepared,request,recipe){
     current();
@@ -392,8 +372,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       if([...run.reads.values()].some(read=>!read.closed)||run.retired)continue;
       try{
         if(run.value!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-        else if(run.admission!==undefined)checked((run.effectful?moon.clientProgramNodeEffectManagedRunCleanup:
-          moon.clientProgramNodeManagedRunCleanup)(run.admission));
+        else if(run.admission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(run.admission));
         run.retired=true;
       }catch(cause){errors.push(cause);}
     }
@@ -616,17 +595,45 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             executionBytes:BigInt(entry.limits.maxPageBytes)});
         },
         async prepare(facts){
+          const effectful=facts.preparedEffect!==undefined;
           const owner=facts.preparedEffect??facts.preparedProgram;
-          const original=sharedRuns.get(owner)??runs.get(owner);
+          let original=sharedRuns.get(owner)??runs.get(owner),retained=false,forwarded;
+          if(effectful){
+            // These are the adopted Host originals, not an instruction to
+            // create a Connector Root or another Run. Capture own DATA once;
+            // the actual Source/Core consumer still admits the original tuple.
+            const runField=Object.getOwnPropertyDescriptor(facts,'managedRun');
+            const requestField=Object.getOwnPropertyDescriptor(facts,'requestIdentity');
+            if(!Object.hasOwn(runField??{},'value')||runField.value===undefined||
+                !Object.hasOwn(requestField??{},'value')||requestField.value===undefined)
+              fail('ForeignLocalFilesPreparation');
+            if(original!==undefined&&(!original.effectful||original.value!==runField.value))
+              fail('ForeignLocalFilesPreparation');
+            if(original===undefined){
+              current();
+              original={prepared:owner,request:requestField.value,value:runField.value,
+                effectful:true,reads:new Map(),failed:false,failure:undefined};
+              // Retain before the first await/current callback can fail.
+              // This is private provenance only, never a Plan or admission.
+              sharedRuns.set(owner,original);retained=true;
+            }
+            forwarded=Object.freeze({...facts,managedRun:runField.value,requestIdentity:requestField.value});
+          }else{
+            forwarded=sharedRuns.get(owner)===original?Object.freeze({...facts,
+              managedRun:original?.value,requestIdentity:original?.request}):facts;
+          }
           if(original===undefined||original.failed) {
             if(original?.failed)throw original.failure;
             fail('LocalFilesManagedReadUnavailable');
           }
-          const forwarded=sharedRuns.get(owner)===original?Object.freeze({...facts,
-            managedRun:original.value,requestIdentity:original.request}):facts;
-          const prepared=await adapter.prepare(forwarded);
-          if(sameRun(owner)!==original)fail('LocalFilesSourcePreparationMismatch');
-          preparedRuns.set(prepared,original);return prepared;},
+          try{
+            const prepared=await adapter.prepare(forwarded);
+            if(sameRun(owner)!==original)fail('LocalFilesSourcePreparationMismatch');
+            preparedRuns.set(prepared,original);return prepared;
+          }catch(cause){
+            if(retained){original.failed=true;original.failure=cause;}
+            throw cause;
+          }},
         ledgerCapacity(prepared){const run=preparedRuns.get(prepared);
           if(run===undefined||run!==sameRun(run.prepared))fail('LocalFilesSourcePreparationMismatch');
           return Object.freeze({...adapter.ledgerCapacity(prepared),managedRun:run.value});}}));
@@ -640,7 +647,6 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:ref=>sources.some(source=>source.admitsSource(ref)),
       prepareManagedRun:prepareRun,
-      prepareManagedEffectRun:prepareEffectRun,
       prepareManagedContentRun:prepareContentRun,managedContentLedger:contentLedger,close});
     return profile;
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:{close}});}

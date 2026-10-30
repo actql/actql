@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "907aebfe1b40ca7bcaf489a806f60af82c000657f3e80bcb938b2641b091f0ed",
+      "sha256": "b9c0e6904fcbbab7e188e99a4c74dccbcf68bb03dee9c584ac98829106f49bad",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -755,14 +755,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/prepareEffectRun",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/prepareRun",
           "parameters": [
             "prepared",
@@ -1088,7 +1080,6 @@
             "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
             "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
             "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
-            "installPreparedProjectLocalFiles/prepareEffectRun",
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
@@ -1193,6 +1184,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "The Core session still owns its original read and RowRun retirement."
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sharedRuns.set(owner,original);retained=true;"
               }
             ],
             "synchronization": [
@@ -1309,6 +1304,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
                 "anchor": "reuse checks the requested tuple once without another current boundary"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "Local adopted Effect caller retains first preparation failure"
               }
             ]
           }

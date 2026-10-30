@@ -389,11 +389,6 @@ async function reuseFixture(kind,{beginFailure}={}) {
   };
   const moon={clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
     clientProgramInstalledEffectManagedRunCheck:check,clientProgramInstalledManagedRunCheck:check,
-    clientProgramNodeEffectManagedRunPrepare(value,prepared){
-      assert.strictEqual(value,original);assert.strictEqual(prepared,owner);return ok(admission);},
-    clientProgramInstalledEffectManagedRunBegin(value,prepared,intent){
-      assert.strictEqual(value,admission);assert.strictEqual(prepared,owner);assert.strictEqual(intent,request);
-      begins++;if(beginFailure!==undefined)throw beginFailure;return ok(managed);},
     clientProgramKeyedAcquisitionMatchesProgram:(value,prepared)=>value===keyed&&prepared===owner,
     clientProgramKeyedDirectAcquisitionCoordinates:()=>({_0:0,_1:0}),
     clientProgramPrepareLocalQueryRequirement:()=>ok(requirement),
@@ -408,7 +403,6 @@ async function reuseFixture(kind,{beginFailure}={}) {
       assert.strictEqual(value,admission);assert.strictEqual(prepared,owner);assert.strictEqual(intent,request);
       assert.strictEqual(plan,selected);begins++;if(beginFailure!==undefined)throw beginFailure;return ok(managed);},
     clientProgramInstalledManagedRunRetire:value=>{assert.strictEqual(value,managed);return ok();},
-    clientProgramNodeEffectManagedRunCleanup:value=>{assert.strictEqual(value,admission);return ok();},
     clientProgramNodeManagedRunCleanup:value=>{assert.strictEqual(value,admission);return ok();},
   };
   const entry={connection:'local',rootPath:'/not-opened',declaration,
@@ -419,7 +413,6 @@ async function reuseFixture(kind,{beginFailure}={}) {
   const bundle={sources:[entry]}, recipe={keyedAcquisition:keyed,registry:{},values:'values',
     fragment:'fragment',ordered:undefined,task:0,step:0,prefixRetainedBytes:1n,prefixExecutionBytes:1n};
   const sourceManaged={assertCurrent(){currents++;},prepareRead(){assert.fail('No Source read');},
-    prepareEffectRun(prepared){assert.strictEqual(prepared,owner);roots++;return original;},
     prepareContentRun(prepared,plan){assert.strictEqual(prepared,owner);assert.strictEqual(plan,selected);
       roots++;return original;}};
   const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
@@ -428,14 +421,13 @@ async function reuseFixture(kind,{beginFailure}={}) {
   const profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged,
     baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'sha256:'+'b'.repeat(64)},
       assertAccountCurrent(){assert.fail('No dispatch');}})});
-  const prepare=intent=>kind==='effect'?profile.prepareManagedEffectRun(owner,intent):
-    profile.prepareManagedContentRun(owner,intent,recipe);
+  const prepare=intent=>profile.prepareManagedContentRun(owner,intent,recipe);
   if(beginFailure===undefined)prepare(request);
   return {profile,request,restored,cause,tuples,prepare,accept(value){requests.add(value);},
     setHandler(value){handler=value;},counts(){return {checks,currents,roots,begins};}};
 }
 
-for(const kind of ['effect','content']){
+for(const kind of ['content']){
   test(`Local original ${kind} reuse checks the requested tuple once without another current boundary`,async()=>{
     const f=await reuseFixture(kind), before=f.counts();
     f.prepare(f.request);
@@ -490,3 +482,100 @@ for(const kind of ['effect','content']){
     await f.profile.close();
   });
 }
+
+// Actual Local caller with an explicit shared Source port. The port below is
+// not the real generic Source's native Effect branch, which remains a separate
+// required consumer; it issues no Resource or physical-read authority.
+async function originalEffectCallerFixture({prepareFailure, gate}={}) {
+  const owner={}, request={}, run={}, selected={}, capacity={}, restored={};
+  const declaration={}, calls=[],accepted=new Set([request]);let handler, forwarded;
+  const refusal=new Error('OriginalEffectRequestBindingRefused');
+  const entry={connection:'local',rootPath:'/not-opened',declaration,
+    scopeCid:'sha256:'+'a'.repeat(64),limits:{maxReadBytes:4096,maxPages:4,maxPageBytes:1024,
+      maxFileBytes:1024,maxPageRows:4,maxFiles:8},queryAliases:[],wire:JSON.stringify({views:[]})};
+  const bundle={sources:[entry]};
+  const moon={clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
+    clientProgramInstalledEffectManagedRunCheck(value,prepared,intent){
+      assert.strictEqual(this,moon);assert.strictEqual(value,run);assert.strictEqual(prepared,owner);
+      assert.strictEqual(intent,request);calls.push('original-check');if(handler!==undefined)handler();return ok();},
+    clientProgramNodeEffectManagedRunPrepare(){assert.fail('No Connector admission');},
+    clientProgramInstalledEffectManagedRunBegin(){assert.fail('No Connector Run');},
+    clientProgramInstalledManagedRunRetire(){assert.fail('Host owns Run retirement');}};
+  const sourceManaged={assertCurrent(){calls.push('project-current');},
+    prepareEffectRun(){assert.fail('No Connector Root');},prepareRead(){assert.fail('No native child selected');}};
+  const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
+    async()=>({connectorBindings:[],admitsSource:()=>true,
+      async prepare(facts){
+        assert.strictEqual(facts.preparedEffect,owner);assert.strictEqual(facts.managedRun,run);
+        forwarded=facts;calls.push('same-source-prepare');if(!accepted.has(facts.requestIdentity))throw refusal;
+        if(gate!==undefined)await gate;if(prepareFailure!==undefined)throw prepareFailure;return selected;},
+      ledgerCapacity(value){assert.strictEqual(value,selected);return {capacity};}}),
+    ()=>({wire:'{}'}),()=> '{}',async cause=>cause,AcquisitionOpenError,
+    ()=>assert.fail('No Native constructor'),mime);
+  const profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged,
+    baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'sha256:'+'b'.repeat(64)},
+      assertAccountCurrent(){assert.fail('No Account dispatch');}})});
+  const facts=Object.freeze({preparedEffect:owner,managedRun:run,requestIdentity:request,
+    occurrence:Object.freeze({stage:0,input:0,task:0})});
+  return {profile,owner,request,restored,run,selected,capacity,calls,facts,refusal,accept(value){accepted.add(value);},get forwarded(){return forwarded;},
+    setHandler(value){handler=value;},source:profile.sources[0]};
+}
+
+test('Local Effect caller retains and forwards the same adopted Host tuple without another Root',async()=>{
+  const f=await originalEffectCallerFixture();
+  const selected=await f.source.prepare(f.facts);
+  assert.strictEqual(selected,f.selected);
+  assert.strictEqual(f.forwarded.managedRun,f.run);assert.strictEqual(f.forwarded.requestIdentity,f.request);
+  assert.strictEqual(f.forwarded.occurrence,f.facts.occurrence);
+  assert.equal(f.profile.prepareManagedEffectRun,undefined);
+  const capacity=f.source.ledgerCapacity(selected);
+  assert.strictEqual(capacity.capacity,f.capacity);assert.strictEqual(capacity.managedRun,f.run);
+  assert.equal(f.calls.filter(value=>value==='same-source-prepare').length,1);
+  await f.profile.close();
+});
+
+
+test('Local adopted Effect caller refuses foreign Run and missing or accessor tuple DATA before Source preparation',async()=>{
+  const f=await originalEffectCallerFixture();await f.source.prepare(f.facts);
+  let getters=0;
+  for(const facts of [
+    {...f.facts,managedRun:{}}, {...f.facts,managedRun:undefined},
+    {...f.facts,requestIdentity:undefined},
+    Object.defineProperty({...f.facts},'managedRun',{get(){getters++;return f.run;}}),
+    Object.defineProperty({...f.facts},'requestIdentity',{get(){getters++;return f.request;}}),
+  ]){
+    const before=f.calls.filter(x=>x==='same-source-prepare').length;
+    await assert.rejects(f.source.prepare(facts),{code:'ForeignLocalFilesPreparation'});
+    assert.equal(f.calls.filter(x=>x==='same-source-prepare').length,before);
+  }
+  assert.equal(getters,0);await f.profile.close();
+});
+
+test('Local adopted Effect caller preserves actual requested-tuple equivalence and refusal at its original Source port',async()=>{
+  const f=await originalEffectCallerFixture();await f.source.prepare(f.facts);
+  const foreign={};await assert.rejects(f.source.prepare({...f.facts,requestIdentity:foreign}),error=>error===f.refusal);
+  assert.strictEqual(f.forwarded.requestIdentity,foreign);
+  f.accept(f.restored);await f.source.prepare({...f.facts,requestIdentity:f.restored});
+  assert.strictEqual(f.forwarded.requestIdentity,f.restored);
+  assert.strictEqual(f.forwarded.managedRun,f.run);await f.profile.close();
+});
+
+test('Local adopted Effect caller retains first preparation failure without issuing or reconstructing a Run',async()=>{
+  const failure=new Error('OriginalSourcePreparationFailed');
+  const f=await originalEffectCallerFixture({prepareFailure:failure});
+  await assert.rejects(f.source.prepare(f.facts),error=>error===failure);
+  const before=f.calls.filter(x=>x==='same-source-prepare').length;
+  await assert.rejects(f.source.prepare(f.facts),error=>error===failure);
+  assert.equal(f.calls.filter(x=>x==='same-source-prepare').length,before);
+  await f.profile.close();
+});
+
+test('Local adopted Effect caller checks original current after an awaited original Source and leaves Run cleanup with Host',async()=>{
+  let release;const gate=new Promise(resolve=>{release=resolve;});
+  const f=await originalEffectCallerFixture({gate});
+  const pending=f.source.prepare(f.facts),failure=new Error('OriginalEffectCurrentChanged');
+  f.setHandler(()=>{throw failure;});release();
+  await assert.rejects(pending,error=>error===failure);
+  assert.throws(()=>f.source.ledgerCapacity(f.selected),{code:'LocalFilesSourcePreparationMismatch'});
+  await f.profile.close();
+});
