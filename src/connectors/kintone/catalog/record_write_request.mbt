@@ -65,7 +65,8 @@ pub fn prepare_record_create_request(
   records : Array[RecordWriteValues],
   limits : RecordMutationLimits,
 ) -> Result[RecordCreateRequest, RecordMutationIssue] {
-  guard check_record_create_values(catalog, records, limits) is Ok(_) else {
+  match check_record_create_values(catalog, records, limits) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let writer = @encode.writer(
@@ -104,10 +105,12 @@ pub fn restore_record_create_request(
   original_body : String,
   limits : RecordMutationLimits,
 ) -> Result[RecordCreateRequest, RecordMutationIssue] {
-  guard check_record_create_values(catalog, records, limits) is Ok(_) else {
+  match check_record_create_values(catalog, records, limits) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard @scalar.admit_utf8_length(original_body, limits.max_output_bytes) is Ok(_) else {
+  guard @scalar.admit_utf8_length(original_body, limits.max_output_bytes)
+    is Ok(_) else {
     return Err(BudgetExceeded)
   }
   let writer = @encode.comparing_writer(
@@ -127,7 +130,9 @@ pub fn restore_record_create_request(
       return Err(BudgetExceeded)
     }
   }
-  if !equal { return Err(InvalidRequest) }
+  if !equal {
+    return Err(InvalidRequest)
+  }
   let result : RecordCreateRequest = {
     self: None,
     catalog,
