@@ -7,7 +7,7 @@ pub fn PublicationOutputExport::snapshot_original_extent(
   self : PublicationOutputExport,
   run : @strategy.CapturedDAG,
   occurrence : @execution.ManagedResultOccurrence,
-) -> Result[(Int, Int, Int), PublicationOutputExportIssue] {
+) -> Result[(Int, Int, Int, Int), PublicationOutputExportIssue] {
   if !self.matches_captured_run(run) {
     return Err(InvalidState)
   }
@@ -22,9 +22,8 @@ pub fn PublicationOutputExport::snapshot_original_extent(
   guard self.receipt is Some(receipt) && self.artifact is Some(_) else {
     return Err(InvalidState)
   }
-  Ok(
-    @execution.logical_relation_usage(
-      @execution.completed_relation_export_identity(receipt),
-    ),
+  @execution.completed_relation_export_snapshot_extent(self.stream, receipt).map_err(issue => {
+      Output(issue)
+    },
   )
 }

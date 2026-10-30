@@ -1,7 +1,8 @@
 ///|
 /// Later plain captured-context issuance, AFTER snapshots already own their
 /// canonical row arrays. This component does not price snapshot parse/admission
-/// or Store re-admission. Scalar row objects have at most max_fields keys;
+/// or Store re-admission. Flat rows have at most max_fields keys; recursive
+/// rows supply their original retained node envelope for nested writer keys.
 /// metadata_nodes bounds all non-row metadata occurrences in the capture.
 /// Inputs must come from original publication owners/plan, never caller grants.
 priv struct PublicationCaptureConstructorLayout {
@@ -18,6 +19,7 @@ fn publication_capture_constructor_layout(
   total_fields : Int,
   max_fields : Int,
   models : Int,
+  row_key_nodes? : Int = 0,
 ) -> PublicationCaptureConstructorLayout? {
   if wire_bytes < 1 ||
     metadata_nodes < 1 ||
@@ -26,7 +28,11 @@ fn publication_capture_constructor_layout(
     total_fields < 0 ||
     max_fields < 0 ||
     models < 0 ||
-    (results == 0 && (total_fields != 0 || max_fields != 0)) {
+    row_key_nodes < 0 ||
+    (
+      results == 0 &&
+      (total_fields != 0 || max_fields != 0 || row_key_nodes != 0)
+    ) {
     return None
   }
   // A canonical row emitter visits one child at a time. Open ancestor object
@@ -35,6 +41,7 @@ fn publication_capture_constructor_layout(
   let live_keys = metadata_nodes.to_int64() +
     3L * results.to_int64() +
     max_fields.to_int64() +
+    row_key_nodes.to_int64() +
     24L
   if live_keys > 2147483647L ||
     results > 2147483647 - models ||
