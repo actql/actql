@@ -17,7 +17,7 @@ import {normalNpmPackJsonArgs, parseNpmPackJson} from '../../packed-client-packa
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../benchmark-node-operations.mjs';
 import {externalRestDefinition, externalRestProvider} from './provider.fixture.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
-import {verifyExternalRestTarballs} from './installed-modules.mjs';
+import {prepareExternalRestCohort} from './installed-modules.mjs';
 
 const selectedInput = process.env.ACTQL_REST_CONFORMANCE_INPUT;
 assert(typeof selectedInput === 'string' && isAbsolute(selectedInput),
@@ -37,13 +37,10 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
   for (const field of ['sourceSha', 'sourceTree']) assert.match(selected[field], /^[0-9a-f]{40}$/u);
   assert.match(selected.manifestSha256, /^[0-9a-f]{64}$/u);
   for (const field of ['manifestPath', 'outputRoot', 'accountConfigurationPath']) assert(isAbsolute(selected[field]));
-  const manifestBytes = await readFile(selected.manifestPath);
-  assert.equal(sha(manifestBytes), selected.manifestSha256);
-  const manifest = JSON.parse(manifestBytes);
-  assert.equal(manifest.sourceSha, selected.sourceSha);assert.equal(manifest.sourceTree, selected.sourceTree);
   // Verify the selected bytes before npm lifecycle or fixture/key creation.
   // Installed payload correspondence remains the original separate check.
-  const offeredTarballs = await verifyExternalRestTarballs(manifest, selected.manifestPath);
+  const cohort = await prepareExternalRestCohort(selected);
+  const {manifest, artifactManifestPath, originalBindings, offeredTarballs} = cohort;
   await assert.rejects(lstat(selected.outputRoot), {code: 'ENOENT'});
   await mkdir(selected.outputRoot, {mode: 0o700});
   const output = selected.outputRoot, consumer = join(output, 'consumer'), commands = [];
@@ -53,6 +50,7 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     manifestSha256: selected.manifestSha256, mode: selected.mode, casePassed: false,
     normalReadPassed: false, originalSavedPassed: false, fixtureTLSClosed: false,
     installedPayloadCheckAttempted: false, installedPayloadsUnchanged: false, commands};
+  await save(join(output, 'offered-source-bindings.json'), originalBindings);
   await save(join(output, 'offered-tarballs-before.json'), offeredTarballs);
   let family, primary, before, expectedPlugin, pluginRoot;
   const env = {...process.env, npm_config_cache: join(output, 'npm-cache')};
@@ -103,8 +101,8 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     // Default npm lifecycle, exact selected five framework tars plus the new
     // generated JS package. No prepack/compiler/provider supplier is rerun.
     await runTool('install-normal-six', 'npm', ['install', '--offline', '--no-audit', '--no-fund',
-      ...manifest.packages.map(pkg => join(dirname(selected.manifestPath), pkg.file)), connectorTar], consumer);
-    before = await verifyNodeBenchmarkPackages(manifest, selected.manifestPath, consumer);
+      ...manifest.packages.map(pkg => join(dirname(artifactManifestPath), pkg.file)), connectorTar], consumer);
+    before = await verifyNodeBenchmarkPackages(manifest, artifactManifestPath, consumer);
     pluginRoot = join(consumer, 'node_modules/@actql-connectors/acme');
     assert.deepEqual(await inventory(pluginRoot), expectedPlugin);
     await save(join(output, 'installed-before.json'), {framework: before, connector: expectedPlugin,
@@ -162,7 +160,7 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     if (before !== undefined && pluginRoot !== undefined) {
       report.installedPayloadCheckAttempted = true;
       try {
-        const after = await verifyNodeBenchmarkPackages(manifest, selected.manifestPath, consumer);
+        const after = await verifyNodeBenchmarkPackages(manifest, artifactManifestPath, consumer);
         const connector = await inventory(pluginRoot);
         await save(join(output, 'installed-after.json'), {framework: after, connector});
         assert.deepEqual(after, before);

@@ -45,17 +45,20 @@ fn request_capture_bridge_fixture() -> (
     "\",\"aliases\":[]}",
   ).unwrap()
   let (parent, receipt) = request_diagnostic_test_parent()
+  client_program_prepare_request_native_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      request_capture_bridge_source_query_original_document,
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  ).unwrap()
   assert_eq(
-    client_program_prepare_request_native_computation(
-      parent,
-      receipt,
-      request_diagnostic_test_json(
-        request_capture_bridge_source_query_original_document,
-      ),
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      None,
+    client_program_finish_request_computation(
+      parent, receipt, environment, publication,
     ).unwrap(),
     "effect_free",
   )

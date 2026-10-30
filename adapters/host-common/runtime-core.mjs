@@ -3201,6 +3201,27 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
+    admitInferCapturedInput(prepared, captured, sourceEvidence, authorityScopeCid,
+      dataPolicyCid, startedAt, completedAt) {
+      return checked(moon.clientProgramAdmitInferCapturedInput(prepared,
+        captured.inferStep, captured.capturedSource, captured.identity, captured.requirement,
+        captured.logicalInput, evidenceToken(sourceEvidence), authorityScopeCid,
+        dataPolicyCid, startedAt, completedAt));
+    },
+    admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
+      startedAt, completedAt, keyed) {
+      return checked(moon.clientProgramAdmitComposedInferSources(occurrence,
+        captures.map(value => value.capture.source()), captures.map(value => value.identity),
+        captures.map(value => value.requirement), captures.map(value => value.logicalInput),
+        sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+    },
+    takeSourceEvidenceOriginal(capture) {
+      const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
+      if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
+      const evidence = inspectEvidence(Reflect.apply(take, capture, []));
+      if (evidence.name !== 'source_evidence') throw new TypeError('InvalidInstalledSourceEvidence');
+      return evidence;
+    },
     keyedLookupPublicationEvidence(original) {
       const value = moon.clientProgramKeyedLookupObservationOriginals(original);
       if (value === undefined) throw new TypeError('Foreign keyed lookup observation');

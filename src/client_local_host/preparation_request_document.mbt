@@ -106,25 +106,15 @@ fn[I] prepare_request_document_input(
 }
 
 ///|
-fn[I] prepare_request_document_computation(
+fn[I] prepare_request_document_computation_input(
   owner : ClientRequestPreparation[I],
   input : I,
   document : String,
   format : @syntax.Format,
-  environment : @checked.CheckEnvironment,
-  publication : @source_publication.PreparedPublishedQueryEnvironment,
-  evidence : Array[@context.StageCapacityInput],
-  program_limits : @publication_host.ClientProgramPreparationLimits,
-  effect_limits : @publication_host.ClientEffectComputationLimits,
-) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
+  limits : @syntax.Limits,
+) -> Result[Unit, ClientRequestTerminalIssue] {
   let source = match
-    prepare_request_document_input(
-      owner,
-      input,
-      document,
-      format,
-      program_limits.checking.input,
-    ) {
+    prepare_request_document_input(owner, input, document, format, limits) {
     Err(issue) => return Err(Preparation(issue))
     Ok(original) => original
   }
@@ -136,7 +126,5 @@ fn[I] prepare_request_document_computation(
     Err(issue) => return Err(Preparation(ProgramJson(issue)))
     Ok(_) => ()
   }
-  finish_request_original_computation(
-    owner, input, environment, publication, evidence, program_limits, effect_limits,
-  )
+  Ok(())
 }

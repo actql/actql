@@ -11491,7 +11491,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "346a80302aa10dfd246ac2cb6bad4d01f692473a4f0d7f6deea385e19e4f0567",
+      "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "034f1fb9254eabcefd0a9fd51f72dcd439a0b7cf9c03e5fc5d4fbd015c271a5e",
+      "sha256": "227bf702e294d3689d807eedd4d6bd1dc8fdb18561a763ea02d8777c0c3eea7f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -16893,12 +16893,66 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
+          "parameters": [
+            "occurrence",
+            "captures",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "startedAt",
+            "completedAt",
+            "keyed"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
           "parameters": [
             "wire",
             "runDefinition",
             "authoring",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
+          "parameters": [
+            "prepared",
+            "captured",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "dataPolicyCid",
+            "startedAt",
+            "completedAt"
           ],
           "async": false
         },
@@ -20261,6 +20315,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+          "parameters": [
+            "capture"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
           "parameters": [
             "previous",
@@ -22550,6 +22611,196 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "contentCaptureControl",
             "contentCaptureControl/args/args",
             "contentCaptureControl/args/args/args",
@@ -23906,10 +24157,6 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "options.signal?.throwIfAborted();"
-              },
-              {
                 "path": "docs/design/result-description.md",
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
               },
@@ -24172,6 +24419,119 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -24742,6 +25102,196 @@
         },
         {
           "operations": [
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#4",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#5",
+            "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
             "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
             "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
@@ -25104,6 +25654,114 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
               }
             ]
           }
@@ -26620,382 +27278,6 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
-            "<module>"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              }
-            ]
-          }
-        },
-        {
-          "exports": [],
-          "operations": [
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued",
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#3",
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#4",
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#5",
-            "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issueCheckedClientCompiledInvocation"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Whole-input publication binds the same adopted Run"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "typed Source evidence and the same native capture"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact Run association"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same retained inventory and admitted row bound"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before issuance and again before retaining the completed invocation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "one-shot invocation slot remains consumed on semantic failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before capacity construction, so Result-publication reservation reuses that"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "the Query issuer keeps its original QueryRequirement array"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
-                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
               }
             ]
           }
@@ -30859,7 +31141,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5c8aeca3338237bef923a7b1efcb78baceb393ea51a413627ee45d4bbfdd730e",
+      "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30999,6 +31281,7 @@
             "preparedSource",
             "sourceAccess",
             "captureOnly",
+            "originalEvidence",
             "ledger"
           ],
           "async": true
@@ -31228,7 +31511,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#11",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -31238,9 +31523,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#13",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -31266,6 +31549,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#18",
           "parameters": [
             "task"
           ],
@@ -31498,6 +31788,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -31614,6 +31912,14 @@
               {
                 "path": "adapters/host-node/client-run-stop-observation.test.mjs",
                 "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -33161,6 +33467,74 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('tracked observation settlement cannot retire unresolved physical cleanup'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/start#18"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }
@@ -39319,7 +39693,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9dfdd532d8052e99eb624d674e57a2d99e42ff1f6ed84653f67c20429dcb39d7",
+      "sha256": "037d8b1b1c7e37fee24004d4731fe444a0c6f190fbb2897ad7a6bf191d5a1b69",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39549,7 +39923,9 @@
           "name": "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
           "parameters": [
             "request",
-            "environment"
+            "environment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -41102,7 +41478,9 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
-            "selectedEnvironment"
+            "selectedEnvironment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -42073,21 +42451,28 @@
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#2",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#3",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
           "parameters": [
             "value"
           ],
@@ -42291,6 +42676,13 @@
           "async": false
         },
         {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "readSourceManagedEffectRunRequirements",
           "parameters": [
             "originals",
@@ -42468,6 +42860,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -42652,6 +43048,10 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -45622,9 +46022,6 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
-            "prepareManagedComputeCapturePlan/plan/plan",
-            "prepareManagedComputeCapturePlan/plan/plan#2",
-            "prepareManagedComputeCapturePlan/plan/plan#3",
             "retainedManagedCaptureInventory"
           ],
           "exports": [],
@@ -48685,6 +49082,78 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }
@@ -55762,7 +56231,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7634cf832d43a599214f2f267def78f6963de4fb8c8389ae0557172c9565bede",
+      "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -55999,41 +56468,6 @@
             "child"
           ],
           "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/sources/sources#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/wires/wires",
-          "parameters": [
-            "source"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -56085,6 +56519,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -56169,6 +56607,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -56179,12 +56621,7 @@
             "runInstalledComposedInfers/originals/originals",
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/setup/setup#2",
-            "runInstalledComposedInfers/setup/setup#3",
-            "runInstalledComposedInfers/sources/sources",
-            "runInstalledComposedInfers/sources/sources#2",
-            "runInstalledComposedInfers/sources/sources#3",
-            "runInstalledComposedInfers/sources/sources#4",
-            "runInstalledComposedInfers/wires/wires"
+            "runInstalledComposedInfers/setup/setup#3"
           ],
           "exports": [],
           "attributes": {
@@ -75050,7 +75487,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "10629499ea2d47504ad5e8ad5e01bdf362651be364b29756f8729337bccc7770",
+      "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -75129,7 +75566,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "keyedObservation",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
@@ -75211,7 +75648,7 @@
           "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
           "parameters": [
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "task"
           ],
           "async": false
@@ -75231,14 +75668,6 @@
           "async": false
         },
         {
-          "name": "acquiredMultiTaskPublicationPlan/observed/observed",
-          "parameters": [
-            "captured",
-            "sourceEvidenceWire"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -75246,7 +75675,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
             "captureStartedAt",
@@ -75778,6 +76207,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
               }
             ]
           }
@@ -76363,8 +76796,7 @@
             "acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
-            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
-            "acquiredMultiTaskPublicationPlan/observed/observed"
+            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3"
           ],
           "exports": [
             "acquiredMultiTaskPublicationPlan"
@@ -76706,6 +77138,78 @@
         },
         {
           "operations": [
+            "bindQueryInvocation",
+            "openSourceFreeEffectComputation",
+            "prepareQueryInvocation"
+          ],
+          "exports": [
+            "openSourceFreeEffectComputation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "buildLocalPublicationPlan",
             "buildLocalPublicationPlan/plan/plan"
           ],
@@ -76813,6 +77317,114 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkedLocalOutputLimits",
+            "checkedLocalOutputLimits/checkedLocalOutputLimits",
+            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
+          ],
+          "exports": [
+            "checkedLocalOutputLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               }
             ]
           }
@@ -77759,6 +78371,112 @@
         },
         {
           "operations": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "exports": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "retainOriginalPlan"
           ],
           "exports": [],
@@ -78326,868 +79044,6 @@
         },
         {
           "operations": [
-            "sourceFreeEffectPublicationPlan"
-          ],
-          "exports": [
-            "sourceFreeEffectPublicationPlan"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreeInferEffectPublicationPlan"
-          ],
-          "exports": [
-            "sourceFreeInferEffectPublicationPlan"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeInferEffectPublicationPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreePlanOriginal"
-          ],
-          "exports": [
-            "sourceFreePlanOriginal"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreeTaskPlan"
-          ],
-          "exports": [
-            "sourceFreeTaskPlan"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeTaskPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreeValuesAdmissionEvidence"
-          ],
-          "exports": [
-            "sourceFreeValuesAdmissionEvidence"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesAdmissionEvidence"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreeValuesPlan"
-          ],
-          "exports": [
-            "sourceFreeValuesPlan"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreeValuesPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "restoreInferTaskRunAdmission"
-          ],
-          "exports": [
-            "restoreInferTaskRunAdmission"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "bindQueryInvocation",
-            "openSourceFreeEffectComputation",
-            "prepareQueryInvocation"
-          ],
-          "exports": [
-            "openSourceFreeEffectComputation"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "sourceFreeContentEffectPublicationPlan"
           ],
           "exports": [
@@ -79314,108 +79170,684 @@
         },
         {
           "operations": [
-            "checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
+            "sourceFreeEffectPublicationPlan"
           ],
           "exports": [
-            "checkedLocalOutputLimits"
+            "sourceFreeEffectPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
-                "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeInferEffectPublicationPlan"
+          ],
+          "exports": [
+            "sourceFreeInferEffectPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanOriginal"
+          ],
+          "exports": [
+            "sourceFreePlanOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeTaskPlan"
+          ],
+          "exports": [
+            "sourceFreeTaskPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeValuesAdmissionEvidence"
+          ],
+          "exports": [
+            "sourceFreeValuesAdmissionEvidence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeValuesPlan"
+          ],
+          "exports": [
+            "sourceFreeValuesPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
               }
             ]
           }

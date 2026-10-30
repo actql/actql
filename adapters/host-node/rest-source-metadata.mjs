@@ -4,7 +4,6 @@
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {types} from 'node:util';
-import {checked} from '../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from './source-profile-json.mjs';
 
 export const REST_SOURCE_SITE_VERSION = 'actql-installed-rest-site/0.1';
@@ -34,12 +33,12 @@ export function createRestSourceMetadata(definition) {
   // Generated module DATA, not an alternate author parser. Source field
   // types/nullability are passed unchanged to Common, which may reject them.
   const original = freeze(structuredClone(definition));
-  if (!closed(original, ['registration', 'revision', 'profileVersion', 'origin', 'auth', 'sources'], ['authoredViewsWire']) ||
+  if (!closed(original, ['registration', 'revision', 'profileVersion', 'origin', 'auth', 'sources', 'authoredViewsWire']) ||
       ![original.registration, original.revision, original.profileVersion, original.origin].every(text) ||
       !closed(original.auth, ['kind']) || original.auth.kind !== 'bearer' ||
       !Array.isArray(original.sources) || original.sources.length === 0 ||
       new Set(original.sources.map(source => source.resource)).size !== original.sources.length ||
-      (original.authoredViewsWire !== undefined && typeof original.authoredViewsWire !== 'string')) {
+      typeof original.authoredViewsWire !== 'string') {
     fail('InvalidRestSourceInstallationDefinition');
   }
   let origin;
@@ -50,7 +49,6 @@ export function createRestSourceMetadata(definition) {
   const definitionWire = JSON.stringify(original);
 
   function authoredDeclarationWire() {
-    if (typeof original.authoredViewsWire !== 'string') fail('RestSourceAuthoredDeclarationInputUnavailable');
     return original.authoredViewsWire;
   }
 
@@ -69,55 +67,28 @@ export function createRestSourceMetadata(definition) {
         (value.caPath !== undefined && !absolute(value.caPath))) fail('InvalidInstalledRestSourceSite');
     return Object.freeze({...value});
   }
-  async function readInputs(profile, {configurationReader, readJson} = {}) {
+  async function readInputs(profile, {configurationReader} = {}) {
     const installed = checkProfile(profile);
-    const reads = captureConfigurationReaders(configurationReader, readJson,
+    if (configurationReader === undefined) fail('RestSourceConfigurationReaderUnavailable');
+    const reads = captureConfigurationReaders(configurationReader, undefined,
       () => fail('RestSourceConfigurationReaderUnavailable'));
-    const originalBytes = configurationReader === undefined ? undefined :
-      Object.getOwnPropertyDescriptor(configurationReader, 'readOriginalBytes');
-    if (originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
-        typeof originalBytes.value !== 'function')) fail('RestSourceConfigurationReaderUnavailable');
     const site = checkSite(await reads.readJson(installed.siteProfilePath));
-    let ca;
-    if (site.caPath !== undefined) {
-      if (originalBytes === undefined) fail('RestSourceTlsAuthorityPolicyUnavailable');
-      ca = await Reflect.apply(originalBytes.value, configurationReader, [site.caPath]);
-      if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');
-    }
+    // The original Host reader owns the selected bound and physical read.
+    // Keep its exact CA text; no author limit or unrelated secret bound is used.
+    const ca = site.caPath === undefined ? undefined : await reads.readText(site.caPath);
+    if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');
     return Object.freeze({installed, site, ca, definition: original,
       // Canonical configuration identities alone normalize descriptive text.
       // Keep exact original strings too, including the Account wire, so that
       // physically distinct provider bindings cannot become Saved aliases.
       originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),
-        ...siteKeys.map(name => site[name]),
-        ...(site.caPath === undefined ? [] : ['tls-ca', site.caPath, hash(ca)])]))});
+        ...siteKeys.map(name => site[name]), site.caPath, ca]))});
   }
-  async function identityParts(profile, providerProfile, readJson, _installation, context) {
-    const input = await readInputs(providerProfile, {configurationReader: context?.configurationReader, readJson});
+  async function identityParts(profile, providerProfile, _readJson, _installation, context) {
+    const input = await readInputs(providerProfile, {configurationReader: context?.configurationReader});
     return [Object.freeze({...profile, accountConfigurationWire: JSON.parse(input.installed.accountConfigurationWire)}),
-      input.site, original, Object.freeze({originalStringsCid: input.originalStringsCid})];
-  }
-  function restore(profile, moon) {
-    // Standalone static DATA projection only. Normal load/publication uses
-    // the original Host initialization context and never calls this fallback.
-    const installed = checkProfile(profile);
-    const viewsWire = original.authoredViewsWire ?? JSON.stringify({views: original.sources.map(source =>
-      ({resource: source.resource, resource_kind: source.resource_kind, fields: source.fields}))});
-    const restore = moon?.clientProgramRowSourceRestoreDeclaration;
-    const json = moon?.clientProgramRowSourceDeclarationJson;
-    if (typeof restore !== 'function' || typeof json !== 'function') fail('RestSourceDeclarationRuntimeUnavailable');
-    const declaration = checked(Reflect.apply(restore, moon, [installed.connectorId,
-      original.registration, original.revision, viewsWire, undefined]));
-    const declared = JSON.parse(Reflect.apply(json, moon, [declaration]));
-    return Object.freeze({declaration, declared});
-  }
-  async function publish(profile, {moon, configurationReader} = {}) {
-    // A static definition has no observed provider metadata generation. This
-    // reports the SAME Common-issued declaration; it claims no durable write,
-    // provider observation, Site opening or permission/admission result.
-    const input = await readInputs(profile, {configurationReader});
-    const {declared} = restore(input.installed, moon);
-    return reportPrepared(input, declared);
+      input.site, original, Object.freeze({originalStringsCid: input.originalStringsCid,
+        ...(input.ca === undefined ? {} : {ca: input.ca})})];
   }
   function reportPrepared(input, declared) {
     return Object.freeze({connectorId: input.installed.connectorId,
@@ -128,5 +99,5 @@ export function createRestSourceMetadata(definition) {
       manifestEntry: declared.manifest_entry, originalStringsCid: input.originalStringsCid});
   }
   return Object.freeze({definition: original, checkProfile, readInputs, identityParts,
-    authoredDeclarationWire, reportPrepared, restore, publish});
+    authoredDeclarationWire, reportPrepared});
 }

@@ -746,11 +746,11 @@ export function sourceFreeTaskPlan(options) {
 // physical capture and current authorization. This Host binds that evidence to
 // the checked task Run and the captured relation before publication.
 export function acquiredTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidenceWire, authorityScopeCid,
+  preparedProgram, captured, sourceEvidence, authorityScopeCid,
   effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (typeof sourceEvidenceWire !== 'string' ||
+  if (sourceEvidence === undefined ||
       typeof effectiveDataPolicyCid !== 'string' ||
       captured?.logicalInput === undefined ||
       captured?.checkedSource === undefined ||
@@ -760,7 +760,6 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
         captured.capture.source()) !== true) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
-  const sourceEvidence = control.admitRunEvidence('source_evidence', sourceEvidenceWire, limits);
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition,
     {dataPolicyCid: effectiveDataPolicyCid, source: {captured, sourceEvidence,
@@ -788,14 +787,13 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   if (!Array.isArray(sources) || sources.length !== 2 ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
-      sources.some(({captured, sourceEvidenceWire}, task) =>
-        typeof sourceEvidenceWire !== 'string' || captured?.logicalInput === undefined ||
+      sources.some(({captured, sourceEvidence}, task) =>
+        sourceEvidence === undefined || captured?.logicalInput === undefined ||
         captured?.identity === undefined || captured?.requirement === undefined ||
         !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task))) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
-  const observed = sources.map(({captured, sourceEvidenceWire}) => ({captured,
-    sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire, limits)}));
+  const observed = sources;
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {source: {sources: observed, authorityScopeCid,
       captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
@@ -820,11 +818,11 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
 // Retain both Source evidence entries while reusing the admitted compilation
 // and the ordinary Result publication/retention plan.
 export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidenceWire, keyedObservation,
+  preparedProgram, captured, sourceEvidence, keyedObservation,
   authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt,
   namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (typeof sourceEvidenceWire !== 'string' ||
+  if (sourceEvidence === undefined ||
       captured?.logicalInput === undefined || captured?.identity === undefined ||
       captured?.requirement === undefined || captured?.capture === undefined ||
       keyedObservation?.observation === undefined ||
@@ -833,7 +831,7 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
   const right = control.keyedLookupPublicationEvidence(keyedObservation.observation);
-  const left = control.admitRunEvidence('source_evidence', sourceEvidenceWire, limits);
+  const left = sourceEvidence;
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {source: {captured, sourceEvidence: left,
       keyedObservation: keyedObservation.observation, authorityScopeCid,

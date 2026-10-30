@@ -1,0 +1,352 @@
+{
+  "requirementsSourceSHA256": "1be13daa3e823dc5bd1a56800f1d643e62b377d52e2f05259e149a9e4879d795",
+  "scope": "Implementation/acceptance map, not a passing release checklist",
+  "conditions": [
+    {
+      "id": "A01",
+      "required": "Merge/Conventional Commit cannot select a version, create tags or publish",
+      "currentSlice": "Node and Native preparation require explicit cohort inputs; no source version/latest default; workflow/authority audit pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: real Node and Native CLI cannot silently use source version or latest"
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "required": "No credentials/upload without independent owner approval",
+      "currentSlice": "Legacy Node and Native CLI fail-closed guard; new CLI plan-only; external permission isolation pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "real legacy CLI publication refuses before credential or upload subprocesses"
+        },
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "required": "Reject disallowed lines including prereleases",
+      "currentSlice": "Explicit shared version/base-line validator",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "initial 0.0 policy rejects later lines including their prereleases"
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "required": "0.0 breaking changes require migration without automatic minor bump",
+      "currentSlice": "Request notes/migration validation",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "breaking changes require migration text without bumping to another line"
+        }
+      ]
+    },
+    {
+      "id": "A05",
+      "required": "Owner approval binds exact version and bytes",
+      "currentSlice": "Fixed release-set and protected executor pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "fixed header binds the explicit release line and every version projection"
+        }
+      ]
+    },
+    {
+      "id": "A06",
+      "required": "Actor string/agent/approved=true is not approval",
+      "currentSlice": "Extra authority fields refused by candidate request/policy; external attestation pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "forged approval and actor fields cannot enter policy or request data"
+        }
+      ]
+    },
+    {
+      "id": "A07",
+      "required": "Changed source/scope/channel/digest invalidates approval",
+      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests and exact artifact identity; protected approval/executor pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "changed request or detached digest cannot reuse the externally retained original manifest identity"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "an upper artifact identity cannot diverge from its complete original child manifest"
+        }
+      ]
+    },
+    {
+      "id": "A08",
+      "required": "Candidate cannot replace trusted policy/validator/workflow",
+      "currentSlice": "External trusted-revision/executor configuration pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A09",
+      "required": "Shared owner sessions/tokens cannot prove separation",
+      "currentSlice": "External identity/credential settings not inspected or changed",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A10",
+      "required": "Arbitrary agent GitHub Release API denied",
+      "currentSlice": "Strict source-vs-release credential boundary pending owner configuration",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A11",
+      "required": "Stage-only identity cannot publish/approve",
+      "currentSlice": "Registry-side configuration and actual refusal evidence pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A12",
+      "required": "No unauthorized initial npm placeholder stage",
+      "currentSlice": "New entry refuses all stage; protected staging adapter pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "required": "Maintenance publication cannot roll newer latest backward",
+      "currentSlice": "Read-only channel plan binds exact prior value/report and destination artifact, rejects normal downgrade/stable prerelease alias/wrong maintenance line. Actual protected promotion, GitHub Latest and public install remain pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "Synthetic local channel-plan component; no actual registry channel mutation",
+          "test": "release lanes: newer latest cannot be rolled back by a maintenance release"
+        }
+      ]
+    },
+    {
+      "id": "A14",
+      "required": "Maintenance line excludes new features/breaking contracts",
+      "currentSlice": "Local Git branch/cut/cherry-pick inspection and complete maintenance review-DATA shape implemented. Broad main merge and explicitly incompatible categories refuse; protected semantic hunk review, actual branch operation and owner approval remain pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "Real temporary Git histories, not actual product/maintenance acceptance",
+          "test": "release lanes: whole development merge into maintenance is detected from real history even with bugfix labels"
+        }
+      ]
+    },
+    {
+      "id": "A15",
+      "required": "Resume only missing approved identical bytes after partial publication",
+      "currentSlice": "Anonymous bounded npm/PyPI and visible immutable GitHub Native byte observations feed the fixed same-bytes classifier. GitHub 404 remains unknown; authenticated draft/actual protected upload and partial-publication recovery remain pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "partial publication resumes exact remaining versions and never republishes confirmed bytes"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte transport component only; no actual public publication or approval",
+          "test": "registry observation: actual npm identity owner and bounded remote bytes feed same-bytes resume without writing the fixed set"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no real release/draft/install or approval",
+          "test": "Native observation: visible immutable tag/source and actual asset bytes use one complete inventory without changing fixed bytes"
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "required": "Occupied version with different bytes stops without bump/overwrite",
+      "currentSlice": "Existing npm identity owner, PyPI selected release inventory and Native immutable tag/source/asset inventory plus actual downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "registry absence, unavailability and occupied version mismatch stay distinct"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP component only; no real registry write",
+          "test": "registry observation: old foreign or empty PyPI releases cannot acquire a new platform/product by append"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no actual release mutation",
+          "test": "Native observation: foreign, missing and duplicate asset inventories block before any download"
+        }
+      ]
+    },
+    {
+      "id": "A17",
+      "required": "Only one concurrent release/channel mutation",
+      "currentSlice": "Exact historical channel expected-value checks implemented for review; actual single protected cross-repository executor/exclusive roles or registry CAS remain unconfigured and unaccepted",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A18",
+      "required": "Exact public Node entry installs outside repository",
+      "currentSlice": "Candidate-specific tar/platform/consumer and public registry acceptance pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Node release verifier feeds a fixed upper set without rebuilding its original archives"
+        }
+      ]
+    },
+    {
+      "id": "A19",
+      "required": "Python entry works without Node/npm/ActQL CLI",
+      "currentSlice": "Existing actual Python builder now requires explicit shared version projection; original/full staged component readers and fixed version/byte-bound wheel checks remain; product candidate/Node-free installation/public acceptance pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        },
+        {
+          "kind": "Inert packaging and metadata-component evidence, not product runtime/install acceptance",
+          "test": "test_full_original_and_staged_component_readers_keep_exact_binary_and_recipe_identity"
+        }
+      ]
+    },
+    {
+      "id": "A20",
+      "required": "Native standalone works without Node and refuses missing binary",
+      "currentSlice": "Standalone archive adapter reuses original verified Native npm payload, byte/mode/ABI/Local metadata readers and exact checksum inventory. Inert packaging controls pass; complete real producer, Node-free CLI/Local bootstrap/version display/public download acceptance remain pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "Inert archive/header/Local metadata component only; no Native execution or Node-free consumer acceptance",
+          "test": "standalone archive retains every original OS payload byte and mode with noncircular build/checksum metadata"
+        }
+      ]
+    },
+    {
+      "id": "A21",
+      "required": "Unaccepted Linux runtime/profile cannot be declared supported",
+      "currentSlice": "Request plan explicitly leaves platform acceptance pending; publication gate pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "Python has an explicit package/platform/profile selection and no npm-style channel"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "unsupported Linux Python and unverified Native archives cannot inherit another verifier"
+        },
+        {
+          "kind": "Inert Linux ELF packaging/ABI metadata only, not Linux execution or Local acceptance",
+          "test": "standalone Linux Remote archive keeps original ELF bytes and ABI facts without a Linux Local claim"
+        }
+      ]
+    },
+    {
+      "id": "A22",
+      "required": "RC and final require separate metadata/artifacts/approval",
+      "currentSlice": "Node/Native/Python preparation shares one explicit SemVer-to-PEP440 projection; isolated Python metadata records source and release context, with distinct actual inert RC/final wheels. Product candidate/artifact acceptance and owner approval pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "explicit versions map once to Python without selecting or incrementing a version"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        },
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: isolated Node and Native metadata preserves explicit RC and original source"
+        },
+        {
+          "kind": "Inert packaging/metadata only; full release acceptance remains pending",
+          "test": "test_real_rc_and_final_wheels_have_separate_metadata_names_and_exact_internal_pins"
+        },
+        {
+          "kind": "Inert packaging/metadata only; full release acceptance remains pending",
+          "test": "versioned Python metadata lineage feeds the fixed release set without granting runtime acceptance"
+        }
+      ]
+    },
+    {
+      "id": "A23",
+      "required": "Loopback/private install is not public install acceptance",
+      "currentSlice": "Separate acceptance/provenance records pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": []
+    },
+    {
+      "id": "A24",
+      "required": "Missing/rebuilt artifacts cannot inherit approval",
+      "currentSlice": "Externally retained manifest digest and actual fixed files reobserved; missing/tampered bytes refuse without rebuild or inherited approval",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "fixed artifact tamper and missing bytes remain failures, never absence or rebuild permission"
+        },
+        {
+          "kind": "Inert archive byte/absence control only; no approval or published recovery",
+          "test": "standalone archive tamper missing bytes and changed checksum inventory remain failures"
+        }
+      ]
+    },
+    {
+      "id": "A25",
+      "required": "CI opt-in/rerun does not create release/version authority",
+      "currentSlice": "New entry plan-only; full workflow/authority connection pending",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        }
+      ]
+    },
+    {
+      "id": "A26",
+      "required": "Package version never rewrites /0.1 contracts or CIDs",
+      "currentSlice": "Only explicit package-version parser added; no owned contract/product identity changes",
+      "acceptanceStatus": "pending",
+      "executedEvidence": [
+        {
+          "kind": "selected component case, not full condition acceptance",
+          "test": "explicit versions map once to Python without selecting or incrementing a version"
+        }
+      ]
+    }
+  ]
+}

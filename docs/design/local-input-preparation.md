@@ -3371,6 +3371,32 @@ separately selected Model admission/Scope remains until its own original first
 census and preparation connection are installed; it cannot use an ordinary
 purpose or a later reconstructed census as a substitute.
 
+### Imported Run cleanup uses the shared pending observation
+
+Before reporting or stopping an imported managed Run, its existing cleanup
+owner uses `ledger_usage_has_pending_resources` on the original Ledger usage.
+Live zero-byte reservations, attempts and holdings remain pending just like
+nonzero backing. A settled unused reservation follows its existing return law;
+actually consumed work, attempts and transfer remain in the final report and
+do not prevent cleanup. The original delegation, parked-state, bootstrap,
+uncertain-report and physical-stop obligations remain separate. This observation
+neither resets history nor acknowledges a physical child.
+
+### Retained original Row acquisition reads
+
+A Pure captured Plan retains each original Row acquisition, requirement and
+capture capacity before Run adoption. Its shared read entry consumes those same
+originals for both base Row captures and explicitly selected provider captures.
+The optional provider recipe is checked when present; a base Row capture does
+not construct a replacement recipe or repeat acquisition preparation.
+
+Original prepared Program, Request, declaration and occurrence checks precede
+the existing single current boundary. The partial read stays on the same Run;
+post-callback checks reject a replaced Plan or capacity without discarding that
+cleanup duty. This typed tuple supplies no native reader, Account decision,
+physical backing, Model purpose or cleanup acknowledgement. Those obligations
+remain with their original installation and read owners.
+
 
 ## Source-free Tasks publication
 
@@ -3490,3 +3516,267 @@ An unmeasured private fixture is not a bounds witness: missing facts refuse.
 These immutable facts grant no Source, Run, currentness or resource authority.
 Their retained tuple/reference extent remains part of the actual owner
 representation and must be included by the consuming funding domain.
+
+
+### Live captured Source evidence transfer
+
+The ordinary Pure single-, multi-, and keyed-Source publication callers await
+`prepareSourceEvidenceOriginal` on the acquired Source owner, then invoke the
+same capture receiver's `takeSourceEvidenceOriginal` exactly once. The Source
+owner retains the original issuer's value across preparation and clears its
+alias on transfer or confirmed retirement. The publication control projects
+that same value into its existing nominal evidence view; it does not serialize,
+parse, hash, or issue the evidence again. Missing transfer ports fail this
+selected path and cannot select the wire issuer.
+
+The original managed Run still validates the captured source, identity,
+requirement, logical input, compiled definition, policy, and retained canonical
+usage against the publication limits. A transferred DATA value grants no Source
+permission or physical cleanup acknowledgment. Content, INFER, Effect, external
+wire admission, and stored restoration remain their separate existing
+boundaries until their actual consumers migrate.
+
+
+### Ordinary Source request context and retirement
+
+Both ordinary installed Source entries, including Project Sources, pass the
+Host's existing `readLocalPreparationContext` and
+`retireSourceManagedInitialPreparation` callbacks to their existing manager.
+The selected context is read before allocating the producer. The manager opens
+that context's Request before the SDK snapshot for native Programs and query
+text with options; its original retirement callback reaches the same prepared
+body before the preparation borrow returns.
+
+This forwarding does not construct an Environment, sequence contract, control,
+resource quote, or another parent. The existing context reader's exact
+runtime/control/contract/output-mode checks remain authoritative. Unsupported
+context selections and the remaining unfunded installation or consumer
+boundaries still require their own migration; callback presence is not proof
+of physical backing, Source permission, or successful cleanup.
+
+
+### INFER original captured evidence
+
+Live ordinary single and composed INFER consumers pass the same captured
+logical input and Source Evidence values to the existing Node bridge entries.
+Their signatures consume those original DATA values rather than JSON strings.
+The existing Core Model-source observation and captured/composed input
+admission functions remain the semantic owners. The bridge checks retained
+canonical name/byte/node/container-depth facts against the same previous wire
+envelope before calling those functions; it does not parse, hash, or emit the
+values again. A copied nominal JavaScript view cannot supply its private token.
+
+The live Source owner still prepares the evidence under its current boundary
+and transfers it once from the same capture. Continuation snapshots may retain
+the value's already-canonical wire; reading that existing String is not another
+serialization. Restored external wire is admitted at its existing restoration
+boundary before entering this typed consumer. This does not regrant dispatch,
+weaken saved-Run or Source custody checks, or turn an uncertain physical stop
+into an acknowledgment. Content/keyed combinations and other unmigrated
+callers retain their distinct obligations.
+
+
+### Shared RelA Request root
+
+The RelA Node bridge uses the existing Request root bridge and native snapshot
+reader through the same canonical mirror owner as its other shared bridges.
+The original `ClientLocalPreparationInputOriginal`, native DATA reader, and
+Request/Parameter/check/Plan delegates are generated unchanged from their Node
+source. A backend does not declare a substitute receipt type, fork snapshot
+semantics, or select another Resource parent merely to satisfy a signature.
+
+These bindings expose the existing constructors and lifetime operations; they
+do not admit arbitrary receipt-shaped DATA. The original supplier still checks
+membership and purpose, while the real caller must retain the same initial
+parent and satisfy its physical backing and retirement obligations. Compiled
+RelA and ordinary acceptance require matching artifacts and callers separately.
+
+## Recursive Result snapshots keep the original publication reservation
+
+An adopted Request can execute checked ARRAY and STRUCT values without a flat
+leaf schema proof. Publication retains that same checked dispatch inventory,
+row bound, Run and Result occurrence. Flat snapshots keep their existing
+schema-derived prequote. Recursive snapshot construction instead consumes the
+exact completed export's byte, value-node and open-container-depth observations.
+The existing finished writer supplies these facts without another traversal,
+hash, schema check or caller-provided dimensions. Equal-content exports cannot
+substitute the original stream and receipt.
+
+The publication continuation reserves its fixed control packet first. Before
+constructing a recursive snapshot it grows the same preparation-body reservation
+for retained canonical rows, decoded text, field inventory, recursive parser and
+cursor ancestry, key/sort holdings, and overlapping emission/admission writers.
+The original logical Relation wrapper contributes two value nodes and one open
+container; its bytes conservatively bound the bare row wire. Array and Object
+parser maxima are independent bounds from that original node count. The shared
+representation tariff remains the only conversion to reserved bytes. This later
+constructor reservation supplies no retroactive funding for execution or export.
+
+Each original Result occurrence is consumed before a reservation callback can
+reenter. A declined grow or cancelled snapshot cannot retry that occurrence, and
+cancelling its private issuer does not retire the parent export's Result pin.
+Completed snapshots remain held until original publication retirement. Later
+capture borrows those trees; its existing original construction extent supplies
+the recursive row-node envelope for nested writer keys, without copying rows or
+parsing them again. Physical funding, output storage and cleanup acknowledgement
+remain obligations of their existing owners.
+
+## Request checking precedes final body selection
+
+The Request's semantic-check boundary can complete while its original working
+reservation still has Unit body type. Native and query inputs retain their same
+Source/index, Program, Parameter cursor, Catalog and checked child. Completing
+this boundary issues no Prepared body, executable Plan, Run, policy attestation
+or retirement acknowledgement. Reobserving an already completed semantic phase
+does not run its checker or spend its work receipt again.
+
+The existing full preparation driver consumes that same checked child through
+its compiler and the one eventual Pure/Effect capacity continuation. It does
+not reconstruct an input or select a second reservation. Before that selection,
+original cancellation can still clear the checker and its aliases through the
+Request's existing cleanup; after selection the existing typed body owns its
+normal retirement duties.
+
+A trusted request-value verifier may require a supplemented checking Environment.
+The check-only boundary cannot certify that changed Environment with the old
+verdict: the actual Host must retain its original policy evidence, input and
+parent through the required supplemental semantic phase before final compiler
+and body selection. Neither an absent verifier result nor this Unit return is
+permission to serialize again, substitute a Source publication, skip policy
+verification or manufacture an unowned fallback preparation.
+
+The supplemental Request-value policy phase preserves the same checked Program
+identity, Parameters and their origins, interpreted Catalog, typed pipelines,
+requirements, contracts, capacity limits and converted proofs. Only the opaque
+policy evidence is selected into a shallow checking configuration; the existing
+full provenance matcher binds it to each original checked request. Source
+response-policy admission and hashing are retained, not repeated. The same
+policy constructors derive dependent publication policies in producer order,
+including imported Results. Keyed execution keeps its original producer bounds
+and converted proof, while independent correlation provenance remains separate.
+
+This is one named work phase after semantic checking and before lowering. Its
+input-sized evidence reference copy and semantic construction envelope are
+backed on the same original working reservation before construction, while the old facts are
+still retained. Fixed checking-configuration and control frames use the existing
+trusted Host overhead, without another wrapper-specific object/slot census. No
+phase ordinal or spent work is reset. Exact already-selected
+proofs and empty supplements do not start another phase; a selected failed
+supplement prevents compiling the prior verdict and keeps original cleanup
+ownership. Reentrant current callbacks cannot replace the Request or clear its
+busy controller. This Core continuation does not provide the actual Host's
+subject serialization, verification callback, proof-binding backing or Source
+I/O lifetime; those remain necessary consuming boundaries before removing any
+ordinary Source fallback.
+
+
+### Native check-only input and original publication completion
+
+The installed Native Program and Source entries share their existing input
+construction prefix with the full Core driver, then stop at semantic completion.
+JSON/YAML retain their original document parser, and SQL/Pipe retain their
+original query lowerer and interpreted Catalog. Native Parameters and their
+origin remain on that same Request. Neither entry returns a compiled body or
+selects a Plan merely to expose the verifier boundary.
+
+The installed finish entry consumes that same checked child with the original
+external Environment and prepared publication. It checks the retained Catalog's
+original identity before using the publication's target handles. A shallow
+policy-selected checking Environment remains internal to the same child; it
+neither weakens the external Environment gate nor substitutes an equal Catalog.
+Compilation uses the retained checked facts once, without another input reader,
+parse, lowerer or semantic checker. The existing typed Pure/Effect continuation
+owns the eventual body; domain-specific Plan construction and retirement remain
+separate obligations. This boundary alone does not implement Host subject
+serialization, verifier backing or Model/Content Plan adoption.
+
+
+### Same-Request verifier subject lifetime
+
+The semantic-check child retains the verifier's original checked subjects,
+request identities and Parameter origins. A pre-construction quote uses the
+same Program and supplied-Parameter admission dimensions plus the checked static
+request-field inventory. It adds variable hash/sort/value traversal backing to
+the existing working reservation before measuring. Fixed Host control frames
+use the existing Host overhead. After measurement, the exact output bytes,
+nodes and depth back both the descriptor writer and the trusted Host's parsed,
+frozen descriptor DATA while the original checked facts remain live.
+
+Descriptor meaning and admitted-policy lookup remain the existing checker
+owners. The staged writer retains the completed immutable request identity and
+origins; binding an already verified policy does not hash them again. The legacy
+descriptor and per-binding logical refusal bounds are unchanged. Added rendering
+work is bounded by the completed measurement, and each binding retains its old
+logical work bound. All actual deltas charge one cumulative work receipt on the
+same original reservation. Returning that receipt across a verifier await does
+not close, reset, replenish or transfer it.
+
+The Host consumes every original descriptor index once, including an explicit
+undefined decline. Cheap reads repeat no hashing, serialization or external
+current callback. A binding checks currentness at its own post-await boundary,
+then fences reentry by the same Request/input/child association. No compiled
+body can be selected while the verifier work remains open. Finalization requires
+all indices, closes that work, and invokes the existing policy-only supplement
+on the same child with its original external Environment. Cancellation, typed
+refusal and foreign throws retain the same cleanup carrier; clearing the
+Request closes returned work and drops subject/evidence aliases. Neither a
+policy CID nor this DATA lifetime issues provider permission, acknowledges
+physical cleanup, changes Model Scope meaning or chooses a Model/Content Plan.
+
+
+### Installed Host verifier continuation
+
+The ordinary Request manager retains the exact verifier and its existing optional
+preparation signal on the same producer before entering semantic checking. It
+captures the Core methods and receiver before any verifier await, parses and
+freezes only the original measured descriptor DATA, and binds each result at its
+original index, including an explicit undefined decline. Subject count and total
+wire limits retain the existing Host refusal bounds. The binder performs the
+actual post-await current check; cheap local fences additionally reject reentry,
+changed callback or signal, cancellation and retired preparation.
+
+Final compilation receives the original external Environment and prepared
+publication after subject finalization. The supplemented Environment remains
+inside the same Core child. The installation no longer prepares a compiled
+Program to discover subjects and then serializes and prepares it again. A
+configured verifier requires the funded Request entrance; missing capabilities
+refuse before input capture. A typed refusal or callback throw remains the
+original failed preparation and cannot fall back to another parent or checker.
+
+Original Request cleanup clears verifier and signal aliases only after its
+existing stop is confirmed. A successful adopted Run retains them until that
+same preparation's retirement boundary. These aliases are not permission,
+Resource backing, physical cleanup acknowledgement or a Model/Content Plan.
+Caller fixtures cover same-original forwarding, explicit decline, callback
+failure, cancellation and retirement; compiled Common and ordinary Source/REST
+connections remain separate consuming obligations.
+
+
+### Original whole-Source caller connection
+
+Before constructing a captured Plan, the installed Host selects each original
+Source occurrence through the same Prepared/Request typed route. Query retains
+its QueryRequirement and QueryTime path. A selected whole input uses its own
+nominal capacity and the whole-input Plan constructor, never a fabricated
+predicate, Query capacity array, zero-prefix classifier or error fallback. Its
+original prepared captured prefix remains one. Unsupported mixed inventories
+refuse; the legacy independent quote cannot construct a whole-input Plan.
+
+The Request's existing constructor borrow completes and adopts that exact Plan.
+Submission retains the returned original Run before preparing physical Source
+inputs, and the Source facade keeps each original capacity method and receiver.
+The dispatch Result-placement check reads the adopted Plan graph rather than
+classifying it from the prepared capture prefix. Whole-input Ledger selection
+requires that same Run and exact typed capacity; current or binding refusal
+cannot create another Ledger or enter the legacy scalar path.
+
+After actual capture and evidence preparation, Compute opens from that adopted
+Plan with the original live sources. The dispatcher retains its existing
+preparation borrow and pending setup before binding the capture to the same DAG.
+Existing stop, child-first cleanup, payload retirement and publication duties
+remain. Query and unowned legacy consumers preserve their distinct contracts;
+this continuation creates no new Resource, Account authority or physical ACK.
+Both Node and RelA receive the one original capture opener through their existing
+shared bridge mirror. Typed interfaces and explicit-port caller tests establish
+only their declared boundaries; matching installed ordinary Source/REST,
+release and separate-process Saved remain necessary consuming evidence.

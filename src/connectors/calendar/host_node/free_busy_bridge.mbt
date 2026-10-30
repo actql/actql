@@ -115,3 +115,40 @@ pub fn calendar_free_busy_column_names() -> Array[String] {
 pub fn calendar_free_busy_relation_facts_wire() -> String {
   @catalog.calendar_free_busy_facts_wire()
 }
+
+///|
+#export_name("calendarPrepareFreeBusyRequest")
+pub fn calendar_prepare_free_busy_request(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_calendars : Int,
+  max_rows : Int,
+  max_request_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue] {
+  @catalog.prepare_calendar_free_busy_request(wire, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_calendars,
+    max_rows,
+    max_request_bytes,
+    max_value_nodes,
+    max_value_text_bytes,
+  })
+}
+
+///|
+#export_name("calendarFreeBusyRequestSchemaWire")
+pub fn calendar_free_busy_request_schema_wire(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.CalendarFreeBusyIssue] {
+  @catalog.calendar_free_busy_request_schema_wire(
+    max_bytes, max_nodes, max_depth,
+  )
+}

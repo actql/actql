@@ -128,9 +128,18 @@ pub fn prepare_program_capture(
   }
   value.capture = Some(capture)
   guard @publication.capture_construction_layout_facts(plan)
-    is Some((bytes, _, depth, nodes, results, fields, max_fields, model_count)) &&
+    is Some(
+      (bytes, all_nodes, depth, nodes, results, fields, max_fields, model_count)
+    ) &&
     publication_capture_constructor_layout(
-      bytes, nodes, depth, results, fields, max_fields, model_count,
+      bytes,
+      nodes,
+      depth,
+      results,
+      fields,
+      max_fields,
+      model_count,
+      row_key_nodes=if value.snapshot_prequoted { 0 } else { all_nodes - nodes },
     )
     is Some(layout) &&
     @execution.preparation_representation_cost(layout.retained) is Some(r) &&

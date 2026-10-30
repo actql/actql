@@ -1,10 +1,10 @@
 ///|
 /// Portable typed returns share the same original construction occupancy.
 /// Node's raw JavaScript callback exceptions require its separate fixed scope.
-fn[E] preparation_module_call(
-  body : () -> Result[Unit, E],
+fn[T, E] preparation_module_call(
+  body : () -> Result[T, E],
   finish : () -> Unit,
-) -> Result[Unit, E] {
+) -> Result[T, E] {
   defer finish()
   body()
 }

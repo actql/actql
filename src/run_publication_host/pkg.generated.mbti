@@ -4796,7 +4796,7 @@ pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, Publi
 pub fn PublicationOutputExport::row_count(Self) -> Result[Int, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::rows_complete(Self) -> Result[Bool, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::schema_usage(Self) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
-pub fn PublicationOutputExport::snapshot_original_extent(Self, @physical_strategy_host.CapturedDAG, @execution_relation.ManagedResultOccurrence) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
+pub fn PublicationOutputExport::snapshot_original_extent(Self, @physical_strategy_host.CapturedDAG, @execution_relation.ManagedResultOccurrence) -> Result[(Int, Int, Int, Int), PublicationOutputExportIssue]
 pub fn PublicationOutputExport::start_captured_snapshot(Self, Int, Int, Int) -> Result[PublicationOutputSnapshotPreparation, PublicationOutputExportIssue]
 
 pub(all) enum PublicationOutputExportIssue {

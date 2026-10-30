@@ -30,7 +30,9 @@ export function checkRelaClientBridges(root, write = false) {
   } else if (!existsSync(outputPath) || readFileSync(outputPath, 'utf8') !== lean) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
-  for (const file of ['client_installed_sequence_contracts_bridge.mbt', 'client_row_response_bridge.mbt', 'client_salesforce_row_source_bridge.mbt', 'client_snowflake_read_bridge.mbt', 'client_bigquery_read_bridge.mbt', 'client_kintone_read_bridge.mbt', 'client_kintone_mutation_bridge.mbt', 'client_kintone_lookup_bridge.mbt', 'client_update_target_bridge.mbt', 'client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
+  for (const file of ['client_preparation_root_bridge.mbt',
+    'client_native_snapshot_reader.mbt',
+    'client_installed_sequence_contracts_bridge.mbt', 'client_row_response_bridge.mbt', 'client_salesforce_row_source_bridge.mbt', 'client_snowflake_read_bridge.mbt', 'client_bigquery_read_bridge.mbt', 'client_kintone_read_bridge.mbt', 'client_kintone_mutation_bridge.mbt', 'client_kintone_lookup_bridge.mbt', 'client_update_target_bridge.mbt', 'client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
     'client_kintone_create_execution_bridge.mbt',
     'client_kintone_delete_outcome_bridge.mbt',
     'client_project_configuration_bridge.mbt',
@@ -54,6 +56,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_effect_phase_bridge.mbt',
     'client_effect_content_bridge.mbt',
     'client_recovered_content_bridge.mbt',
+    'calendar_events_bridge.mbt',
     'client_effect_checked_row_bridge.mbt']) {
     const input = join(root, 'src/connectors_builtin_node', file);
     const output = join(root, 'src/connectors_builtin_node_rela', file);

@@ -1504,7 +1504,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "5c8aeca3338237bef923a7b1efcb78baceb393ea51a413627ee45d4bbfdd730e",
+      "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1642,6 +1642,7 @@
             "preparedSource",
             "sourceAccess",
             "captureOnly",
+            "originalEvidence",
             "ledger"
           ],
           "async": true
@@ -1871,7 +1872,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#11",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -1881,9 +1884,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#13",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -1909,6 +1910,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#18",
           "parameters": [
             "task"
           ],
@@ -2223,6 +2231,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -2387,6 +2403,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -2830,6 +2854,74 @@
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/start#18"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }
@@ -4987,7 +5079,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9dfdd532d8052e99eb624d674e57a2d99e42ff1f6ed84653f67c20429dcb39d7",
+      "sha256": "037d8b1b1c7e37fee24004d4731fe444a0c6f190fbb2897ad7a6bf191d5a1b69",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5215,7 +5307,9 @@
           "name": "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
           "parameters": [
             "request",
-            "environment"
+            "environment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -6768,7 +6862,9 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
-            "selectedEnvironment"
+            "selectedEnvironment",
+            "originalVerifier",
+            "signal"
           ],
           "async": false
         },
@@ -7739,21 +7835,28 @@
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#2",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareManagedComputeCapturePlan/plan/plan#3",
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
           "parameters": [
             "value"
           ],
@@ -7951,6 +8054,13 @@
         },
         {
           "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6",
           "parameters": [
             "value"
           ],
@@ -8467,6 +8577,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
               }
             ],
             "identity": [
@@ -9119,6 +9233,10 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               }
             ]
           }
@@ -11122,9 +11240,6 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
-            "prepareManagedComputeCapturePlan/plan/plan",
-            "prepareManagedComputeCapturePlan/plan/plan#2",
-            "prepareManagedComputeCapturePlan/plan/plan#3",
             "retainedManagedCaptureInventory"
           ],
           "exports": [],
@@ -12385,6 +12500,78 @@
           }
         },
         {
+          "operations": [
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ]
+          }
+        },
+        {
           "operations": [],
           "exports": [
             "readInitialControlHostInput",
@@ -13374,7 +13561,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "10629499ea2d47504ad5e8ad5e01bdf362651be364b29756f8729337bccc7770",
+      "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13451,7 +13638,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "keyedObservation",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
@@ -13533,7 +13720,7 @@
           "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
           "parameters": [
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "task"
           ],
           "async": false
@@ -13553,14 +13740,6 @@
           "async": false
         },
         {
-          "name": "acquiredMultiTaskPublicationPlan/observed/observed",
-          "parameters": [
-            "captured",
-            "sourceEvidenceWire"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -13568,7 +13747,7 @@
             "acquired",
             "preparedProgram",
             "captured",
-            "sourceEvidenceWire",
+            "sourceEvidence",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
             "captureStartedAt",
@@ -13926,7 +14105,6 @@
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
-            "acquiredMultiTaskPublicationPlan/observed/observed",
             "acquiredTaskPublicationPlan",
             "acquiredTaskRunAdmission",
             "buildLocalPublicationPlan",
@@ -14170,6 +14348,190 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindQueryInvocation",
+            "openSourceFreeEffectComputation",
+            "prepareQueryInvocation"
+          ],
+          "exports": [
+            "openSourceFreeEffectComputation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkedLocalOutputLimits",
+            "checkedLocalOutputLimits/checkedLocalOutputLimits",
+            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
+          ],
+          "exports": [
+            "checkedLocalOutputLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               }
             ]
           }
@@ -14282,78 +14644,6 @@
         },
         {
           "operations": [
-            "bindQueryInvocation",
-            "openSourceFreeEffectComputation",
-            "prepareQueryInvocation"
-          ],
-          "exports": [
-            "openSourceFreeEffectComputation"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Original query evaluation time"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "sourceFreeContentEffectPublicationPlan"
           ],
           "exports": [
@@ -14454,114 +14744,6 @@
               {
                 "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
                 "anchor": "test \"source-free Content Effect compiler requires"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
-          ],
-          "exports": [
-            "checkedLocalOutputLimits"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Publication boundary"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
-                "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               }
             ]
           }

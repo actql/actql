@@ -3792,7 +3792,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "346a80302aa10dfd246ac2cb6bad4d01f692473a4f0d7f6deea385e19e4f0567",
+      "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -4048,6 +4048,10 @@
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
                 "anchor": "maxTotalRows"
+              },
+              {
+                "path": "docs/connectors/salesforce.md",
+                "anchor": "Received query response bodies count"
               }
             ],
             "extension": [
@@ -4060,6 +4064,18 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
                 "anchor": "failed locator cannot be replaced by a fresh query in one observation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "query charges the original rejected body before refusal"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "query preserves accounting failure"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "query awaits pending accounting"
               }
             ]
           }

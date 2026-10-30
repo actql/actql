@@ -123,6 +123,38 @@ pub fn[I, T] prepare_request_native_query_computation(
   declarations? : T? = None,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   match
+    prepare_request_native_query_computation_input(
+      owner,
+      input,
+      document,
+      format,
+      reader,
+      environment,
+      publication,
+      supplied~,
+      declarations~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  finish_request_original_computation(
+    owner, input, environment, publication, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+fn[I, T] prepare_request_native_query_computation_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  document : String,
+  format : @frontend.Format,
+  reader : @source.JsonDataReader[T],
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  supplied? : T? = None,
+  declarations? : T? = None,
+) -> Result[Unit, ClientRequestTerminalIssue] {
+  match
     prepare_request_native_query_input(
       owner, input, reader, supplied, declarations,
     ) {
@@ -145,9 +177,7 @@ pub fn[I, T] prepare_request_native_query_computation(
     Err(issue) => return Err(QueryLowering(issue))
     Ok(_) => ()
   }
-  finish_request_original_computation(
-    owner, input, environment, publication, evidence, program_limits, effect_limits,
-  )
+  Ok(())
 }
 
 ///|
@@ -166,6 +196,70 @@ pub fn[I, T] prepare_request_native_source_computation(
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
+  match
+    prepare_request_native_source_computation_input(
+      owner,
+      input,
+      captured,
+      reader,
+      environment,
+      publication,
+      program_limits.checking.input,
+      supplied~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  finish_request_original_computation(
+    owner, input, environment, publication, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+/// Keep the same JSON/YAML/SQL/Pipe input semantics and original Catalog;
+/// leave compiler/Plan selection to the later same-Request completion.
+pub fn[I, T] prepare_request_native_source_computation_check(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  captured : T,
+  reader : @source.JsonDataReader[T],
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+  supplied? : T? = None,
+) -> Result[Unit, ClientRequestTerminalIssue] {
+  match
+    prepare_request_native_source_computation_input(
+      owner,
+      input,
+      captured,
+      reader,
+      environment,
+      publication,
+      program_limits.checking.input,
+      supplied~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  prepare_request_original_computation_check(
+    owner, input, environment, publication, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+fn[I, T] prepare_request_native_source_computation_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  captured : T,
+  reader : @source.JsonDataReader[T],
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  limits : @syntax.Limits,
+  supplied? : T? = None,
+) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
     request_intent_input_ready(owner) else {
@@ -212,7 +306,7 @@ pub fn[I, T] prepare_request_native_source_computation(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    return prepare_request_document_computation(
+    return prepare_request_document_computation_input(
       owner,
       input,
       document,
@@ -221,15 +315,11 @@ pub fn[I, T] prepare_request_native_source_computation(
       } else {
         @syntax.Yaml
       },
-      environment,
-      publication,
-      evidence,
-      program_limits,
-      effect_limits,
+      limits,
     )
   }
   owner.phase = Open
-  prepare_request_native_query_computation(
+  prepare_request_native_query_computation_input(
     owner,
     input,
     document,
@@ -237,9 +327,6 @@ pub fn[I, T] prepare_request_native_source_computation(
     reader,
     environment,
     publication,
-    evidence,
-    program_limits,
-    effect_limits,
     supplied~,
     declarations~,
   )
