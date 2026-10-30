@@ -3728,6 +3728,14 @@ handoff carries those four original objects: QueryTime preparation, Request
 identity, compiled Run and Definition. Equal executable bytes, another Request
 identity or an independently compiled artifact cannot replace them.
 
+A checked graph with receiving Source inputs uses the existing Task compiler
+even when it has one task and one Result. The direct Values compiler requires
+its source-free Values root. Result correspondence uses the same checked
+selected-step or prefix output as the fragment and its contract measurement;
+it does not reconstruct an untimed acquisition that can select an earlier
+capture. An empty task still uses its original receiving input port through
+that same output selector, without inventing a Compute operation.
+
 The existing QueryTime preparation retains the first successfully bound Pure
 compiled Run alongside its original Definition and evaluation context. Reading
 that bound invocation compares the retained originals; it does not re-admit
