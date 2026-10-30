@@ -257,7 +257,7 @@
         },
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
-          "test": "unsupported Linux Python and standalone Native paths cannot inherit another verifier"
+          "test": "unsupported Linux Python and unverified Native archives cannot inherit another verifier"
         },
         {
           "kind": "Inert Linux ELF packaging/ABI metadata only, not Linux execution or Local acceptance",
