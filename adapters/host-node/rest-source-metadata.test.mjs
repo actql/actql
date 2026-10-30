@@ -76,3 +76,33 @@ test('REST configured CA cannot disappear into default trust when its original r
     readJson: async () => f.site, readText: async () => undefined,
   }}), {code: 'InvalidInstalledRestSourceAuthority'});
 });
+
+test('REST configuration refuses a missing actual-FD text reader before any JSON read', async () => {
+  const f = fixture(), metadata = createRestSourceMetadata(f.definition);
+  let jsonReads = 0, boundedReads = 0;
+  await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
+    readJson() {jsonReads++;return f.site;},
+    readText() {boundedReads++;return 'must not supply an implicit bound';},
+  }}), {code: 'RestSourceConfigurationReaderUnavailable'});
+  assert.equal(jsonReads, 0);assert.equal(boundedReads, 0);
+});
+
+test('REST CA uses only the captured actual-FD text method and original receiver', async () => {
+  const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls = [];
+  const ca = 'opaque-original-CA\r\n';
+  const reader = {
+    async readJson(path) {
+      assert.strictEqual(this, reader);calls.push(['json', path]);
+      reader.readOriginalText = () => assert.fail('Original method must be captured before JSON awaits');
+      return f.site;
+    },
+    readText() {assert.fail('Bounded readText must not be used without a declared bound');},
+    readOriginalText(path) {
+      assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
+      calls.push(['original', path]);return ca;
+    },
+  };
+  const input = await metadata.readInputs(f.profile, {configurationReader: reader});
+  assert.equal(input.ca, ca);
+  assert.deepEqual(calls, [['json', f.profile.siteProfilePath], ['original', f.site.caPath]]);
+});
