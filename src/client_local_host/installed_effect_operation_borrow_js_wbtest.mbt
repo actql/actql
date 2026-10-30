@@ -249,8 +249,8 @@ test "actual Node Effect plan helper returns the original typed Core Plan for sa
         original,
         stage,
         name,
-        members.to_array(),
-        rows.to_array(),
+        Array::from_fixed_array(members),
+        Array::from_fixed_array(rows),
       )
     },
     (original, identity, selected, demands) => {
@@ -266,7 +266,7 @@ test "actual Node Effect plan helper returns the original typed Core Plan for sa
         source_query_original_values,
         Some(source_query_original_fragment),
         None,
-        demands.to_array(),
+        Array::from_fixed_array(demands),
         provider_factory=_ => [],
       )
     },
