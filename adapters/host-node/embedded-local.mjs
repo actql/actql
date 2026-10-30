@@ -3632,6 +3632,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         revision: retainedStart.revision};
     }
     preparation?.admitResultPublicationRun(submission.preparedProgram);
+    let managedSourceRun;
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
@@ -3649,12 +3650,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       // not issued after compilation or reconstructed from graph limits.
       sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
     } else if (acquisitionCount > 0 && preparation !== undefined) {
-      preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile);
+      managedSourceRun = preparation.prepareManagedSourceRun(
+        moon, submission.preparedProgram, requested, sourceProfile);
     }
-    const managedRun = preparation !== undefined && acquisitionCount === 0 &&
+    const managedRun = managedSourceRun ?? (preparation !== undefined && acquisitionCount === 0 &&
       !inferSelections.has(submission.preparedProgram) &&
       moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
-      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined;
+      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :

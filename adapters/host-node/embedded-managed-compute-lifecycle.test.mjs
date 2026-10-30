@@ -1216,6 +1216,11 @@ function capturePlanConstructor({queryTime, count, retained}) {
     calls.push(`requirement-${stage}`); return requirements[stage];
   };
   const runtime = {
+    clientProgramSelectInstalledSourceInput(p, identity, stage, input) {
+      assert.equal(p, prepared); assert.equal(identity, request); assert.equal(input, 0); return requirements[stage];
+    },
+    clientProgramSelectedSourceInputKind(selection) {assert.ok(requirements.includes(selection)); return 'query';},
+    clientProgramSelectedSourceInputRef(selection) {assert.ok(requirements.includes(selection)); return selection.source;},
     clientProgramAcquisitionCount(p) {assert.equal(p, prepared); calls.push('inventory'); return count;},
     clientProgramPrepareLocalQueryRequirement(...args) {
       assert.equal(queryTime, undefined, 'retained QueryTime must not select the context-free requirement');
@@ -1323,4 +1328,80 @@ test('whole Source Host constructor keeps the original refusal and post-capacity
   const retired = wholeSourcePlanConstructor({invalidate: true});
   assert.throws(retired.prepare, {code: 'ForeignInstalledComputeRun'});
   assert.equal(retired.calls.includes('whole-plan'), false);
+});
+
+function wholeSourceDispatchBlock(ports) {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'});
+  const matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' && node.test.name === 'singleAccounted' &&
+        actual.slice(node.consequent.start, node.consequent.end).includes('const capture = entry.sourceCapture.capture;')) {
+      matches.push(node.consequent);
+    }
+  });
+  assert.equal(matches.length, 1);
+  return new Function(...Object.keys(ports), 'let setup;\n' +
+    actual.slice(matches[0].start, matches[0].end) + '\nreturn setup;')(...Object.values(ports));
+}
+
+test('whole Source dispatch opens its adopted Plan before binding the same capture to its retained Compute', () => {
+  const parent = {}, prepared = {}, request = {}, sourceOriginal = {}, setup = {}, dag = {}, order = [];
+  const entry = {};
+  const capture = {source: () => sourceOriginal, retainTask(actual, task) {
+    assert.equal(actual, dag); assert.equal(task, 0); assert.equal(entry.pendingSetup, setup);
+    order.push('bind-original');
+  }};
+  entry.sourceCapture = {capture};
+  const moon = {clientProgramOpenInstalledManagedCaptureHost(owner, p, r, captures) {
+    assert.equal(this, moon); assert.equal(owner, parent); assert.equal(p, prepared); assert.equal(r, request);
+    assert.deepEqual(captures, [sourceOriginal]); order.push('open-adopted'); return setup;
+  }, strategyHostRun(value) {assert.equal(value, setup); return dag;},
+  clientProgramOpenSingleCapturedLocalHost() {assert.fail('No independent captured Host/compiler');}};
+  const ports = {entry, moon, held: {managedRun: parent}, preparedProgram: prepared, requested: request,
+    preparationLease: {}, checked: value => value,
+    retainDispatchPreparationHost(actual, runtime, owner, p, r, custody) {
+      assert.equal(actual, entry); assert.equal(runtime, moon); assert.equal(owner, parent);
+      assert.equal(p, prepared); assert.equal(r, request); assert.equal(custody, true); order.push('retain-original');
+    }};
+  assert.equal(wholeSourceDispatchBlock(ports), setup);
+  assert.equal(entry.borrowedSources, true);
+  assert.deepEqual(order, ['retain-original', 'open-adopted', 'bind-original']);
+});
+
+test('whole Source dispatch preserves the same opener refusal without legacy construction or fabricated pending setup', () => {
+  const original = new Error('actual adopted Plan refused');
+  const entry = {sourceCapture: {capture: {source: () => ({}), retainTask() {assert.fail('No bind after refusal');}}}};
+  const ports = {entry, moon: {clientProgramOpenInstalledManagedCaptureHost() {throw original;},
+    clientProgramOpenSingleCapturedLocalHost() {assert.fail('No legacy fallback');}},
+    held: {managedRun: {}}, preparedProgram: {}, requested: {}, preparationLease: {},
+    checked: value => value, retainDispatchPreparationHost() {}};
+  assert.throws(() => wholeSourceDispatchBlock(ports), error => error === original);
+  assert.equal(entry.pendingSetup, undefined);
+  delete ports.moon.clientProgramOpenInstalledManagedCaptureHost;
+  assert.throws(() => wholeSourceDispatchBlock(ports), {message: 'InstalledManagedComputeHostUnavailable'});
+  assert.equal(entry.pendingSetup, undefined);
+});
+
+test('whole Source submission retains its returned same-parent Run before preparing physical Source inputs', () => {
+  const matches = [];
+  visit(ast, node => {
+    if (node.type !== 'BlockStatement') return;
+    const index = node.body.findIndex(statement => statement.type === 'VariableDeclaration' &&
+      statement.declarations.some(value => value.id.name === 'managedSourceRun'));
+    if (index >= 0) matches.push(node.body.slice(index, index + 3));
+  });
+  assert.equal(matches.length, 1);
+  const prepared = {}, request = {}, profile = {}, runtime = {}, original = {}, calls = [];
+  const preparation = {prepareManagedSourceRun(moon, p, r, sourceProfile) {
+    assert.equal(moon, runtime); assert.equal(p, prepared); assert.equal(r, request); assert.equal(sourceProfile, profile);
+    calls.push('adopt-original'); return original;
+  }, prepareManagedComputeRun() {assert.fail('Whole Source must not select Source-free adoption');}};
+  const ports = {preparation, selectedModel: undefined, acquisitionCount: 1, sourceProfile: profile,
+    submission: {preparedProgram: prepared}, requested: request, inferSelections: new WeakMap(),
+    moon: {clientProgramSerializationOccurrences: () => []}};
+  // The exact original runtime argument remains distinct from constructor DATA.
+  ports.moon = runtime; runtime.clientProgramSerializationOccurrences = () => [];
+  const result = new Function(...Object.keys(ports), matches[0].map(text).join('\n') + '\nreturn managedRun;')(...Object.values(ports));
+  assert.equal(result, original); assert.deepEqual(calls, ['adopt-original']);
 });
