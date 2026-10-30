@@ -421,6 +421,31 @@ export async function observeReleaseSet(directory, expectedSha256, {fetchRespons
     qualification: 'anonymous bounded public HTTP byte observations only; no credentials, upload, approval, lock/CAS or public consumer acceptance; reobserve at the actual execution boundary'};
 }
 
+export async function observePythonReleaseTarget(directory, expectedSha256, targetId, {fetchResponse = fetch} = {}) {
+  const fixed = await verifyReleaseSet(directory, {expectedSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === targetId);
+  assert(target?.ecosystem === 'pypi', 'Select one complete original Python target');
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === targetId);
+  assert.equal(cohort.kind, 'python-wheels');
+  const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === targetId);
+  const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
+  for (const artifact of artifacts) {
+    const base = fields(artifact, ['targetId', 'file', 'name', 'version']);
+    try {
+      const state = await pypiObservation(artifact, artifacts.filter(value => value.name === artifact.name), fetchResponse, requests);
+      observations.push({...base, state, ...(state === 'present' ? {identity: identity(artifact)} : {})});
+    } catch (failure) {
+      if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
+      const state = failure instanceof RegistryConflict ? 'conflict' : 'unknown';
+      observations.push({...base, state}); issues.push({...base, state, reason: failure.message});
+    }
+  }
+  await verifyReleaseSet(directory, {expectedSha256});
+  return {schemaVersion: 'actql-python-public-observation/0.1', manifestSha256: fixed.sha256, targetId,
+    startedAt, endedAt: new Date().toISOString(), observations, issues, requests,
+    qualification: 'anonymous selected Python target byte observations only; no public install, runtime, approval or publisher authority'};
+}
+
 export async function observeReleaseChannels(directory, expectedSha256, {fetchResponse = fetch} = {}) {
   assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
   const fixed = await verifyReleaseSet(directory, {expectedSha256});
