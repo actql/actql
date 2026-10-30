@@ -687,3 +687,22 @@ cleanup or numerical release. The existing Host retains the view from before
 fallible initialization through its original shutdown; new setup refusal and
 successful finalization use that same runtime even before local import
 initialization completes. Existing Unknown and child cleanup remain owned.
+
+###### Effect Request adoption and retired Mock entry points
+
+The installed Mock Source profile exposes Pure preparation only. Its former
+`prepareManagedEffectRun` and `prepareManagedEffectMockModelRun` entry points
+and the manager's separate `prepareEffectLocalMockModelRun` Root constructor
+are retired. A true Effect discriminator refuses before current callbacks,
+quotes, record retention or native admission; it cannot fall through to Pure.
+The retained Source reader likewise refuses an Effect context before borrowing
+a Mock Source child. Existing Pure Model/Source custody and cleanup remain with
+the same profile and manager.
+
+The ordinary Effect caller instead selects its existing implementation Plan
+and completes/adopts the same original Request input and reservations. A Model
+Effect must retain the same original Scope before either completion or adoption
+can fail. Removing the obsolete profile methods does not supply the required
+early original ManagedProvider, Source acquisition, complete initial backing,
+current permission or physical cleanup observation. Those actual inputs remain
+necessary; there is no alternate Root or empty/default provider fallback.
