@@ -3385,3 +3385,21 @@ and definition to its one issued invocation before publication reservation.
 The same configured Compute and captured DAG remain on the adopted Run until
 execution and publication cleanup finish. This route does not admit a Source,
 INFER, serialization or Effect invocation through a source-free issuer.
+
+## Flat Text publication uses the retained leaf demand
+
+A completed source-free Values/Tasks Run can retain a flat JSON-leaf schema
+proof even when its Number/Boolean-only specialization is absent. Publication
+uses that same Plan's original leaf inventory and row demand; it does not
+repeat schema admission or reinterpret the absence of a numeric proof as a
+foreign Run. Nested and opaque values still require their own structural proof.
+
+The snapshot constructor consumes the existing admitted total text envelope,
+including field names and Text values. Its wire bound specializes one shared
+leaf formula; the numeric case supplies only its original repeated-name bytes.
+Decoded Text Strings remain retained beside canonical rows after parser/indexed
+owners retire. Their headers, UTF-16 backing and escaped wire/parser/writer
+peaks are funded by the existing snapshot representation recipe before the
+constructor runs. Empty results retain no decoded text; invalid/overflow bounds
+remain refusals. This changes no logical policy ceiling, semantic authority,
+Result occurrence, currentness fence, reservation owner or cleanup obligation.

@@ -67,13 +67,13 @@ test('Notion original operation and invocation cannot be replaced by a foreign s
   }
 });
 
-test('Notion cross-page IDs stay checked when selected output omits identity',async t=>{
-  const f=await userListFixture(t),projected=[];
+test('Notion cross-page IDs stay checked when the user selection omits identity',async t=>{
+  const f=await userListFixture(t),captured=[];
   f.state.pages=[userPage([user('U1','one')],'next'),userPage([user('U1','changed')],null)];
   await assert.rejects(f.create({names:['name'],consumePage:(rows,{charge})=>{
-    f.row.observe(charge);projected.push(...rows);
+    f.row.observe(charge);captured.push(...rows);
   }}).read(),error=>error.cause.code==='NotionUserListDuplicateUser'&&error.observations.length===2);
-  assert.deepEqual(projected,[{name:'one'}]);assert.equal(f.state.requests.length,2);f.row.assertNoCapture();
+  assert.deepEqual(captured,[one]);assert.equal(f.state.requests.length,2);f.row.assertNoCapture();
 });
 
 test('Notion repeated cursor page and total row bounds refuse incomplete capture',async t=>{
@@ -84,7 +84,7 @@ test('Notion repeated cursor page and total row bounds refuse incomplete capture
     if(mode==='rows')limits.maxTotalRows=1;
     const code={cursor:'NotionUserListRepeatedCursor',pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit'}[mode];
     await assert.rejects(f.create({limits}).read(),error=>error.cause.code===code);
-    assert.equal(f.state.requests.length,mode==='pages'?1:2);f.row.assertNoCapture();
+    assert.equal(f.state.requests.length,mode==='cursor'?2:1);f.row.assertNoCapture();
   }
 });
 

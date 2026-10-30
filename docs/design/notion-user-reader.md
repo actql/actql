@@ -39,6 +39,13 @@ Nullable String contracts describe the public columns without inventing grants
 from an observed person/bot label. Metadata, schema and row output use the existing bounded
 writers, and failure returns no partial wire result.
 
+The physical user-list reader supplies all declared columns to Source capture,
+including when the user's selection is a subset or empty. The original id,
+nullable type, name and email therefore remain available to the acquisition
+before the query's projection. Selected names are still validated; they do not
+trim the captured Source row. The lower-level checked-page projection API keeps
+its existing ordered selection contract.
+
 ## Physical caller and retained resources
 
 The private Node bridge forwards the same typed page through compiler-generated

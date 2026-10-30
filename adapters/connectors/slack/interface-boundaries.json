@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/slack/site/user-list-read.mjs",
-      "sha256": "e8deb4c7fdcd4ea5ddb42ca410f7962cca82431ea6e786b5a1c931851257cf3a",
+      "sha256": "12d67846c4775b9570ccfb97a569ca79308a20205971cc241f53b751bf2213f2",
       "exports": [
         "SLACK_USER_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -298,6 +298,10 @@
               {
                 "path": "adapters/connectors/slack/site/user-list-read.mjs",
                 "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "For users and channel listings, each physical `limit` is the smaller of the"
               }
             ],
             "extension": [
@@ -318,6 +322,10 @@
               {
                 "path": "src/connectors/slack/catalog/identity_wbtest.mbt",
                 "anchor": "test \"Slack identity preserves"
+              },
+              {
+                "path": "adapters/connectors/slack/test/remaining-row-requests.test.mjs",
+                "anchor": "zero remaining rows refuse before another grant or send"
               }
             ]
           }
@@ -1974,7 +1982,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/channel-list-read.mjs",
-      "sha256": "e088cbf210253cfe48246d2d7a8375662f7d3277f7498b2a13287f8472658027",
+      "sha256": "3382cf5cbf916021eed9ae5075ae44a62b759bff7cb6031f7dd30c490454127f",
       "exports": [
         "SLACK_CHANNEL_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -2473,6 +2481,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### History conversation enumeration"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "For users and channel listings, each physical `limit` is the smaller of the"
               }
             ],
             "extension": [
@@ -2533,6 +2545,10 @@
               {
                 "path": "src/connectors/slack/catalog/history_conversations_wbtest.mbt",
                 "anchor": "test \"Slack history conversations reject malformed discriminants and unselected known fields\""
+              },
+              {
+                "path": "adapters/connectors/slack/test/remaining-row-requests.test.mjs",
+                "anchor": "zero remaining rows refuse before another grant or send"
               }
             ]
           }

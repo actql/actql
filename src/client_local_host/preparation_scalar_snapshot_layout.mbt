@@ -1,5 +1,5 @@
 ///|
-/// One scalar captured snapshot from the ORIGINAL result-schema/row bound.
+/// One flat JSON leaf snapshot from the ORIGINAL result-schema/row bound.
 /// No post-emission measurement grants capacity. Final canonical rows are
 /// borrowed by later capture; no second source parse is priced there.
 priv struct ScalarSnapshotLayout {
@@ -12,8 +12,12 @@ fn scalar_snapshot_layout(
   fields : Int,
   name_bytes : Int,
   rows : Int,
+  total_text_bytes? : Int? = None,
 ) -> ScalarSnapshotLayout? {
-  if fields < 0 || name_bytes < 0 || rows < 0 {
+  if fields < 0 ||
+    name_bytes < 0 ||
+    rows < 0 ||
+    (total_text_bytes is Some(bytes) && bytes < 0) {
     return None
   }
   let f = fields.to_int64()
@@ -22,8 +26,16 @@ fn scalar_snapshot_layout(
   let k = f * r
   let n = 1L + r + k
   let lexical = 1L + r + 2L * k
-  let text = r * names
-  guard client_local_scalar_wire_byte_bound(fields, name_bytes, rows)
+  // Numeric/Boolean rows retain only names. A checked JSON-leaf inventory
+  // also admits Text, retaining its SAME total value-text envelope. No rows
+  // means no decoded key/value Strings, even when the policy allows text.
+  let text = if rows == 0 {
+    0L
+  } else {
+    total_text_bytes.map(bytes => bytes.to_int64()).unwrap_or(r * names)
+  }
+  let quoted = if total_text_bytes is Some(_) { 2L * k } else { k }
+  guard client_local_json_leaf_wire_byte_bound(fields, rows, text)
     is Some(wire_bytes) else {
     return None
   }
@@ -40,9 +52,13 @@ fn scalar_snapshot_layout(
     objects: rows,
     arrays: 1,
     fields_upper: k.to_int(),
-    quoted_tokens: k.to_int(),
+    quoted_tokens: quoted.to_int(),
     quoted_utf16_units: text.to_int(),
-    longest_quoted_utf16: name_bytes,
+    longest_quoted_utf16: if total_text_bytes is Some(_) {
+      Int::max(name_bytes, text.to_int())
+    } else {
+      name_bytes
+    },
     longest_atom_utf16: 25,
     depth_upper: 2,
   }
@@ -65,7 +81,7 @@ fn scalar_snapshot_layout(
   // Data-key parser and decoder do not normalize. The final canonical tuples
   // borrow decoded key Strings, NOT AST Nodes/Spans or the indexed owner.
   let strings : @execution.PreparationRepresentationUnits = {
-    record_headers: k,
+    record_headers: quoted,
     reference_slots: 0L,
     scalar_words: 0L,
     owned_utf16_units: text,

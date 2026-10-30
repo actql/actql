@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b7e850723057ffd4a5b3622dbf254fc4b24f7d90b9c3a174504d4a1f88f5a496",
+      "sha256": "16c04b4474a58d2b04c884c886a1b72eb129b583be372f5a8d70d6cecc8a4651",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -74245,7 +74245,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dcad8e27ee65d1dbeb3215ea7e0eaeafdaeb95ab0a9c513a3e5311dc0c5dce35",
+      "sha256": "d646e5a70c10588a457e4a852ea278c403c74b751c8c60694b4cb50dbe576e3c",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
