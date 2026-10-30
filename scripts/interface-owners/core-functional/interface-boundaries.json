@@ -40362,7 +40362,7 @@
     {
       "module": "src/client_local_host/installed_capture_provider_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "141e85188f9f88088efb748810e75a040c9d73ccc8fa4b713871f288e92d4696",
+      "sha256": "763226f9441e87d28e2942ace94a855c84e0919c1eaadee326979b53f42d1d7f",
       "exports": [],
       "operations": [
         {
@@ -40383,7 +40383,7 @@
             "responsibility": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
-                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+                "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
               }
             ],
             "inputsOutputs": [
@@ -40454,6 +40454,14 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
                 "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
+                "anchor": "test \"original base Row read reuses the retained Request Plan without a provider replacement\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
+                "anchor": "test \"original base Row read keeps its partial child when current replaces the Plan capacity\""
               }
             ]
           }
@@ -40488,7 +40496,7 @@
             "responsibility": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
-                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+                "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
               }
             ],
             "inputsOutputs": [
