@@ -17,7 +17,7 @@ import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.m
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 
 import {nativeCliPackageInputs, nativeCliPlatforms as platforms} from './native-cli-package-inputs.mjs';
-import {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
+import {admitNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 export {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
 
@@ -75,6 +75,7 @@ export async function prepareNativeCliRelease(destination, artifacts, selected) 
   const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));
   for (const record of records) assert.equal(record.toolchainPinSha256, pinDigest);
   for (const record of records) {
+    requireNativePackageVersion(record, cohort.packageVersion);
     exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
     for (const [filename, digest] of Object.entries(record.notices)) {
       assert.equal(digest, hash(await readFile(join(repository, 'packages/local-node', filename))));

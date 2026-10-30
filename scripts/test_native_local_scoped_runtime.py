@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import re
 import shlex
+import subprocess
 import unittest
 
 SPEC = importlib.util.spec_from_file_location(
@@ -221,6 +222,39 @@ class LocalScopedComposition(unittest.TestCase):
             self.plan(commands)
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             self.plan(self.commands + [self.commands[5]])
+
+    def test_explicit_package_version_reaches_only_its_original_stub_without_changing_other_flags(self):
+        commands = [c.copy() for c in self.commands]
+        commands.insert(-1, ['/usr/bin/cc', '-o', str(self.emission / 'version.o'),
+            '-I$MOON_HOME/include', '-c', '-O2', './src/cmd/native_client/version_stub.c'])
+        text = '\n'.join(shlex.join(c) for c in commands)
+        original = MODULE.commands_for(text, self.home, self.emission, self.allocator, self.clang, self.sdk,
+            entry=MODULE.LOCAL_ENTRY, source_sha=self.source)
+        versioned = MODULE.commands_for(text, self.home, self.emission, self.allocator, self.clang, self.sdk,
+            entry=MODULE.LOCAL_ENTRY, source_sha=self.source, package_version='0.0.7-rc.1')
+        differences = [(old, new) for old, new in zip(original, versioned) if old != new]
+        self.assertEqual(len(differences), 1)
+        self.assertEqual(differences[0][1], differences[0][0] + ['-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION="0.0.7-rc.1"'])
+        self.assertIn('./src/cmd/native_client/version_stub.c', differences[0][0])
+
+    def test_package_version_cannot_select_a_resident_helper_missing_stub_or_duplicate_literal(self):
+        text = '\n'.join(shlex.join(c) for c in self.commands)
+        with self.assertRaisesRegex(ValueError, 'version stub'):
+            MODULE.commands_for(text, self.home, self.emission, self.allocator, self.clang, self.sdk,
+                entry=MODULE.LOCAL_ENTRY, source_sha=self.source, package_version='0.0.7')
+        with self.assertRaisesRegex(ValueError, 'resident helper'):
+            MODULE.commands_for(text, self.home, self.emission, self.allocator, self.clang, self.sdk,
+                entry=MODULE.ENTRY, package_version='0.0.7')
+        for version in ('patch', '0.0.7rc1', '0.0.7\n'):
+            with self.assertRaises(subprocess.CalledProcessError):
+                MODULE.commands_for(text, self.home, self.emission, self.allocator, self.clang, self.sdk,
+                    entry=MODULE.LOCAL_ENTRY, source_sha=self.source, package_version=version)
+        duplicate = self.commands + [['/usr/bin/cc', '-c', './src/cmd/native_client/version_stub.c',
+            '-o', str(self.emission / 'version.o'), '-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION="0.0.7"']]
+        with self.assertRaisesRegex(ValueError, 'Duplicate Native package version'):
+            MODULE.commands_for('\n'.join(shlex.join(c) for c in duplicate), self.home, self.emission,
+                self.allocator, self.clang, self.sdk, entry=MODULE.LOCAL_ENTRY,
+                source_sha=self.source, package_version='0.0.7')
 
 
 if __name__ == '__main__':
