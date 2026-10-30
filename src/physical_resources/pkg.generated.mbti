@@ -988,6 +988,7 @@ pub(all) enum PreparationWorkPhase {
   ExecutionPlan
   PublicationProof
   RequestValuePolicyCheck
+  RequestPolicySubjectPreparation
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {

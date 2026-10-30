@@ -1009,3 +1009,68 @@ pub fn client_program_prepare_request_source_computation(
     },
   )
 }
+
+///|
+// SAME original Request after semantic check, before compiler/Plan selection.
+#export_name("clientProgramPrepareRequestPolicySubjects")
+pub fn client_program_prepare_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Int, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_computation_policy_subjects(
+    parent,
+    input,
+    environment,
+    client_request_value_policy_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramReadRequestPolicySubject")
+pub fn client_program_read_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.request_computation_policy_subject(
+    parent, input, environment, index,
+  )
+}
+
+///|
+// Invoke once per original descriptor, including an explicit verifier decline.
+#export_name("clientProgramBindRequestPolicySubject")
+pub fn client_program_bind_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+  policy_cid : String?,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.bind_request_computation_policy_subject(
+    parent, input, environment, index, policy_cid,
+  )
+}
+
+///|
+// Finish work and supplement this SAME child; no selected Environment escapes.
+#export_name("clientProgramFinishRequestPolicySubjects")
+pub fn client_program_finish_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_policy_subjects(
+    parent, input, environment,
+  )
+}

@@ -362,3 +362,446 @@ test "policy continuation generic Result scope finalizes once before foreign thr
   )
   assert_eq(finalized.val, 1)
 }
+
+///|
+fn funded_policy_subjects_test_limits() -> @checked.CompileLimits {
+  {
+    ..@publication_host.client_standard_program_preparation_limits().checking.compilation,
+    work: 1000000,
+    artifacts: { bytes: 1000000, nodes: 100000, depth: 100, },
+  }
+}
+
+///|
+fn funded_policy_subjects_prepare(
+  parent : ClientRequestPreparation[Array[Int]],
+  input : Array[Int],
+  environment : @checked.CheckEnvironment,
+) -> Result[Int, ClientRequestTerminalIssue] {
+  prepare_request_computation_policy_subjects(
+    parent,
+    input,
+    environment,
+    funded_policy_subjects_test_limits(),
+  )
+}
+
+///|
+test "funded policy subjects keep original work through verifier binding and compiler" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(
+    environment,
+    supplied=true,
+  )
+  let child = parent.program_check.unwrap()
+  let capacity = parent.capacity
+  let parameters = parent.native_parameters.unwrap()
+  let program = parent.held_program.unwrap()
+  assert_eq(
+    funded_policy_subjects_prepare(parent, input, environment).unwrap(),
+    1,
+  )
+  let subjects = child.policy_subjects.unwrap()
+  let work = child.policy_subject_work.unwrap()
+  let wire = request_computation_policy_subject(parent, input, environment, 0).unwrap()
+  assert_true(wire.contains("\"origin\":\"supplied\",\"parameter\":\"key\""))
+  let before = @resources.ledger_usage(parent.ledger)
+  let spent = @checked.request_policy_subjects_spent_work(subjects)
+  assert_eq(
+    request_computation_policy_subject(parent, input, environment, 0).unwrap(),
+    wire,
+  )
+  assert_eq(@checked.request_policy_subjects_spent_work(subjects), spent)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(
+    finish_request_computation_preparation(parent, input)
+    is Err(Preparation(WrongPhase)),
+  )
+  assert_true(
+    funded_policy_subjects_prepare(parent, input, environment)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  bind_request_computation_policy_subject(
+    parent,
+    input,
+    environment,
+    0,
+    Some(
+      "sha256:bc75d87043cc6314215460b4e0f2fbf5a72363edbe989ee7bb69acfc9021c808",
+    ),
+  ).unwrap()
+  assert_true(physical_equal(child.policy_subject_work.unwrap(), work))
+  assert_true(@checked.request_policy_subjects_spent_work(subjects) > spent)
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  assert_true(
+    child.policy_subject_work is None && child.policy_subjects is None,
+  )
+  assert_true(
+    @checked.source_execution_subject(request_policy_checked_egress(parent)).request_value_policy
+    is Some(_),
+  )
+  finish_request_computation_preparation(parent, input).unwrap()
+  assert_true(parent.compiled_program is Some(_))
+  assert_true(physical_equal(parent.capacity, capacity))
+  assert_true(physical_equal(parent.native_parameters.unwrap(), parameters))
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects consume explicit declines and cannot finalize missing verifier entries" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(environment)
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  let child = parent.program_check.unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    finish_request_computation_policy_subjects(parent, input, environment)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(
+    request_computation_policy_subject(parent, [1], environment, 0)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  bind_request_computation_policy_subject(parent, input, environment, 0, None).unwrap()
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  assert_true(
+    child.policy_subject_work is None && child.policy_subjects is None,
+  )
+  assert_true(
+    @checked.source_execution_subject(request_policy_checked_egress(parent)).request_value_policy
+    is None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects refuse a foreign policy without recompiling or refunding their work" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(environment)
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  let child = parent.program_check.unwrap()
+  let work = child.policy_subject_work.unwrap()
+  assert_true(
+    bind_request_computation_policy_subject(
+      parent,
+      input,
+      environment,
+      0,
+      Some("sha256:" + "0".repeat(64)),
+    )
+    is Err(Preparation(ProgramCheck(RequestPolicySubjects(_)))),
+  )
+  assert_true(
+    child.phase == Failed && !child.busy && parent.phase == ProgramCheckFailed,
+  )
+  assert_true(physical_equal(child.policy_subject_work.unwrap(), work))
+  assert_true(
+    finish_request_computation_preparation(parent, input)
+    is Err(Preparation(WrongPhase)),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects retire a returned verifier continuation on original Request cancellation" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(environment)
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  let child = parent.program_check.unwrap()
+  let subjects = child.policy_subjects.unwrap()
+  let work = child.policy_subject_work.unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    child.phase == Retired &&
+    child.policy_subject_work is None &&
+    child.policy_subjects is None,
+  )
+  assert_true(
+    @resources.resume_preparation_phase_work_continuation64(work) is Err(Closed),
+  )
+  try @checked.request_policy_subject_wire(subjects, 0) catch {
+    @checked.ForeignOwner => ()
+    error => raise error
+  } noraise {
+    _ => fail("retired verifier subject remained readable")
+  }
+  assert_true(
+    bind_request_computation_policy_subject(parent, input, environment, 0, None)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects one-byte-short prelude preserves the same original cleanup" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(environment)
+  let child = parent.program_check.unwrap()
+  let bytes = request_policy_subject_prelude_bytes(
+      parent,
+      child,
+      request_policy_checked_program(parent),
+      funded_policy_subjects_test_limits(),
+    ).unwrap().0
+  let before = @resources.ledger_usage(parent.ledger)
+  let limit = client_local_preparation_initial_limits(
+      client_local_resource_policy(),
+    ).unwrap().retained_bytes
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    limit - before.reserved_retention_bytes - bytes + 1L,
+    0L,
+  ).unwrap()
+  assert_true(
+    funded_policy_subjects_prepare(parent, input, environment)
+    is Err(
+      Preparation(
+        Capacity(
+          @resources.PreparationCapacityIssue::Resource(
+            @resources.LedgerIssue::RetentionLimit
+          )
+        )
+      )
+    ),
+  )
+  assert_true(
+    parent.phase == ProgramCheckFailed && child.phase == Failed && !child.busy,
+  )
+  assert_true(
+    child.policy_subjects is None && child.policy_subject_work is None,
+  )
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects retain measured work when output grow loses currentness" {
+  let environment = request_policy_supplement_environment()
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let (parent, input) = request_policy_supplement_fixture(environment, current=() => {
+    match selected.val {
+      None => true
+      Some(parent) => parent.program_check.unwrap().policy_subjects is None
+    }
+  })
+  selected.val = Some(parent)
+  let child = parent.program_check.unwrap()
+  assert_true(
+    funded_policy_subjects_prepare(parent, input, environment) is Err(_),
+  )
+  assert_true(
+    parent.phase == ProgramCheckFailed && child.phase == Failed && !child.busy,
+  )
+  assert_true(child.policy_subject_work is Some(_))
+  let subjects = child.policy_subjects.unwrap()
+  assert_true(@checked.request_policy_subjects_spent_work(subjects) > 0)
+  assert_true(
+    request_computation_policy_subject(parent, input, environment, 0)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  selected.val = None
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects price original supplied Unicode output before exposing verifier DATA" {
+  let environment = request_policy_supplement_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let text = policy_supplement_program
+    .replace(
+      old="\"type\":\"number\",\"default\":1",
+      new="\"type\":\"string\",\"default\":\"\"",
+    )
+    .replace(
+      old="\"id\":{\"$param\":\"key\"},\"tenant\":null",
+      new="\"id\":1,\"tenant\":{\"$param\":\"key\"}",
+    )
+  let mut previous = 0L
+  for length in [1, 4096] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let supplied = "{\"key\":\"" + "🙂".repeat(length) + "\"}"
+    // Explicit component port: conservative original native traversal envelope,
+    // not a claim that an SDK snapshot or public Source operation executed.
+    reserve_request_snapshot(
+      parent,
+      input,
+      (text.length() + supplied.length() + 32).to_int64(),
+      256L,
+    ).unwrap()
+    prepare_request_native_computation_check(
+      parent,
+      input,
+      request_native_test_value(text),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      supplied=Some(request_native_test_value(supplied)),
+    ).unwrap()
+    let parameters = parent.native_parameters.unwrap()
+    let before = @resources.ledger_usage(parent.ledger)
+    funded_policy_subjects_prepare(parent, input, environment).unwrap()
+    |> ignore
+    let after = @resources.ledger_usage(parent.ledger)
+    let extra = after.reserved_retention_bytes - before.reserved_retention_bytes
+    assert_true(extra > previous)
+    previous = extra
+    let wire = request_computation_policy_subject(parent, input, environment, 0).unwrap()
+    assert_true(wire.contains("🙂".repeat(length)))
+    assert_true(physical_equal(parent.native_parameters.unwrap(), parameters))
+    bind_request_computation_policy_subject(parent, input, environment, 0, None).unwrap()
+    finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "funded policy subjects fence same-parent reentry around the original current boundary" {
+  let environment = request_policy_supplement_environment()
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let entered = Ref(false)
+  let refused = Ref(false)
+  let (parent, input) = request_policy_supplement_fixture(environment, current=() => {
+    if !entered.val && action.val is Some(run) {
+      entered.val = true
+      run()
+    }
+    true
+  })
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  action.val = Some(() => {
+    refused.val = bind_request_computation_policy_subject(
+        parent,
+        input,
+        environment,
+        0,
+        None,
+      )
+      is Err(Preparation(ForeignOriginal)) &&
+      abort_request_preparation_after_cleanup(parent) is Err(WrongPhase)
+  })
+  bind_request_computation_policy_subject(parent, input, environment, 0, None).unwrap()
+  assert_true(entered.val && refused.val)
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects preserve the original Effect child and Parameters before Plan selection" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(
+    environment,
+    effect=true,
+    supplied=true,
+  )
+  let child = parent.program_check.unwrap()
+  let program = parent.held_program.unwrap()
+  let parameters = parent.native_parameters.unwrap()
+  assert_true(child.effect_candidate is Some(_))
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  bind_request_computation_policy_subject(
+    parent,
+    input,
+    environment,
+    0,
+    Some(
+      "sha256:bc75d87043cc6314215460b4e0f2fbf5a72363edbe989ee7bb69acfc9021c808",
+    ),
+  ).unwrap()
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  assert_true(physical_equal(parent.program_check.unwrap(), child))
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  assert_true(physical_equal(parent.native_parameters.unwrap(), parameters))
+  assert_true(
+    child.effect_candidate is Some(_) && child.compiled_effect is None,
+  )
+  assert_true(parent.effect_capacity is None && parent.program_capacity is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subject binder cannot borrow another original Request input" {
+  let environment = request_policy_supplement_environment()
+  let (left, left_input) = request_policy_supplement_fixture(environment)
+  let (right, right_input) = request_policy_supplement_fixture(environment)
+  funded_policy_subjects_prepare(left, left_input, environment).unwrap()
+  |> ignore
+  funded_policy_subjects_prepare(right, right_input, environment).unwrap()
+  |> ignore
+  let before = @resources.ledger_usage(right.ledger)
+  assert_true(
+    bind_request_computation_policy_subject(
+      right,
+      left_input,
+      environment,
+      0,
+      None,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(right.ledger), before)
+  bind_request_computation_policy_subject(
+    right,
+    right_input,
+    environment,
+    0,
+    None,
+  ).unwrap()
+  finish_request_computation_policy_subjects(right, right_input, environment).unwrap()
+  abort_request_preparation_after_cleanup(left).unwrap()
+  abort_request_preparation_after_cleanup(right).unwrap()
+  assert_eq(@resources.ledger_usage(left.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(right.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subject original-current throw keeps returned work and cleanup" {
+  let environment = request_policy_supplement_environment()
+  let armed = Ref(false)
+  let (parent, input) = request_policy_supplement_fixture(environment, current=() => {
+    if armed.val {
+      ignore(closed_module_test_throw())
+    }
+    true
+  })
+  funded_policy_subjects_prepare(parent, input, environment).unwrap() |> ignore
+  let child = parent.program_check.unwrap()
+  let original_work = child.policy_subject_work.unwrap()
+  armed.val = true
+  assert_true(
+    bind_request_computation_policy_subject(parent, input, environment, 0, None)
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_true(
+    child.phase == Failed && parent.phase == ProgramCheckFailed && !child.busy,
+  )
+  assert_true(physical_equal(child.policy_subject_work.unwrap(), original_work))
+  assert_true(child.policy_subject_evidence.unwrap().is_empty())
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  armed.val = false
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

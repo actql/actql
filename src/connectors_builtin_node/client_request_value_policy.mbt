@@ -1,4 +1,13 @@
 ///|
+fn client_request_value_policy_limits() -> @program_check.CompileLimits {
+  {
+    ..@publication_host.client_standard_program_preparation_limits().checking.compilation,
+    work: 1000000,
+    artifacts: { bytes: 1000000, nodes: 100000, depth: 100, },
+  }
+}
+
+///|
 fn client_request_value_policy_checks(
   graph : @strategy.CheckedDAG,
 ) -> Array[@program_check.SourceExecution] {
@@ -21,14 +30,15 @@ fn client_request_value_policy_checks(
 pub fn client_program_request_value_policy_subjects(
   value : @publication_host.PreparedClientProgram,
 ) -> Array[String] raise @program_check.UnitBuildFailure {
+  let limits = client_request_value_policy_limits()
   @program_check.request_value_policy_subject_wires(
     client_request_value_policy_checks(
       @publication_host.prepared_client_graph(value),
     ),
-    1000000,
-    1000000,
-    100000,
-    100,
+    limits.work,
+    limits.artifacts.bytes,
+    limits.artifacts.nodes,
+    limits.artifacts.depth,
   )
 }
 
@@ -46,9 +56,15 @@ pub fn client_program_bind_host_verified_request_value_policy(
     is Some(check) else {
     return None
   }
+  let limits = client_request_value_policy_limits()
   Some(
     @program_check.bind_host_verified_request_value_policy_cid(
-      check, policy_cid, 1000000, 1000000, 100000, 100,
+      check,
+      policy_cid,
+      limits.work,
+      limits.artifacts.bytes,
+      limits.artifacts.nodes,
+      limits.artifacts.depth,
     ),
   ) catch {
     _ => None
@@ -61,16 +77,17 @@ pub fn client_program_bind_host_verified_request_value_policy(
 pub fn client_program_effect_request_value_policy_subjects(
   value : @publication_host.PreparedClientEffectComputation,
 ) -> Array[String] raise @program_check.UnitBuildFailure {
+  let limits = client_request_value_policy_limits()
   @program_check.request_value_policy_subject_wires(
     client_request_value_policy_checks(
       @strategy.checked_effect_computation_graph(
         @publication_host.prepared_client_effect_computation_graph(value),
       ),
     ),
-    1000000,
-    1000000,
-    100000,
-    100,
+    limits.work,
+    limits.artifacts.bytes,
+    limits.artifacts.nodes,
+    limits.artifacts.depth,
   )
 }
 
@@ -89,9 +106,15 @@ pub fn client_program_effect_bind_host_verified_request_value_policy(
     is Some(check) else {
     return None
   }
+  let limits = client_request_value_policy_limits()
   Some(
     @program_check.bind_host_verified_request_value_policy_cid(
-      check, policy_cid, 1000000, 1000000, 100000, 100,
+      check,
+      policy_cid,
+      limits.work,
+      limits.artifacts.bytes,
+      limits.artifacts.nodes,
+      limits.artifacts.depth,
     ),
   ) catch {
     _ => None

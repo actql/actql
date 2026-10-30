@@ -157,6 +157,9 @@ struct ClientProgramCheckPreparation[I, P] {
   mut check_data : @checked.ParsedCheckDataEstimate?
   mut check_quote : (Int64, Int64)?
   mut check_outcome : @checked.CheckOutcome?
+  mut policy_subjects : @checked.RequestPolicySubjectPreparation?
+  mut policy_subject_work : @resources.PreparationPhaseWorkContinuation64?
+  mut policy_subject_evidence : Array[@checked.HostRequestValuePolicyEvidence]?
   mut check_work_complete : Bool
   mut compilation_limits : @publication_host.ClientProgramPreparationLimits?
   mut compilation_quote : (Int64, Int64)?
@@ -202,6 +205,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   ChangedInputs
   WrongPhase
   Overflow
+  RequestPolicySubjects(@checked.UnitBuildFailure)
 }
 
 ///|
@@ -298,6 +302,9 @@ fn[I, P] new_program_check_preparation(
     check_data: None,
     check_quote: None,
     check_outcome: None,
+    policy_subjects: None,
+    policy_subject_work: None,
+    policy_subject_evidence: None,
     check_work_complete: false,
     compilation_limits: None,
     compilation_quote: None,
@@ -398,6 +405,11 @@ fn[I, P] transfer_program_check_input(
   owner.check_data = None
   owner.check_quote = None
   owner.check_outcome = None
+  if owner.policy_subjects is Some(subjects) {
+    @checked.retire_request_policy_subjects(subjects)
+  }
+  owner.policy_subjects = None
+  owner.policy_subject_evidence = None
   owner.check_work_complete = false
   owner.compilation_limits = None
   owner.compilation_quote = None
@@ -440,6 +452,12 @@ pub fn[I, P] clear_program_check_preparation(
     match @resources.finish_preparation_phase_work_continuation64(work) {
       Err(issue) => return Err(Work(issue))
       Ok(_) => owner.topology_work = None
+    }
+  }
+  if owner.policy_subject_work is Some(work) {
+    match @resources.finish_preparation_phase_work_continuation64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => owner.policy_subject_work = None
     }
   }
   // The alias-drop helper marks Transferred for its actual take callers.

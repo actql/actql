@@ -3663,3 +3663,36 @@ parse, lowerer or semantic checker. The existing typed Pure/Effect continuation
 owns the eventual body; domain-specific Plan construction and retirement remain
 separate obligations. This boundary alone does not implement Host subject
 serialization, verifier backing or Model/Content Plan adoption.
+
+
+### Same-Request verifier subject lifetime
+
+The semantic-check child retains the verifier's original checked subjects,
+request identities and Parameter origins. A pre-construction quote uses the
+same Program and supplied-Parameter admission dimensions plus the checked static
+request-field inventory. It adds variable hash/sort/value traversal backing to
+the existing working reservation before measuring. Fixed Host control frames
+use the existing Host overhead. After measurement, the exact output bytes,
+nodes and depth back both the descriptor writer and the trusted Host's parsed,
+frozen descriptor DATA while the original checked facts remain live.
+
+Descriptor meaning and admitted-policy lookup remain the existing checker
+owners. The staged writer retains the completed immutable request identity and
+origins; binding an already verified policy does not hash them again. The legacy
+descriptor and per-binding logical refusal bounds are unchanged. Added rendering
+work is bounded by the completed measurement, and each binding retains its old
+logical work bound. All actual deltas charge one cumulative work receipt on the
+same original reservation. Returning that receipt across a verifier await does
+not close, reset, replenish or transfer it.
+
+The Host consumes every original descriptor index once, including an explicit
+undefined decline. Cheap reads repeat no hashing, serialization or external
+current callback. A binding checks currentness at its own post-await boundary,
+then fences reentry by the same Request/input/child association. No compiled
+body can be selected while the verifier work remains open. Finalization requires
+all indices, closes that work, and invokes the existing policy-only supplement
+on the same child with its original external Environment. Cancellation, typed
+refusal and foreign throws retain the same cleanup carrier; clearing the
+Request closes returned work and drops subject/evidence aliases. Neither a
+policy CID nor this DATA lifetime issues provider permission, acknowledges
+physical cleanup, changes Model Scope meaning or chooses a Model/Content Plan.
