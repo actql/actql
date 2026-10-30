@@ -3432,3 +3432,17 @@ inventory alias. Provider preparation receives the same original managed
 Run, rechecks it after an await and retains only the original association.
 This semantic forwarding does not supply missing physical reader backing,
 Source authorization, completion evidence or cleanup acknowledgement.
+
+## Captured suffix demand survives general metadata selection
+
+A Pure captured Source retains the existing checked schema demand for its
+Compute suffix on the same capacity Plan. The original graph offset and
+prepared sequence owners determine that inventory. It is not a second
+Program check or a replacement bound inferred from observed rows.
+
+A suffix inventory cannot specialize metadata for the entire captured graph.
+That independent metadata condition remains unchanged; selecting its general
+layout does not discard the schema demand already used by the Plan's value
+policy. Quote, configured Compute and publication therefore retain the same
+original demand. Effect/general inputs keep their existing selection, and
+all row, value, wire, work and original-parent checks remain separate.

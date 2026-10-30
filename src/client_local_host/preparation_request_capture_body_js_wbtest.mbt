@@ -537,3 +537,31 @@ test "captured QueryTime requirement preserves the same invocation original with
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   ignore(input)
 }
+
+///|
+// Same actual checked Source and original Request/Plan. No reader, transport,
+// physical admission or public Run is supplied by this compiler-path counter.
+test "Source Compute Plan retains its checked leaf demand through original Request adoption" {
+  let (parent, input, prepared) = request_capture_fixture()
+  let (plan, request) = request_capture_plan_fixture(prepared)
+  complete_request_capture_preparation(parent, input, plan).unwrap()
+  let run = begin_request_capture_managed_run(parent, request).unwrap()
+  let original = installed_managed_capture_plan(run, prepared, request).unwrap()
+  assert_true(physical_equal(original, plan))
+  let capacity = original.capacity_plan
+  let scalar = match (capacity.scalar_demand, capacity.schema_inventory) {
+    (Some(demand), Some(inventory)) =>
+      physical_equal(demand.original, inventory)
+    _ => false
+  }
+  let leaves = match (capacity.value_node_demand, capacity.demand_inventory) {
+    (Some(demand), Some(inventory)) =>
+      physical_equal(demand.original, inventory)
+    _ => false
+  }
+  // Retire the real unused original even when this new positive assertion
+  // finds the missing immutable proof. No physical attempt occurred here.
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(scalar && leaves)
+}
