@@ -1942,6 +1942,14 @@ pub fn client_program_kintone_create_body(@actql/actql/connectors/kintone/catalo
 
 pub fn client_program_kintone_create_count(@actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> Int
 
+pub fn client_program_kintone_create_effect_outcome(@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/catalog.RecordCreateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_create_effect_outcome_matches_request(@actql/actql/connectors/kintone/catalog.RecordCreateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> Bool
+
+pub fn client_program_kintone_create_effect_outcome_response_sha256(@actql/actql/connectors/kintone/catalog.RecordCreateEffectOutcome) -> String
+
+pub fn client_program_kintone_create_effect_outcome_wire(@actql/actql/connectors/kintone/catalog.RecordCreateEffectOutcome) -> String
+
 pub fn client_program_kintone_create_execution_request(@actql/actql/connectors/kintone/host.RecordCreateMapping, Bytes, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/host.RecordCreateExecutionIssue]
 
 pub fn client_program_kintone_create_mapping_body(@actql/actql/connectors/kintone/host.RecordCreateMapping) -> Result[String, @actql/actql/connectors/kintone/host.RecordCreateExecutionIssue]
