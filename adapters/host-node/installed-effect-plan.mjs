@@ -154,6 +154,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   let token = checked(Reflect.apply(borrow, runtime,
     [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
   let construct = originalConstruct;
+  originalConstruct = undefined;
   let state = 'fresh';
   let preparing = false;
   const drain = () => {
