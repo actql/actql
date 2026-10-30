@@ -45,7 +45,7 @@ function opening() {
 }
 
 function preparedEnvironmentLifetime({missing = false, retire = () => {},
-  consumerRetire = () => {}, install = true} = {}) {
+  consumerRetire = () => {}, install = true, preparation} = {}) {
   const opening = declared('openInstalledHost');
   assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
@@ -95,7 +95,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     let mockAccount,standardAccountPreparation;
     const retireInstalledProjectConfiguration=()=>{throw new Error('UnexpectedProject');};
     const clientOperationError=code=>Object.assign(new Error(code),{code});
-    const valuesMaxRows=undefined,check=()=>{},verifyRequestValuePolicy=()=>{};
+    const valuesMaxRows=undefined,retainedRelationOutput=false,check=()=>{},verifyRequestValuePolicy=()=>{};
     const updateTargetOriginals={restorePrepared:()=>{}},control={},calendarArtifact=undefined;
     const effectInstallation=undefined;
     const installNodeClientProgramPreparation=options=>{
@@ -117,7 +117,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
   `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,undefined),original,consumer,
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,preparation),original,consumer,
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
@@ -364,6 +364,64 @@ test('actual Host forwards the selected async manager result once without an opt
   delete raw.fundedPreparation;
   assert.throws(()=>f.preparation.fundedPreparation(request,environment),TypeError);
   assert.equal(calls,1);
+  await f.initialControl.close();
+});
+
+test('funded policy Host keeps its original context before snapshot instead of suppressing the owner', () => {
+  const moon = {}, control = {}, environment = {}, preparedEnvironment = {};
+  const original = Object.freeze({runtime: moon, control, environment, preparedEnvironment,
+    retainedRelationOutput: false, valuesMaxRows: 2});
+  const installation = {projectRuntime: moon, initialControl: control,
+    sequenceContractOriginal: {}, retainedRelationOutput: false, valuesMaxRows: 2,
+    verifyRequestValuePolicy() {}, closedValuesPreparationContext: original};
+  const read = new Function('assertSourceManagedHostPreparation', 'clientOperationError',
+    text(declared('readLocalPreparationContext')) + ';return readLocalPreparationContext;')(
+    value => assert.strictEqual(value.installation, installation),
+    code => Object.assign(new Error(code), {code}));
+  assert.strictEqual(read({installation}), original);
+  installation.closedValuesPreparationContext = Object.freeze({...original, valuesMaxRows: 3});
+  assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  installation.closedValuesPreparationContext = Object.freeze({...original, runtime: {}});
+  assert.equal(read({installation}), undefined, 'A foreign runtime cannot acquire the original context');
+});
+
+test('funded policy installer forwards the exact verifier to its original preparation', async () => {
+  const request = {}, environment = {}, result = {};
+  let calls = 0, expectedVerifier;
+  const preparation = {fundedPreparation(actual, selected, verifier) {
+    assert.strictEqual(this, preparation);
+    assert.strictEqual(actual, request);
+    assert.strictEqual(selected, environment);
+    assert.strictEqual(verifier, expectedVerifier);
+    calls++;
+    return Promise.resolve(result);
+  }};
+  const f = preparedEnvironmentLifetime({preparation});
+  expectedVerifier = f.fixture.options.verifyRequestValuePolicy;
+  assert.equal(typeof expectedVerifier, 'function');
+  assert.strictEqual(await f.fixture.options.getFundedPreparation(request, environment, expectedVerifier), result);
+  assert.equal(calls, 1);
+  f.fixture.retire();
+});
+
+test('funded policy manager forwarding preserves the same callback and original request mapping', async () => {
+  const request = {}, originalRequest = {}, environment = {}, verifier = () => {}, result = {};
+  let calls = 0, mappings = 0;
+  const manager = {fundedPreparation(actual, selected, originalVerifier) {
+    assert.strictEqual(this, manager);
+    assert.strictEqual(actual, originalRequest);
+    assert.strictEqual(selected, environment);
+    assert.strictEqual(originalVerifier, verifier);
+    calls++;
+    return Promise.resolve(result);
+  }, close() {return {pending: false};}};
+  const f = lifecycle({factory: async () => manager, originalRequest(value) {
+    assert.strictEqual(value, request); mappings++; return originalRequest;
+  }});
+  await f.preparation.prepareManagedCompute();
+  assert.strictEqual(await f.preparation.fundedPreparation(request, environment, verifier), result);
+  assert.equal(calls, 1);
+  assert.equal(mappings, 1);
   await f.initialControl.close();
 });
 
