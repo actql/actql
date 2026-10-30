@@ -58,6 +58,16 @@ unfiltered Source capture and ordinary read/failure/release/Saved remain separat
 required work. The focused initializer and raw-file cases use explicit parent,
 current and I/O accounting ports; they are not nominal Core or normal acceptance.
 
+## Original binding retirement acknowledgement
+
+The shared Reader captures each returned binding's original close and optional
+retirement method before provider use. A failed method capture leaves that
+binding unconfirmed through the outer read failure. A socket-close acknowledgement
+cannot clear this separate retirement duty or permit the Reader/factory to report
+cleanup complete. A valid original retirement that reports pending remains held
+until the same retry observes its acknowledgement; no replacement method or
+second binding is selected.
+
 ## Failed Reader and Account initialization
 
 The existing initialization cleanup owner retains a supplied `sourceReader`

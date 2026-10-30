@@ -85462,7 +85462,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "2b715bf6faa61c8e9d866791e2f048bfdcb2349b4bcfb15491e570dbdbbd3094",
+      "sha256": "39d4592c770137d8e0661aed0c3f5e39b4e4aed276aed98596e3ed727e579429",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -85942,6 +85942,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-reader-binding-retirement.test.mjs",
+                "anchor": "invalid original binding retirement cannot become acknowledged socket cleanup"
               }
             ]
           }
@@ -86052,6 +86056,10 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-reader-binding-retirement.test.mjs",
+                "anchor": "invalid original binding retirement cannot become acknowledged socket cleanup"
               }
             ]
           }

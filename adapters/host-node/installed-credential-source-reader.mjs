@@ -519,7 +519,9 @@ export function createInstalledCredentialSourceReader(options) {
             await verify(); phase = 'succeeded';
             if (standard || managedSequence) return result;
           } catch (cause) {
-            escapedResponseGraph = Array.isArray(cause?.observations) && cause.observations.length > 0;
+            // A failed original binding-method capture remains unacknowledged.
+            // Socket close cannot erase that separate retirement duty.
+            escapedResponseGraph ||= Array.isArray(cause?.observations) && cause.observations.length > 0;
             phase = 'failed'; primary = cause;
             if ((standard || managedSequence) && onError !== undefined) throw callProjection(onError,provider,[cause]);
             throw cause;
