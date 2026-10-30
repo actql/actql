@@ -16,7 +16,7 @@ test('Sheets tab callbacks capture same codec receiver complete columns limits a
   // Explicit Result port below uses the existing runtime's successful Result
   // carrier only; actual compiler Result ABI is checked by the separate case.
   const originalProject=moon.sheetsProjectTabs,originalRows=moon.sheetsTabsRowsWire;
-  const good=value=>({$tag:1,0:value});
+  const good=value=>({$tag:1,_0:value});
   moon.sheetsProjectTabs=function(...args){return good(Reflect.apply(originalProject,this,args)[0]);};
   moon.sheetsTabsRowsWire=function(...args){return good(Reflect.apply(originalRows,this,args)[0]);};
   const selected={...limits};

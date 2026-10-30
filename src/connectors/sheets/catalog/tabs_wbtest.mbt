@@ -164,3 +164,57 @@ test "Sheets tabs bound whole inventory typed material and final output before s
     ForeignSpreadsheet,
   )
 }
+
+///|
+test "Sheets tabs refuse contradictory kind and incomplete metadata without inventing rows or grid extents" {
+  let original = tabs_original()
+  for
+    changed in [
+      original.replace(
+        old="\"sheetType\":\"OBJECT\"",
+        new="\"sheetType\":\"OBJECT\",\"gridProperties\":{}",
+      ),
+      original.replace(
+        old="\"sheetType\":\"OBJECT\"",
+        new="\"sheetType\":\"UNKNOWN\"",
+      ),
+      original.replace(old="\"sheetType\":\"OBJECT\"", new="\"sheetType\":null"),
+      original.replace(
+        old="\"sheetType\":\"DATA_SOURCE\",\"gridProperties\":{\"rowCount\":0,\"columnCount\":1}",
+        new="\"sheetType\":\"DATA_SOURCE\"",
+      ),
+      original.replace(
+        old="\"title\":\"Chart\"",
+        new="\"title\":\"Chart\",\"title\":\"foreign\"",
+      ),
+    ] {
+    assert_eq(
+      tabs_error(
+        project_sheet_tabs(@utf8.encode(changed), "book", tabs_limits()),
+      ),
+      InvalidResponse,
+    )
+  }
+  assert_eq(
+    tabs_error(
+      project_sheet_tabs(
+        @utf8.encode(
+          original.replace(old="\"columnCount\":3", new="\"columnCount\":null"),
+        ),
+        "book",
+        tabs_limits(),
+      ),
+    ),
+    InvalidCell("column_count"),
+  )
+  assert_eq(
+    tabs_error(
+      project_sheet_tabs(
+        @utf8.encode(original.replace(old="\"index\":1,", new="")),
+        "book",
+        tabs_limits(),
+      ),
+    ),
+    InvalidCell("index"),
+  )
+}
