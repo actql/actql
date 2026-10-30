@@ -53,6 +53,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_effect_phase_bridge.mbt',
     'client_effect_content_bridge.mbt',
     'client_recovered_content_bridge.mbt',
+    'calendar_events_bridge.mbt',
     'client_effect_checked_row_bridge.mbt']) {
     const input = join(root, 'src/connectors_builtin_node', file);
     const output = join(root, 'src/connectors_builtin_node_rela', file);
