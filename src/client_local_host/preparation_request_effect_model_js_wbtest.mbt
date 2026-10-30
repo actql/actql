@@ -4,6 +4,7 @@
 // complete physical Model/Host recipe, permission or normal runtime acceptance.
 fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
+  model_initial? : Bool = true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -14,6 +15,16 @@ fn request_effect_model_plan_fixture(
   ],
 ) raise {
   let (environment, document) = effect_model_plan_source()
+  let ordinary = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+  ).unwrap()
+  // Compose the same selected profile before input, using the existing fold.
+  // This explicit component entrance is not C's full physical first recipe.
+  let initial_limits = if model_initial {
+    @resources.add_ledger_limits(ordinary, effect_model_plan_limits).unwrap()
+  } else {
+    ordinary
+  }
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
     text=document,
@@ -21,6 +32,7 @@ fn request_effect_model_plan_fixture(
     effect_limits=Some(
       @publication_host.client_standard_effect_computation_limits(),
     ),
+    initial_limits=Some(initial_limits),
   )
   finish_effect_program_check_preparation(child).unwrap() |> ignore
   let prepared = compile_effect_program_check_preparation(child).unwrap()
@@ -58,6 +70,23 @@ fn request_effect_model_plan_fixture(
     e + plan.limits.execution_bytes,
   ).unwrap()
   (parent, input, plan, request, construction)
+}
+
+///|
+test "ordinary initial quote still refuses the selected Model work before Scope construction" {
+  let (parent, input, plan, _, construction) = request_effect_model_plan_fixture(
+    model_initial=false,
+  )
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_effect_model_read_scope(parent, input, plan)
+    is Err(InsufficientCapacity),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(parent.effect_plan is None && parent.phase == EffectPlanReserved)
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|

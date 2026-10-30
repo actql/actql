@@ -1,4 +1,16 @@
 ///|
+// Original selected installation DATA shared by the initial quote and the
+// later checked Model demand. This is not a physical Model profile or Allow.
+let effect_model_plan_limits : @resources.LedgerLimits = {
+  planning_work: 17,
+  attempts: 4,
+  holdings: 3,
+  transfer_bytes: 2048L,
+  retained_bytes: 1000L,
+  execution_bytes: 2000L,
+}
+
+///|
 // Real checked Model/Effect/Run originals with independently selected finite
 // test bounds. These component ports perform no Source/Model IO or permission.
 fn effect_model_plan_source() -> (@checked.CheckEnvironment, String) raise {
@@ -121,25 +133,8 @@ fn effect_model_plan_for_prepared(
     20,
   ).unwrap()
   let model = prepare_installed_effect_model_demand(
-    prepared,
-    compiled,
-    compilation,
-    definition,
-    occurrence,
-    graph,
-    {
-      planning_work: 17,
-      attempts: 4,
-      holdings: 3,
-      transfer_bytes: 2048L,
-      retained_bytes: 1000L,
-      execution_bytes: 2000L,
-    },
-    500L,
-    700L,
-    20,
-    20,
-    20,
+    prepared, compiled, compilation, definition, occurrence, graph, effect_model_plan_limits,
+    500L, 700L, 20, 20, 20,
   ).unwrap()
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,

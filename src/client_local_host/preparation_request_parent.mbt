@@ -276,7 +276,11 @@ pub fn[I] begin_request_preparation(
     Err(issue) => return Err(Initial(issue))
     Ok(value) => value
   }
-  if @resources.ledger_limits(ledger) != expected {
+  // The fixed preparation purpose may already cover additional installed
+  // domains. Its original sealed envelope must contain the Local baseline;
+  // it need not equal that domain alone. This reads the admitted owner's
+  // actual limits, never caller DATA or a new counter/permission grant.
+  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match

@@ -4102,3 +4102,12 @@ is not a Model quote. Byte adequacy, installed policy identity or a live Scope
 cannot waive a counter mismatch. The complete physical census, Model material,
 configuration and callback coexistence must also be funded before binding;
 this interface supplies no spare extent or numerical physical recipe.
+
+The Request entrance preserves its fixed policy identity and checks that the
+original admitted preparation envelope contains that Local baseline in every
+dimension. It does not require an already composed original parent to equal
+only the Local component. Additional domain quantities must have been admitted
+by the same original supplier before input, using the selected installation's
+real composition; input DATA cannot add limits or turn that preparation purpose
+into a legacy Model permission. Each completed domain Plan still has to fit
+the same actual parent, and its original authorization and cleanup remain.
