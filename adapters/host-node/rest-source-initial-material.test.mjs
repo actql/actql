@@ -12,6 +12,12 @@ import {readOriginalConfigurationBytes, readOriginalConfigurationText,
 import {createRestSourceMetadata} from './rest-source-metadata.mjs';
 import {createInstalledRestSource} from './installed-rest-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {captureInstalledSourceServices} from './installed-host-services.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {restSourcePageReader} from './rest-source-page.mjs';
+import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
+import {projectRestConnector} from '../../scripts/connector-authoring.mjs';
 
 const beforePath = process.env.ACTQL_TEST_REST_METADATA_BEFORE;
 function selectedMetadata() {
@@ -148,4 +154,101 @@ test('original text reader retains its prior UTF8 projection and opened-FD refus
       }, async close() {closes++;}};},
   });
   assert.equal(value, 'original text\r\né');assert.deepEqual(pending, ['extent', 'projection']);assert.equal(closes, 1);
+});
+
+// Actual factory body and existing pure dependencies, with only the final
+// row-source construction port replaced. This proves caller selection DATA,
+// not C's private construction/funding, a Site or an ordinary public Host.
+function demandFactory(finalConstructor) {
+  const text = readFileSync(new URL('./installed-rest-source.mjs', import.meta.url), 'utf8');
+  const body = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(node => node.type !== 'ImportDeclaration')
+    .map(node => text.slice((node.declaration ?? node).start, node.end)).join('\n');
+  return new Function('createHash', 'types', 'canonicalJson', 'captureInstalledSourceServices',
+    'createInstalledRowSource', 'retainInstalledHostInitializationFailure', 'createRestSourceMetadata',
+    'restSourcePageReader', 'installedJsonSourceReaderLimitNames', body + ';return createInstalledRestSource;')(
+    createHash, types, canonicalJson, captureInstalledSourceServices, finalConstructor,
+    retainInstalledHostInitializationFailure, createRestSourceMetadata, restSourcePageReader,
+    installedJsonSourceReaderLimitNames);
+}
+
+function demandFixture(authored) {
+  const generated = projectRestConnector(authored);
+  const definition = JSON.parse(generated.files[`src/connectors/${authored.id}/rest-source.json`]);
+  // Original selected standard profile, from installed_source_reader_profile
+  // and its standard record/Client policies. These are rejection bounds only.
+  const policy = Object.freeze({maxResponseBytes: 1000000, maxTotalResponseBytes: 100000000,
+    maxNodes: 100000, maxDepth: 64, maxRows: 100, maxTotalRows: 100, maxPages: 100,
+    pageSize: 100, maxCursorBytes: 4000000, maxIdentityBytes: 1000000,
+    maxTargetBytes: authored.origin.length + 9180428, maxValueNodes: 10000,
+    maxValueTextBytes: 1000000, maxRowsWireBytes: 10000000, maxRowsWireNodes: 100000,
+    maxRowsWireDepth: 100, maxColumns: 100, maxProperties: 10000, maxNameUnits: 10000,
+    maxObjects: 1024, maxDeclarationBytes: 10000000, maxDeclarationNodes: 100000,
+    maxSecretBytes: 65536});
+  const profile = {version: generated.profileVersion, connectorId: 'selected-rest',
+    siteProfilePath: '/UNOPENED/selected-site.json', accountConfigurationWire: '{}'};
+  const selectedSite = {...site, apiOrigin: authored.origin};delete selectedSite.caPath;
+  return {definition, policy, profile, selectedSite};
+}
+
+async function observeDemand(f) {
+  let implementation, rowSource, siteCalls = 0;
+  const capacity = {}, prepared = {declaration: {}, declared: {catalog_cid: 'authored-catalog',
+    views: f.definition.sources.map(source => ({resource: source.resource,
+      fields: source.fields.map(field => field.name)}))}, environment: {wire: 'original-environment'}};
+  const initialization = {prepareAuthoredDeclaration(wire) {
+    assert.equal(wire, f.definition.authoredViewsWire);return prepared;
+  }};
+  const services = {
+    sourceReaderImplementationProfile() {return f.policy;},
+    sourceReaderImplementation(input) {implementation = input;
+      return {capacity, limits: input.limits, runAcquisitionLimits: {}};},
+    async openRowSite() {siteCalls++;return {site: {}, authorization: {context: {contextCid: 'authored-context'}}};},
+    createSourceReader(input) {assert.equal(input.implementation.capacity, capacity);return {capacity};},
+  };
+  const moon = Object.fromEntries(['ProjectJsonPage', 'JsonPageRowsWire', 'JsonPageRowCount',
+    'JsonPageHasNextCursor', 'JsonPageNextCursor'].map(name => ['clientProgramRowSource'+name,
+    () => assert.fail('No page/decoder call in a selection-only component')]));
+  const create = demandFactory(async options => {rowSource = options;return 'selected-source-port';});
+  const run = () => create(f.definition).load(f.profile, {installationServices: services,
+    sourceInitialization: initialization, installation: {}, moon, resolveSecret() {},
+    configurationReader: {readJson: async () => f.selectedSite, readText() {assert.fail('No physical read');}}});
+  return {run, observations: () => ({implementation, rowSource, siteCalls, prepared})};
+}
+
+test('REST factory selects the same validated authored demand for implementation and Source', async () => {
+  const authored = JSON.parse(readFileSync(new URL('../../scripts/fixtures/external-rest/connector.json', import.meta.url)));
+  for (const multiple of [false, true]) {
+    const selected = structuredClone(authored);
+    if (multiple) selected.sources.other = {...structuredClone(selected.sources.customers),
+      limits: {maxPageRows: 3, maxPageBytes: 512, maxPages: 4, maxRows: 7,
+        maxNodes: 128, maxDepth: 8, maxCursorBytes: 64}};
+    const f = demandFixture(selected), probe = await observeDemand(f);
+    assert.equal(await probe.run(), 'selected-source-port');
+    const {implementation, rowSource, prepared} = probe.observations();
+    const expected = multiple ? {maxPages: 4, maxPageBytes: 512, maxPageRows: 3, maxCaptureRows: 7}
+      : {maxPages: 3, maxPageBytes: 256, maxPageRows: 2, maxCaptureRows: 4};
+    assert.deepEqual(rowSource.limits, expected);
+    const selectedFields = {maxPages: expected.maxPages, maxResponseBytes: expected.maxPageBytes,
+      maxRows: expected.maxPageRows, maxTotalRows: expected.maxCaptureRows};
+    for (const [name,value] of Object.entries(selectedFields))assert.equal(implementation.limits[name], value);
+    for (const name of [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'])
+      if (!Object.hasOwn(selectedFields, name))assert.equal(implementation.limits[name], f.policy[name]);
+    assert.strictEqual(rowSource.declaration, prepared.declaration);
+    assert.strictEqual(rowSource.declared, prepared.declared);assert.strictEqual(rowSource.environment, prepared.environment);
+  }
+});
+
+test('REST authored bounds still refuse above any selected policy before implementation or Site', async () => {
+  const authored = JSON.parse(readFileSync(new URL('../../scripts/fixtures/external-rest/connector.json', import.meta.url)));
+  const names = {maxPageRows: 'maxRows', maxPageBytes: 'maxResponseBytes', maxPages: 'maxPages',
+    maxRows: 'maxTotalRows', maxNodes: 'maxNodes', maxDepth: 'maxDepth', maxCursorBytes: 'maxCursorBytes'};
+  for (const [authorName,policyName] of Object.entries(names)) {
+    const selected = structuredClone(authored), policy = demandFixture(selected).policy;
+    selected.sources.customers.limits[authorName] = policy[policyName] + 1;
+    if (authorName === 'maxPageRows')selected.sources.customers.limits.maxRows = policy.maxTotalRows + 1;
+    const probe = await observeDemand(demandFixture(selected));
+    await assert.rejects(probe.run(), {code: 'RestSourceImplementationBoundsExceeded'});
+    assert.equal(probe.observations().implementation, undefined);assert.equal(probe.observations().siteCalls, 0);
+  }
 });

@@ -87831,7 +87831,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5841d5fdc441550ed7ca79fe22b88392e19e31905774d05dd53cd296feca2ed",
+      "sha256": "6315e265f870e6775e9e41c521cc2d697f3b6f94cfbb6e4348b01786c73dbfb8",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -87903,28 +87903,28 @@
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/load",
+          "name": "createInstalledRestSource/load/limits/limits",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/load#2",
+          "name": "createInstalledRestSource/load/limits/limits#2",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/load#3",
+          "name": "createInstalledRestSource/load/limits/limits#3",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/load#4",
+          "name": "createInstalledRestSource/load/limits/limits#4",
           "parameters": [
             "source"
           ],
@@ -88021,10 +88021,10 @@
             "createInstalledRestSource/load/implementation/implementation",
             "createInstalledRestSource/load/implementationLimits/implementationLimits",
             "createInstalledRestSource/load/init:preparePageReader/init:preparePageReader",
-            "createInstalledRestSource/load/load",
-            "createInstalledRestSource/load/load#2",
-            "createInstalledRestSource/load/load#3",
-            "createInstalledRestSource/load/load#4",
+            "createInstalledRestSource/load/limits/limits",
+            "createInstalledRestSource/load/limits/limits#2",
+            "createInstalledRestSource/load/limits/limits#3",
+            "createInstalledRestSource/load/limits/limits#4",
             "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
             "createInstalledRestSource/load/pages/pages",
             "createInstalledRestSource/load/physicalTarget/physicalTarget",
@@ -88133,6 +88133,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "Common checks the additions and reserves them before the reader"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// Both constructors select the same already-validated Source demand."
               }
             ],
             "extension": [
@@ -88161,6 +88165,14 @@
               {
                 "path": "docs/contributing/connector-authoring.md",
                 "anchor": "Source checks,"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST factory selects the same validated authored demand for implementation and Source'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST authored bounds still refuse above any selected policy before implementation or Site'"
               }
             ]
           }
