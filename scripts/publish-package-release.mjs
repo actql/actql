@@ -350,18 +350,19 @@ export async function approveStagedPackageRelease(options) {
     try {
       assert(reply && Object.keys(reply).length === 2 && Object.hasOwn(reply,'code') && Object.hasOwn(reply,'signal'),
         'Owner terminal must return only nonsecret code/signal');
-      assert((reply.code === null || (Number.isSafeInteger(reply.code) && reply.code >= 0)) &&
-        (reply.signal === null || (typeof reply.signal === 'string' && /^SIG[A-Z0-9]{1,12}$/u.test(reply.signal))), 'Original owner terminal unavailable');
-      await record(`${index}-terminal.json`,{code:reply.code,signal:reply.signal});
-      assert(reply.code === 0 && reply.signal === null,'Owner approval command did not confirm completion');
+      const terminal = {code:reply.code,signal:reply.signal};
+      assert((terminal.code === null || (Number.isSafeInteger(terminal.code) && terminal.code >= 0)) &&
+        (terminal.signal === null || (typeof terminal.signal === 'string' && /^SIG[A-Z0-9]{1,12}$/u.test(terminal.signal))), 'Original owner terminal unavailable');
+      await record(`${index}-terminal.json`,terminal);
+      assert(terminal.code === 0 && terminal.signal === null,'Owner approval command did not confirm completion');
       current=current.map((value,position)=>position===index?{file:value.file,state:'published',stageId:null}:value);
       await fence(`${index}-after`);
       await record(`${index}-confirmed.json`,{file:item.file,stageId:item.stageId,state:'original-public-bytes-observed'});
       results.push({file:item.file,stageId:item.stageId,state:'original-public-bytes-observed'});
     } catch(failure) {
       try {await record(`${index}-unknown.json`,{state:'unknown',reason:'terminal-or-public-readback-unconfirmed',originalIntent:`${index}-intent.json`});}
-      catch(cleanup){Object.assign(cleanup,{originalApprovalError:failure,originalAttempt:attempt});throw cleanup;}
-      throw Error(`Original owner approval outcome unknown; preserve ${attempt} and explicitly reobserve`,{cause:failure});
+      catch(cleanup){Object.assign(cleanup,{originalAttempt:attempt});throw retainOriginalPublisherFailure(cleanup,failure,'originalApprovalError');}
+      throw retainOriginalPublisherFailure(Error(`Original owner approval outcome unknown; preserve ${attempt} and explicitly reobserve`),failure,'originalApprovalError');
     }
   }
   await fence('final'); await verifyReleaseSet(directory,{expectedSha256});

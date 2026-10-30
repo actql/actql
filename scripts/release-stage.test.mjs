@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test, {before, after} from 'node:test';
@@ -602,4 +602,95 @@ test('npm owner helper: original private owner failure custody survives without 
   assert.equal(f.commands.length,1);
   const targetRoot=join(f.options.receiptsDirectory,reviewed.sha256,'owner-approval','node'),[attempt]=await readdir(targetRoot);
   for(const name of await readdir(join(targetRoot,attempt)))assert(!(await readFile(join(targetRoot,attempt,name),'utf8')).includes('PRIVATE-AUTH'));
+});
+
+// Own returned terminal DATA only. Authentication/output getters are spies,
+// never a real prompt, OTP or owner session.
+function ownerTerminalResponse(initial,later=null,failure=null) {
+  const current={...initial},reads={code:0,signal:0},secretReads={stdout:0,otp:0},reply={};let mutated=false;
+  for(const field of Object.keys(reads))Object.defineProperty(reply,field,{enumerable:true,get(){
+    reads[field]++;
+    if(field==='code'&&failure)throw failure;
+    if(field==='code'&&reads[field]===1&&later)queueMicrotask(()=>{Object.assign(current,later);mutated=true;});
+    return current[field];
+  }});
+  for(const field of Object.keys(secretReads))Object.defineProperty(reply,field,{get(){secretReads[field]++;throw Error('INERT forbidden owner output read');}});
+  return {reply,reads,secretReads,mutated:()=>mutated};
+}
+
+for(const [name,code,signal]of [['nonzero',1,null],['signalled',0,'SIGTERM'],['unreported code',null,null]])
+test(`npm owner terminal custody: original ${name} cannot become approval during receipt IO`,async t=>{
+  const f=await ownerFixture(t),original=f.options.runNpmOwner;
+  const initial={code,signal},captured=ownerTerminalResponse(initial,{code:0,signal:null});
+  await assert.rejects(f.approve({runNpmOwner:async(args,context)=>{
+    const reply=await original(args,context);return context.phase==='owner-approval'&&f.commands.length===1?captured.reply:reply;
+  }}),failure=>{assert.match(failure.message,/outcome unknown/u);
+    assert.match(failure.originalApprovalError.message,/command did not confirm completion/u);
+    assert.equal(Object.getOwnPropertyDescriptor(failure,'originalApprovalError').enumerable,false);return true;});
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1});assert.deepEqual(captured.secretReads,{stdout:0,otp:0});
+  const target=join(f.options.receiptsDirectory,reviewed.sha256,'owner-approval','node'),[name]=await readdir(target),attempt=join(target,name);
+  assert.deepEqual(JSON.parse(await readFile(join(attempt,'0-terminal.json'))),initial);
+  assert.equal(f.commands.length,1);assert.equal(f.published.size,1);
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-unknown.json'))).reason,'terminal-or-public-readback-unconfirmed');
+  await assert.rejects(lstat(join(attempt,'0-confirmed.json')),{code:'ENOENT'});await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+test('npm owner terminal custody: original success survives later mutation and never reads output or OTP',async t=>{
+  const f=await ownerFixture(t),original=f.options.runNpmOwner;
+  const initial={code:0,signal:null},captured=ownerTerminalResponse(initial,{code:1,signal:'SIGTERM'});
+  const result=await f.approve({runNpmOwner:async(args,context)=>{
+    const reply=await original(args,context);return context.phase==='owner-approval'&&f.commands.length===1?captured.reply:reply;
+  }});
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1});assert.deepEqual(captured.secretReads,{stdout:0,otp:0});
+  assert.equal(result.operationCount,4);assert.equal(result.state,'original-cohort-public-bytes-observed');
+  assert.deepEqual(JSON.parse(await readFile(join(result.receiptDirectory,'0-terminal.json'))),initial);
+  assert.deepEqual(f.commands,f.artifacts.map(item=>item.name));
+});
+
+test('npm owner terminal custody: throwing reply getter stays SAME private failure without cause leakage',async t=>{
+  const f=await ownerFixture(t),original=f.options.runNpmOwner;
+  const failure=Object.assign(Error('PRIVATE-INERT-OWNER-GETTER'),{originalCleanup:{inertIdentityOnly:true}});
+  const captured=ownerTerminalResponse({code:0,signal:null},null,failure);let caught;
+  try{await f.approve({runNpmOwner:async(args,context)=>{
+    const reply=await original(args,context);return context.phase==='owner-approval'?captured.reply:reply;
+  }});}catch(error){caught=error;}
+  assert(caught);assert.equal(caught.originalApprovalError,failure);assert.equal(caught.originalOwnerFailure,undefined);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalApprovalError').enumerable,false);assert.equal(caught.cause,undefined);
+  assert(!String(caught).includes('PRIVATE-INERT'));assert(!inspect(caught).includes('PRIVATE-INERT'));
+  assert.deepEqual(captured.reads,{code:1,signal:0});assert.deepEqual(captured.secretReads,{stdout:0,otp:0});assert.equal(f.commands.length,1);
+  const target=join(f.options.receiptsDirectory,reviewed.sha256,'owner-approval','node'),[name]=await readdir(target),attempt=join(target,name);
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-unknown.json'))).reason,'terminal-or-public-readback-unconfirmed');
+  for(const file of await readdir(attempt))assert(!(await readFile(join(attempt,file),'utf8')).includes('PRIVATE-INERT'));
+});
+
+test('npm owner terminal custody: Unknown write refusal retains physical error and SAME private getter failure',async t=>{
+  const f=await ownerFixture(t),original=f.options.runNpmOwner;
+  const failure=Object.assign(Error('PRIVATE-INERT-OWNER-GETTER-WRITE'),{originalCleanup:{inertIdentityOnly:true}});
+  const captured=ownerTerminalResponse({code:0,signal:null},null,failure);let attempt,caught;
+  try{await f.approve({runNpmOwner:async(args,context)=>{
+    const reply=await original(args,context);if(context.phase!=='owner-approval')return reply;
+    const target=join(f.options.receiptsDirectory,reviewed.sha256,'owner-approval','node'),[name]=await readdir(target);attempt=await realpath(join(target,name));
+    await chmod(attempt,0o500);return captured.reply;
+  }});}catch(error){caught=error;}finally{if(attempt)await chmod(attempt,0o700);}
+  assert.equal(caught.code,'EACCES');assert.notEqual(caught,failure);assert.equal(caught.originalApprovalError,failure);
+  assert.equal(caught.originalAttempt,attempt);assert.equal(Object.getOwnPropertyDescriptor(caught,'originalApprovalError').enumerable,false);
+  assert.equal(caught.cause,undefined);assert(!inspect(caught).includes('PRIVATE-INERT'));assert.equal(f.commands.length,1);
+  assert.deepEqual(captured.secretReads,{stdout:0,otp:0});
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-intent.json'))).state,'outcome-unknown');
+  await assert.rejects(lstat(join(attempt,'0-unknown.json')),{code:'ENOENT'});
+});
+
+test('npm owner terminal custody: terminal and Unknown receipt failures retain both original physical errors and attempt',async t=>{
+  const f=await ownerFixture(t),original=f.options.runNpmOwner;let attempt,caught;
+  try{await f.approve({runNpmOwner:async(args,context)=>{
+    const reply=await original(args,context);if(context.phase!=='owner-approval')return reply;
+    const target=join(f.options.receiptsDirectory,reviewed.sha256,'owner-approval','node'),[name]=await readdir(target);attempt=await realpath(join(target,name));
+    await chmod(attempt,0o500);return reply;
+  }});}catch(error){caught=error;}finally{if(attempt)await chmod(attempt,0o700);}
+  assert.equal(caught.code,'EACCES');assert.equal(caught.path,join(attempt,'0-unknown.json'));
+  assert.equal(caught.originalApprovalError.code,'EACCES');assert.equal(caught.originalApprovalError.path,join(attempt,'0-terminal.json'));
+  assert.notEqual(caught,caught.originalApprovalError);assert.equal(caught.originalAttempt,attempt);
+  assert.equal(Object.getOwnPropertyDescriptor(caught,'originalApprovalError').enumerable,false);assert.equal(caught.cause,undefined);
+  assert.equal(f.commands.length,1);assert.equal(JSON.parse(await readFile(join(attempt,'0-intent.json'))).state,'outcome-unknown');
+  await assert.rejects(lstat(join(attempt,'0-terminal.json')),{code:'ENOENT'});await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
 });
