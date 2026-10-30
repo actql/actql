@@ -26,6 +26,10 @@ pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(
   fragment : String?,
   ordered : String?,
   retained_output : Bool,
+  query_time : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )?,
 ) -> Result[
   @client_local_host.ClientInstalledManagedSourceFreePreparation,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -39,6 +43,7 @@ pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(
     ordered,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    query_time~,
   )
 }
 

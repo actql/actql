@@ -4,6 +4,7 @@
 // recipe, Source/Model IO or a public acceptance/performance claim.
 fn request_model_input_fixture(
   captured? : Bool = false,
+  with_query_time? : Bool = false,
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
@@ -19,6 +20,17 @@ fn request_model_input_fixture(
     (
       #|{"version":"actql/0.1","id":"request-model-values","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     )
+  }
+  let document = if with_query_time {
+    assert_false(captured)
+    let selected = document.replace(
+      old="\"as\":\"seed\"},{\"assert_rows\"",
+      new="\"as\":\"seed\"},{\"filter\":\"current_timestamp() = current_timestamp()\"},{\"assert_rows\"",
+    )
+    assert_true(selected != document)
+    selected
+  } else {
+    document
   }
   let ordinary = client_local_preparation_initial_limits(
     client_local_resource_policy(),

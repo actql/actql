@@ -15,6 +15,9 @@ fn installed_mock_model_compilation_matches(
 /// Retain the original Model compilation in the existing source-free module
 /// holder before its Run. The caller backs compilation and factory coexistence
 /// on the SAME Request first. No compilation, Scope or admission occurs here.
+/// A supplied QueryTime/request pair is already bound to its original Run;
+/// the sequences retain that context without another sample or compilation.
+/// The caller backs the retained pair and all constructor overlap first.
 pub fn prepare_installed_mock_model_source_free_with_contracts(
   prepared : @publication_host.PreparedClientProgram,
   compilation : @publication_host.ClientTaskCompilation,
@@ -26,6 +29,10 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -41,6 +48,7 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
       fragment_body,
       ordered_body,
       true,
+      query_time~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -256,6 +264,21 @@ fn prepare_installed_mock_model_plan_owned(
   max_holdings : Int,
   max_delegations : Int,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  // The module's sequences already retain this original invocation. A later
+  // equal-CID request or another saved Run cannot replace its bound context.
+  if source_free is Some(selected_module) &&
+    selected_module._observed_query_time is Some((original, bound_request)) {
+    if !physical_equal(bound_request, request) ||
+      !@publication_host.client_query_time_preparation_context(original)
+      .map(context => {
+        physical_equal(
+          @publication.query_evaluation_time_definition(context), definition,
+        )
+      })
+      .unwrap_or(false) {
+      return Err(ForeignOriginal)
+    }
+  }
   let identity = @publication_host.prepared_client_identity(prepared)
   if !installed_request_model_compilation_matches(
       prepared, compilation, compiled, graph,

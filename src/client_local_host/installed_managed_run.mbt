@@ -56,6 +56,11 @@ struct ClientInstalledManagedRun {
 /// Run. The generated originals serve both the quote and actual Host setup.
 struct ClientInstalledManagedSourceFreePreparation {
   owner : ClientLocalSequenceOwner
+  // Retain the already-bound invocation, not another sample or Run issuer.
+  _observed_query_time : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )?
   installed_contracts : ClientInstalledSequenceContracts
   values_body : String
   fragment_body : String?
@@ -259,6 +264,7 @@ fn source_free_installed_managed_preparation_owned(
     capacity_plan,
     configuration: None,
     compilation: None,
+    _observed_query_time: query_time,
     limits,
     provider_retained_bytes,
     provider_execution_bytes,
