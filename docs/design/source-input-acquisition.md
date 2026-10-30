@@ -187,3 +187,14 @@ Source close retry, before Site and constructor-material retirement; returning
 a failed preparation does not acknowledge that cleanup or release its parent.
 A close that retires this constructor read during an authorization await also
 fences its later handoff; resolving the authorization Promise cannot revive it.
+
+## Source observation and Result publication policies
+
+Single-Source dispatch obtains the Result publication policy from the same
+checked Program's existing getter. It does not substitute the captured Source's
+read policy, compute a new join in JavaScript or reprepare either original.
+The actual Source evidence keeps the exact read policy already bound to its
+acquisition; its evidence wrapper and native capture remain unchanged when the
+publication plan receives the checked Result policy. The common issuer verifies
+both distinct obligations. An absent or refused checked publication policy
+cannot fall back to a known Source policy or create another invocation.
