@@ -17,7 +17,7 @@ async function fixture(t) {
 test('conformance caller captures the actual original pending projection before wait and closes once', async t => {
   const f = await fixture(t), events = [];
   const reference = {run: 'synthetic-mechanism-only'}, rows = [{id: 'authored'}];
-  const execution = {ref: reference, wait: async () => events.push('wait'),
+  const execution = {ref: reference, wait: async () => {events.push('wait');return {status: 'succeeded'};},
     status: async () => ({status: 'succeeded'}), result: name => {
       assert.equal(name, 'rows'); return {all: async () => structuredClone(rows)};
     }};
@@ -32,6 +32,7 @@ test('conformance caller captures the actual original pending projection before 
   assert.deepEqual(result, {reference, rows});
   assert.deepEqual(await f.read('original-submission-input.json'),
     {available: true, input: {original: 'synthetic-input'}});
+  assert.deepEqual(await f.read('original-wait.json'), {status: 'succeeded'});
   const close = await f.read('first-close.json');
   assert.equal(close.acknowledged, true); assert.equal(close.fd.scopedStateFd0, true);
   assert.equal(close.fd.aliveAfterClose, true);
@@ -55,7 +56,7 @@ test('a pre-ref public rejection keeps original input and failure without an inv
 
 test('empty scoped descriptors never turn a failed first close into ACK or success', async t => {
   const f = await fixture(t), cleanup = Object.assign(new Error('synthetic cleanup pending'), {code: 'ClientCleanupPending'});
-  const execution = {ref: {run: 'synthetic-close-only'}, wait: async () => {},
+  const execution = {ref: {run: 'synthetic-close-only'}, wait: async () => ({status: 'succeeded'}),
     status: async () => ({status: 'succeeded'}), result: () => ({all: async () => []})};
   let closes = 0;
   const client = {startSource: () => Promise.resolve(execution),
