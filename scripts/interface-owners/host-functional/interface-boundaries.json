@@ -88307,7 +88307,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "// Retain both original methods and their receiver before the first read awaits."
+                "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
