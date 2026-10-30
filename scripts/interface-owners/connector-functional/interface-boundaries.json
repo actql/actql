@@ -8926,7 +8926,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "79c62faa6dfb617c39ec86652895444e1ef999d9c87aac9a7c854e408d3d17c1",
+      "sha256": "bd01e63e36470314270fe986ba7573bdfb490214c1cc83989f0637d3cce162fd",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11181,6 +11181,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -11342,6 +11350,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -11919,6 +11935,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12028,6 +12052,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12153,6 +12185,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12295,6 +12335,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12407,6 +12455,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12492,6 +12548,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12595,6 +12659,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -12680,6 +12752,14 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
