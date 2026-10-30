@@ -917,7 +917,6 @@ pub fn client_program_installed_managed_capture_plan_prepare(@run_publication_ho
 
 pub fn client_program_installed_managed_requires_acquisition_result_publication(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
-
 pub fn client_program_installed_managed_run_accounting(@client_local_host.ClientInstalledManagedRun) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_compilation_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientRunCompilation?
@@ -1525,7 +1524,6 @@ pub fn client_program_prepare_whole_source_capacity(@run_publication_host.Prepar
 pub fn client_program_prepared_installed_whole_source_requirements(@client_local_host.ClientInstalledManagedCapturePlan) -> Array[Int64]
 
 pub fn client_program_prepared_request_query_lowering(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), @client_local_host.ClientRequestQueryLoweringIssue]
-
 
 pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.EffectReviewProjectionIssue]
 

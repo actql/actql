@@ -18850,7 +18850,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "548cb6e7d0b02a4114a5d830498eeffff7cfccbc2138f952844ba8005f7d6993",
+      "sha256": "78ced8995f78622b05f5eb65cb1324bb522a241f87547d1d49f118f9a3d0d7f1",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18888,13 +18888,6 @@
           "parameters": [
             "code",
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "immutablePolicySubject",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -19075,28 +19068,6 @@
           "async": false
         },
         {
-          "name": "installNodeClientProgramPreparation/verified/verified",
-          "parameters": [
-            "request"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeClientProgramPreparation/verified/verified/verified",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientProgramPreparation/verified/verified/verified#2",
-          "parameters": [
-            "bytes",
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "serializeProgram",
           "parameters": [
             "kind",
@@ -19113,7 +19084,6 @@
             "<module>",
             "effectPreparation",
             "fail",
-            "immutablePolicySubject",
             "installNodeClientEffectProgramPreparation",
             "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
             "installNodeClientEffectProgramPreparation/prepare/prepare",
@@ -19131,9 +19101,6 @@
             "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
             "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
             "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
-            "installNodeClientProgramPreparation/verified/verified",
-            "installNodeClientProgramPreparation/verified/verified/verified",
-            "installNodeClientProgramPreparation/verified/verified/verified#2",
             "serializeProgram",
             "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
             "checkedRequestProgramPreparation"
@@ -77384,97 +77351,648 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "516c63697d142a035f941c1324c518648bd566446b90eb64b081e15f7a80a030",
+      "sha256": "c58738acb861d780d2196abce1147c3d70cff4216f8e4e2794d2b63e9953022e",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
         "prepareOrdinarySourceManagedInstallation"
       ],
       "operations": [
-        "<module>",
-        "assertOrdinarySourcePreparationCurrent",
-        "fail/fail",
-        "fileIdentity/fileIdentity",
-        "pending/pending",
-        "prepareOrdinaryManagedInstallation",
-        "prepareOrdinaryManagedInstallation/captureReader",
-        "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
-        "prepareOrdinaryManagedInstallation/closeChild",
-        "prepareOrdinaryManagedInstallation/closeChild/work/work",
-        "prepareOrdinaryManagedInstallation/current/current",
-        "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
-        "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
-        "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
-        "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
-        "prepareOrdinaryManagedInstallation/prepareRun",
-        "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-        "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-        "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-        "prepareOrdinaryManagedInstallation/producerFor/producerFor",
-        "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
-        "prepareOrdinaryManagedInstallation/readBytes",
-        "prepareOrdinaryManagedInstallation/readBytes/work/work",
-        "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
-        "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-        "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
-        "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
-        "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
-        "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
-        "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial",
-        "prepareOrdinaryManagedInstallation/runFor",
-        "prepareOrdinaryManagedInstallation/status/status",
-        "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
-        "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
-        "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
-        "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-        "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-        "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
-        "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-        "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-        "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
-        "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
-        "prepareOrdinaryManagedInstallation/view/init:close/init:close",
-        "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
-        "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
-        "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-        "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
-        "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
-        "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
-        "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
-        "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-        "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
-        "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
-        "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
-        "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-        "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-        "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
-        "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
-        "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
-        "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun",
-        "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
-        "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
-        "prepareOrdinaryProjectSourceManagedInstallation",
-        "prepareOrdinarySourceManagedInstallation"
+        {
+          "name": "assertOrdinarySourcePreparationCurrent",
+          "parameters": [
+            "view",
+            "originals",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fileIdentity/fileIdentity",
+          "parameters": [
+            "stat"
+          ],
+          "async": false
+        },
+        {
+          "name": "immutablePolicySubject",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "pending/pending",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks",
+            "source",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/captureReader",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
+          "parameters": [
+            "record",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/closeChild",
+          "parameters": [
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
+          "parameters": [
+            "record",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun",
+          "parameters": [
+            "prepared",
+            "purpose",
+            "model",
+            "effectful",
+            "content",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes",
+          "parameters": [
+            "run",
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/runFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options",
+            "originalConnection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options",
+            "originalConnection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
+          "parameters": [
+            "units",
+            "document",
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
+          "parameters": [
+            "prepared",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
+          "parameters": [
+            "prepared",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
+          "parameters": [
+            "prepared",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "prepared",
+            "declaration",
+            "originalRun",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun",
+          "parameters": [
+            "prepared",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "prepared",
+            "declaration",
+            "originalRun",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryProjectSourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinarySourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks",
+            "source"
+          ],
+          "async": true
+        }
       ],
       "imports": [
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -78988,6 +79506,77 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('captured Request constructs its accounted module before original Run adoption on the same borrow'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "immutablePolicySubject",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
               }
             ]
           }
@@ -82426,7 +83015,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "b6c327e12489f15b637126bab36eeb538bb23c58b854225a821e054fa6a47bab",
+      "sha256": "feeed6a81be29cde28a30b450f2a1b6a3e175bae0dd590ddf2525e5065869c4f",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -83911,7 +84500,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "30ad3707c73dc65d9b89756db50bb692b0d56bd8edbcaaa1e9e4512ed4b6c46a",
+      "sha256": "e1495d16d755bae89bf9aaf4115e78875584fd04435cdbdd3423f24351230288",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -83958,6 +84547,13 @@
           "name": "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -84070,6 +84666,74 @@
               {
                 "path": "adapters/host-node/installed-managed-source.test.mjs",
                 "anchor": "test('Pure Source preparation receives its same original managed Run before reader construction'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindInstalledManagedSources/sources/sources/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }
@@ -86826,10 +87490,10 @@
     },
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
-      "sha256": "d5841d5fdc441550ed7ca79fe22b88392e19e31905774d05dd53cd296feca2ed",
       "responsibilityFacet": "primary",
+      "sha256": "d5841d5fdc441550ed7ca79fe22b88392e19e31905774d05dd53cd296feca2ed",
       "role": "physical-io",
-      "owner": "Existing installed Host Source initialization and managed reader owner; provider DATA only, no independent authority or lifecycle",
+      "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
         "createInstalledRestSource"
       ],
@@ -86964,13 +87628,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/selected/selected",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRestSource/load/services/services",
           "parameters": [],
           "async": false
@@ -86998,6 +87655,19 @@
           "async": false
         }
       ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "./installed-credential-source-reader.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
+        "./installed-row-source.mjs",
+        "./rest-source-metadata.mjs",
+        "./rest-source-page.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
@@ -87020,7 +87690,6 @@
             "createInstalledRestSource/load/physicalTarget/physicalTarget",
             "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
             "createInstalledRestSource/load/physicalTarget/physicalTarget/view/view",
-            "createInstalledRestSource/load/selected/selected",
             "createInstalledRestSource/load/services/services",
             "createInstalledRestSource/load/targets/targets",
             "createInstalledRestSource/publish",
@@ -87032,91 +87701,139 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The field DATA enters the original Common declaration constructor unchanged."
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const {declaration, declared, environment} = prepare();"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The same Host owns checked declaration preparation,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host passes that projection into the original Run Ledger's"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "{sourceReader: providerReader, sourceProfile: site});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// Select original service methods before any configuration await. The"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Missing framework support refuses;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "charging before decode, current checks, cancellation and physical cleanup."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host also keeps"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Neither action confirms physical retirement"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "These finite page and row ceilings constrain the connector; they are not a"
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "// funding. The same selected Host profile must cover them in full."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Common checks the additions and reserves them before the reader"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "the Core or Host for each new Connector."
+              },
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error Host services are not an author facade option."
               },
               {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error A factory cannot accept caller-issued capacity as authority."
+              },
+              {
+                "path": "scripts/fixtures/external-rest/preparation.test.mjs",
+                "anchor": "test('REST installed entrance checks every generated installation export before Host construction'"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Source checks,"
               }
             ]
           }
         }
       ],
-      "imports": [
-        "../../packages/sdk/host-port.mjs",
-        "./installed-credential-source-reader.mjs",
-        "./installed-host-cleanup.mjs",
-        "./installed-host-services.mjs",
-        "./installed-row-source.mjs",
-        "./rest-source-metadata.mjs",
-        "./rest-source-page.mjs",
-        "node:crypto",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
+      "referenceQualification": "Exact public R4 source/functional-reference coverage only. References do not prove that their cases ran, actual initializer/private-invoker/Common compatibility, physical backing, permission, normal Read/Result/close/Saved or runtime acceptance."
     },
     {
       "module": "adapters/host-node/rest-source-metadata.mjs",
-      "sha256": "e1d728422a38a5330622b87ce07da117ee96a00523932b166e2db66f8233282c",
       "responsibilityFacet": "primary",
+      "sha256": "e1d728422a38a5330622b87ce07da117ee96a00523932b166e2db66f8233282c",
       "role": "public-wire-codec",
-      "owner": "Existing installed Host Source initialization and managed reader owner; provider DATA only, no independent authority or lifecycle",
+      "owner": "Existing installed Source profile/identity and Host configuration-reader Owners; metadata supplies closed DATA and original-string identity, not a declaration issuer or physical reader.",
       "exports": [
         "REST_SOURCE_SITE_VERSION",
         "createRestSourceMetadata"
@@ -87197,18 +87914,9 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "readJson",
+            "_readJson",
             "_installation",
             "context"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRestSourceMetadata/publish",
-          "parameters": [
-            "profile",
-            "moon",
-            "configurationReader"
           ],
           "async": true
         },
@@ -87216,8 +87924,7 @@
           "name": "createRestSourceMetadata/readInputs",
           "parameters": [
             "profile",
-            "configurationReader",
-            "readJson"
+            "configurationReader"
           ],
           "async": true
         },
@@ -87245,21 +87952,6 @@
           "parameters": [
             "input",
             "declared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRestSourceMetadata/restore",
-          "parameters": [
-            "profile",
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRestSourceMetadata/restore/viewsWire/viewsWire",
-          "parameters": [
-            "source"
           ],
           "async": false
         },
@@ -87292,6 +87984,14 @@
           "async": false
         }
       ],
+      "imports": [
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
@@ -87307,14 +88007,11 @@
             "createRestSourceMetadata/checkSite/checkSite",
             "createRestSourceMetadata/createRestSourceMetadata",
             "createRestSourceMetadata/identityParts",
-            "createRestSourceMetadata/publish",
             "createRestSourceMetadata/readInputs",
             "createRestSourceMetadata/readInputs/readInputs",
             "createRestSourceMetadata/readInputs/readInputs#2",
             "createRestSourceMetadata/readInputs/reads/reads",
             "createRestSourceMetadata/reportPrepared",
-            "createRestSourceMetadata/restore",
-            "createRestSourceMetadata/restore/viewsWire/viewsWire",
             "fail/fail",
             "freeze/freeze",
             "hash/hash",
@@ -87327,87 +88024,139 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "// Static author DATA enters the existing Common declaration owner. This"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The profile, directory, authorization and secret resolver are explicit normal"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "export function createRestSourceMetadata(definition) {"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "return original.authoredViewsWire;"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "original generated views wire is DATA for the Host's preparation owner, not"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "const original = freeze(structuredClone(definition));"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "const reads = captureConfigurationReaders(configurationReader, undefined,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Close failure retains the original"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "// Retain both original methods and their receiver before the first read awaits."
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST metadata retains the same Host reader methods and exact original CA without an author bound'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "if (configurationReader === undefined) fail('RestSourceConfigurationReaderUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "// module owns no provider I/O, credential, capacity, reader or publication"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const cleanupHandle = Object.freeze({status, retry,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Neither action confirms physical retirement"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "// The original Host reader owns the selected bound and physical read."
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "another author input or a way to acknowledge physical construction."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The existing installation inventory must cover the Project and view references,"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "anchor": "const profileKeys = ['version', 'connectorId', 'siteProfilePath', 'accountConfigurationWire'];"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "A definition describes the original API and typed fields, not a new execution"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               },
               {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST normal metadata has no standalone reader or declaration fallback'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
               }
             ]
           }
         }
       ],
-      "imports": [
-        "../host-common/runtime-result.mjs",
-        "./source-profile-json.mjs",
-        "node:crypto",
-        "node:path",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
+      "referenceQualification": "Exact public R4 source/functional-reference coverage only. References do not prove that their cases ran, actual initializer/private-invoker/Common compatibility, physical backing, permission, normal Read/Result/close/Saved or runtime acceptance."
     },
     {
       "module": "adapters/host-node/rest-source-page.mjs",
-      "sha256": "f17878e0f51b6d1c7dba1770c5eaa2afc348fd7b3f385973800c957269b20709",
       "responsibilityFacet": "primary",
+      "sha256": "f17878e0f51b6d1c7dba1770c5eaa2afc348fd7b3f385973800c957269b20709",
       "role": "connector-semantics",
-      "owner": "Existing installed Host Source initialization and managed reader owner; provider DATA only, no independent authority or lifecycle",
+      "owner": "Existing Common JSON/row projection and Host ManagedReader Owners; REST adapter supplies authored request, cursor and pure row-wire transformation semantics only.",
       "exports": [
         "restSourcePageReader"
       ],
@@ -87499,6 +88248,11 @@
           "async": false
         }
       ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
@@ -87521,76 +88275,144 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "// The standard REST API's pure page adaptation for the one managed Host reader."
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Providers retain their actual request, cursor and response"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "export function restSourcePageReader({moon, source, decodePage}) {"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "return Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Its inputs are frozen row-wire/count/cursor DATA"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "const resource = source.resource, path = source.read.path;"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "fail('RestSourceCursorProjectionMismatch');"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The fixed origin/path"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "// Core parses original bytes; this module never parses JSON or owns I/O,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The Host invokes it under the"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "// The SAME managed owner invokes and joins even an invalid async"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "const value = applySynchronousProjection(transform, undefined,"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error An author transform is pure and synchronous, not a reader."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "if (cursors.has(page.nextCursor)) fail('RestSourceCursorCycle');"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Unknown, absent Run or process exit proves neither nonacceptance nor close."
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "// credentials, currentness, row charging, cancellation or physical cleanup."
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "charging before decode, current checks, cancellation and physical cleanup."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The Host also keeps"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "const remaining = Math.min(bound.maxPageRows, bound.maxRows - rowCount);"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Ledger, capacity reservation, permission or an instruction to raise the Host"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The original Host/Run inventory includes the retained declaration and planner"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "// Only a changed wire needs another existing Core parse. Counts"
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "an identity projection needs no extra JavaScript file."
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "The standard projector already preserves JSON row bytes and cursor identity;"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+                "path": "scripts/fixtures/external-rest/preparation.test.mjs",
+                "anchor": "test('REST provider DATA fits the unchanged shared route and keeps independent paged/error/byte oracles'"
               },
               {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "// @ts-expect-error An author transform is pure and synchronous, not a reader."
+              },
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Keep empty/one/multiple-page, provider-error, byte-limit, current-loss,"
               }
             ]
           }
         }
       ],
-      "imports": [
-        "../host-common/runtime-result.mjs"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
+      "referenceQualification": "Exact public R4 source/functional-reference coverage only. References do not prove that their cases ran, actual initializer/private-invoker/Common compatibility, physical backing, permission, normal Read/Result/close/Saved or runtime acceptance."
     }
   ],
   "generated": [],
@@ -87603,10 +88425,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 180,
-    "operations": 4518,
-    "exports": 1082,
-    "explicitContractGroups": 285
+    "modules": 183,
+    "operations": 4702,
+    "exports": 1113,
+    "explicitContractGroups": 301
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

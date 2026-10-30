@@ -8,7 +8,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 // These are the actual JS callers with explicit Core result/identity ports.
 // No fixture here issues a Core preparation, resource admission or public Run.
 const manager = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const start = manager.indexOf('    async fundedPreparation(request, environment) {');
+const start = manager.indexOf('    async fundedPreparation(');
 const end = manager.indexOf('    publicationPreparation(prepared) {', start);
 assert.ok(start >= 0 && end > start);
 const body = manager.slice(start, end).trim().replace(/,$/, '');
@@ -20,6 +20,12 @@ const ports = () => ({
   clientProgramBeginRequestPreparation() {},
   clientProgramAbortRequestPreparation() {},
   clientProgramPrepareRequestNativeComputation() {},
+  clientProgramPrepareRequestSourceComputation() {},
+  clientProgramFinishRequestComputation() {},
+  clientProgramPrepareRequestPolicySubjects() {},
+  clientProgramReadRequestPolicySubject() {},
+  clientProgramBindRequestPolicySubject() {},
+  clientProgramFinishRequestPolicySubjects() {},
   clientProgramPrepareRequestProgramModuleBody() {},
   clientProgramRequestProgramModuleIssueCode() {},
   clientProgramBorrowRequestProgramPlanInput() {},
@@ -57,6 +63,11 @@ test('funded caller passes the same installed mode to one original Request compi
       clientProgramPrepareRequestNativeComputation(...args) {
         assert.strictEqual(this, moon);
         assert.deepEqual(args, [parent, receipt, captured.input, captured.parameters, environment, preparedEnvironment, valuesMaxRows]);
+        calls.push('check');
+      },
+      clientProgramFinishRequestComputation(...args) {
+        assert.strictEqual(this, moon);
+        assert.deepEqual(args, [parent, receipt, environment, preparedEnvironment]);
         calls.push('compiler'); return 'effect_free';
       },
       clientProgramPrepareRequestProgramModuleBody(...args) {
@@ -75,25 +86,26 @@ test('funded caller passes the same installed mode to one original Request compi
     };
     const state = {parent, snapshot: captured, context: Object.freeze({runtime: moon, environment,
       preparedEnvironment, retainedRelationOutput: mode, valuesMaxRows})};
-    const producer = {receipt, kind: 'program', body: captured, preparation: state};
+    const request = {};
+    const producer = {receipt, request, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
     const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
       'checkedRequestProgramPreparation', 'requestPreparationAvailable',
-      `return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
+      `const closing=false,closed=false;return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
       originals, value => value, (_moon, value) => value, requestPreparationAvailable);
     for(let i=0;i<2;i++){
-      const original=await read({}, environment);
+      const original=await read(request, environment);
       assert.strictEqual(original.prepared, prepared);
       assert.equal(original.kind,'effect_free');
       assert.deepEqual(original.originalInputs,{environment,parameters:undefined,parametersCursor});
       assert.equal(Object.isFrozen(original),true);
       assert.equal(Object.isFrozen(original.originalInputs),true);
     }
-    assert.deepEqual(calls, ['compiler', 'borrow', 'body', 'parameters']);
+    assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
     assert.strictEqual(state.prepared, prepared);
     state.context = context(moon, undefined);
-    await assert.rejects(read({}, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
-    assert.deepEqual(calls, ['compiler', 'borrow', 'body', 'parameters']);
+    await assert.rejects(read(request, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
   }
 });
 

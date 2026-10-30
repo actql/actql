@@ -27511,7 +27511,7 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "141b9956e552c3073f6296b5a3039085235d4cb8bc1bf39150b97f74d66f9df6",
+      "sha256": "13a6ba2a072a10693aa93e629059ea9854a2d8489989b48f099b8246051c7284",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
@@ -27683,7 +27683,7 @@
     {
       "module": "src/client_local_host/preparation_publication_capture.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c57259374b4cdb6525e35dabc5df0ffdae34c814ee125b8aa99abd1af9cdc8e5",
+      "sha256": "902059d508feff46c261677581ac2889ea309d21de14aaed19c730bdc57980cd",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
@@ -28538,7 +28538,7 @@
     {
       "module": "src/client_local_host/preparation_publication_snapshot.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7c81d30eb31b620028e0b223d29d94d0f2fdb6626271d6aeeb6063e864b30760",
+      "sha256": "af284e952ed87e634958121e6fab517eae4457d49072a4da5c6491ebd24c1b1a",
       "role": "common-semantics",
       "owner": "Existing original publication and preparation-borrow owners",
       "exports": [],
@@ -33812,96 +33812,6 @@
       ]
     },
     {
-      "module": "src/client_local_host/preparation_parameter_source_layout.mbt",
-      "sha256": "464d605785f6583a11d9e92dfe5278834cb92332612471cd591f0a38852ea585",
-      "exports": [],
-      "operations": [
-        {
-          "name": "parameter_source_binding_construction_bytes",
-          "declaration": "parameter_source_binding_construction_bytes ( ) - > ( Int64 , Int64 ) ?"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing original Request and Parameter/Check semantic owners",
-      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "parameter_source_binding_construction_bytes"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
-                "anchor": "test \"one Parameter semantic phase"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
       "sha256": "109a882073b00c9e18e0e759d03f9d857c4223e37ef488fb860ef10cb89fc2c6",
       "exports": [],
@@ -37578,7 +37488,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "07a90b027a1aaeb3388e38974f0be86e590baa7dfb3158039077fdaa715911b0",
+      "sha256": "8ef1913fbc6e127cf7bc72d7c14abc36fd49110368eeb69c72ebe8e8d3a71e0f",
       "exports": [],
       "operations": [
         {
