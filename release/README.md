@@ -99,6 +99,33 @@ an explicit public npm mode:
 node scripts/test-package-release-install.mjs <original-RC-directory> --public-registry <externally-retained-release.json-SHA256>
 ```
 
+For the owner-review release set, explicitly bind both the same original Node
+cohort and the selected fixed upper target:
+
+```sh
+node scripts/test-package-release-install.mjs <original-RC-directory> \
+  --public-registry <externally-retained-release.json-SHA256> \
+  --release-set <fixed-release-set-directory> <externally-retained-upper-SHA256> \
+  --target <original-node-target-id>
+```
+
+The upper digest does not replace the original child digest. The launcher
+requires the same complete four-package Node cohort, exact source/version,
+child-manifest bytes and all original archive identities. Its existing full
+cohort verifier still reads the retained `development` manifest and original
+development tarballs. The flat fixed set does not contain that supplier lineage;
+do not reconstruct missing originals, copy a different cohort into their place,
+or weaken verification to final payload hashes. A missing original refuses
+before consumer installation. Native, Python and optional Explorer targets do
+not inherit this consumer's scope.
+
+The resulting receipt binds `releaseSetBinding.manifestSha256`, `targetId` and
+`cohortManifestSha256` plus exact artifact identities and requested platform/profile
+DATA. Actual executed cases and the observed Node/OS remain separate; this
+association does not certify every requested platform/profile or owner approval.
+The legacy child-only public mode remains available with a null upper binding,
+and cannot be reported as acceptance of an owner-approved upper digest.
+
 The digest selects the exact original Node cohort child manifest retained by
 the approved upper set. It is not a new version choice or approval. The
 existing complete cohort verifier and anonymous npm byte reader run before
@@ -122,9 +149,13 @@ until their own consumer scope is selected.
 
 The README, Local/restart, short-query, explicit pre-Run refusal and SDK
 own-HTTPS cases and their original oracles remain unchanged. Public mode does
-not start a private package registry. Its final receipt names the public
-observation, fixed cohort digest, lockfile digest and actual installed payload audits, while
-retaining the incomplete pre-Run approval scope. A public package download is
+not start a private package registry. Its final receipt names both the initial
+and final actual public-byte observations, fixed cohort digest, lockfile digest,
+optional exact upper binding and actual installed payload audits, while
+retaining the incomplete pre-Run approval scope. The original cohort and supplied
+upper set are reverified after consumption; a changed or unavailable public
+artifact does not become successful acceptance or permission to rerun old state.
+A public package download is
 not live Cloud or Provider acceptance. The actual public mode remains
 unexecuted until the real candidate/version is selected and published; its
 inert component fixtures do not qualify that runtime boundary or a release.

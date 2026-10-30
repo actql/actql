@@ -16,14 +16,15 @@ import {canonicalText} from './check-canonical-json.mjs';
 import {observeNpmPackageRelease} from './release-registry.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {releaseInstallSelection, publicNpmRegistry, publicConsumerEnvironment,
-  publicInstallCommand, verifyPublicConsumer} from './release-public-install.mjs';
+  publicInstallCommand, verifyPublicConsumer, verifyPublicNodeReleaseBinding} from './release-public-install.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const selection = releaseInstallSelection(process.argv.slice(2));
 const directory = selection.directory, isPublic = selection.kind === 'public-npm';
+const releaseSetBinding = isPublic ? await verifyPublicNodeReleaseBinding(selection) : null;
 const interfaces = await releaseInterfaceCheck({repository, directory});
 const {manifest} = interfaces;
-let publicObservation = null, publicObservationFile = null;
+let publicObservation = null, publicObservationFile = null, publicObservationAfterFile = null;
 if (isPublic) {
   publicObservation = await observeNpmPackageRelease(directory, selection.manifestSha256);
   publicObservationFile = `public-observation-${Date.now()}-${randomUUID()}.json`;
@@ -174,13 +175,20 @@ try {
     await verifyPackageRelease(directory);
     assert.equal(createHash('sha256').update(await readFile(join(directory, 'release.json'))).digest('hex'), selection.manifestSha256,
       'Original Node cohort changed during public consumer acceptance');
+    const after = await observeNpmPackageRelease(directory, selection.manifestSha256);
+    publicObservationAfterFile = `public-observation-after-${Date.now()}-${randomUUID()}.json`;
+    await writeFile(join(directory, publicObservationAfterFile), `${JSON.stringify(after, null, 2)}\n`, {flag: 'wx'});
+    assert(after.observations.every(item => item.state === 'present'),
+      'Original public Node bytes became unconfirmed after consumption; retain the original state');
+    assert.deepEqual(await verifyPublicNodeReleaseBinding(selection), releaseSetBinding,
+      'Original upper/child release binding changed during public consumption');
   }
   const receipt = {version: 'actql-release-install-acceptance/0.1', sourceSha: manifest.sourceSha,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     consumer: root, node: process.version, platform: process.platform, arch: process.arch,
     registry: isPublic ? publicNpmRegistry : 'private-loopback-fixed-RC',
     publicRegistryPublication: isPublic ? 'exact-original-bytes-observed-anonymously' : 'not-tested',
-    ...(isPublic ? {cohortManifestSha256: selection.manifestSha256, publicObservationFile,
+    ...(isPublic ? {cohortManifestSha256: selection.manifestSha256, releaseSetBinding, publicObservationFile, publicObservationAfterFile,
       publicPayloads, publicRuntimeScope: 'existing selected Local/restart/short-query and SDK own-HTTPS cases only; not live Cloud/Provider or full release approval'} : {}),
     approvalAcceptance: {status: 'incomplete', reason: 'epoch-bound-pre-run-deferral-explicitly-unsupported', code: 'ACTQL_E_DELEGATION_UNAVAILABLE'}, results};
   await writeFile(join(directory, `install-${process.platform}-${process.arch}-${Date.now()}.json`),
