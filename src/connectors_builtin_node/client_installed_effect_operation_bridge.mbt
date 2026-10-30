@@ -62,3 +62,34 @@ pub fn client_program_installed_effect_operation_retire(
     original, original_cleanup_confirmed,
   )
 }
+
+///|
+#export_name("clientProgramInstalledJsonEffectRequestConstructionCapacity")
+pub fn client_program_installed_json_effect_request_construction_capacity(
+  provider : @execution.ExecutionCapacity,
+  max_input_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_json_effect_request_construction_capacity(
+    provider, max_input_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// Preserve the original native capacity value instead of projecting/copying
+// its byte fields through JavaScript. This remains immutable demand DATA.
+#export_name("clientProgramInstalledEffectOperationExtentFromCapacity")
+pub fn client_program_installed_effect_operation_extent_from_capacity(
+  operation : String,
+  capacity : @execution.ExecutionCapacity,
+  transfer_bytes : Int64,
+  physical_attempt : Bool,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_operation_extent(
+    operation, capacity, transfer_bytes, physical_attempt,
+  )
+}

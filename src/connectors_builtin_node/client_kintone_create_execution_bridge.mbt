@@ -180,3 +180,16 @@ pub fn client_program_kintone_create_effect_outcome_matches_request(
 ) -> Bool {
   @kintone_catalog.record_create_effect_outcome_matches_request(value, request)
 }
+
+///|
+#export_name("clientProgramKintoneCreateRequestConstructionCapacity")
+pub fn client_program_kintone_create_request_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_request_construction_capacity(
+    mapping, max_input_bytes, write, request,
+  )
+}

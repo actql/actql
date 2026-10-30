@@ -12,6 +12,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_shape" @shape,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/execution_relation" @execution,
   "moonbitlang/core/encoding/utf8",
 }
 

@@ -232,3 +232,43 @@ pub fn record_create_mapped_request_construction_inventory(
     39L,
   })
 }
+
+///|
+/// Price ONLY the native constructor/output inventory above with the existing
+/// execution owner. The standard Host still adds parser/index/input/wrapper,
+/// physical request/response/secret and complete retained-lifetime overlap.
+/// Holding this entire constructor envelope until output retirement deliberately
+/// does not infer an early release from constructor return or GC.
+pub fn record_create_mapped_request_construction_capacity(
+  mapping : RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_create_mapped_request_construction_inventory(
+      mapping, max_input_bytes, write, request,
+    )
+    is Some(inventory) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: inventory.representation.record_headers,
+      reference_slots: inventory.representation.reference_slots,
+      scalar_words: inventory.representation.scalar_words,
+      owned_utf16_units: inventory.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
