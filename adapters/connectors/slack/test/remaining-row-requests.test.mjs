@@ -41,7 +41,7 @@ function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false,workspa
     ...(pages??[page(family,['one','two'],cursor),page(family,['three'],null)])].map(p=>Buffer.from(JSON.stringify(p)));
   const cause=new Error('same original current refusal');let current=true;
   const transport=async input=>{
-    await input.currentBeforeSend();const selected=input.operations.get(input.operation);assert(selected);
+    await input.currentBeforeSend();const selected=input.operations.get(input.scope.operation);assert(selected);
     requests.push(selected);assert(requests.length<=bodies.length);
     return {accepted:true,statusCode:200,body:bodies[requests.length-1]};
   };
