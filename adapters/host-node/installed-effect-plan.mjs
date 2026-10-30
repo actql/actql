@@ -26,6 +26,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   };
   const fields = own(recipe, ['memberOperations', 'rowOperations',
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : [])]);
   const operations = name => {
     const values = fields[name].value;
@@ -53,6 +54,15 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }
     requestConstruction = Object.freeze({operationIndex});
   }
+  let captureConstruction;
+  if (fields.captureConstruction !== undefined) {
+    const selected = own(fields.captureConstruction.value, ['operationIndex']);
+    const operationIndex = selected.operationIndex.value;
+    if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= memberOperations.length) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    captureConstruction = Object.freeze({operationIndex});
+  }
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
@@ -75,6 +85,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   }
   return Object.freeze({memberOperations, rowOperations,
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
+    ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations})});
 }
 
@@ -116,8 +127,8 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
 // constructor. Its output stays charged until the enclosing original route and
 // request aliases have actually retired, including failed constructor prefixes.
 export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
-  operationIndex, operation, construct: originalConstruct, requestsRetired}) {
-  if (run === undefined || typeof originalConstruct !== 'function' ||
+  operationIndex, operation, perRow = true, construct: originalConstruct, requestsRetired}) {
+  if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
   const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
@@ -141,7 +152,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   };
   current();
   let token = checked(Reflect.apply(borrow, runtime,
-    [parent, prepared, request, plan, memberIndex, true, operationIndex, rowIndex, operation]));
+    [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
   let construct = originalConstruct;
   let state = 'fresh';
   let preparing = false;

@@ -1872,7 +1872,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
-    const proposals = members.map(() => []), currents = [], rowsOf = [], observations = [];
+    const proposals = [], currents = [], rowsOf = [], observations = [];
+    let sourceSet;
     let entries, route, captureOpen = true;
     const retireRequestAliases = () => {
       if (captureOpen || (route !== undefined && !route.retire())) return false;
@@ -1899,7 +1900,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (requestChildren.length) {
         const marker = Object.freeze(new Error('InstalledRowEffectRequestCleanup'));
         try { await releaseInstalledRowCapture({children: requestChildren,
-          payloads: sourceSet.payloads, control}, marker); }
+          payloads: sourceSet?.payloads ?? [], control}, marker); }
         catch (error) { if (error !== marker) throw error; }
       }
       for (const borrower of contentBorrowers) borrower.release();
@@ -1925,6 +1926,24 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       moon.clientProgramReleaseEffectInputs(inputs);
     };
     ownInputs(releaseInputs, () => { captureOpen = false; });
+    // Reserve each original member's capture body before export can append
+    // proposal rows, parse their values or issue canonical CREATE inventory.
+    // These SAME arrays and children survive through ordinary route retirement.
+    for (const member of members) {
+      const recipe = ownerOf(member).managedPlanRecipe;
+      if (recipe === undefined) { proposals.push([]); continue; }
+      if (managedEffect?.runtime !== moon || managedEffect.prepared !== prepared ||
+          managedEffect.request !== identity) fail('ForeignInstalledEffectManagedRun');
+      const selected = recipe.captureConstruction;
+      if (selected === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
+      const operation = recipe.memberOperations[selected.operationIndex]?.operation;
+      proposals.push(await prepareInstalledRowCaptureChild({children: requestChildren,
+        create: () => prepareInstalledEffectRequestChild({run: managedEffect,
+          memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
+          operationIndex: selected.operationIndex, operation,
+          construct: () => [], requestsRetired: retireRequestAliases}),
+        assertCurrent, signal}));
+    }
     let proposalCount = 0;
     const sourceLimits = moon.clientProgramEffectInputExportLimits(
       ...exportLimits(plan.outputLimits));
@@ -1962,7 +1981,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       typeof ownerOf(member).issueOriginalCollectionReference === 'function')) {
       fail('InstalledEffectPublishedTargetUnavailable');
     }
-    const sourceSet = await preparePinnedEffectSourceSet({moon,
+    sourceSet = await preparePinnedEffectSourceSet({moon,
       ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
       ...(publishedTargets === undefined ? {} : {publishedTargets}),
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },

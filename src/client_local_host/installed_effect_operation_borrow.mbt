@@ -44,19 +44,19 @@ fn installed_effect_operation_control_capacity(
   // fixed Host/Run prelude and B original-inventory owner are not re-quoted.
   // The actual JS request child also survives body settlement in the SAME
   // capture retry inventory, so its controls belong HERE, not in provider body
-  // capacity. Co-count this branch for every occurrence: child factory frame
-  // (1H15R3W), current/drain/prepare/status closures(4H4R), child(1H4R),
+  // capacity. Co-count this branch for every occurrence: child factory frame (including per-row/member selection)
+  // (1H15R4W), current/drain/prepare/status closures(4H4R), child(1H4R),
   // original RSE context(1H11R1W), options(1H7R3W), constructor closure(1H2R),
   // capture retainer frame(1H3R2W), two wrappers(2H4R), captured methods(1H4R),
   // six drain/retry/async-finally closures(6H6R), four invalid-thenable join
-  // callbacks(4H4R), and two live status snapshots(2H2W): 25H64R11W.
+  // callbacks(4H4R), and two live status snapshots(2H2W): 25H64R12W.
   // Three original Reflect.apply argument vectors have9+3+2 entries. Use the
   // pinned array representation; Promise engine backing stays opaque runtime
   // support, as in managed_cleanup_control_inventory, not a guessed RSS price.
   guard @shape.collection_construction_extent({
       records: 25L,
       record_references: 64L,
-      record_words: 11L,
+      record_words: 12L,
       reference_arrays: 3L,
       reference_items: 14L,
       scalar_arrays: 0L,
