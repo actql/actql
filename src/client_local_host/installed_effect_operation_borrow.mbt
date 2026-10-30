@@ -8,6 +8,7 @@ priv enum ClientEffectOperationBacking {
 
 ///|
 pub struct ClientInstalledEffectOperationBorrow {
+  priv mut original : ClientInstalledEffectOperationBorrow?
   priv mut owner : ClientInstalledManagedRun?
   priv mut ledger : @resources.Ledger?
   priv member_index : Int
@@ -33,8 +34,8 @@ fn installed_effect_operation_control_capacity(
     return None
   }
   let count = children.to_int64()
-  // Per selected occurrence: view(1H,3R,6W), owner/ledger/backing Some
-  // (3H,3R,3W), backing variant(1H,1R,1W), original B Reservation
+  // Per selected occurrence: view(1H,4R,6W), original/owner/ledger/backing Some
+  // (4H,4R,4W), backing variant(1H,1R,1W), original B Reservation
   // (1H,5R,8W), observed-quantity tuple(1H,0R,3W), and the pure branch's
   // CapacityReservation wrapper(1H,1R). Co-count the pure wrapper for every
   // physical alternative. No quantity/output holders are constructed here.
@@ -42,9 +43,9 @@ fn installed_effect_operation_control_capacity(
   // (4H,7R,12W); one appended array backing adds (1H,slotsR). The existing
   // fixed Host/Run prelude and B original-inventory owner are not re-quoted.
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 5L + 8L * count,
-    reference_slots: 7L + slots + 13L * count,
-    scalar_words: 12L + 21L * count,
+    record_headers: 5L + 9L * count,
+    reference_slots: 7L + slots + 15L * count,
+    scalar_words: 12L + 22L * count,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -157,11 +158,12 @@ fn borrow_installed_effect_operation_original(
   // reservation. Failed construction cannot silently discard this live debit.
   if owner.effect_operation_controls is None {
     let capacity = plan.operation_control_capacity
-    let control = match @resources.reserve_capacity(
-      ledger,
-      @execution.execution_capacity_retained_bytes(capacity),
-      @execution.execution_capacity_execution_bytes(capacity),
-    ) {
+    let control = match
+      @resources.reserve_capacity(
+        ledger,
+        @execution.execution_capacity_retained_bytes(capacity),
+        @execution.execution_capacity_execution_bytes(capacity),
+      ) {
       Ok(original) => original
       Err(issue) => return Err(Ledger(issue))
     }
@@ -185,6 +187,7 @@ fn borrow_installed_effect_operation_original(
     }
   }
   let value : ClientInstalledEffectOperationBorrow = {
+    original: None,
     owner: Some(owner),
     ledger: Some(ledger),
     member_index,
@@ -195,6 +198,7 @@ fn borrow_installed_effect_operation_original(
     started: false,
     retired: false,
   }
+  value.original = Some(value)
   owner.effect_operations.push(value)
   Ok(value)
 }
@@ -203,6 +207,9 @@ fn borrow_installed_effect_operation_original(
 fn require_installed_effect_operation(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
   guard !value.retired &&
     value.owner is Some(owner) &&
     owner.effect_operations.any(prior => physical_equal(prior, value)) &&
@@ -286,6 +293,9 @@ pub fn retire_installed_effect_operation(
   value : ClientInstalledEffectOperationBorrow,
   original_cleanup_confirmed : Bool,
 ) -> Result[Bool, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
   if value.retired {
     return Ok(true)
   }
