@@ -31141,7 +31141,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
+      "sha256": "5fbb22537949bd82e86d3b121a994441c294d81457947abbef46421c79d938d3",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -32401,6 +32401,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Source observation and Result publication policies"
               }
             ],
             "ownership": [
@@ -32495,6 +32499,14 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('a demanded expression failure retains its original typed dispatch cause'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication selects checked Result policy and retains original Source policy evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
               }
             ]
           }
