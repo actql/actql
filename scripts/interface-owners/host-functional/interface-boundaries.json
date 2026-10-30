@@ -84811,7 +84811,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "30ad3707c73dc65d9b89756db50bb692b0d56bd8edbcaaa1e9e4512ed4b6c46a",
+      "sha256": "e1495d16d755bae89bf9aaf4115e78875584fd04435cdbdd3423f24351230288",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -84858,6 +84858,13 @@
           "name": "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -84970,6 +84977,74 @@
               {
                 "path": "adapters/host-node/installed-managed-source.test.mjs",
                 "anchor": "test('Pure Source preparation receives its same original managed Run before reader construction'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindInstalledManagedSources/sources/sources/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original whole-Source caller connection"
               }
             ]
           }

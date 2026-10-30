@@ -3735,3 +3735,33 @@ Resource backing, physical cleanup acknowledgement or a Model/Content Plan.
 Caller fixtures cover same-original forwarding, explicit decline, callback
 failure, cancellation and retirement; compiled Common and ordinary Source/REST
 connections remain separate consuming obligations.
+
+
+### Original whole-Source caller connection
+
+Before constructing a captured Plan, the installed Host selects each original
+Source occurrence through the same Prepared/Request typed route. Query retains
+its QueryRequirement and QueryTime path. A selected whole input uses its own
+nominal capacity and the whole-input Plan constructor, never a fabricated
+predicate, Query capacity array, zero-prefix classifier or error fallback. Its
+original prepared captured prefix remains one. Unsupported mixed inventories
+refuse; the legacy independent quote cannot construct a whole-input Plan.
+
+The Request's existing constructor borrow completes and adopts that exact Plan.
+Submission retains the returned original Run before preparing physical Source
+inputs, and the Source facade keeps each original capacity method and receiver.
+The dispatch Result-placement check reads the adopted Plan graph rather than
+classifying it from the prepared capture prefix. Whole-input Ledger selection
+requires that same Run and exact typed capacity; current or binding refusal
+cannot create another Ledger or enter the legacy scalar path.
+
+After actual capture and evidence preparation, Compute opens from that adopted
+Plan with the original live sources. The dispatcher retains its existing
+preparation borrow and pending setup before binding the capture to the same DAG.
+Existing stop, child-first cleanup, payload retirement and publication duties
+remain. Query and unowned legacy consumers preserve their distinct contracts;
+this continuation creates no new Resource, Account authority or physical ACK.
+Both Node and RelA receive the one original capture opener through their existing
+shared bridge mirror. Typed interfaces and explicit-port caller tests establish
+only their declared boundaries; matching installed ordinary Source/REST,
+release and separate-process Saved remain necessary consuming evidence.
