@@ -1630,6 +1630,21 @@ original physical call from the child. Saved recovery needs its actual original
 parent and child retainer; a saved recipe or CID cannot select fresh backing or
 silently restore the legacy physical route.
 
+A managed capture selects its fixed `captureConstruction` member occurrence
+before Source export can append proposal rows, expand JSON or derive canonical
+CREATE identities. The original Plan reserves that body and the existing
+capture retainer holds its same per-member proposal vector. A missing selected
+extent refuses before export; no empty capacity or per-row constructor token
+substitutes for this enclosing prefix. Native member and row occurrences have
+separate coordinates, even when they share an immutable extent or index.
+The row limit still bounds exported proposals; member/control children do not
+consume row slots. Early failure retains every already-created sibling and
+keeps the original input pin until child retirement, including failure before
+a Source set exists. Current/capture/route aliases must retire before the same
+capacity reservation settles. The installation's full selected extent must
+still cover this prefix, its failed construction and simultaneous outputs;
+reserving an unqualified numeric bound supplies none of those facts.
+
 The standard CREATE declaration can express a read check as fixed `http`
 method/path/headers/bounds plus synchronous `body` and Unit `project`
 callbacks. These callbacks receive original provider request/response DATA

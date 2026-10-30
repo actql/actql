@@ -41235,6 +41235,141 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
+      "sha256": "521af46fa44474c7dd83ca6a0fbd1c350cb0c637dbf2986105c330e05aa2b142",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_effect_operation_controls",
+          "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "borrow_installed_effect_operation",
+          "declaration": "borrow_installed_effect_operation ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "borrow_installed_effect_operation_original",
+          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "charge_installed_effect_operation",
+          "declaration": "charge_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "ensure_installed_effect_operation_controls",
+          "declaration": "ensure_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_operation_control_capacity",
+          "declaration": "installed_effect_operation_control_capacity ( children : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "mark_installed_effect_operation_transfer_uncertain",
+          "declaration": "mark_installed_effect_operation_transfer_uncertain ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "require_installed_effect_operation",
+          "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retire_installed_effect_operation",
+          "declaration": "retire_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_effect_operation",
+          "declaration": "start_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_effect_operation_controls",
+            "borrow_installed_effect_operation",
+            "borrow_installed_effect_operation_original",
+            "charge_installed_effect_operation",
+            "ensure_installed_effect_operation_controls",
+            "installed_effect_operation_control_capacity",
+            "mark_installed_effect_operation_transfer_uncertain",
+            "require_installed_effect_operation",
+            "retire_installed_effect_operation",
+            "start_installed_effect_operation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate coordinates, even when they share an immutable extent or index."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "keeps the original input pin until child retirement, including failure before"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "capacity reservation settles. The installation's full selected extent must"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"member capture and row constructor retain distinct original same Request reservations\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"original Effect controls are debited once before the consumer borrows a body\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

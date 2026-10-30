@@ -61842,7 +61842,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a28927aa1d879e6c106c5404e6299966308b08e6c306ce80ce0a0e6e0f281236",
+      "sha256": "c7c7be00179913a7bf3c79650a55492e9c02dbcdb64cbc8a90a59fb791ef4023",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -62465,13 +62465,18 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage/captureStage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
           "parameters": [
             "change",
             "row"
@@ -62479,7 +62484,7 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
+          "name": "createRowEffectStage/captureStage/captureStage/captureStage#4",
           "parameters": [
             "claim"
           ],
@@ -62498,21 +62503,46 @@
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#2",
+          "name": "createRowEffectStage/captureStage/captureStage#12",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/captureStage#13",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/captureStage#3",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#4",
+          "parameters": [
+            "member",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "entry",
             "row"
@@ -62520,24 +62550,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
-          "parameters": [
-            "rows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
-            "member",
-            "index"
+            "rows"
           ],
           "async": false
         },
@@ -62550,8 +62565,11 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#9",
-          "parameters": [],
-          "async": true
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/childrenPending/childrenPending",
@@ -62616,6 +62634,31 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
+          "parameters": [
+            "memberIndex",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact",
+          "parameters": [
+            "artifact",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "proposal"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/payloads/payloads",
           "parameters": [
             "member"
@@ -62647,11 +62690,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/proposals/proposals",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
           "parameters": [],
           "async": true
@@ -62670,39 +62708,6 @@
           "name": "createRowEffectStage/captureStage/rows/rows",
           "parameters": [
             "proposal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
-          "parameters": [
-            "memberIndex",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact",
-          "parameters": [
-            "artifact",
-            "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
-          "parameters": [
-            "memberIndex",
-            "rowIndex",
-            "proposal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/sourceSet/sourceSet",
-          "parameters": [
-            "member",
-            "memberIndex"
           ],
           "async": false
         },
@@ -65074,15 +65079,15 @@
             "createRowEffectStage/canonicalRows/canonicalRows/inventory/inventory",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage#4",
+            "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
-            "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage#8",
             "createRowEffectStage/captureStage/captureStage#9",
-            "createRowEffectStage/captureStage/captureStage#10",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
+            "createRowEffectStage/captureStage/captureStage#11",
+            "createRowEffectStage/captureStage/captureStage#12",
             "createRowEffectStage/captureStage/captureStage/captureStage#3",
+            "createRowEffectStage/captureStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -65090,21 +65095,21 @@
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
-            "createRowEffectStage/captureStage/captureStage#5",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/proposals/proposals",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
-            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/rows/rows",
-            "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
-            "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
-            "createRowEffectStage/captureStage/sourceSet/sourceSet",
+            "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
+            "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
+            "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/checkRows/checkRows",
             "createRowEffectStage/checkSubject/checkSubject",
@@ -67276,7 +67281,7 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact"
+            "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact"
           ],
           "exports": [],
           "attributes": {
@@ -67644,7 +67649,7 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/captureStage#11",
+            "createRowEffectStage/captureStage/captureStage#13",
             "createRowEffectStage/captureStage/targets/targets"
           ],
           "exports": [],
@@ -68215,6 +68220,78 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/captureStage#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate coordinates, even when they share an immutable extent or index."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "keeps the original input pin until child retirement, including failure before"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "capacity reservation settles. The installation's full selected extent must"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('original member capture reservation precedes exported proposal rows and retains their prefix until release'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('capture construction selects its original member extent without consuming a per-row slot'"
               }
             ]
           }
