@@ -504,6 +504,67 @@ tests do not establish registry trust, provenance, owner approval, actual
 staging/publication or consumer acceptance. All acceptance conditions stay
 pending until their independent evidence exists.
 
+### Separate owner-terminal approval helper
+
+`npmStageApprovalPlan` and `approveStagedPackageRelease` in the existing
+publisher module use the same fixed set, stage selection, full payload reader
+and owner pending-stage reader. Supply the explicit original ordered
+`stages: [{file, stageId}]` from that set's original staging attempt. A pending
+entry must retain exactly that stage ID and immutable staging tag; missing,
+ambiguous, changed or unavailable bytes refuse the entire cohort. An entry
+already publicly available must still have the exact original bytes; its ID
+may be retained historically, or be `null` if no stage was needed.
+
+The read-only plan contains the complete original candidate summary and every
+package/version/tag/stage ID/digest in dependency order, as JSON and Markdown.
+It supplies no approval. The separate owner process must display that whole
+review, validate the actual independent approval and hold exclusive execution.
+It must load its validator from the trusted protected revision, not trust a
+candidate branch's implementation or an agent-written `approved` field.
+
+The approval helper has **no default owner terminal, credentials or executable
+CLI route**. Its supplied `runNpmOwner` port receives only the explicit
+`npm stage approve <original-stage-id> --registry https://registry.npmjs.org/`
+command and an immutable full-cohort presentation. Each package is a separate
+publication, never an atomic cohort approval. The existing Node 22.14/npm 11.15
+minimums and exact actual npm pin check remain.
+
+Only the owner terminal performs the interactive authentication required by
+[npm stage approve](https://docs.npmjs.com/cli/v12/commands/npm-stage/).
+There is no OTP input, `--otp`, agent confirmation or captured authentication
+output. The version probe may return its nonsecret version string; an approval
+terminal must return only `{code, signal}` after its same child has terminated.
+Its stdout/stderr, prompts, browser links, session, credentials and exceptions
+must stay with the owner. Unexpected authentication output is refused without
+being written to a receipt. Terminal settlement does not prove owner identity,
+2FA or independent approval.
+
+If the owner terminal throws, the returned generic error retains the exact
+private failure object as non-enumerable `originalOwnerFailure` for that same
+owner caller, including original cleanup duties. It is not a public receipt
+or serialized error cause. Normal error inspection and persisted Unknown
+records contain no authentication exception text. The owner must still settle
+its original process/session and cleanup; discarding that private duty is not
+successful closure.
+
+Every operation has a synced private intent before that owner terminal is
+invoked. Complete public/pending byte observations fence the whole original
+cohort before and after each operation. The existing channel reader separately
+requires the unique staging tag to be absent while pending and to point to the
+exact original version once published. Unknown, occupied or changed staging
+tags refuse without an implicit channel update. A zero exit cannot replace publication
+readback; a lost response, cancellation, missing publication or changed next
+stage stops before another package, retaining Unknown. The original owner
+retains any live child and authentication cleanup duty. No automatic retry,
+reject, restage, tag change, resubmission or version selection occurs.
+
+A separately authorized same-digest invocation reobserves the actual public
+bytes and skips an already-published original; only the remaining exact pending
+IDs can be approved. Each new attempt is distinct and no prior success flag
+is accepted as currentness. Actual owner-only CLI/session provisioning, 2FA,
+registry trust separation, exclusive execution and public installed acceptance
+remain pending. Injected-terminal component results do not establish them.
+
 ## Read-only public registry observation
 
 The [Native Draft publication protocol](native-cli.md#exact-byte-native-draft-publication-protocol)
