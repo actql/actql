@@ -154,12 +154,16 @@
     {
       "id": "A13",
       "required": "Maintenance publication cannot roll newer latest backward",
-      "currentSlice": "Read-only channel plan preserves prior/destination checks; staging refuses final stable/maintenance/proposed promotion channels and occupied staging tags. Actual protected promotion, GitHub Latest and public install remain pending",
+      "currentSlice": "Read-only channel plan preserves prior/destination checks. A separate post-freeze promotion review binds that exact plan/report and upper-bound Node receipt identities without changing original artifacts or earlier acceptance fields. Claims remain unaccepted DATA; protected promotion, GitHub Latest and actual public acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Synthetic local channel-plan component; no actual registry channel mutation",
           "test": "release lanes: newer latest cannot be rolled back by a maintenance release"
+        },
+        {
+          "kind": "Inert cold bytes and supplied receipt DATA only; not actual trusted public installation, channel currentness, approval or mutation",
+          "test": "promotion review: separate acyclic bundle binds original upper plan and receipt without changing artifact or earlier acceptance"
         },
         {
           "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",

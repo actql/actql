@@ -7,7 +7,8 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {releasePlan} from './release-policy.mjs';
-import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
+import {freezeReleaseSet, verifyReleaseSet, prepareReleaseReview, resumeReleaseSet, releaseSetSummary,
+  prepareReleasePromotionReview, verifyReleasePromotionReview, releasePromotionReviewSummary} from './release-set.mjs';
 import {observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
 import {promotionPlan} from './release-channels.mjs';
 import {inspectReleaseSource, maintenanceReviewPlan} from './release-source.mjs';
@@ -38,6 +39,16 @@ export async function runRelease(args) {
   if (command === 'review') {
     assert.equal(values.length, 4, 'usage: release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-directory>');
     return prepareReleaseReview({directory: values[0], expectedSha256: values[1], reviewFile: values[2], destination: values[3]});
+  }
+  if (command === 'promotion-review') {
+    assert.equal(values.length, 6, 'usage: release.mjs promotion-review <fixed-directory> <upper-SHA256> <plan.json> <channel-report.json> <public-evidence-request.json> <new-review-directory>');
+    return prepareReleasePromotionReview({directory: values[0], expectedSha256: values[1], planFile: values[2],
+      channelReportFile: values[3], reviewFile: values[4], destination: values[5]});
+  }
+  if (command === 'verify-promotion-review' || command === 'promotion-summary') {
+    assert.equal(values.length, 4, 'Supply original fixed directory/SHA256 and original promotion review directory/SHA256');
+    const checked = await verifyReleasePromotionReview({directory: values[0], expectedSha256: values[1], reviewDirectory: values[2], expectedReviewSha256: values[3]});
+    return command === 'promotion-summary' ? releasePromotionReviewSummary(checked) : checked;
   }
   if (command === 'npm-stage-plan') {
     assert.equal(values.length, 3, 'usage: release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>');
