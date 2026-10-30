@@ -88081,7 +88081,7 @@
     {
       "module": "adapters/host-node/rest-source-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de5ff20691b560ca105f2e4aae2ea012ab70e0afc8417938dc0fb5251e3933de",
+      "sha256": "7a1615375b50019e675d1b8baf1016cb09e4841a3aa3ebe253fd5037403453cd",
       "role": "public-wire-codec",
       "owner": "Existing installed Source profile/identity and Host configuration-reader Owners; metadata supplies closed DATA and original-string identity, not a declaration issuer or physical reader.",
       "exports": [
@@ -88328,6 +88328,10 @@
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
                 "anchor": "test('REST metadata retains the same Host reader methods and exact original CA without an author bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST CA input retains the original byte reader before configuration await and hashes exact bytes'"
               }
             ],
             "failure": [
@@ -88337,15 +88341,15 @@
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');"
+                "anchor": "if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');"
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "if (typeof reads.readOriginalText !== 'function') fail('RestSourceConfigurationReaderUnavailable');"
+                "anchor": "if (typeof reads.readOriginalBytes !== 'function') fail('RestSourceTlsAuthorityPolicyUnavailable');"
               }
             ],
             "cancellation": [
@@ -88397,15 +88401,23 @@
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no text'"
+                "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST configuration refuses a missing actual-FD text reader before any JSON read'"
+                "anchor": "test('REST configured CA refuses a missing actual-FD byte reader without a text fallback'"
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
-                "anchor": "test('REST CA uses only the captured actual-FD text method and original receiver'"
+                "anchor": "test('REST CA uses only the captured actual-FD byte method and original receiver'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST without CA preserves its original identity and absent byte-reader path'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "test('REST factory forwards the same managed CA bytes to its original Site service'"
               }
             ]
           }
