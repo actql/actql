@@ -288,6 +288,10 @@
               {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "Pending I/O, signing/secret resolution, callback Promises"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "### Remaining-row request bounds"
               }
             ],
             "extension": [
@@ -312,6 +316,10 @@
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
                 "anchor": "Notion aggregate raw bound charges and retains"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -1031,6 +1039,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original dependent property authorization"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "### Remaining-row request bounds"
               }
             ],
             "extension": [
@@ -1079,6 +1091,10 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
