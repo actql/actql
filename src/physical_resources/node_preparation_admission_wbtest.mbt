@@ -298,33 +298,36 @@ test "node preparation input rejects a foreign receipt before original child sta
 }
 
 ///|
-test "preparation census and bootstrap transfer with the same original child and purpose" {
+test "preparation census uses the first reservation through same-child adoption and retirement" {
   let child = preparation_adoption_child()
   let input = [1]
   let body = [2]
   let initial = prepare_node_preparation_original(child, input, () => Ok(()))
   let ledger = start_node_preparation_admission(initial).unwrap()
-  let identity = begin_node_preparation_inventory(
-    initial, input, 10L, 10L, 2, 0, 0,
-  ).unwrap()
-  let bootstrap = initial.admission.unwrap().read_bootstrap.unwrap()
-  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity_inventory(
     ledger,
     input,
-    40L,
-    60L,
+    50L,
+    70L,
     max_borrowers=2,
   ).unwrap()
-  reserve_working_preparation_phase(capacity, input, 50L, 70L).unwrap()
-  assert_eq(ledger.original_inventory.unwrap().reservations.length(), 1)
-  assert_eq(ledger.next_capacity_serial, Some(-3))
-  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  let identity = preparation_capacity_inventory_original(capacity, input).unwrap()
+  assert_true(physical_equal(identity.bootstrap, capacity.reservation))
+  assert_true(initial.admission.unwrap().read_bootstrap is None)
+  assert_eq(ledger_usage(ledger).live_reservations, 1)
+  // Preserve the old fixture's total extent (bootstrap10/10 plus body), now
+  // on one original reservation. This is not a physical domain recipe.
+  reserve_working_preparation_phase(capacity, input, 60L, 80L).unwrap()
+  assert_eq(ledger.original_inventory.unwrap().reservations.length(), 0)
+  assert_eq(ledger.next_capacity_serial, Some(-2))
+  complete_preparation_capacity(capacity, input, body, 40L, 10L).unwrap()
   let (run, same, retirement, run_holder) = adopt_node_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
   assert_true(physical_equal(ledger, same))
   assert_true(physical_equal(run.child, child))
-  assert_true(physical_equal(run.read_bootstrap.unwrap(), bootstrap))
+  assert_true(run.read_bootstrap is None)
+  assert_false(run.read_bootstrap_attempted)
   assert_true(
     check_node_local_mock_model_run_preparation(run, body) is Err(Unavailable),
   )
@@ -332,7 +335,7 @@ test "preparation census and bootstrap transfer with the same original child and
     check_node_source_compute_run_preparation(run, body) is Err(Unavailable),
   )
   assert_true(original_ledger_inventory_available(identity))
-  assert_eq(ledger.next_capacity_serial, Some(-3))
+  assert_eq(ledger.next_capacity_serial, Some(-2))
   assert_eq(ledger_usage(ledger).attempts, 0)
   assert_true(node_preparation_usage_isolated(run, ledger))
   let other = reserve_capacity(ledger, 0L, 0L).unwrap()
@@ -343,15 +346,16 @@ test "preparation census and bootstrap transfer with the same original child and
   assert_false(retire_transferred_preparation(retirement).unwrap())
   assert_false(return_preparation_body_borrow(run_holder).unwrap())
   assert_true(release_node_preparation_holder(run).unwrap())
-  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 10L)
-  cleanup_node_managed_run_admission(run).unwrap()
-  assert_false(capacity_reservation_open(bootstrap))
+  assert_false(original_ledger_inventory_available(identity))
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
-  assert_eq(ledger.next_capacity_serial, Some(-4))
+  cleanup_node_managed_run_admission(run).unwrap()
+  assert_false(capacity_reservation_open(capacity.reservation))
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger.next_capacity_serial, Some(-3))
 }
 
 ///|
-test "preparation census refuses late or foreign input and retains original cleanup" {
+test "first preparation census rejects foreign input and late reservation without replacing cleanup" {
   let input = [1]
   let initial = prepare_node_preparation_original(
     preparation_adoption_child(),
@@ -360,8 +364,7 @@ test "preparation census refuses late or foreign input and retains original clea
   )
   let ledger = start_node_preparation_admission(initial).unwrap()
   assert_true(
-    begin_node_preparation_inventory(initial, [1], 10L, 10L, 2, 0, 0)
-    is Err(ForeignOriginal),
+    check_node_preparation_input(initial, [1]) is Err(ForeignOriginal),
   )
   assert_eq(ledger.next_capacity_serial, Some(-1))
   let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
@@ -371,10 +374,17 @@ test "preparation census refuses late or foreign input and retains original clea
     60L,
     max_borrowers=1,
   ).unwrap()
-  assert_true(
-    begin_node_preparation_inventory(initial, input, 10L, 10L, 2, 0, 0)
-    is Err(Resource(InvalidCharge)),
+  let late : Result[
+    PreparationCapacity[Array[Int], Array[Int]],
+    PreparationCapacityIssue,
+  ] = reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    10L,
+    10L,
+    max_borrowers=2,
   )
+  assert_true(late is Err(Resource(InvalidCharge)))
   assert_true(ledger.original_inventory is None)
   assert_eq(ledger.next_capacity_serial, Some(-2))
   assert_true(
@@ -385,7 +395,7 @@ test "preparation census refuses late or foreign input and retains original clea
 }
 
 ///|
-test "preparation census initialization failure keeps its bootstrap on the original admission" {
+test "invalid first preparation census allocates no separate bootstrap or replacement owner" {
   let input = [1]
   let initial = prepare_node_preparation_original(
     preparation_adoption_child(),
@@ -393,15 +403,32 @@ test "preparation census initialization failure keeps its bootstrap on the origi
     () => Ok(()),
   )
   let ledger = start_node_preparation_admission(initial).unwrap()
-  assert_true(
-    begin_node_preparation_inventory(initial, input, 10L, 10L, -1, 0, 0)
-    is Err(Unavailable),
+  let invalid : Result[
+    PreparationCapacity[Array[Int], Unit],
+    PreparationCapacityIssue,
+  ] = reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    10L,
+    10L,
+    max_borrowers=0,
   )
-  assert_true(initial.admission.unwrap().read_bootstrap is Some(_))
+  assert_true(invalid is Err(InvalidExtent))
+  assert_true(initial.admission.unwrap().read_bootstrap is None)
+  assert_false(initial.admission.unwrap().read_bootstrap_attempted)
   assert_true(ledger.original_inventory is None)
+  assert_eq(ledger.next_capacity_serial, Some(-1))
+  assert_eq(ledger_usage(ledger).live_reservations, 0)
+  let capacity : PreparationCapacity[Array[Int], Unit] = reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    40L,
+    60L,
+    max_borrowers=2,
+  ).unwrap()
+  assert_true(initial.admission is Some(_))
   assert_true(
-    begin_node_preparation_inventory(initial, input, 10L, 10L, 2, 0, 0)
-    is Err(AlreadyConsumed),
+    abort_preparation_capacity_after_cleanup(capacity, input).unwrap(),
   )
   cleanup_node_preparation_admission(initial).unwrap()
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
@@ -421,7 +448,7 @@ test "preparation adoption rechecks original census closing after its final curr
         capacity.phase == Transferring &&
         held.val is Some(ledger) {
         closed.val = true
-        closed.val = finish_original_ledger_inventory(ledger, true) == Ok(false)
+        closed.val = finish_original_ledger_inventory(ledger, true) == Ok(true)
       }
       0
     },
@@ -436,17 +463,15 @@ test "preparation adoption rechecks original census closing after its final curr
   let initial = prepare_node_preparation_original(child, input, () => Ok(()))
   let ledger = start_node_preparation_admission(initial).unwrap()
   held.val = Some(ledger)
-  begin_node_preparation_inventory(initial, input, 10L, 10L, 2, 0, 0).unwrap()
-  |> ignore
-  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity_inventory(
     ledger,
     input,
-    40L,
-    60L,
+    50L,
+    70L,
     max_borrowers=2,
   ).unwrap()
   active.val = Some(capacity)
-  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  complete_preparation_capacity(capacity, input, body, 40L, 10L).unwrap()
   assert_true(
     adopt_node_preparation_admission(initial, input, capacity, body)
     is Err(Resource(ClosedReservation)),
@@ -473,18 +498,21 @@ fn zero_byte_preparation_isolation_fixture(
     () => Ok(()),
   )
   let ledger = start_node_preparation_admission(initial).unwrap()
-  if census {
-    begin_node_preparation_inventory(initial, input, 10L, 10L, 8, 2, 2).unwrap()
-    |> ignore
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = if census {
+    let capacity = reserve_preparation_capacity_inventory(
+      ledger,
+      input,
+      50L,
+      70L,
+      max_borrowers=2,
+    ).unwrap()
+    grow_preparation_capacity_inventory(capacity, input, 50L, 70L, 8, 2, 2).unwrap()
+    capacity
+  } else {
+    reserve_preparation_capacity(ledger, input, 40L, 60L, max_borrowers=2).unwrap()
   }
-  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
-    ledger,
-    input,
-    40L,
-    60L,
-    max_borrowers=2,
-  ).unwrap()
-  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  let (retained, execution) = if census { (40L, 10L) } else { (30L, 0L) }
+  complete_preparation_capacity(capacity, input, body, retained, execution).unwrap()
   let (run, _, retirement, run_holder) = adopt_node_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
