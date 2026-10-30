@@ -1665,6 +1665,31 @@ it cannot authorize resend or manufacture a terminal failure. Kintone supplies
 only the exact original App request and complete Form correspondence, keeping
 its native request/Mapping distinct from permission and physical custody.
 
+The captured CREATE frame retains the original bounded Common `changesWire`
+beside its mapped value and canonical occurrence. The existing Core CREATE
+inventory consumes that same wire, rather than re-encoding a decoded JavaScript
+Number. A pure standard mapper may consume this `proposalWire` DATA; other
+request callback contexts keep their absent form. Shared read body/projection
+callbacks receive the same independently retained mapped value, never another
+read grant or an input inferred from the physical request body.
+
+The Kintone standard CREATE declaration supplies only its fixed endpoint,
+native proposal/body admission, Form request/correspondence and native response
+classification. It selects the original Mapping resource and captures original
+runtime methods with their namespace receiver. Input String units and UTF8 bytes
+are checked before encoding into Bytes. No mapped-JS-row JSON encoder is used:
+the existing native parser admits exactly the complete `state:present`/`value`
+envelope under the same Form and Mapping, with independent input/output bounds.
+Its selected one-record body is not a restriction on the Program's row count.
+The shared owner retains exact request DATA/CID and its whole saved envelope.
+Cold native correspondence consumes that saved proposal wire and complete
+physical body through the comparison serializer, without fresh prepare, a new
+tag/CID or another provider read. Native protocol success remains DATA; the
+original Preview/claim/current/permission and settlement duties remain outside.
+This declaration creates no Account, Site, operation reservation or cleanup
+owner and cannot stand in for full constructor/Host/secret/failed-child overlap
+or the actual initializer and cold parent.
+
 Saved Kintone CREATE restoration re-admits the complete checked value rows
 under the same original Mapping/Form and compares the saved physical body
 through the original serializer's bounded comparison sink. Only complete byte

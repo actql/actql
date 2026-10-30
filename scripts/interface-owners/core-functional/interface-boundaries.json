@@ -41142,7 +41142,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_execution.mbt",
-      "sha256": "1cd217d94071c76a85d502196b93bf98625dafae62bc82f5e62c3f249d2f1ddd",
+      "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
@@ -41150,8 +41150,16 @@
       "exports": [],
       "operations": [
         {
+          "name": "prepare_record_create_execution_proposal",
+          "declaration": "prepare_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
           "name": "prepare_record_create_execution_request",
           "declaration": "prepare_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "restore_record_create_execution_proposal",
+          "declaration": "restore_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
         },
         {
           "name": "restore_record_create_execution_request",
@@ -41230,6 +41238,76 @@
               {
                 "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
                 "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_record_create_execution_proposal",
+            "restore_record_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
               }
             ]
           }
@@ -41368,6 +41446,589 @@
               }
             ]
           }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "create_proposal_values",
+            "prepare_record_create_request_proposal",
+            "restore_record_create_request_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "7138faf9bc484344754da9015f4bc222a6e7ea4a0ff4f9ccb7d121657ca4a32b",
+      "operations": [
+        {
+          "name": "create_proposal_values",
+          "declaration": "create_proposal_values ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordWriteValues , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "prepare_record_create_request_proposal",
+          "declaration": "prepare_record_create_request_proposal ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "restore_record_create_request_proposal",
+          "declaration": "restore_record_create_request_proposal ( catalog : FormFieldCatalog , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_mapping.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_mapping",
+            "record_create_mapping",
+            "record_create_mapping_is_original",
+            "record_create_mapping_matches_declaration",
+            "record_create_mapping_matches_request",
+            "record_create_mapping_resource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "eebebbdc1d04d60dd884e370bd1150deadfb3df2f66d8f40e4709819c4c4e371",
+      "operations": [
+        {
+          "name": "prepare_record_create_mapping",
+          "declaration": "prepare_record_create_mapping ( original : RecordDeclaration , resource : String , sources : Array [ @ rows . RowMappingSource ] , approval : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordCreateMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_create_mapping",
+          "declaration": "record_create_mapping ( value : RecordCreateMapping ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_create_mapping_is_original",
+          "declaration": "record_create_mapping_is_original ( value : RecordCreateMapping ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_declaration",
+          "declaration": "record_create_mapping_matches_declaration ( value : RecordCreateMapping , original : RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_request",
+          "declaration": "record_create_mapping_matches_request ( value : RecordCreateMapping , request : @ catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_resource",
+          "declaration": "record_create_mapping_resource ( mapping : RecordCreateMapping , ) - > Result [ String , RecordCreateExecutionIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_preview_outcome",
+            "client_program_kintone_create_preview_outcome_matches",
+            "client_program_kintone_create_preview_outcome_response_sha256",
+            "client_program_kintone_create_preview_outcome_row_cid",
+            "client_program_kintone_create_preview_outcome_wire",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_prepare_create_mapping",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "48c08e1e888e1064c5641ae3abf221af23467f8cb873016890098b6baf1eae75",
+      "operations": [
+        {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome",
+          "declaration": "client_program_kintone_create_preview_outcome ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , max_value_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordCreatePreviewOutcome , @ kintone_host . RecordCreateOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_matches",
+          "declaration": "client_program_kintone_create_preview_outcome_matches ( value : @ kintone_host . RecordCreatePreviewOutcome , mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_preview_outcome_response_sha256 ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_create_preview_outcome_row_cid ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_wire",
+          "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_preview_outcome",
+            "client_program_kintone_create_preview_outcome_matches",
+            "client_program_kintone_create_preview_outcome_response_sha256",
+            "client_program_kintone_create_preview_outcome_row_cid",
+            "client_program_kintone_create_preview_outcome_wire",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_prepare_create_mapping",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "95c7fb3ac7c004cead52e2f24e9dc9b770eb89a8aefbd648ad1b4d1bfbad8f25",
+      "operations": [
+        {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome",
+          "declaration": "client_program_kintone_create_preview_outcome ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , max_value_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordCreatePreviewOutcome , @ kintone_host . RecordCreateOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_matches",
+          "declaration": "client_program_kintone_create_preview_outcome_matches ( value : @ kintone_host . RecordCreatePreviewOutcome , mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_preview_outcome_response_sha256 ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_create_preview_outcome_row_cid ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_wire",
+          "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
         }
       ]
     }

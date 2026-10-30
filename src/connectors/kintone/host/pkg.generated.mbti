@@ -21,6 +21,8 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn prepare_record_create_execution_proposal(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
 pub fn prepare_record_create_execution_request(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordCreateMapping, @client_row_source_host.RowMappingIssue]
@@ -58,6 +60,8 @@ pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
 pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
 
 pub fn record_create_mapping_matches_request(RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool
+
+pub fn record_create_mapping_resource(RecordCreateMapping) -> Result[String, RecordCreateExecutionIssue]
 
 pub fn record_create_preview_outcome_matches(RecordCreatePreviewOutcome, RecordCreateMapping, @catalog.RecordCreateRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
 
@@ -118,6 +122,8 @@ pub fn record_update_mapping(RecordUpdateMapping) -> @client_row_source_host.Row
 pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDeclaration) -> Bool
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
+
+pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 

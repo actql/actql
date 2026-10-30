@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "c7c7be00179913a7bf3c79650a55492e9c02dbcdb64cbc8a90a59fb791ef4023",
+      "sha256": "00010a124069b93d81587b9ba2b2a08ca82de52d781bad2e3423a4a5d82e6237",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -14561,6 +14561,7 @@
       "role": "connector-semantics",
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
+        "createMappedKintoneCreateWrite",
         "prepareMappedKintoneCreate",
         "prepareMappedKintoneCreateFormCheck",
         "projectMappedKintoneCreateOutcome",
@@ -14568,6 +14569,124 @@
         "sendMappedKintoneCreate"
       ],
       "operations": [
+        {
+          "name": "createMappedKintoneCreateWrite",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "resource",
+            "formResource",
+            "origin",
+            "guestSpaceId",
+            "boundaryCid",
+            "supplied"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/bytesOf/bytesOf",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/data/data",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/data/data/data",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:body/init:body",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:classify/init:classify",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:project/init:project",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/init:request/init:request",
+          "parameters": [
+            "selectedResource",
+            "value",
+            "proposalWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/limits/limits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/retain/retain",
+          "parameters": [
+            "request",
+            "value",
+            "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMappedKintoneCreateWrite/selected/selected",
+          "parameters": [
+            "selectedResource",
+            "request",
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -14717,11 +14836,13 @@
       ],
       "imports": [
         "../../../host-common/runtime-result.mjs",
-        "./kintone-record-write.mjs"
+        "./kintone-record-read.mjs",
+        "./kintone-record-write.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dc5f4e3a18a2bacc0e8ed5e56e1596589e3ac46925ad58000e8c98965b87132c",
+      "sha256": "2be710576aa06977b020a7603cc06ad347c90a763f19fc060249123e2876417a",
       "contracts": [
         {
           "operations": [
@@ -14818,6 +14939,94 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createMappedKintoneCreateWrite",
+            "createMappedKintoneCreateWrite/bytesOf/bytesOf",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
+            "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
+            "createMappedKintoneCreateWrite/data/data",
+            "createMappedKintoneCreateWrite/data/data/data",
+            "createMappedKintoneCreateWrite/init:body/init:body",
+            "createMappedKintoneCreateWrite/init:classify/init:classify",
+            "createMappedKintoneCreateWrite/init:project/init:project",
+            "createMappedKintoneCreateWrite/init:request/init:request",
+            "createMappedKintoneCreateWrite/invalid/invalid",
+            "createMappedKintoneCreateWrite/limits/limits",
+            "createMappedKintoneCreateWrite/retain/retain",
+            "createMappedKintoneCreateWrite/selected/selected"
+          ],
+          "exports": [
+            "createMappedKintoneCreateWrite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The captured CREATE frame retains the original bounded Common `changesWire`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The captured CREATE frame retains the original bounded Common `changesWire`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The captured CREATE frame retains the original bounded Common `changesWire`"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This declaration creates no Account, Site, operation reservation or cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The captured CREATE frame retains the original bounded Common `changesWire`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('CREATE inventory consumes the original checked proposal wire before any lossy JS number encoding'"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
               }
             ]
           }

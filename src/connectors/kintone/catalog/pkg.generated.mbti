@@ -55,6 +55,8 @@ pub fn prepare_record_create_request(FormFieldCatalog, Array[RecordWriteValues],
 
 pub fn prepare_record_create_request_json(FormFieldCatalog, Bytes, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
 
+pub fn prepare_record_create_request_proposal(FormFieldCatalog, Bytes, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
 pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
 pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
@@ -180,6 +182,8 @@ pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMeta
 pub fn restore_record_create_request(FormFieldCatalog, Array[RecordWriteValues], String, RecordMutationLimits) -> Result[RecordCreateRequest, RecordMutationIssue]
 
 pub fn restore_record_create_request_json(FormFieldCatalog, Bytes, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
+pub fn restore_record_create_request_proposal(FormFieldCatalog, Bytes, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
 
 // Errors
 
