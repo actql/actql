@@ -110,6 +110,12 @@ against the exact public release:
 node scripts/test-python-release-install.mjs \
   /absolute/fixed/release-set "$ACTQL_RELEASE_SET_SHA256" python \
   /absolute/selected/python /absolute/new/external-consumer
+
+# A separate fresh consumer using uv's project interface:
+node scripts/test-python-release-install.mjs \
+  /absolute/fixed/release-set "$ACTQL_RELEASE_SET_SHA256" python \
+  /absolute/selected/python /absolute/other/new/external-consumer \
+  --uv /absolute/selected/uv
 ```
 
 `python` is the original target id, not a default or a replacement interpreter.
@@ -133,8 +139,9 @@ builds, and records pip's stable installation report. Fresh HOME and
 [`PIP_CONFIG_FILE=os.devnull`](https://pip.pypa.io/en/stable/topics/configuration/)
 exclude inherited pip configuration; source paths, publisher credentials and
 proxies are not forwarded. Only the new venv's executable directory is on the
-consumer PATH, with actual checks for absent Node/npm/ActQL CLI before and after
-installation and consumption. Build-time validation may use Node; installed
+consumer PATH. The pip mode checks absent Node/npm/ActQL CLI before and after
+installation and consumption; uv uses an empty installer PATH and checks its
+new environment after installation and consumption. Build-time validation may use Node; installed
 Python operation may not.
 
 The [pip report](https://pip.pypa.io/en/stable/reference/installation-report/)
@@ -146,6 +153,31 @@ source links or surplus namespaces. Missing RECORD rows cannot be hidden by
 `importlib.metadata.files`. The installed audit runs before and after the
 business fixture without importing the product itself.
 
+The explicit uv mode uses `uv add` for the same one exact public entry. It
+creates separate fresh projects and `.venv` environments, selects the absolute
+Python interpreter without managed-Python downloads, and refuses an enclosing
+project before invoking uv. Its empty installer PATH, fresh HOME/temp directory,
+`--no-config`, `--no-sources`, `--no-build`, `--no-cache`, disabled keyring and
+copy link mode exclude shared caches, workspace sources and source builds.
+The selected uv executable's real path, original file identity, hash and version
+are retained and reobserved; the launcher does not install or update uv.
+
+uv's [project lock](https://docs.astral.sh/uv/concepts/projects/layout/#the-lockfile)
+is resolution evidence, **not** pip's download transaction report. The audit
+accepts only its selected version-1/revision-3 format, the exact one-entry project,
+the official PyPI registry, and the original ActQL wheel filenames/hashes/sizes.
+Only the explicitly persisted official default index is permitted as project
+configuration. Unknown revisions, forked resolutions, alternate ActQL artifacts,
+local/direct sources and workspace bindings require separate review and refuse.
+Third-party universal resolution entries do not mean every listed artifact was
+installed or executed. Independent actual PyPI byte observation and the complete
+installed ActQL payload audit remain required before and after consumption.
+uv's installer marks every installed package `REQUESTED`; the one requested
+public entry is therefore established by the actual project and lock rather
+than those markers. The same payload owner checks uv's exact installer metadata,
+complete raw RECORD and full namespace. A uv lock is never synthesized as a pip
+report, and local-index/injected-lock controls do not establish public acceptance.
+
 The original fixture checks SDK-only absence of Local packages, then runs the
 sync and async Local scenarios in separate fresh HOMEs. Each initial Run's
 public reference is retained before wait. Successful scenarios write a distinct
@@ -155,7 +187,7 @@ integer-row oracle. All four Local processes hold after close for a scoped
 state-descriptor observation and acknowledge it while still alive. Process exit
 alone supplies no close ACK or live-descriptor proof.
 
-All commands, reports, references, HOME/state and outcomes stay at the original
+All commands, reports/locks/projects, references, HOME/state and outcomes stay at the original
 consumer path, including failures. A failed initial receipt cannot be reused
 to submit again. Inert wheel/report tests and a local-index pip mechanism check
 qualify only those components; they do not establish public availability,

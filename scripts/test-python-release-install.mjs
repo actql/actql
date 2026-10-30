@@ -3,15 +3,25 @@
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {copyFile, lstat, mkdir, readFile, readdir, readlink, writeFile} from 'node:fs/promises';
+import {copyFile, lstat, mkdir, readFile, readdir, readlink, realpath, writeFile} from 'node:fs/promises';
 import {dirname, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyReleaseSet} from './release-set.mjs';
 import {observePythonReleaseTarget} from './release-registry.mjs';
-import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination} from './release-public-install.mjs';
+import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination,
+  pythonUvConsumerEnvironment, pythonUvInstallCommand, pythonUvProject, pythonUvProjectParents} from './release-public-install.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+
+async function uvToolIdentity(path) {
+  const actual = await realpath(path), before = await lstat(actual);
+  assert(before.isFile() && !before.isSymbolicLink() && (before.mode & 0o111) !== 0 && before.size <= 128 * 1024 * 1024);
+  const bytes = await readFile(actual), after = await lstat(actual);
+  const stamp = value => [value.dev, value.ino, value.size, value.mode, value.mtimeMs, value.ctimeMs];
+  assert.deepEqual(stamp(after), stamp(before)); assert.equal(bytes.length, before.size);
+  return {path, actual, stamp: stamp(before), sha256: sha(bytes)};
+}
 
 export async function observeChildFds(child, state) {
   assert.equal(child.exitCode, null); assert.equal(child.signalCode, null);
@@ -51,6 +61,7 @@ export async function runPythonReleaseInstall(args) {
   assert.equal(actualPlatform, 'darwin-arm64', 'No selected normal Linux/other-platform Python supplier or verifier');
   assert(target.platforms.includes(actualPlatform)); assert(target.profiles.includes('local'));
   const root = await pythonConsumerDestination(selection.consumer, [repository, selection.directory]);
+  if (selection.manager === 'uv') await pythonUvProjectParents(root);
   await mkdir(root, {mode: 0o700}); // Fresh or fail, never restore an earlier Run.
   const records = [], originalFixture = join(repository, 'scripts/fixtures/python-product-installed.py');
   const auditor = join(root, 'python_release_cohort.py'); await copyFile(join(repository, 'scripts/python_release_cohort.py'), auditor);
@@ -106,6 +117,16 @@ export async function runPythonReleaseInstall(args) {
   };
   const setupEnv = pythonPublicConsumerEnvironment(process.env, root, selection.python);
   for (const path of [setupEnv.HOME, setupEnv.TMPDIR]) await mkdir(path, {mode: 0o700});
+  let uvTool = null, uvMinor = null;
+  if (selection.manager === 'uv') {
+    uvTool = await uvToolIdentity(selection.uv);
+    const version = await run(selection.uv, ['--version'], root, pythonUvConsumerEnvironment(process.env, root));
+    assert.match(version.stdout, /^uv [0-9]+\.[0-9]+\.[0-9]+(?: \([^\r\n]+\))?\n$/u); assert.equal(version.stderr, '');
+    uvTool.version = version.stdout.trim();
+    const minor = await run(selection.python, ['-I', '-B', '-c',
+      "import sys;print(str(sys.version_info.major)+'.'+str(sys.version_info.minor))"], root, setupEnv);
+    uvMinor = minor.stdout.trim(); pythonUvProject(uvMinor);
+  }
   // Build-time verifier may use the existing shared Node version projection;
   // that environment is never passed to the installed consumer.
   await run(selection.python, [join(repository, 'scripts/python_release_cohort.py'), '--verify-directory',
@@ -123,19 +144,28 @@ export async function runPythonReleaseInstall(args) {
   const audits = [];
   for (const entry of ['actql-sdk', 'actql']) {
     const consumer = join(root, entry); await mkdir(consumer, {mode: 0o700});
-    await run(selection.python, ['-I', '-B', '-m', 'venv', join(consumer, 'venv')], root, setupEnv);
-    const python = join(consumer, 'venv/bin/python'), env = pythonPublicConsumerEnvironment(process.env, consumer, python);
+    const uv = selection.manager === 'uv';
+    if (!uv) await run(selection.python, ['-I', '-B', '-m', 'venv', join(consumer, 'venv')], root, setupEnv);
+    const python = join(consumer, uv ? '.venv/bin/python' : 'venv/bin/python');
+    const env = pythonPublicConsumerEnvironment(process.env, consumer, python);
     for (const path of [env.HOME, env.TMPDIR]) await mkdir(path, {mode: 0o700});
-    const report = join(consumer, 'pip-report.json');
+    const report = join(consumer, uv ? 'uv.lock' : 'pip-report.json'), project = join(consumer, 'pyproject.toml');
     const verifyToolAbsence = () => run(python, ['-I', '-B', '-c', "import shutil;assert all(shutil.which(x) is None for x in ('node','npm','actql'))"], consumer, env);
-    await verifyToolAbsence();
-    await run(python, pythonInstallCommand(fixed.manifest.release.version, entry, report), consumer, env);
+    if (uv) {
+      await writeFile(project, pythonUvProject(uvMinor), {flag: 'wx', mode: 0o600});
+      await run(selection.uv, pythonUvInstallCommand(fixed.manifest.release.version, entry, selection.python), consumer,
+        pythonUvConsumerEnvironment(process.env, consumer));
+    } else {
+      await verifyToolAbsence();
+      await run(python, pythonInstallCommand(fixed.manifest.release.version, entry, report), consumer, env);
+    }
     await verifyToolAbsence();
     const audit = async () => {
-      const result = await run(python, ['-I', '-B', auditor, '--audit-installed', planPath, '--pip-report', report, '--entry', entry], consumer, env);
-      audits.push(JSON.parse(result.stdout));
+      const result = await run(python, ['-I', '-B', auditor, '--audit-installed', planPath,
+        ...(uv ? ['--uv-lock', report, '--uv-project', project] : ['--pip-report', report]), '--entry', entry], consumer, env);
+      const value = JSON.parse(result.stdout); audits.push(value); return value;
     };
-    await audit();
+    const originalAudit = await audit();
     const fixture = join(consumer, 'installed.py'); await copyFile(originalFixture, fixture);
     if (entry === 'actql-sdk') await run(python, ['-I', '-B', fixture, '--version', fixed.manifest.release.pythonVersion, '--mode', 'sdk-only'], consumer, env);
     else for (const facade of ['sync', 'async']) {
@@ -147,7 +177,7 @@ export async function runPythonReleaseInstall(args) {
         '--mode', 'local', '--facade', facade, '--phase', phase, '--receipt', receipt, '--await-close-observation'], app, appEnv,
       {state: appEnv.HOME});
     }
-    await audit();
+    assert.deepEqual(await audit(), originalAudit, 'Original manager evidence or installed payload changed during consumption');
     await verifyToolAbsence();
   }
   const after = await observe();
@@ -155,7 +185,12 @@ export async function runPythonReleaseInstall(args) {
   assert(after.observations.every(value => value.state === 'present'));
   await verifyReleaseSet(selection.directory, {expectedSha256: fixed.sha256});
   assert.deepEqual(await readFile(planPath), planBytes);
+  if (uvTool) {
+    const {version, ...identity} = uvTool;
+    assert.deepEqual(await uvToolIdentity(selection.uv), identity, 'Selected uv executable changed');
+  }
   const result = {schemaVersion: 'actql-python-public-install/0.1', manifestSha256: fixed.sha256, targetId: target.id,
+    manager: selection.manager, uvTool,
     platform: actualPlatform, publicRegistry: 'https://pypi.org/simple', fixtureSha256: sha(await readFile(originalFixture)),
     nodeFreeConsumer: true, audits, records, qualification: 'Only the actually completed selected installed consumer/close scope; no approval or publication authority'};
   await writeFile(join(root, 'result.json'), `${JSON.stringify(result, null, 2)}\n`, {flag: 'wx', mode: 0o600});

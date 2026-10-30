@@ -281,7 +281,7 @@
     {
       "id": "A19",
       "required": "Python entry works without Node/npm/ActQL CLI",
-      "currentSlice": "Digest-bound official PyPI consumer launcher uses the original complete wheel verifier and sync/async fixture, separate fresh Node-free venvs, exact pip report/installed payload audits and original Run ref/close/live-FD observations. Inert/local-pip controls only; selected real public candidate/runtime acceptance pending",
+      "currentSlice": "Digest-bound official PyPI consumer launcher uses the original complete wheel verifier and sync/async fixture with separate pip/uv fresh Node-free environments. uv project/lock resolution evidence stays distinct from pip report; exact original installed payload and original Run ref/close/live-FD fences remain. Inert/local-index controls only; selected real public candidate/runtime acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -295,6 +295,10 @@
         {
           "kind": "Inert wheel/actual local pip/injected public report component only; no public PyPI or product runtime acceptance",
           "test": "test_real_pip_inert_entry_install_audits_actual_tree_but_local_report_is_not_public_acceptance"
+        },
+        {
+          "kind": "Independent inert uv resolution/installed-tree controls; actual loopback uv mechanism plus injected public URL/size DATA is not public installation or runtime acceptance",
+          "test": "test_exact_sdk_and_product_use_resolution_evidence_and_full_original_payload_reader"
         }
       ]
     },
