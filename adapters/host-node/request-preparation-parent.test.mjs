@@ -12,7 +12,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
+async function fixture({beginFailure, environment, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
   const calls=[],shapes=[],policy={},parent={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
@@ -40,13 +40,18 @@ async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,1
     clientProgramAbortRequestPreparation(actual){assert.equal(this,moon);assert.equal(actual,parent);calls.push('abort-parent');return stop();},
     clientProgramCleanupLocalPreparationAdmission(actual){assert.equal(this,moon);assert.equal(actual,admission);calls.push('cancel-admission');assert.equal(admission.ports.cancelUnpublished(),0);return ok(undefined);},
     clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
+    clientProgramFinishRequestComputation(){return ok('effect_free');},
+    clientProgramPrepareRequestPolicySubjects(){assert.fail('No policy verifier selected');},
+    clientProgramReadRequestPolicySubject(){assert.fail('No policy descriptor selected');},
+    clientProgramBindRequestPolicySubject(){assert.fail('No policy binding selected');},
+    clientProgramFinishRequestPolicySubjects(){assert.fail('No policy supplement selected');},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
     clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
     clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
-  const context=Object.freeze({runtime:moon,preparedEnvironment:{},retainedRelationOutput:false});
+  const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false});
   const originals={};const view=await prepareOrdinarySourceManagedInstallation(originals,{
     validator(actual){assert.equal(actual,originals);},
     preparationContext(actual){assert.equal(actual,originals);return context;},
@@ -54,6 +59,142 @@ async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,1
   },false);
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
+
+async function policyRequestFixture(kind = 'program') {
+  const environment = {}, f = await fixture({environment}), moon = f.context.runtime;
+  const request = {}, parameters = {path: 'cafe\u0301\r\n日本語😀'};
+  const original = kind === 'program' ? input() : {format: 'sql', text: 'SELECT @path AS path'};
+  const receipt = f.view.beforeSourceSnapshot(kind, kind === 'program' ? original : original.text,
+    {parameters}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind, input: original, parameters}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  const prepared = {}, holder = {}, cursor = {}, contracts = {}, events = [];
+  const policy = 'sha256:' + 'a'.repeat(64);
+  const subject = index => ({program_cid: policy, parameters_cid: policy,
+    stage: 0, input: index, source_ref: 'fixture:files', source_view_contract_cid: policy,
+    request_cid: policy, request: {path: parameters.path}, origins: {path: 'parameter'}});
+  const wires = [0, 1].map(index => JSON.stringify(subject(index)));
+  let semantic = false, subjectsPrepared = false, next = 0, supplemented = false,
+    compiled = false, borrowed = false, returned = false;
+  const same = (owner, actual, selected) => {
+    assert.strictEqual(owner, f.parent); assert.strictEqual(actual, receipt);
+    assert.strictEqual(selected, environment);
+  };
+  const check = function(owner, actual, captured, supplied, selected, publication) {
+    assert.strictEqual(this, moon); same(owner, actual, selected);
+    assert.strictEqual(captured, body.input); assert.strictEqual(supplied, body.parameters);
+    assert.strictEqual(publication, f.context.preparedEnvironment);
+    assert.equal(semantic, false); semantic = true; events.push('check'); return ok(undefined);
+  };
+  moon.clientProgramPrepareRequestNativeComputation = kind === 'program' ? check
+    : () => assert.fail('Source envelope must retain its original frontend');
+  moon.clientProgramPrepareRequestSourceComputation = kind === 'aql' ? check
+    : () => assert.fail('Native Program must retain its original frontend');
+  moon.clientProgramPrepareRequestPolicySubjects = function(owner, actual, selected) {
+    assert.strictEqual(this, moon); same(owner, actual, selected); assert.equal(semantic, true);
+    assert.equal(subjectsPrepared, false); subjectsPrepared = true;
+    events.push('subjects'); return ok(wires.length);
+  };
+  moon.clientProgramReadRequestPolicySubject = function(owner, actual, selected, index) {
+    assert.strictEqual(this, moon); same(owner, actual, selected);
+    assert.equal(index, next); events.push('read-' + index); return ok(wires[index]);
+  };
+  moon.clientProgramBindRequestPolicySubject = function(owner, actual, selected, index, cid) {
+    assert.strictEqual(this, moon); same(owner, actual, selected); assert.equal(index, next++);
+    assert.equal(cid, index === 0 ? undefined : policy);
+    events.push('bind-' + index); return ok(undefined);
+  };
+  moon.clientProgramFinishRequestPolicySubjects = function(owner, actual, selected) {
+    assert.strictEqual(this, moon); same(owner, actual, selected); assert.equal(next, wires.length);
+    assert.equal(supplemented, false); supplemented = true; events.push('supplement'); return ok(undefined);
+  };
+  moon.clientProgramFinishRequestComputation = function(owner, actual, selected, publication) {
+    assert.strictEqual(this, moon); same(owner, actual, selected);
+    assert.strictEqual(publication, f.context.preparedEnvironment);
+    assert.equal(semantic, true); assert.equal(supplemented, true); assert.equal(compiled, false);
+    compiled = true; events.push('compile'); return ok('effect_free');
+  };
+  moon.clientProgramBorrowRequestProgramPlanInput = function(owner, actual) {
+    assert.strictEqual(this, moon); assert.strictEqual(owner, f.parent); assert.strictEqual(actual, receipt);
+    assert.equal(compiled, true); borrowed = true; events.push('borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = actual => {assert.strictEqual(actual, holder); return prepared;};
+  moon.clientProgramPrepareRequestProgramModuleBody = function(owner, actual, admission, retained) {
+    assert.strictEqual(this, moon); assert.strictEqual(owner, f.parent); assert.strictEqual(actual, receipt);
+    assert.strictEqual(admission, contracts); assert.equal(retained, false); events.push('module'); return ok(undefined);
+  };
+  moon.clientProgramRequestParametersOriginal = function(owner, actual) {
+    assert.strictEqual(this, moon); assert.strictEqual(owner, f.parent); assert.strictEqual(actual, receipt);
+    events.push('parameters'); return ok(cursor);
+  };
+  moon.clientProgramRequestPreparationIssueCode = () => undefined;
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = function(owner) {
+    return borrowed && !returned ? {$tag: 0, _0: {pendingOriginal: holder}}
+      : Reflect.apply(abort, moon, [owner]);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = actual => {assert.strictEqual(actual, holder); return true;};
+  moon.clientProgramPreparationBorrowReturn = actual => {
+    assert.strictEqual(actual, holder); assert.equal(returned, false); returned = true; return ok(true);
+  };
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: contracts}};
+  return {...f, moon, environment, request, prepared, cursor, events, policy, subject, receipt, body,
+    async finish() {
+      f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+    }};
+}
+
+test('same Request policy checks once binds every original subject then compiles once without changing Environment', async () => {
+  for (const kind of ['program', 'aql']) {
+    const f = await policyRequestFixture(kind), controller = new AbortController();
+    let enter, release, verified = 0;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const held = new Promise(resolve => {release = resolve;});
+    const verify = async (subject, options) => {
+      const index = verified++;
+      assert.deepEqual(subject, f.subject(index));
+      assert.ok(Object.isFrozen(subject)); assert.ok(Object.isFrozen(subject.request));
+      assert.ok(Object.isFrozen(subject.origins)); assert.strictEqual(options.signal, controller.signal);
+      if (index === 0) {enter(); await held; return undefined;}
+      return f.policy;
+    };
+    const shapes = f.shapes.length;
+    const pending = f.view.fundedPreparation(f.request, f.environment, verify, controller.signal);
+    try {
+      await Promise.race([entered, pending.then(() => assert.fail('Preparation returned before verification'))]);
+      assert.deepEqual(f.events, ['check', 'subjects', 'read-0']);
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+      await assert.rejects(f.view.fundedPreparation(f.request, f.environment, verify, controller.signal),
+        {code: 'ForeignInstalledSourceProducer'});
+      f.moon.clientProgramFinishRequestComputation = () => assert.fail('Captured compiler method was replaced');
+      f.moon.clientProgramBindRequestPolicySubject = () => assert.fail('Captured binder method was replaced');
+      release();
+      const selected = await pending;
+      assert.strictEqual(selected.prepared, f.prepared);
+      assert.strictEqual(selected.originalInputs.environment, f.environment);
+      assert.strictEqual(selected.originalInputs.parametersCursor, f.cursor);
+      assert.equal(verified, 2); assert.equal(f.shapes.length, shapes);
+      assert.deepEqual(f.events, ['check', 'subjects', 'read-0', 'bind-0', 'read-1', 'bind-1',
+        'supplement', 'compile', 'borrow', 'module', 'parameters']);
+      assert.strictEqual((await f.view.fundedPreparation(f.request, f.environment, verify, controller.signal)).prepared,
+        f.prepared);
+      assert.equal(verified, 2);
+    } finally {release(); await pending.catch(() => {}); await f.finish();}
+  }
+});
+
+test('same Request policy keeps a thrown verifier failure without binding compiling or re-preparing', async () => {
+  const f = await policyRequestFixture(), cause = new Error('Original verifier failure');
+  let verified = 0;
+  const verify = async () => {verified++; throw cause;};
+  try {
+    await assert.rejects(f.view.fundedPreparation(f.request, f.environment, verify), error => error === cause);
+    await assert.rejects(f.view.fundedPreparation(f.request, f.environment, verify), error => error === cause);
+    assert.equal(verified, 1);
+    assert.deepEqual(f.events, ['check', 'subjects', 'read-0']);
+  } finally {await f.finish();}
+});
 
 test('generic snapshot passes the same native intent and original Request to Common once without a wire fallback', async () => {
   const f=await fixture(),moon=f.context.runtime,request={};
