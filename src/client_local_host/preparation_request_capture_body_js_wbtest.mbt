@@ -42,6 +42,7 @@ fn request_capture_fixture(
 ///|
 fn request_capture_plan_fixture(
   prepared : @publication_host.PreparedClientProgram,
+  original_contracts? : ClientInstalledSequenceContracts? = None,
   factory? : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
     []
   },
@@ -54,12 +55,15 @@ fn request_capture_plan_fixture(
     "sha256:" + "a".repeat(64),
     "original-request-capture-plan",
   ).unwrap()
-  let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
-  ).unwrap()
+  let contracts = match original_contracts {
+    Some(value) => value
+    None => prepare_installed_sequence_contracts(
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    ).unwrap()
+  }
   let requirement = prepare_local_query_requirement(
     prepared,
     0,

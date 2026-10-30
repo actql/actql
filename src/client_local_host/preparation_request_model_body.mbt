@@ -76,7 +76,7 @@ pub fn[I] prepare_request_model_compilation(
     physical_equal(original, input) &&
     owner.compiled_program is Some(prepared) &&
     physical_equal(graph.owner, prepared) &&
-    owner.program_model_compilation is None &&
+    owner.program_compilation is None &&
     owner.program_model is None &&
     !owner.program_body_attempted &&
     owner.program_artifact_work is None &&
@@ -121,7 +121,6 @@ pub fn[I] prepare_request_model_compilation(
       match result {
         Err(issue) => return Err(issue)
         Ok(@publication_host.Tasks(compilation)) => {
-          owner.program_model_compilation = Some(compilation)
           owner.phase = ModelPlanReserved
           Ok(compilation)
         }
@@ -154,7 +153,7 @@ pub fn[I] prepare_request_model_read_scope(
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_model is None &&
-    owner.program_model_compilation is Some(compilation) &&
+    owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
     @publication_host.client_compiled_run_matches_tasks(
       plan.compiled,
       prepared,
@@ -246,7 +245,7 @@ pub fn[I] complete_request_model_preparation(
   if result is Ok(_) {
     // The selected module/Plan owns this SAME artifact; no sizing inventory
     // has a later consumer. Keep the peak debit until construction unwinds.
-    owner.program_model_compilation = None
+    owner.program_compilation = None
     owner.program_model_compilation_inputs = None
     owner.program_artifact_geometry = None
     owner.program_artifact_quote = None
@@ -314,7 +313,7 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_source_free = None
       owner.program_captured = None
       owner.program_model = None
-      owner.program_model_compilation = None
+      owner.program_compilation = None
       owner.program_model_compilation_inputs = None
       owner.program_artifact_inputs = None
       owner.program_artifact_geometry = None

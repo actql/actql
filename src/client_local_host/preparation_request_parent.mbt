@@ -93,7 +93,9 @@ struct ClientRequestPreparation[I] {
     ClientInstalledSequenceContracts,
     @publication_host.ClientInferPlanGraph,
   )?
-  mut program_model_compilation : @publication_host.ClientTaskCompilation?
+  // One existing resident output slot for either ordinary or Model emission.
+  // Its original sum is moved to the selected Plan, never a parallel cache.
+  mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model : ClientInstalledManagedModelPlan?
@@ -206,7 +208,7 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
     // or B initial recipe is represented by these caller-only controls.
-    // Model compiler caller controls: original input tuple/Some, Model
+    // Shared compiler caller controls: original input tuple/Some, selected
     // argument/artifact carriers, component Array/backing and closures.
     // This is 11H21R9W, not recursive measurement or provider backing.
     record_headers: 11L +
@@ -345,7 +347,7 @@ pub fn[I] begin_request_preparation(
     program_artifact_work_issue: None,
     program_artifact_inputs: None,
     program_model_compilation_inputs: None,
-    program_model_compilation: None,
+    program_compilation: None,
     program_source_free: None,
     program_captured: None,
     program_model: None,
@@ -653,7 +655,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_artifact_inputs = None
-  owner.program_model_compilation = None
+  owner.program_compilation = None
   owner.program_model_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None

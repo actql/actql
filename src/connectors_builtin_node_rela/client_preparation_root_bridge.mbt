@@ -749,6 +749,36 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
 }
 
 ///|
+/// Same Request artifact before module construction; existing original-sum
+/// Run issuers consume it without a second compiler or a mode classifier.
+#export_name("clientProgramPrepareRequestProgramCompilation")
+pub fn client_program_prepare_request_program_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+) -> Result[
+  @publication_host.ClientRunCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_program_compilation(
+    parent,
+    input,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestProgramModuleBody")
 pub fn client_program_prepare_request_program_module_body(
   parent : @client_local_host.ClientRequestPreparation[

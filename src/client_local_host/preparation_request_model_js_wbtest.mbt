@@ -673,7 +673,7 @@ test "Model compiler measurement and artifact one-short growth retain the same o
     let geometry = parent.program_artifact_geometry.unwrap()
     let quote = parent.program_artifact_quote.unwrap()
     assert_true(geometry.borrowed_inputs.length() == 1)
-    assert_true(parent.program_model_compilation is None)
+    assert_true(parent.program_compilation is None)
     @resources.settle_capacity(parent.ledger, block).unwrap()
     let short = @resources.reserve_capacity(
       parent.ledger,
@@ -713,7 +713,8 @@ test "Model compiler measurement and artifact one-short growth retain the same o
       compilation_limits~,
     ).unwrap()
     assert_true(
-      physical_equal(parent.program_model_compilation.unwrap(), artifact),
+      parent.program_compilation is Some(@publication_host.Tasks(original)) &&
+      physical_equal(original, artifact),
     )
     let spent = parent.program_artifact_work_spent
     assert_true(spent > 0L)
@@ -818,7 +819,9 @@ test "Model compiler original input and current reentry cannot switch a selected
 ///|
 test "Model Scope refuses an independently compiled equivalent instead of replacing its parent artifact" {
   let (parent, input, plan, construction) = request_model_fixture()
-  let original = parent.program_model_compilation.unwrap()
+  guard parent.program_compilation is Some(@publication_host.Tasks(original)) else {
+    fail("Expected the original Task compilation")
+  }
   let independent = @publication_host.issue_prepared_client_multi_infer_compilation(
     plan.prepared,
     [plan.graph],
@@ -852,12 +855,13 @@ test "Model Scope refuses an independently compiled equivalent instead of replac
   )
   assert_true(
     parent.program_model is None &&
-    physical_equal(parent.program_model_compilation.unwrap(), original),
+    parent.program_compilation is Some(@publication_host.Tasks(actual)) &&
+    physical_equal(actual, original),
   )
   let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
   complete_request_model_preparation(parent, input, plan).unwrap()
   assert_true(
-    parent.program_model_compilation is None &&
+    parent.program_compilation is None &&
     parent.program_model_compilation_inputs is None &&
     parent.program_artifact_geometry is None,
   )

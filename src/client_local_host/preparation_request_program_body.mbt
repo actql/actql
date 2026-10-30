@@ -226,6 +226,58 @@ pub suberror ClientRequestProgramPlanIssue {
 }
 
 ///|
+/// Emit and retain the original execution compilation before its module when
+/// the invocation must bind QueryTime to an admitted Run first. The same input,
+/// contracts, factory identity and existing measured writer receipt are retained.
+/// This is neither a ready module nor another Root or compiler implementation.
+pub fn[I] prepare_request_program_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
+) -> Result[@publication_host.ClientRunCompilation, ClientRequestProgramPlanIssue] {
+  if owner.program_compilation is Some(_) {
+    return Err(Preparation(WrongPhase))
+  }
+  let prepared = match retain_request_program_module_inputs(
+    owner, input, contracts, None, manifests~, compilation_limits~,
+    retained_output~, provider_factory~,
+  ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match @publication_host.bind_prepared_client_compiler_contracts(
+        prepared, contracts.original.value.ordered_contract,
+      ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
+      match prepare_request_compilation_owned(
+        owner, input, prepared, manifests, compilation_limits, None,
+      ) {
+        Err(issue) => Err(issue)
+        Ok(artifact) => {
+          owner.phase = ProgramPlanReserved
+          Ok(artifact)
+        }
+      }
+    },
+    () => {
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
+  )
+}
+
+///|
 /// Construct the selected installed Plan/module from the SAME completed
 /// compiler output. Variable sequence/Plan data uses the existing retained
 /// estimate once, before construction. Fixed provider/control wrappers remain
@@ -282,7 +334,7 @@ pub fn[I] prepare_request_capture_module_body(
 }
 
 ///|
-fn[I] prepare_request_program_module_body_owned(
+fn[I] retain_request_program_module_inputs(
   owner : ClientRequestPreparation[I],
   input : I,
   contracts : ClientInstalledSequenceContracts,
@@ -293,7 +345,7 @@ fn[I] prepare_request_program_module_body_owned(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
-) -> Result[Unit, ClientRequestProgramPlanIssue] {
+) -> Result[@publication_host.PreparedClientProgram, ClientRequestProgramPlanIssue] {
   if owner.program_model is Some(_) ||
     owner.program_body_attempted ||
     owner.program_artifact_work is Some(_) ||
@@ -312,6 +364,9 @@ fn[I] prepare_request_program_module_body_owned(
     owner.compiled_program is Some(prepared) else {
     return Err(Preparation(ForeignOriginal))
   }
+  if !installed_managed_run_purpose_supported(prepared) {
+    return Err(Installed(Unsupported))
+  }
   match (owner.program_captured, captured) {
     (Some(original), Some(plan)) if !physical_equal(original, plan) =>
       return Err(Preparation(ForeignOriginal))
@@ -319,9 +374,6 @@ fn[I] prepare_request_program_module_body_owned(
     _ => ()
   }
   if captured is Some(plan) {
-    if !installed_managed_run_purpose_supported(prepared) {
-      return Err(Installed(Unsupported))
-    }
     if !physical_equal(plan.prepared, prepared) ||
       !physical_equal(plan.installed_contracts, contracts) ||
       plan.values_body != contracts.original.values_body ||
@@ -359,19 +411,42 @@ fn[I] prepare_request_program_module_body_owned(
       ),
     )
   }
+  Ok(prepared)
+}
+
+///|
+fn[I] prepare_request_program_module_body_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  contracts : ClientInstalledSequenceContracts,
+  captured : ClientInstalledManagedCapturePlan?,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  let prepared = match retain_request_program_module_inputs(
+    owner, input, contracts, captured, manifests~, compilation_limits~,
+    retained_output~, provider_factory~,
+  ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   owner.phase = Selecting
   preparation_module_call(
     () => {
       let installed = contracts.original
       // Forward the exact already-admitted immutable catalogue before any
       // module callback, measurement or retained compiler emission exists.
-      match
-        @publication_host.bind_prepared_client_compiler_contracts(
-          prepared,
-          installed.value.ordered_contract,
+      if owner.program_compilation is None {
+        match @publication_host.bind_prepared_client_compiler_contracts(
+          prepared, installed.value.ordered_contract,
         ) {
-        Err(_) => return Err(Preparation(ForeignOriginal))
-        Ok(_) => ()
+          Err(_) => return Err(Preparation(ForeignOriginal))
+          Ok(_) => ()
+        }
       }
       let plan = if captured is Some(_) {
         None
@@ -432,7 +507,7 @@ fn[I] prepare_request_program_module_body_owned(
         owner.program_artifact_geometry = None
         owner.program_artifact_quote = None
         owner.program_artifact_inputs = None
-        owner.program_model_compilation = None
+        owner.program_compilation = None
         owner.program_model_compilation_inputs = None
       }
       completed.map_err(issue => Preparation(issue))
@@ -463,6 +538,9 @@ fn[I] prepare_request_compilation_owned(
   @publication_host.ClientRunCompilation,
   ClientRequestProgramPlanIssue,
 ] {
+  if owner.program_compilation is Some(original) {
+    return Ok(original)
+  }
   let limits = compilation_limits
   let sequence = @publication_host.prepared_client_values_sequence_limits(
     prepared,
@@ -653,6 +731,9 @@ fn[I] prepare_request_compilation_owned(
     Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
+  if attempted is Ok(artifact) {
+    owner.program_compilation = Some(artifact)
+  }
   attempted
 }
 
@@ -758,7 +839,7 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None
       owner.program_artifact_inputs = None
-      owner.program_model_compilation = None
+      owner.program_compilation = None
       owner.program_model_compilation_inputs = None
       owner.program_source_free = None
       owner.native_parameters = None
