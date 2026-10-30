@@ -245,10 +245,10 @@ fn events_attendees(
   let values = []
   for index in 0..<count {
     guard @decode.open_object(@decode.element_at(list, index).unwrap())
-      is Ok(member) else {
+      is Ok(attendee) else {
       return Err(InvalidCell("attendees"))
     }
-    let email = match @decode.field(member, "email") {
+    let email = match @decode.field(attendee, "email") {
       Missing => {
         incomplete = true
         None
@@ -260,7 +260,7 @@ fn events_attendees(
         }
       ExplicitNull => return Err(InvalidCell("attendees.email"))
     }
-    let status = match @decode.field(member, "responseStatus") {
+    let status = match @decode.field(attendee, "responseStatus") {
       Missing => {
         incomplete = true
         None
@@ -273,11 +273,11 @@ fn events_attendees(
         }
       ExplicitNull => return Err(InvalidCell("attendees.response_status"))
     }
-    let optional = match events_default_boolean(member, "optional") {
+    let optional = match events_default_boolean(attendee, "optional") {
       Ok(value) => value
       Err(_) => return Err(InvalidCell("attendees.optional"))
     }
-    match @decode.field(member, "asyncOperation") {
+    match @decode.field(attendee, "asyncOperation") {
       Missing => ()
       Present(value) if @decode.text(value) == Ok("inProgress") =>
         incomplete = true

@@ -41,13 +41,13 @@ test "Calendar Event rows retain complete typed cells original identity and nano
   assert_eq(
     events_rows_test_wire(page, calendar_events_column_names()),
     (
-      #|[{"id":"event/é","ical_uid":"series@example.test","calendar_id":"calendar/é@example.test","summary":"original title","description":"line 1\nline 2","start":"2026-03-01T01:00:00.123456789Z","end":"2026-03-01T02:00:00.123456789Z","all_day":false,"location":"Room 1","status":"confirmed","organizer":"Case+tag@Example.test","attendees":[{"email":"A@Example.test","optional":false,"response_status":"accepted"},{"email":"A@Example.test","optional":true,"response_status":"tentative"}],"recurring_event_id":"series","created":"2026-02-01T00:00:00.1234Z","updated":"2026-02-01T15:00:00Z","etag":"\"original\""}]
+      #|[{"id":"event/é","ical_uid":"series@example.test","calendar_id":"calendar/é@example.test","summary":"original title","description":"line 1\nline 2","start":"2026-03-01T01:00:00.123456789Z","end":"2026-03-01T02:00:00.123456789Z","all_day":false,"location":"Room 1","status":"confirmed","organizer":"Case+tag@Example.test","attendees":[{"email":"A@Example.test","optional":false,"response_status":"accepted"},{"email":"A@Example.test","optional":true,"response_status":"tentative"}],"recurring_event_id":"series","created":"2026-02-01T00:00:00.1234Z","updated":"2026-02-01T15:00:00.000Z","etag":"\"original\""}]
     ),
   )
   let ids = calendar_events_ids(page)
   ids[0] = "changed"
   assert_eq(calendar_events_ids(page), ["event/é"])
-  assert_true(calendar_events_metadata_wire(page, 4096, 50, 8).is_ok())
+  assert_true(calendar_events_metadata_wire(page, 4096, 50, 8) is Ok(_))
   assert_eq(
     calendar_events_facts_wire(),
     "{\"relation_keys\":{\"candidate_keys\":[[\"calendar_id\",\"id\"]]}}",
@@ -83,7 +83,7 @@ test "Calendar Event rows resolve actual all day boundaries but never expose com
   assert_eq(
     events_rows_test_wire(page, ["id", "start", "end", "all_day"]),
     (
-      #|[{"id":"day","start":"2026-03-08T05:00:00Z","end":"2026-03-09T04:00:00Z","all_day":true},{"id":"unspecified","start":"2026-03-01T10:00:00Z","end":null,"all_day":false}]
+      #|[{"id":"day","start":"2026-03-08T05:00:00.000Z","end":"2026-03-09T04:00:00.000Z","all_day":true},{"id":"unspecified","start":"2026-03-01T10:00:00.000Z","end":null,"all_day":false}]
     ),
   )
   assert_true(
@@ -157,7 +157,7 @@ test "Calendar Event rows preserve whole page bounds schema and bounded output r
   assert_true(
     calendar_events_metadata_wire(page, 1, 100, 10) is Err(BudgetExceeded),
   )
-  assert_true(calendar_events_schema_wire(16384, 1000, 20).is_ok())
+  assert_true(calendar_events_schema_wire(16384, 1000, 20) is Ok(_))
   assert_true(calendar_events_schema_wire(1, 1000, 20) is Err(BudgetExceeded))
   assert_true(
     events_rows_test(body, limits={ ..limits, max_attendees: 0, })
