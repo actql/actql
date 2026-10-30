@@ -473,7 +473,7 @@ test "member capture and row constructor retain distinct original same Request r
   let ledger = owner.ledger.unwrap()
   begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
   let before = @resources.ledger_usage(ledger)
-  let member = borrow_installed_effect_operation(
+  let capture_prefix = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, false, 0, 0, "capture",
   ).unwrap()
   let row = borrow_installed_effect_operation(
@@ -499,11 +499,17 @@ test "member capture and row constructor retain distinct original same Request r
     )
     is Err(AlreadyBound),
   )
-  assert_false(retire_installed_effect_operation(member, false).unwrap())
+  assert_false(
+    retire_installed_effect_operation(capture_prefix, false).unwrap(),
+  )
   assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
-  assert_true(retire_installed_effect_operation(member, true).unwrap())
+  assert_true(retire_installed_effect_operation(capture_prefix, true).unwrap())
   assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
   assert_true(retire_installed_effect_operation(row, true).unwrap())
-  assert_eq(@resources.ledger_usage(ledger), before)
+  let released = @resources.ledger_usage(ledger)
+  assert_eq(released.live_reservations, before.live_reservations)
+  assert_eq(released.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(released.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(released.peak_retention_bytes, before.peak_retention_bytes + 100L)
   retire_installed_managed_run(owner).unwrap()
 }

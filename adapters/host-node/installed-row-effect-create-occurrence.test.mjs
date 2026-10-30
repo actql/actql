@@ -499,3 +499,16 @@ test('failed Source export keeps original capture prefix child pending until enc
   await f.cleanup();
   assert.deepEqual(f.events,['pin','borrow-0','export','retire-0','unpin']);
 });
+
+test('member capture control does not consume a row constructor from the original row bound',async()=>{
+  const f=fixture({managed:true});
+  // Explicit pre-retained control port, no native capacity or permission
+  // claimed. The actual member borrow is covered by the separate prefix case.
+  const control=Object.freeze({prepared:Object.freeze({status:()=>({pending:false})})});
+  f.requestChildren.push(control);
+  const result=await f.run();
+  assert.equal(result.rowsOf[0].length,3);
+  assert.equal(f.requestChildren.length,4);
+  assert.equal(f.requestChildren[0],control);
+  assert.equal(f.debits.length,3);
+});
