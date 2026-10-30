@@ -689,3 +689,56 @@ test('normal first Request Plan keeps its original typed row refusal or unclassi
     } finally { f.view.finishSourceProducer(receipt, 'failed'); await f.view.close(); }
   }
 });
+
+test('ordinary Effect Plan adopts the same Request input and typed compiler borrow without manager admission', async () => {
+  const f = await fixture(), moon = f.context.runtime, sdkRequest = {}, identity = {}, plan = {}, parent = {};
+  const program = input(), receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, sdkRequest);
+  const prepared = {}, holder = {}, events = [];
+  moon.clientProgramPrepareRequestNativeComputation = function(owner, original, captured) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
+    assert.equal(captured, body.input); events.push('compile'); return ok('effectful');
+  };
+  moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
+    events.push('borrow-effect-input'); return ok(holder);
+  };
+  moon.clientProgramEffectPreparationInputRead = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return prepared;
+  };
+  moon.clientProgramEffectPreparationInputReturn = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); events.push('return-effect-input'); return ok(true);
+  };
+  moon.clientProgramEffectPreparationInputSibling = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return ok({});
+  };
+  moon.clientProgramEffectPreparationInputRetirementStarted = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return true;
+  };
+  moon.clientProgramRequestParametersOriginal = function(owner, original) {
+    assert.equal(owner, f.parent); assert.equal(original, receipt); return ok(undefined);
+  };
+  moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
+    assert.equal(actualPlan, plan); events.push('complete-effect'); return ok(undefined);
+  };
+  moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
+    events.push('adopt-effect'); return ok(parent);
+  };
+  moon.clientProgramPreparationBorrowRead = moon.clientProgramPreparationBorrowReturn = () => {
+    assert.fail('Effect holder must never enter the Program-borrow ABI');
+  };
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  // fixture.context retains no selected environment; undefined is its exact original.
+  const selected = await f.view.fundedPreparation(sdkRequest, undefined);
+  assert.equal(selected.kind, 'effectful'); assert.equal(selected.prepared, prepared);
+  const actual = f.view.adoptEffectPreparation(prepared, sdkRequest, identity, plan);
+  assert.equal(actual.value, parent); assert.equal(actual.original, f.original);
+  assert.equal(actual.operationPlan, plan);
+  assert.deepEqual(events, ['compile', 'borrow-effect-input', 'complete-effect', 'adopt-effect']);
+  assert.equal(f.view.prepareEffectPlanRun, undefined, 'remove replaced independent ordinary Effect admission');
+  assert.throws(() => f.view.adoptEffectPreparation(prepared, sdkRequest, identity, plan),
+    {code: 'ForeignInstalledSourceProducer'});
+});
