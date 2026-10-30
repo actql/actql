@@ -122,31 +122,44 @@
     {
       "id": "A11",
       "required": "Stage-only identity cannot publish/approve",
-      "currentSlice": "Registry-side configuration and actual refusal evidence pending",
+      "currentSlice": "Reusable stage-only command protocol has no approval/reject/promotion runner and requires a separate owner stage reader; actual registry-side trust separation/refusal evidence remains pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: pinned tool and separate read port are required before any actual send, not actor/approved JSON"
+        }
+      ]
     },
     {
       "id": "A12",
       "required": "No unauthorized initial npm placeholder stage",
-      "currentSlice": "New entry refuses all stage; protected staging adapter pending",
+      "currentSlice": "An absent public namespace requires a distinct supplied owner operation with the explicit npm pin at the actual send boundary. Port presence is not authority; actual owner-approved placeholder operation remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "plan CLI is read-only and every external operation refuses before opening a request"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: initial public placeholder needs the separate supplied owner operation, never a local boolean"
         }
       ]
     },
     {
       "id": "A13",
       "required": "Maintenance publication cannot roll newer latest backward",
-      "currentSlice": "Read-only channel plan binds exact prior value/report and destination artifact, rejects normal downgrade/stable prerelease alias/wrong maintenance line. Actual protected promotion, GitHub Latest and public install remain pending",
+      "currentSlice": "Read-only channel plan preserves prior/destination checks; staging refuses final stable/maintenance/proposed promotion channels and occupied staging tags. Actual protected promotion, GitHub Latest and public install remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Synthetic local channel-plan component; no actual registry channel mutation",
           "test": "release lanes: newer latest cannot be rolled back by a maintenance release"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: final stable channels cannot be applied through stage approval instead of the promotion boundary"
         }
       ]
     },
@@ -165,7 +178,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Anonymous bounded npm/PyPI and visible immutable GitHub Native byte observations feed the fixed same-bytes classifier. GitHub 404 remains unknown; authenticated draft/actual protected upload and partial-publication recovery remain pending",
+      "currentSlice": "Original fixed bytes, durable intent, raw command response and separate complete owner pending-stage byte readback support the reusable npm protocol. Lost replies stay Unknown and exact pending/public versions are not resent; actual protected staging/publication/recovery remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -183,13 +196,17 @@
         {
           "kind": "Injected HTTP/cold-byte Native component only; no real release/draft/install or approval",
           "test": "Native observation: visible immutable tag/source and actual asset bytes use one complete inventory without changing fixed bytes"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: partial lost response preserves Unknown intent and resumes original pending bytes without sending them again"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Existing npm identity owner, PyPI selected release inventory and Native immutable tag/source/asset inventory plus actual downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
+      "currentSlice": "Public and pending npm byte readers reject conflicting length/SHA256/SRI or immutable stage identity before send. Existing PyPI/Native checks remain; actual protected executor/live candidate acceptance remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -207,6 +224,10 @@
         {
           "kind": "Injected HTTP/cold-byte Native component only; no actual release mutation",
           "test": "Native observation: foreign, missing and duplicate asset inventories block before any download"
+        },
+        {
+          "kind": "Inert archives/injected reader and runner component only; no actual registry permission, stage, publication or full acceptance",
+          "test": "npm stage: reader denial, wrong immutable tag, or different pending bytes stop the whole cohort before a send"
         }
       ]
     },

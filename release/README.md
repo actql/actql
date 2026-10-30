@@ -414,6 +414,60 @@ branch rules, policy and complete acceptance; local JSON, `passed`, actor text
 and hashes do not establish those facts. No line permission, publisher role,
 registry mutation, public install or owner approval is created by this step.
 
+## npm staging protocol and protected execution
+
+```sh
+node scripts/release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>
+```
+
+This command only describes the exact original npm target and proposed
+arguments. Mutation CLI commands remain disabled. The reusable
+`stagePackageRelease` function in the existing publisher module has no default
+runner, credentials or owner reader. A separately protected executor must bind
+the owner's approval to this complete fixed set, the permitted identical-byte
+recovery scope, immutable validator/workflow revisions and an exact npm pin.
+It must enforce one exclusive execution across repositories and keep publisher
+credentials outside source-controlled validation. Supplying a callback or a
+local approval field does not establish any of these properties.
+
+[npm staged publishing](https://docs.npmjs.com/staged-publishing/) requires
+Node 22.14 or newer and npm 11.15 or newer. Stage-only trusted-publisher tokens
+cannot list, view or download pending stages; a separate protected owner read
+port is required. Approval/rejection retains npm's owner and 2FA duties.
+Staging an unused name creates a public `0.0.0-stage` placeholder, so this
+protocol requires a distinct owner operation for that initial-name send.
+Neither port presence nor a version probe proves the external permission
+configuration. The [stage command](https://docs.npmjs.com/cli/v12/commands/npm-stage/)
+retains its selected tag through approval. Select a new staging tag explicitly;
+`latest`, maintenance tags and proposed final promotion channels are refused
+here. Final channel movement remains a separate protected operation.
+
+The protocol cold-verifies the fixed set and every complete original package
+inventory, refuses lifecycle preparation, then checks the whole target before
+any send. Public versions need exact remote bytes. Pending versions need a
+complete owner inventory, the exact name/version/tag/stage identity before and
+after downloading, and the actual length/SHA256/SRI of the pending tarball.
+An occupied tag, changed bytes, ambiguous stage, incomplete inventory or denied
+read blocks execution. Neither actor text nor a registry `shasum` is a byte
+proof. These observations do not provide a lock or CAS.
+
+Each new attempt retains private, immutable receipts below the manifest digest
+and target. The exact artifact is copied into a private read-only payload;
+the intent is synced before the send. Only `npm stage publish` with explicit
+registry/access/tag/provenance and ignored lifecycle scripts is issued. Raw
+command output and command success remain distinct from owner byte readback.
+A lost reply or unavailable confirmation remains unknown. Later recovery
+reobserves the originals, reuses an exact public/pending version without sending
+again, and sends only missing bytes within the separately approved scope.
+
+The runner must settle only when its original child is terminal. If observation
+is lost while the child remains live, the protected executor retains that same
+handle; it must not invoke this protocol again. File or descriptor cleanup
+failure retains the original cleanup duty. Receipts and synthetic component
+tests do not establish registry trust, provenance, owner approval, actual
+staging/publication or consumer acceptance. All acceptance conditions stay
+pending until their independent evidence exists.
+
 ## Read-only public registry observation
 
 ```sh
