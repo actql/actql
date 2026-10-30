@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {createRestSourceMetadata, REST_SOURCE_SITE_VERSION} from './rest-source-metadata.mjs';
 
 function fixture() {
@@ -27,15 +28,15 @@ function fixture() {
 // Credential Site or normal Host acceptance is established by these cases.
 test('REST metadata retains the same Host reader methods and exact original CA without an author bound', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls = [];
-  const ca = '-----BEGIN CERTIFICATE-----\r\nauthored-opaque-CA\r\n-----END CERTIFICATE-----\r\n';
+  const ca = Buffer.from('-----BEGIN CERTIFICATE-----\r\nauthored-opaque-CA\r\n-----END CERTIFICATE-----\r\n');
   const reader = {
     async readJson(path) {
       assert.strictEqual(this, reader);calls.push(['json', path]);
-      reader.readOriginalText = () => assert.fail('Captured before original JSON await');
+      reader.readOriginalBytes = () => assert.fail('Captured before original JSON await');
       return f.site;
     },
     readText() {assert.fail('Configured CA uses the actual-FD reader, not a caller bound');},
-    readOriginalText(path) {
+    readOriginalBytes(path) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
       calls.push(['text', path]);return ca;
     },
@@ -50,16 +51,26 @@ test('REST metadata retains the same Host reader methods and exact original CA w
 
 test('REST identity binds changed CA bytes and path through the original Host reader', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
-  let ca = 'authored-first-CA', site = f.site;
+  let ca = Buffer.from('authored-first-CA'), site = f.site;
   const reader = {readJson: async () => site,
-    readText() {assert.fail('No bounded CA read');}, readOriginalText: async () => ca};
+    readText() {assert.fail('No bounded CA read');}, readOriginalBytes: async () => ca};
   const parts = () => metadata.identityParts(f.profile, f.profile, undefined, undefined,
     {configurationReader: reader});
-  const first = await parts();assert.equal(first[3].ca, ca);
-  ca = 'authored-second-CA';const changedBytes = await parts();
+  const expected = () => 'sha256:' + createHash('sha256').update(JSON.stringify([
+    JSON.stringify(f.definition), f.profile.version, f.profile.connectorId,
+    f.profile.siteProfilePath, f.profile.accountConfigurationWire,
+    site.version, site.apiOrigin, site.credentialAuthorityId, site.credentialKeyId,
+    site.credentialPrivateKeyPath, site.environment, site.journalRoot, site.namespaceId,
+    site.siteGeneration, site.siteKey, 'tls-ca', site.caPath,
+    'sha256:' + createHash('sha256').update(ca).digest('hex'),
+  ])).digest('hex');
+  const first = await parts();assert.deepEqual(first[3], {originalStringsCid: expected()});
+  ca = Buffer.from('authored-second-CA');const changedBytes = await parts();
+  assert.equal(changedBytes[3].originalStringsCid, expected());
   assert.notEqual(changedBytes[3].originalStringsCid, first[3].originalStringsCid);
   site = {...site, caPath: '/UNOPENED/other-ca.pem'};
-  assert.notEqual((await parts())[3].originalStringsCid, changedBytes[3].originalStringsCid);
+  const changedPath = await parts();assert.equal(changedPath[3].originalStringsCid, expected());
+  assert.notEqual(changedPath[3].originalStringsCid, changedBytes[3].originalStringsCid);
 });
 
 test('REST normal metadata has no standalone reader or declaration fallback', async () => {
@@ -67,41 +78,42 @@ test('REST normal metadata has no standalone reader or declaration fallback', as
   await assert.rejects(metadata.readInputs(f.profile), {code: 'RestSourceConfigurationReaderUnavailable'});
   await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
     readJson: async () => f.site, readText() {assert.fail('No bounded CA read');},
-    readOriginalText: async () => Buffer.from('not-text'),
-  }}), {code: 'InvalidInstalledRestSourceAuthority'});
+    readOriginalBytes: async () => 'not-original-bytes',
+  }}), {code: 'InvalidInstalledRestSourceSite'});
   assert.throws(() => createRestSourceMetadata({...f.definition, authoredViewsWire: undefined}),
     {code: 'InvalidRestSourceInstallationDefinition'});
 });
 
-test('REST configured CA cannot disappear into default trust when its original reader returns no text', async () => {
+test('REST configured CA cannot disappear into default trust when its original reader returns no bytes', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
   await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
     readJson: async () => f.site, readText() {assert.fail('No bounded CA read');},
-    readOriginalText: async () => undefined,
-  }}), {code: 'InvalidInstalledRestSourceAuthority'});
+    readOriginalBytes: async () => undefined,
+  }}), {code: 'InvalidInstalledRestSourceSite'});
 });
 
-test('REST configuration refuses a missing actual-FD text reader before any JSON read', async () => {
+test('REST configured CA refuses a missing actual-FD byte reader without a text fallback', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
   let jsonReads = 0, boundedReads = 0;
   await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
     readJson() {jsonReads++;return f.site;},
     readText() {boundedReads++;return 'must not supply an implicit bound';},
-  }}), {code: 'RestSourceConfigurationReaderUnavailable'});
-  assert.equal(jsonReads, 0);assert.equal(boundedReads, 0);
+  }}), {code: 'RestSourceTlsAuthorityPolicyUnavailable'});
+  assert.equal(jsonReads, 1);assert.equal(boundedReads, 0);
 });
 
-test('REST CA uses only the captured actual-FD text method and original receiver', async () => {
+test('REST CA uses only the captured actual-FD byte method and original receiver', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls = [];
-  const ca = 'opaque-original-CA\r\n';
+  const ca = Buffer.from([0xef, 0xbb, 0xbf, 13, 10, 0, 0xff]);
   const reader = {
     async readJson(path) {
       assert.strictEqual(this, reader);calls.push(['json', path]);
-      reader.readOriginalText = () => assert.fail('Original method must be captured before JSON awaits');
+      reader.readOriginalBytes = () => assert.fail('Original method must be captured before JSON awaits');
       return f.site;
     },
     readText() {assert.fail('Bounded readText must not be used without a declared bound');},
-    readOriginalText(path) {
+    readOriginalText() {assert.fail('No CA text projection');},
+    readOriginalBytes(path) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
       calls.push(['original', path]);return ca;
     },
