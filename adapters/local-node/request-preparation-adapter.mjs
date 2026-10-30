@@ -153,21 +153,27 @@ export function beginRequestInput(state, receipt, connection, assertCurrent) {
 export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.opening || state.adopting || state.snapshotting || state.preparing) invalid();
   const moon=state.context.runtime;
+  const borrow = state.effectBorrowMethods;
+  if(state.compilationKind==='effectful' && state.holder!==undefined && borrow===undefined) invalid();
+  const retirementStarted = holder => borrow===undefined
+    ? moon.clientProgramPreparationBorrowRetirementStarted(holder)
+    : borrow.clientProgramEffectPreparationInputRetirementStarted(holder);
   if(state.holder!==undefined && state.parent!==undefined) {
     // The same generic Request retains failed construction and every borrow.
     // Only the original retirement phase permits the selected holder return.
     try {checked(moon.clientProgramAbortRequestPreparation(state.parent));}
     catch(cause) {
-      if(moon.clientProgramPreparationBorrowRetirementStarted(state.holder)!==true) throw cause;
+      if(retirementStarted(state.holder)!==true) throw cause;
     }
-    if(moon.clientProgramPreparationBorrowRetirementStarted(state.holder)!==true) invalid();
+    if(retirementStarted(state.holder)!==true) invalid();
     if(state.prepared!==undefined) {
       if(typeof retireInitialPreparation!=='function') invalid();
       retireInitialPreparation(state.prepared);
     }
     state.prepared=state.parametersCursor=undefined;
     const holder=state.holder;state.holder=undefined;
-    checked(moon.clientProgramPreparationBorrowReturn(holder));
+    checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
+      : borrow.clientProgramEffectPreparationInputReturn(holder));
   }
   if(state.parent!==undefined) {
     checked(moon.clientProgramAbortRequestPreparation(state.parent));

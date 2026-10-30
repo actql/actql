@@ -7,12 +7,12 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
-  prepared, request, selection, facts, inputs, sourceProfile, model, assertCurrent, checked}) {
+  prepared, request, requestInput, selection, facts, inputs, sourceProfile, model, assertCurrent, checked}) {
   assertCurrent();
   const same = run => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (run.closed || run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
-        run.manager !== manager || run.prepared !== prepared || run.request !== request || run.model !== model ||
+        run.manager !== manager || run.prepared !== prepared || run.request !== request || run.requestInput !== requestInput || run.model !== model ||
         run.definitionOriginal === undefined || run.value === undefined || run.selection !== selection || run.sourceProfile !== sourceProfile ||
         ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
           .some(name => run.definitionOriginal[name] !== facts[name]) ||
@@ -22,7 +22,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   const old = runs.get(prepared);
   if (old !== undefined) return same(old);
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
-  const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, selection, model,
+  const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model,
     definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined,
     closed: false, selecting: false};
   runs.set(prepared, run);
@@ -69,23 +69,39 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // Capture cleanup before any constructor. A partial begin remains attached
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
-    run.cleanup = runtime.clientProgramNodeEffectManagedPlanCleanup;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
-    run.prepare = model === undefined ? runtime.clientProgramNodeEffectManagedPlanPrepare
-      : runtime.clientProgramNodeEffectModelManagedPlanPrepare;
-    run.begin = model === undefined ? runtime.clientProgramInstalledEffectManagedPlanBegin
-      : runtime.clientProgramInstalledEffectModelManagedPlanBegin;
-    run.finishModelScope = model === undefined ? undefined : runtime.clientProgramFinishInferOriginalReadScope;
-    const original = model === undefined ? manager.prepareEffectPlanRun : manager.prepareEffectModelPlanRun;
-    if (![run.retire, run.cleanup, run.readPlan, run.prepare, run.begin, original]
-      .every(value => typeof value === 'function')) fail('NodeManagedRunRuntimeUnavailable');
-    if (model !== undefined && typeof run.finishModelScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
-    run.original = Reflect.apply(original, manager, [prepared, operationPlan]);
-    assertCurrent();
-    run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, operationPlan]));
-    const begun = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request, operationPlan]));
-    run.value = model === undefined ? begun : runtimeField(begun, 0);
-    if (model !== undefined) {
+    if (![run.retire, run.readPlan].every(value => typeof value === 'function')) {
+      fail('NodeManagedRunRuntimeUnavailable');
+    }
+    if (model === undefined) {
+      // The original Request already paid for this constructor and retains its
+      // typed Effect input. Complete/adopt that SAME parent, never quote a new
+      // manager Root for the selected Plan.
+      const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectPreparation')?.value;
+      if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
+      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan]);
+      run.original = adopted.original;
+      run.value = adopted.value;
+      run.preparationFunded = true;
+      if (adopted.operationPlan !== operationPlan || run.original === undefined || run.value === undefined) {
+        fail('ForeignInstalledEffectManagedRun');
+      }
+      assertCurrent();
+    } else {
+      run.cleanup = runtime.clientProgramNodeEffectManagedPlanCleanup;
+      run.prepare = runtime.clientProgramNodeEffectModelManagedPlanPrepare;
+      run.begin = runtime.clientProgramInstalledEffectModelManagedPlanBegin;
+      run.finishModelScope = runtime.clientProgramFinishInferOriginalReadScope;
+      const original = manager.prepareEffectModelPlanRun;
+      if (![run.cleanup, run.prepare, run.begin, original].every(value => typeof value === 'function')) {
+        fail('NodeManagedRunRuntimeUnavailable');
+      }
+      if (typeof run.finishModelScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+      run.original = Reflect.apply(original, manager, [prepared, operationPlan]);
+      assertCurrent();
+      run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, operationPlan]));
+      const begun = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request, operationPlan]));
+      run.value = runtimeField(begun, 0);
       run.modelScope = runtimeField(begun, 1);
       if (run.value === undefined || run.modelScope === undefined) fail('InstalledEffectModelScopeUnavailable');
     }
