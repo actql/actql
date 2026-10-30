@@ -522,6 +522,14 @@ These checks are not a public fresh-install or runtime acceptance. Native npm
 launcher artifacts use the npm route. No observer grants publication authority
 or substitutes for the separate approved executor.
 
+The separate [standalone Native Remote consumer](native-cli.md#public-standalone-remote-consumer)
+retains that same checked public stream for a fresh external extraction and
+executes the original direct Native path. Its external Remote test Host is a
+separate exact public Node installation; Native children have no Node search
+path. Inert HTTP/payload and own-process observation controls qualify only that
+consumer mechanism. A selected actual public Native candidate, platform/profile
+behavior, standard CLI/README and Local bootstrap remain separate acceptance.
+
 ## Channel transition review
 
 ```sh

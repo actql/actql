@@ -281,7 +281,7 @@
     {
       "id": "A20",
       "required": "Native standalone works without Node and refuses missing binary",
-      "currentSlice": "Explicit Native build-time package version reaches only its immutable version stub; actual banner observation binds the same binary before release admission. Legacy byte reads remain historical. Focused real C/pinned-runtime/types and inert metadata/staging controls only; complete versioned Native supplier, Node-free install/bootstrap/Local/Remote/close/public acceptance remain pending",
+      "currentSlice": "Explicit compiled Native version plus a digest-bound public standalone consumer reuse original GitHub byte/archive/ABI readers. Direct Native child has empty PATH/fresh HOME; separate exact public Node Host uses original Remote fixture and same-process close/FD observation. Inert HTTP/payload and own-child mechanism controls only; real versioned CLI/provider, public install, full Local/Remote/README/platform acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -295,6 +295,14 @@
         {
           "kind": "Inert artifact/package metadata only, no actual versioned CLI or registry operation",
           "test": "standalone release requires the original matching compiled-version observation without rewriting a legacy artifact"
+        },
+        {
+          "kind": "Injected public HTTP and inert Native archive/payload only, no real Native execution or public install",
+          "test": "Native public consumer: actual same-reader download feeds complete unchanged standalone extraction, never a local archive substitute"
+        },
+        {
+          "kind": "Own Node-child descriptor/acknowledgement mechanism only; not Native/Host/public runtime acceptance",
+          "test": "Native public consumer: SAME own child acknowledges an actual live closed descriptor observation; held reader stays failed"
         }
       ]
     },
@@ -353,7 +361,7 @@
     {
       "id": "A23",
       "required": "Loopback/private install is not public install acceptance",
-      "currentSlice": "Node and Python consumer launchers distinguish actual official public byte/install evidence from private/inert mechanisms. Python requests only the original entry and audits stable pip report plus exact wheel payload; real public candidate/platform execution remains pending",
+      "currentSlice": "Node/Python launchers and new standalone Native consumer distinguish official public byte/install scope from private or inert mechanisms. Native retains the actual checked GitHub stream; no local archive substitution/rebuild. Real selected public candidate/platform/profile acceptance remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -383,6 +391,10 @@
         {
           "kind": "Inert installed wheel/RECORD/source-link controls; no published recovery or owner approval",
           "test": "test_changed_original_wheel_or_record_and_linked_site_cannot_supply_correspondence"
+        },
+        {
+          "kind": "Inert downloads/installed payload and original platform predicate only; no actual Native runtime or approval",
+          "test": "Native public consumer: original installed payload and ABI checks refuse missing changed linked and nonexecutable binaries"
         }
       ]
     },
