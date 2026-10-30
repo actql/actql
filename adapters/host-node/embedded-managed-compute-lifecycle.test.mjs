@@ -274,12 +274,13 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
 }
 
 function sourceFreeRequestCaller(runtime, prepared) {
-  let request, originals;
+  let request, originals, identity;
   visit(declared('openInstalledHost').body, node => {
     if (node.type !== 'VariableDeclaration') return;
     for (const declaration of node.declarations) {
       if (declaration.id.name === 'requestOf') request = declaration;
       if (declaration.id.name === 'sourceFreeRequestIdentities') originals = declaration;
+      if (declaration.id.name === 'originalSourceFreeRequest') identity = declaration;
     }
   });
   assert(request);
@@ -299,6 +300,7 @@ function sourceFreeRequestCaller(runtime, prepared) {
     clientOperationError: code => Object.assign(new Error(code), {code})};
   return new Function(...Object.keys(ports),
     (originals === undefined ? '' : `const ${text(originals)};`) +
+    `const ${text(identity)};` +
     `const ${text(request)};return requestOf;`)(...Object.values(ports));
 }
 

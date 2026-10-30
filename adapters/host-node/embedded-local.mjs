@@ -5957,7 +5957,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
         prepareManagedRun(prepared, request, profile, prepareInvocation) {
-          return Reflect.apply(prepare, preparation, [moon, prepared, request, profile, prepareInvocation]);
+          return Reflect.apply(prepare, preparation, prepareInvocation === undefined
+            ? [moon, prepared, request, profile] : [moon, prepared, request, profile, prepareInvocation]);
         }});
       return acquired.then(async profile => {
         if (record.managedSourceProfile !== undefined) {
