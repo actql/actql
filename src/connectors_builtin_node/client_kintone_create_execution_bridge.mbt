@@ -193,3 +193,25 @@ pub fn client_program_kintone_create_request_construction_capacity(
     mapping, max_input_bytes, write, request,
   )
 }
+
+///|
+#export_name("clientProgramKintoneCreateFormRecheckConstructionCapacity")
+pub fn client_program_kintone_create_form_recheck_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_form_recheck_construction_capacity(
+    mapping, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateResponseConstructionCapacity")
+pub fn client_program_kintone_create_response_construction_capacity(
+  mapping : @kintone_host.RecordCreateMapping,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_create_mapped_response_construction_capacity(
+    mapping, limits,
+  )
+}

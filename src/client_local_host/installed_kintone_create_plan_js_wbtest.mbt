@@ -117,6 +117,163 @@ fn installed_kintone_create_fixture() -> (
 }
 
 ///|
+test "same Request CREATE Plan backs separate native Form and acknowledgement constructors before projection" {
+  let (prepared, request, contracts, _, mapping) = installed_kintone_create_fixture()
+  let write : @kintone_catalog.RecordWriteLimits = {
+    max_fields: 16,
+    max_name_bytes: 512,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_text_bytes: 8192,
+    max_output_bytes: 8192,
+  }
+  let mutation : @kintone_catalog.RecordMutationLimits = {
+    max_records: 1,
+    max_identity_bytes: 1000,
+    max_comparison_work: 10000,
+    max_output_bytes: 8192,
+    max_output_nodes: 1000,
+    max_output_depth: 16,
+  }
+  let form : @kintone_catalog.FormFieldLimits = {
+    max_bytes: 8192,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_fields: 16,
+    max_name_units: 512,
+  }
+  let construct = installed_json_effect_request_construction_capacity(
+    @kintone_host.record_create_mapped_request_construction_capacity(
+      mapping, 8192, write, mutation,
+    ).unwrap(),
+    8192,
+    1000,
+    16,
+  ).unwrap()
+  let form_capacity = installed_json_effect_response_construction_capacity(
+    @kintone_host.record_create_mapped_form_recheck_construction_capacity(
+      mapping, form,
+    ).unwrap(),
+    8192,
+    1000,
+    16,
+  ).unwrap()
+  let response_capacity = installed_json_effect_response_construction_capacity(
+    @kintone_host.record_create_mapped_response_construction_capacity(
+      mapping, mutation,
+    ).unwrap(),
+    8192,
+    1000,
+    16,
+  ).unwrap()
+  // These are native constructor occurrences only, not read/write attempts,
+  // a full standard Host recipe, transport backing or permission.
+  let names = ["native-create", "native-form", "native-response"]
+  let capacities = [construct, form_capacity, response_capacity]
+  let extents = capacities.mapi((i, value) => {
+    prepare_installed_effect_operation_extent(names[i], value, 0L, false).unwrap()
+  })
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "createOne",
+    [],
+    extents,
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let (input, initial, _, initial_capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  // Existing explicit ten-byte initial carrier fixture; it does not attest
+  // complete ordinary initial metadata/provider/Host backing.
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, initial_capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let tokens = []
+  for index in 0..<3 {
+    let before = @resources.ledger_usage(ledger)
+    let token = borrow_installed_effect_operation(
+      owner,
+      prepared,
+      request,
+      plan,
+      0,
+      true,
+      index,
+      0,
+      names[index],
+    ).unwrap()
+    tokens.push(token)
+    assert_true(
+      @resources.ledger_usage(ledger).reserved_retention_bytes >=
+      before.reserved_retention_bytes +
+      @execution.execution_capacity_retained_bytes(capacities[index]),
+    )
+  }
+  let mut native = Some(
+    @kintone_host.prepare_record_create_execution_request(
+      mapping, b"[{\"Subject\":\"intended\"}]", 8192, write, mutation,
+    ).unwrap(),
+  )
+  assert_true(
+    @kintone_catalog.recheck_record_create_form(
+      native.unwrap(),
+      b"{\"revision\":\"7\",\"properties\":{\"Subject\":{\"code\":\"Subject\",\"type\":\"SINGLE_LINE_TEXT\",\"expression\":\"\",\"required\":true,\"defaultValue\":\"server\"}}}",
+      form,
+    )
+    is Ok(_),
+  )
+  let mut acknowledgement = Some(
+    @kintone_catalog.project_record_create_acknowledgement(
+      native.unwrap(),
+      200,
+      b"{\"ids\":[\"9007199254740993\"],\"revisions\":[\"7\"]}",
+      mutation,
+    ).unwrap(),
+  )
+  let mut outcome = Some(
+    @kintone_catalog.project_record_create_effect_outcome(
+      native.unwrap(),
+      acknowledgement.unwrap(),
+      mutation,
+    ).unwrap(),
+  )
+  assert_eq(
+    @kintone_catalog.record_create_effect_outcome_wire(outcome.unwrap()),
+    "{\"result\":{\"created\":true,\"record_id\":\"9007199254740993\",\"revision\":\"7\"},\"state\":\"applied\"}",
+  )
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  for token in tokens {
+    assert_true(retire_installed_effect_operation(token, false) is Ok(false))
+  }
+  native = None
+  acknowledgement = None
+  outcome = None
+  assert_true(native is None && acknowledgement is None && outcome is None)
+  for token in tokens {
+    assert_true(retire_installed_effect_operation(token, true) is Ok(true))
+  }
+  tokens.clear()
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
 test "actual Kintone Mapping and original declaration reach checked CREATE preparation" {
   let (prepared, _, _, original, selected) = installed_kintone_create_fixture()
   let mapping = @kintone_host.record_create_mapping(selected)

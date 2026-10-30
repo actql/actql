@@ -77,6 +77,19 @@ pub fn client_program_installed_json_effect_request_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledJsonEffectResponseConstructionCapacity")
+pub fn client_program_installed_json_effect_response_construction_capacity(
+  provider : @execution.ExecutionCapacity,
+  max_response_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_json_effect_response_construction_capacity(
+    provider, max_response_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 // Preserve the original native capacity value instead of projecting/copying
 // its byte fields through JavaScript. This remains immutable demand DATA.
 #export_name("clientProgramInstalledEffectOperationExtentFromCapacity")

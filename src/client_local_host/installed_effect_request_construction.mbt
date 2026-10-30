@@ -54,3 +54,41 @@ pub fn installed_json_effect_request_construction_capacity(
   }
   @execution.add_execution_capacity(provider, json)
 }
+
+///|
+/// SAME byte parser/index/key-normalization construction over an already
+/// received response. The original received Bytes remain with the physical
+/// child; this does not encode another input String/Bytes or fund transport,
+/// credentials, JS projection, saved response custody or their overlap.
+pub fn installed_json_effect_response_construction_capacity(
+  provider : @execution.ExecutionCapacity,
+  max_response_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  if max_response_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return None
+  }
+  guard installed_source_response_workspace(
+      max_response_bytes, max_nodes, max_depth,
+    )
+    is Some(retained) &&
+    @execution.preparation_execution_capacity({
+      retained,
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(json) else {
+    return None
+  }
+  @execution.add_execution_capacity(provider, json)
+}
