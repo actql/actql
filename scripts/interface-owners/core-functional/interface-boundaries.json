@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "9b701c1164401d32d4d81b7df7408cbe80f3268178d544ba3d5aadf5ce4aadd2",
+      "sha256": "384ae5487d6fdde70898eee8b92df6896038d63a37d37cf085e99bc6721837da",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1833,20 +1833,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-          "parameters": [
-            "admission",
-            "prepared",
-            "request",
-            "compiled",
-            "compilation",
-            "definition",
-            "graph",
-            "budget"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
           "parameters": [
             "compiled",
@@ -2480,27 +2466,6 @@
             "compilation",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "occurrence",
-            "graph",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
           ],
           "async": false
         },
@@ -9474,6 +9439,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -9484,12 +9453,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -9500,12 +9477,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -9516,12 +9501,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -9532,12 +9525,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -9548,75 +9549,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-            "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
+              },
               {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ]
           }
@@ -43144,6 +43080,101 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_managed_run_bridge.mbt",
+      "sha256": "b9bfdcfd0d38ca8ff0ae80b19a67c062b2ba563cdcae1ed8a342363559547ca2",
+      "responsibilityFacet": "primary",
+      "role": "js-binding",
+      "owner": "Existing Local Source and Node Effect owners; D retires unused raw Effect admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_managed_run_check",
+          "declaration": "client_program_installed_effect_managed_run_check ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_prepare_ledger",
+          "declaration": "client_program_installed_effect_managed_run_prepare_ledger ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_requirements",
+          "declaration": "client_program_installed_effect_managed_run_requirements ( prepared : @ publication_host . PreparedClientEffectComputation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_managed_run_check",
+            "client_program_installed_effect_managed_run_prepare_ledger",
+            "client_program_installed_effect_managed_run_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ]
           }

@@ -706,3 +706,20 @@ can fail. Removing the obsolete profile methods does not supply the required
 early original ManagedProvider, Source acquisition, complete initial backing,
 current permission or physical cleanup observation. Those actual inputs remain
 necessary; there is no alternate Root or empty/default provider fallback.
+
+The LocalFiles profile also exposes no raw Effect preparation entry. Its Pure
+and Content constructors keep their original native admission, declared
+identity, original Reader custody and cleanup. An Effect discriminator or read
+context refuses before a Pure parent can be selected. The actual Local Effect
+Source adapter must separately consume its same adopted Effect tuple; removal
+of the dead branch does not provide that read service.
+
+The Node bridge no longer exposes the six obsolete raw Prepared Effect
+admission, cleanup, begin and Mock Model requirements entry points. Existing
+native APIs remain separately owned; the Node current check, selected Plan,
+Ledger preparation and numerical requirements projections are retained.
+`readLocalMockModelRunRequirements` accepts only its existing Pure Model scope
+and preserves its original extracted-method receiver. Runtime control cannot
+recreate the removed Effect Model admission through a second wrapper. Existing
+immutable compiled software stays qualified at its original source; this
+source/API retirement requires genuine later matching input selection.

@@ -5004,7 +5004,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "61a1c47fa2fd1e92b8788f61f94a7a78e91bf8ae57adde719bf3f2ffac2a622e",
+      "sha256": "6fa0f23bb90b41884f6b6bccf212846e2662e4c56ec212ac258214960d4e6185",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -10543,6 +10543,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -10553,12 +10557,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -10569,12 +10581,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -10585,12 +10605,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -10601,12 +10629,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -10617,6 +10653,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ]
           }
