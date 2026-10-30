@@ -410,3 +410,29 @@ test('fixed compilation manifest refusal cannot publish a sequence original or q
   assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
   assert.equal(f.calls.length, 0);
 });
+
+test('retired raw Effect Model quote refuses before original current or static projection', () => {
+  const f = fixture(); let calls = 0;
+  f.ports.assertSourceManagedHostPreparation = () => {calls++; assert.fail('No legacy Effect quote');};
+  const read = actual('readLocalMockModelRunRequirements', f.ports);
+  assert.throws(() => read(f.originals, f.prepared, {compilation: {}}),
+    {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(calls, 0); assert.deepEqual(f.installationCalls, []);
+});
+
+test('retired raw LocalFiles Effect constructor refuses before a replacement Root or record', () => {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
+    n.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const node = install.body.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === 'prepareRun');
+  assert(node);
+  const runs = new Map(); let calls = 0;
+  const no = () => {calls++; assert.fail('No legacy LocalFiles Effect admission');};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+    text.slice(node.start, node.end) + ';return prepareRun;')(
+    no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no);
+  assert.throws(() => prepare({}, {}, true), {code: 'InstalledEffectPlanUnavailable'});
+  assert.equal(calls, 0); assert.equal(runs.size, 0);
+});
