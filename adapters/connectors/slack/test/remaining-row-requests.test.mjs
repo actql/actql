@@ -73,3 +73,24 @@ for(const family of ['users','channels']){
     assert.equal(f.reader.observe().cleanupConfirmed,false);
   });
 }
+
+for(const family of ['users','channels']){
+  test('Slack '+family+' over-return refuses the last page without truncation or partial success',async()=>{
+    const f=fixture(family,{pages:[page(family,['one','two'],cursor),page(family,['three','four'],null)]});
+    await assert.rejects(f.reader.read(),e=>e.cause?.code===(family==='users'?'SlackUserListRowLimit':'SlackChannelListRowLimit'));
+    assert.equal(f.requests.length,3);assert.equal(f.grants.length,3);assert.equal(f.charges.length,3);
+    assert.deepEqual(f.rows.map(x=>x.id),['one','two']);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  });
+  test('Slack '+family+' original current refusal prevents the next authorization and send',async()=>{
+    const f=fixture(family,{loseCurrentAfterPage:true});
+    await assert.rejects(f.reader.read(),e=>e.cause===f.cause);
+    assert.equal(f.requests.length,2);assert.equal(f.grants.length,2);assert.equal(f.charges.length,2);
+    assert.equal(f.rows.length,2);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  });
+  test('Slack '+family+' foreign actual workspace observation refuses before a data grant',async()=>{
+    const f=fixture(family,{workspaceId:'T-foreign'});
+    await assert.rejects(f.reader.read(),e=>e.cause?.code==='ForeignSlackWorkspace');
+    assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
+    assert.equal(f.observationCharges.length,0);assert.equal(f.rows.length,0);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  });
+}
