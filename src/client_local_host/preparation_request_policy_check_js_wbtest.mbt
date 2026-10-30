@@ -132,7 +132,7 @@ test "Request policy supplement decline retains cleanup and cannot compile the o
   let proof = request_policy_supplement_evidence(parent)
   let before = @resources.ledger_usage(parent.ledger)
   let bytes = @execution.preparation_representation_cost(
-      request_policy_selection_layout(1).unwrap(),
+      closed_values_program_arrays(1L, 1L, false),
     ).unwrap() +
     program_check_data_extent_cost(child.check_data.unwrap()).unwrap()
   let limit = client_local_preparation_initial_limits(

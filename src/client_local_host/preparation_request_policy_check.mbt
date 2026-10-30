@@ -1,27 +1,4 @@
 ///|
-/// One shallow CheckEnvironment (eight borrowed references/one Bool) and its
-/// copied evidence reference inventory. Proof bodies remain with their issuer;
-/// neither this copy nor a policy CID is Host verification or physical backing.
-fn request_policy_selection_layout(
-  count : Int,
-) -> @execution.PreparationRepresentationUnits? {
-  if count < 0 {
-    return None
-  }
-  let environment : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L,
-    reference_slots: 8L,
-    scalar_words: 1L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }
-  @execution.compose_preparation_representation([
-    environment,
-    closed_values_program_arrays(1L, count.to_int64(), false),
-  ])
-}
-
-///|
 /// Supplement the SAME checked Request before compiler/body selection. The
 /// Host's nominal evidence is still matched by the existing full checker to
 /// Program/Parameters/occurrence/SourceView/request/origins. This transition
@@ -108,8 +85,13 @@ fn[I] supplement_request_computation_policies_owned(
   evidence : Array[@checked.HostRequestValuePolicyEvidence],
   count : Int,
 ) -> Result[@checked.CheckEnvironment, ClientRequestTerminalIssue] {
-  guard request_policy_selection_layout(count) is Some(layout) &&
-    @execution.preparation_representation_cost(layout) is Some(copy_bytes) &&
+  // Only the input-sized copied proof references need another collection
+  // extent. Fixed Environment/control frames use the existing trusted Host
+  // overhead included by program_check_data_extent_cost below.
+  guard @execution.preparation_representation_cost(
+      closed_values_program_arrays(1L, count.to_int64(), false),
+    )
+    is Some(copy_bytes) &&
     child.check_data is Some(data) &&
     program_check_data_extent_cost(data) is Some(semantic_bytes) &&
     @execution.checked_preparation_add_product(copy_bytes, semantic_bytes, 1L)

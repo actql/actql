@@ -3630,9 +3630,11 @@ including imported Results. Keyed execution keeps its original producer bounds
 and converted proof, while independent correlation provenance remains separate.
 
 This is one named work phase after semantic checking and before lowering. Its
-additional configuration and semantic construction envelope is backed on the
-same original working reservation before construction, while the old facts are
-still retained. No phase ordinal or spent work is reset. Exact already-selected
+input-sized evidence reference copy and semantic construction envelope are
+backed on the same original working reservation before construction, while the old facts are
+still retained. Fixed checking-configuration and control frames use the existing
+trusted Host overhead, without another wrapper-specific object/slot census. No
+phase ordinal or spent work is reset. Exact already-selected
 proofs and empty supplements do not start another phase; a selected failed
 supplement prevents compiling the prior verdict and keeps original cleanup
 ownership. Reentrant current callbacks cannot replace the Request or clear its
