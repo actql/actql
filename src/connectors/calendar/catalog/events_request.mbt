@@ -90,7 +90,8 @@ pub fn calendar_events_request_schema_wire(
     ],
     nullable=false,
     max_fields=4,
-    max_name_bytes=32,
+    // Total UTF-8 bytes of these four fixed field names, not per-name size.
+    max_name_bytes=36,
   ).unwrap()
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(BudgetExceeded)
