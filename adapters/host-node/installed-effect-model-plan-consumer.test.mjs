@@ -59,7 +59,7 @@ function fixture() {
   }});
   const options = {runs, liveRuns, runtime, manager, prepared, request, selection,
     facts, inputs: Object.freeze({registry}), model, sourceProfile: {}, checked, assertCurrent() {}};
-  return {options, calls, scope, parent, model, admission, runs, prepared, runtime,
+  return {options, calls, scope, parent, model, admission, runs, prepared, runtime, plan,
     settle() {pending = false;}, failBegin(cause) {beginFailure = cause;},
     onFinish(fn) {finishCallback = fn;}};
 }
@@ -105,4 +105,32 @@ test('Model Scope cleanup joins reentry and refuses an original replaced by its 
   });
   assert.throws(() => finishInstalledEffectModelScope(run, true, checked), {code: 'ForeignInstalledEffectModelScope'});
   assert.equal(run.modelScopeFinished, undefined); assert.equal(run.modelScopeFinishing, false);
+});
+
+// The same Request/Scope/parent identities are explicit manager/Core ports.
+// This tests the actual Node caller, not a Model provider, initial backing or
+// the unmerged B native dependency. There must be no new standalone admission.
+test('Model Effect adopts its original Request and retains the same manager Run instead of another admission', () => {
+  const f = fixture(), requestInput = {}, original = {};
+  f.options.requestInput = requestInput;
+  let retained;
+  f.options.manager.adoptEffectModelPreparation = function(p, input, identity, selected, retain) {
+    assert.equal(this, f.options.manager);
+    same([p, input, identity, selected],
+      [f.prepared, requestInput, f.options.request, f.plan]);
+    const run = {prepared: p, request: input, original, operationPlan: selected,
+      modelScope: f.scope, value: f.parent};
+    retain(run); retained = run; f.calls.push('adopt-request-model'); return run;
+  };
+  f.options.manager.prepareEffectModelPlanRun = () => assert.fail('Model must adopt the original Request');
+  f.runtime.clientProgramNodeEffectModelManagedPlanPrepare =
+    f.runtime.clientProgramInstalledEffectModelManagedPlanBegin = () => assert.fail('no second admission or parent');
+  assert.equal(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  assert.equal(run.requestInput, requestInput); assert.equal(run.original, original);
+  assert.equal(run.requestRun, retained); assert.equal(run.modelScope, f.scope);
+  assert.equal(run.preparationFunded, true); assert.equal(run.admission, undefined);
+  assert.equal(f.calls.filter(value => value === 'adopt-request-model').length, 1);
+  assert.equal(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
+  assert.equal(f.calls.filter(value => value === 'adopt-request-model').length, 1);
 });
