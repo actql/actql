@@ -977,8 +977,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           acquired: held.plan, preparedProgram,
           captured: entry.sourceCapture, sourceEvidence,
           authorityScopeCid,
-          effectiveDataPolicyCid:
-            entry.sourceCapture.checkedSource.sourceDataPolicyCid,
+          effectiveDataPolicyCid: moon.clientProgramPublicationDataPolicyCid(preparedProgram),
           captureStartedAt, captureCompletedAt, namespaceId,
           requestId: submission.requestId, storeAuthorityCid, now});
         }
