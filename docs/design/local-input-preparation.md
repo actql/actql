@@ -4079,3 +4079,26 @@ therefore return that same checked Ledger without a second current call. Other
 branches that still construct sequences/providers retain their original
 post-construction current checks. The ordinary Source-free, Model and whole
 input purpose predicates are unchanged.
+
+### Request-owned Effect Model Scope
+
+The selected Effect Plan's original Model demand binds its Scope to the census
+installed on the first Request reservation. Binding precedes Plan completion
+and any Source or Model read. It retains the actual working byte extents and
+the maximum of the original input slots and selected Model slots; it does not
+replace consumed input work, attempts or quantities with a pristine census.
+The same Request field retains the selected Plan before completion, so an
+independently constructed Plan cannot replace that Scope's original selection.
+
+The caller retains the returned Scope immediately, including completion or
+adoption refusal. Existing Scope cleanup acknowledgement and preparation/body
+borrower retirement remain distinct obligations. Adoption checks the same
+Scope/census/compiled originals and uses the existing Node transfer and Run
+retirement; it creates no second bootstrap reservation or resource owner.
+
+The initial parent's actual admitted counters must cover the complete selected
+Plan, including both Compute and Model work. An ordinary Local initial quote
+is not a Model quote. Byte adequacy, installed policy identity or a live Scope
+cannot waive a counter mismatch. The complete physical census, Model material,
+configuration and callback coexistence must also be funded before binding;
+this interface supplies no spare extent or numerical physical recipe.

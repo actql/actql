@@ -148,6 +148,79 @@ pub fn[I] borrow_request_effect_plan_input(
 }
 
 ///|
+/// Bind the selected original Model to this preparation's existing census
+/// before completing its Plan or issuing Source/read children. The caller
+/// already retains and funds the complete selected Model/census/constructor
+/// overlap at the current working extents; this call invents no byte recipe.
+/// The returned Scope must remain with that owner through adoption refusal
+/// and receive its actual cleanup acknowledgement before parent retirement.
+pub fn[I] prepare_request_effect_model_read_scope(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.phase == EffectPlanReserved &&
+    owner.effect_capacity is Some(capacity) &&
+    owner.compiled_effect is Some(prepared) &&
+    owner.effect_plan is None &&
+    physical_equal(plan.prepared, prepared) &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  guard plan.model is Some(selected) else { return Err(Unsupported) }
+  match check_preparation_owned_effect_limits(owner.initial, input, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  owner.phase = Selecting
+  // The original six input/borrower slots already exist. Growing this same
+  // census retains their backing and the selected Model maxima; it never
+  // replaces preparation history with a new pristine inventory.
+  let result : Result[
+    @publication_host.ClientModelReadScope,
+    ClientInstalledManagedRunIssue,
+  ] = match
+    @resources.grow_preparation_capacity_inventory(
+      capacity,
+      input,
+      r,
+      e,
+      Int::max(request_preparation_borrow_limit, selected.max_reservations),
+      selected.max_holdings,
+      selected.max_delegations,
+    ) {
+    Err(issue) => Err(Preparation(issue))
+    Ok(_) =>
+      match
+        @resources.preparation_capacity_inventory_original(capacity, input) {
+        Err(issue) => Err(Preparation(issue))
+        Ok(identity) =>
+          @publication_host.bind_client_model_read_scope(
+            selected.compiled,
+            selected.definition,
+            selected.graph,
+            owner.ledger,
+            identity,
+          ).map_err(issue => ModelRead(issue))
+      }
+  }
+  if result is Ok(_) {
+    owner.effect_plan = Some(plan)
+  }
+  owner.phase = EffectPlanReserved
+  result
+}
+
+///|
 /// Complete with the actual original selected Plan. No independently rebuilt
 /// plan, request, configuration or prepared computation can stand in for it.
 pub fn[I] complete_request_effect_preparation(
@@ -164,12 +237,17 @@ pub fn[I] complete_request_effect_preparation(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
+  if owner.effect_plan is Some(original) && !physical_equal(original, plan) {
+    return Err(ForeignOriginal)
+  }
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
-  owner.effect_plan = Some(plan)
+  if owner.effect_plan is None {
+    owner.effect_plan = Some(plan)
+  }
   owner.program_body_attempted = true
   owner.phase = Selecting
   let result = @resources.complete_preparation_capacity(
@@ -219,6 +297,44 @@ pub fn[I] begin_request_effect_managed_run(
     request,
     plan,
   )
+  finish_request_effect_run_adoption(owner, result)
+}
+
+///|
+/// Adopt the SAME completed Model Plan and previously retained Scope. The
+/// ordinary entry above still rejects Model; neither entry chooses a purpose
+/// from caller DATA or starts another Node child/bootstrap reservation.
+pub fn[I] begin_request_effect_model_managed_run(
+  owner : ClientRequestPreparation[I],
+  request : @publication_host.ClientRequestIdentity,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  guard owner.phase == EffectBodyReady &&
+    owner.input is Some(input) &&
+    owner.effect_capacity is Some(capacity) &&
+    owner.compiled_effect is Some(prepared) &&
+    owner.effect_plan is Some(plan) else {
+    return Err(ForeignOriginal)
+  }
+  owner.phase = Selecting
+  let result = begin_preparation_owned_installed_effect_model_run(
+    owner.initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    plan,
+    owner.ledger,
+    scope,
+  )
+  finish_request_effect_run_adoption(owner, result)
+}
+
+///|
+fn[I] finish_request_effect_run_adoption(
+  owner : ClientRequestPreparation[I],
+  result : Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue],
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   match result {
     Err(issue) => {
       owner.phase = EffectBodyReady

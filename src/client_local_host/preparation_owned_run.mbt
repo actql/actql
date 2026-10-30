@@ -142,12 +142,9 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   if plan.model is Some(_) {
     return Err(Unsupported)
   }
-  let limits = match @resources.node_local_preparation_limits(initial, input) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  if !installed_effect_limits_fit(plan.limits, limits) {
-    return Err(InsufficientCapacity)
+  match check_preparation_owned_effect_limits(initial, input, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   // The original plan.model guard above already selected this non-Model
   // constructor. No operation-name or graph reconstruction is needed.
@@ -156,6 +153,81 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
     Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
+  adopt_preparation_owned_installed_effect_plan(
+    initial, input, capacity, request, plan,
+  )
+}
+
+///|
+/// The Model owner retained this Scope before completing the same Plan. Keep
+/// its census and original cleanup obligation through the existing adoption.
+/// No Scope, bootstrap reservation, compiler or Model resource is issued here.
+fn[I] begin_preparation_owned_installed_effect_model_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  ledger : @resources.Ledger,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  if !installed_effect_plan_matches(plan, prepared, request) {
+    return Err(ForeignOriginal)
+  }
+  guard plan.model is Some(selected) else { return Err(Unsupported) }
+  let identity = match
+    @resources.preparation_capacity_inventory_original(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  if !@publication_host.client_model_read_scope_original_inventory(
+      scope, ledger, identity,
+    ) ||
+    !@publication_host.client_model_read_scope_live(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+    ) {
+    return Err(ForeignOriginal)
+  }
+  match check_preparation_owned_effect_limits(initial, input, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  adopt_preparation_owned_installed_effect_plan(
+    initial, input, capacity, request, plan,
+  )
+}
+
+///|
+fn[I] check_preparation_owned_effect_limits(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(plan.limits, limits) {
+    return Err(InsufficientCapacity)
+  }
+  Ok(())
+}
+
+///|
+// Both fixed purposes already checked their original Plan/bounds and selected
+// their actual Scope/ordinary obligation. Share the exact original holders and
+// retirement engine without another current callback or admission.
+fn[I] adopt_preparation_owned_installed_effect_plan(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(initial, input, capacity, plan) {
     Err(issue) => return Err(Resource(issue))
