@@ -656,15 +656,9 @@ fn prepare_client_local_sequences_owned(
     return Err(Unsupported)
   }
   let generated = []
-  let composed_boundaries = match prepared {
-    Effect(value) =>
-      match @publication_host.prepared_client_effect_infer_occurrence(value) {
-        Some(occurrence) => [occurrence]
-        None => []
-      }
-    Pure(value) =>
-      @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
-      )
+  guard installed_managed_owner_infer_occurrences(prepared)
+    is Some(composed_boundaries) else {
+    return Err(Unsupported)
   }
   let serialization_boundaries = match prepared {
     Effect(value) =>

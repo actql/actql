@@ -107,6 +107,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   CleanupPending
   InsufficientCapacity
   Resource(@resources.ImportedChildLedgerIssue)
+  Preparation(@resources.PreparationCapacityIssue)
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
   Sequence(@lower.SequenceIssue)
@@ -130,28 +131,31 @@ fn installed_managed_run_shape_supported(
 }
 
 ///|
+// One typed inventory projection for purpose selection and actual sequence
+// construction. Unknown inventory is never an empty non-Model success.
+fn installed_managed_owner_infer_occurrences(
+  owner : ClientLocalSequenceOwner,
+) -> Array[@publication_host.ClientInferOccurrence]? {
+  match owner {
+    Pure(prepared) =>
+      @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    Effect(prepared) =>
+      @publication_host.prepared_client_effect_composed_infer_occurrences(
+        prepared,
+      )
+  }
+}
+
+///|
 fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
-  let boundary_count = match owner {
-    Pure(prepared) =>
-      @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
-          value.length()
-        },
-      )
-    Effect(prepared) =>
-      Some(
-        if @publication_host.prepared_client_effect_infer_occurrence(prepared)
-          is Some(_) {
-          1
-        } else {
-          0
-        },
-      )
-  }
+  let boundary_count = installed_managed_owner_infer_occurrences(owner).map(value => {
+    value.length()
+  })
   let serialized = match owner {
     Pure(prepared) =>
       @publication_host.prepared_client_serialization_occurrences(prepared)

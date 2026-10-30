@@ -67,9 +67,18 @@ fn restore_client_effect_original_source_free_policy(
   ClientEffectRunMaterialsIssue,
 ] {
   let graph = @strategy.checked_effect_computation_graph(prepared.graph)
-  let required = @strategy.graph_source_free_inputs_complete(graph) &&
-    !prepared_client_effect_serialization_occurrences(prepared).is_empty() &&
-    prepared_client_effect_infer_occurrence(prepared) is None
+  let required = if @strategy.graph_source_free_inputs_complete(graph) &&
+    !prepared_client_effect_serialization_occurrences(prepared).is_empty() {
+    // Single-selection absence also includes unknown or multiple Model
+    // occurrences. Only the explicit checked empty inventory is non-Model.
+    guard prepared_client_effect_composed_infer_occurrences(prepared)
+      is Some(occurrences) else {
+      return Err(Compilation(Serialization(UnsupportedGraph)))
+    }
+    occurrences.is_empty()
+  } else {
+    false
+  }
   let missing = ClientEffectRunMaterialsIssue::Input(
     MaterialsEvidence("source_free_result_policy"),
   )

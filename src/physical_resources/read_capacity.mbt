@@ -41,6 +41,18 @@ pub fn reserve_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  reserve_capacity_current(ledger, retained_bytes, execution_bytes)
+}
+
+///|
+// Same synchronous owner after its nonnegative input and original current/
+// slot checks. Initial preparation validates pristine history in that same
+// cut, without repeating those checks or this reservation allocator.
+fn reserve_capacity_current(
+  ledger : Ledger,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[CapacityReservation, LedgerIssue] {
   guard ledger.next_capacity_serial is Some(serial) else {
     return Err(InvalidCharge)
   }

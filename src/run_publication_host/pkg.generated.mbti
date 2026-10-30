@@ -1915,6 +1915,8 @@ pub fn prepared_client_composed_infer_occurrences(PreparedClientProgram) -> Arra
 
 pub fn prepared_client_effect_command_target_publication(PreparedClientEffectComputation) -> @query_program.CommandTargetPublication?
 
+pub fn prepared_client_effect_composed_infer_occurrences(PreparedClientEffectComputation) -> Array[ClientInferOccurrence]?
+
 pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
 
 pub fn prepared_client_effect_computation_definition_cid(PreparedClientEffectComputation) -> String

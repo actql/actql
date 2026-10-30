@@ -8,8 +8,8 @@ priv struct OriginalTokenSlots[T] {
 }
 
 ///|
-fn[T] original_token_slots() -> OriginalTokenSlots[T] {
-  { slots: [], order: [], }
+fn[T] original_token_slots(capacity? : Int = 0) -> OriginalTokenSlots[T] {
+  { slots: Array(capacity~), order: Array(capacity~), }
 }
 
 ///|

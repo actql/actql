@@ -3875,8 +3875,34 @@ actual initial controls, backing, slot bounds and entrance coexistence before
 entry. The existing pristine-token/work/quantity checks remain in force;
 installing the census after parsing, checking or a settled zero-byte child is
 not a replacement. No second bootstrap reservation or imported parent is
-created. This Resource primitive alone does not enable the ordinary Request
-constructor, price a Model domain or install a Model Scope.
+created. This Resource primitive alone does not price a Model domain or install
+a Model Scope.
+
+The ordinary Request now uses `reserve_preparation_capacity_inventory` at
+its first entrance, before snapshot and input construction. That atomic entry
+observes original currentness once, verifies pristine history after possible
+reentry, and calls the same callback-free reservation allocator. It cannot
+lose a newly debited capacity between a successful reserve and a refused census
+initialization. The preparation owner record also has one shared constructor.
+The census itself retains the original identity; the Request does not retain
+another identity field or return wrapper. A later fixed consumer projects that
+same original through `preparation_capacity_inventory_original`, without
+currentness, byte allowance, Model availability or a mutable Ledger projection.
+
+Resource supplies the initial record/array/slot dimensions through
+`preparation_inventory_initial_control_slots`; the Request applies the existing
+common representation tariff once. Its existing six original borrower slots
+also bound preparation IO reservations, because each such operation retains
+one of those same borrowers. Initial holdings and delegations are absent.
+This is a fixed input-construction inventory, not a row bound or the eventual
+Model Plan's census. Arrays reserve that finite backing before use; logical
+array storage does not describe opaque backend allocator metadata or RSS.
+
+An empty preparation census has retained controls but need not fabricate
+working memory. Its initial execution extent may remain zero. The existing
+original Model binding, descriptor and read availability predicates still
+require their separately funded positive execution extent. Initial census
+presence cannot substitute for a full Model material/response/read recipe.
 
 The existing inventory binding scalar also records settlement custody. A
 standalone census retains its owning-bootstrap behavior. A preparation-funded
@@ -3905,8 +3931,20 @@ settle twice. The allocation fence remains installed through final currentness;
 only the callback-free original settlement detaches the census. A failed
 current observation retains the closed fence, original census and debit. The
 same typed capacity continuation and actual Node adoption retain this custody,
-with no extra read-bootstrap owner. The normal Host/Model material recipe,
-early Request entry and later constructor selection remain necessary consumers.
+with no extra read-bootstrap owner. The normal Host/Model material recipe and
+later constructor selection remain necessary consumers.
+
+Each existing non-Model adoption uses its already admitted typed constructor:
+the ordinary purpose predicate, opaque ordinary capture Plan, explicit
+non-Model Effect Plan, or keyed Content constructor's empty Infer inventory.
+Only after those original binding/purpose checks may unused unbound census
+metadata retire. No additional graph classifier or semantic check is added.
+Disposal requires no binding, descriptor, read or live recorded child and
+does not release the original byte debit, input borrowers, attempts, transfer,
+work or serial history. The old identity becomes unavailable. Other bootstrap
+owners remain untouched; bound Model census custody still belongs to its
+Scope and preparation retirement. This cleanup cannot enable a Model fallback
+or replace its separately required constructor/completion/adoption connection.
 
 
 ### Keyed Content construction on the original Request

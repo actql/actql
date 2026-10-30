@@ -72,6 +72,19 @@ pub fn[I, P] reserve_preparation_capacity(
   reserve_capacity(ledger, retained_peak, execution_peak)
   .map_err(issue => PreparationCapacityIssue::Resource(issue))
   .map(reservation => {
+    make_preparation_capacity(ledger, input, reservation, max_borrowers)
+  })
+}
+
+///|
+// One owner record constructor for ordinary and atomic-census entrances.
+fn[I, P] make_preparation_capacity(
+  ledger : Ledger,
+  input : I,
+  reservation : CapacityReservation,
+  max_borrowers : Int,
+) -> PreparationCapacity[I, P] {
+  {
     ledger,
     reservation,
     input: Some(input),
@@ -82,7 +95,7 @@ pub fn[I, P] reserve_preparation_capacity(
     retirement_claimed: false,
     active_phase_work: None,
     last_work_phase: -1,
-  })
+  }
 }
 
 ///|

@@ -1032,6 +1032,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   CleanupPending
   InsufficientCapacity
   Resource(@physical_resources.ImportedChildLedgerIssue)
+  Preparation(@physical_resources.PreparationCapacityIssue)
   Ledger(@physical_resources.LedgerIssue)
   ModelRead(@run_publication_host.ClientModelReadPreparationIssue)
   Sequence(@lowering_relation.SequenceIssue)

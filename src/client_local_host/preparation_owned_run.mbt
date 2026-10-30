@@ -21,9 +21,8 @@ priv enum ClientManagedPreparationCustody {
 }
 
 ///|
-/// Dormant fixed-Root entry. The supplier must fund constructor coexistence
-/// and retain every original dependency before calling; no SDK path currently
-/// selects it. Unlike the legacy entry, this consumes the already started
+/// Fixed Request entry. The supplier funds constructor coexistence and retains
+/// every original dependency before calling. This consumes the already started
 /// input admission and never starts a second imported child.
 pub fn[I] begin_preparation_owned_installed_managed_run(
   initial : @resources.NodePreparationAdmission[I],
@@ -52,6 +51,13 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
     ) !=
     0 {
     return Err(Unsupported)
+  }
+  // The existing original ordinary-purpose proof excludes Model. Retiring
+  // this unused initial census is metadata disposal, never a new admission.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
   }
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(
@@ -92,6 +98,13 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
   }
   if !installed_effect_limits_fit(plan.limits, limits) {
     return Err(InsufficientCapacity)
+  }
+  // This opaque capture Plan was constructed under the unchanged ordinary
+  // purpose predicate; no Model/serialization fallback is introduced here.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
   }
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(
@@ -135,6 +148,13 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   }
   if !installed_effect_limits_fit(plan.limits, limits) {
     return Err(InsufficientCapacity)
+  }
+  // The original plan.model guard above already selected this non-Model
+  // constructor. No operation-name or graph reconstruction is needed.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
   }
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(initial, input, capacity, plan) {
@@ -279,6 +299,13 @@ pub fn[I] begin_preparation_owned_installed_content_run(
   }
   if !installed_effect_limits_fit(selected.limits, limits) {
     return Err(InsufficientCapacity)
+  }
+  // The selected keyed Content constructor already required explicit empty
+  // Infer inventory. Its original prepared/request/declaration remain bound.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
   }
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(

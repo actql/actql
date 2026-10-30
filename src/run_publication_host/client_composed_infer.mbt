@@ -144,6 +144,16 @@ pub fn prepared_client_effect_infer_occurrence(
 }
 
 ///|
+/// Preserve unknown inventory separately from an explicitly empty or multiple
+/// checked occurrence inventory. A single-occurrence selector's None cannot
+/// establish a non-Model purpose. No Program is parsed or checked again.
+pub fn prepared_client_effect_composed_infer_occurrences(
+  owner : PreparedClientEffectComputation,
+) -> Array[ClientInferOccurrence]? {
+  prepared_client_composed_infer_occurrences(client_effect_program_view(owner))
+}
+
+///|
 /// Keep the existing component constructor's admitted input scope. Composed
 /// execution obtains its occurrence from compilation, never this fallback.
 pub fn prepared_client_infer_execution_occurrence(

@@ -71,8 +71,19 @@ fn begin_original_ledger_inventory_owned(
   max_delegations : Int,
   binding : OriginalInventoryBinding,
 ) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
+  // Empty preparation owns retained controls, not Model working memory.
+  // The later original binding/descriptor/read predicates still require the
+  // separately funded positive execution extent; E0 cannot issue a Scope.
+  let bootstrap_ready = if binding == PreparationUnbound {
+    physical_equal(ledger, bootstrap.reservation.owner) &&
+    bootstrap.reservation.open &&
+    bootstrap.reservation.retention > 0L &&
+    bootstrap.reservation.execution >= 0L
+  } else {
+    original_read_bootstrap_available(ledger, bootstrap)
+  }
   if ledger.original_inventory is Some(_) ||
-    !original_read_bootstrap_available(ledger, bootstrap) ||
+    !bootstrap_ready ||
     bootstrap.reservation.serial != -1 ||
     ledger.next_capacity_serial != Some(-2) {
     return Err(InvalidBootstrap)
@@ -96,9 +107,15 @@ fn begin_original_ledger_inventory_owned(
     max_reservations,
     max_holdings,
     max_delegations,
-    reservations: original_token_slots(),
-    holdings: original_token_slots(),
-    delegations: original_token_slots(),
+    reservations: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_reservations } else { 0 },
+    ),
+    holdings: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_holdings } else { 0 },
+    ),
+    delegations: original_token_slots(
+      capacity=if binding == PreparationUnbound { max_delegations } else { 0 },
+    ),
     binding,
     descriptor_issued: false,
     read_claimed: false,

@@ -95,6 +95,18 @@ struct ClientRequestPreparation[I] {
 }
 
 ///|
+// Existing original holder quota, also bounding simultaneously retained
+// preparation IO reservations: each such operation claims one original slot.
+let request_preparation_borrow_limit : Int = 6
+
+///|
+// Immutable installed DATA, not another tariff, allowance or per-Request
+// construction. Resource owns the census layout; this caller prices it once.
+let request_preparation_inventory_slots : (Int64, Int64, Int64) = @resources.preparation_inventory_initial_control_slots(
+  request_preparation_borrow_limit, 0, 0,
+).unwrap()
+
+///|
 pub(all) enum ClientRequestPreparationIssue {
   ForeignOriginal
   WrongPhase
@@ -123,6 +135,7 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 /// parsed tree or provider inventory is included here. Each selected next
 /// phase must reserve its own complete representation before constructing it.
 fn request_preparation_control_units() -> @execution.PreparationRepresentationUnits {
+  let (inventory_headers, inventory_refs, inventory_words) = request_preparation_inventory_slots
   // JS producer/empty receipt/preparation state; original Resource record and
   // state; fixed quota6 and weak identity membership; ports and six closures.
   // The original runtime's fixed validation arrays have lengths4,6,3,7,5,5;
@@ -186,7 +199,10 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
     // or B initial recipe is represented by these caller-only controls.
-    record_headers: js_headers +
+    // The original census owns its identity; no duplicate Request field or
+    // returned (capacity,identity) wrapper is allocated at this entrance.
+    record_headers: inventory_headers +
+    js_headers +
     import_headers +
     ledger_headers +
     2L +
@@ -196,7 +212,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     10L +
     9L,
     // Resident Content Plan and original Request links; neither is selected yet.
-    reference_slots: 2L +
+    reference_slots: inventory_refs +
+    2L +
     js_refs +
     import_refs +
     ledger_refs +
@@ -206,7 +223,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: js_words +
+    scalar_words: inventory_words +
+    js_words +
     import_words +
     ledger_words +
     5L +
@@ -262,12 +280,12 @@ pub fn[I] begin_request_preparation(
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match
-    @resources.reserve_preparation_capacity(
+    @resources.reserve_preparation_capacity_inventory(
       ledger,
       input,
       retained,
       execution,
-      max_borrowers=6,
+      max_borrowers=request_preparation_borrow_limit,
     ) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
