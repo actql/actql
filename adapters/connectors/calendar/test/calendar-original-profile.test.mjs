@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
+import {inspect} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {prepareCalendarEventsRequestPages} from '../site/calendar-events-pages.mjs';
 
@@ -43,8 +44,11 @@ const requestWire='{"calendar_id":"original@example.test","time_min":"2026-03-01
 test('actual Calendar provider retains the Common environment original Profile through request and complete typed page',()=>{
   const original=environment(),selected=supplement(original);assert(selected);
   const profile=checked(calendar.calendarEventsProfileFromEnvironment(selected));
+  assert(profile!==undefined&&profile!==null,'Actual getter must return the retained Profile, not an absent reference');
   assert.equal(profile,checked(calendar.calendarEventsProfileFromEnvironment(selected)),'same immutable original, not re-admitted Profile');
-  const query=checked(calendar.calendarEventsQueryFromRequestWire(requestWire,profile,4096,1024,20,3,128,128,100,1000,8192,100));
+  let query;
+  try{query=checked(calendar.calendarEventsQueryFromRequestWire(requestWire,profile,4096,1024,20,3,128,128,100,1000,8192,100));}
+  catch(error){console.error('Actual original Calendar request refusal:',inspect(error.cause,{depth:4}));throw error;}
   const body=new TextEncoder().encode('{"kind":"calendar#events","timeZone":"UTC","items":[{"id":"event","start":{"date":"2026-03-08"},"end":{"date":"2026-03-09"},"attendees":[]}]}');
   const page=checked(calendar.calendarProjectEvents(body,query,16384,1024,20,2,128,128,100,1000,8192,100));
   assert.equal(calendar.calendarEventsMatchesQuery(page,query),true);
