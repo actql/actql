@@ -1262,3 +1262,65 @@ test('captured Host constructor forwards its same Source inventory and installed
 test('captured Host constructor keeps the same QueryTime requirement without context substitution', () => {
   capturePlanConstructor({count: 1, retained: false, queryTime: {}});
 });
+
+// Actual pre-Plan Host functions with explicit typed selection/capacity ports.
+// This does not execute a compiled Common ABI, physical Source or ordinary Run.
+function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) {
+  const prepared = {}, request = {}, plan = {}, profile = {}, admission = {}, selection = {}, capacity = {};
+  const calls = [], contracts = {values: 'same-values', expression: 'same-fragment', ordered: 'same-ordered'};
+  const run = {prepared, request, sourceProfile: profile, closed: false};
+  const runtime = {
+    clientProgramAcquisitionCount(value) {assert.equal(value, prepared); calls.push('original-prefix'); return 1;},
+    clientProgramSelectInstalledSourceInput(value, identity, stage, input) {
+      assert.equal(value, prepared); assert.equal(identity, request); assert.equal(stage, 0); assert.equal(input, 0);
+      calls.push('select-original'); return selection;
+    },
+    clientProgramSelectedSourceInputKind(value) {assert.equal(value, selection); return 'whole-input';},
+    clientProgramSelectedSourceInputRef(value) {assert.equal(value, selection); return 'same-source';},
+    clientProgramPrepareLocalQueryRequirement() {assert.fail('Whole input must not fabricate a Query requirement');},
+    clientProgramInstalledManagedCapturePlanPrepare() {assert.fail('Whole capacity must not be cast to a Query capacity array');},
+    clientProgramPrepareInstalledManagedWholeSourcePlan(value, identity, selected, transfer, execution,
+      registry, values, fragment, ordered, retained) {
+      assert.equal(this, runtime); assert.equal(value, prepared); assert.equal(identity, request); assert.equal(selected, capacity);
+      assert.equal(transfer, 17n); assert.equal(execution, 29n); assert.equal(registry, admission);
+      assert.equal(values, contracts.values); assert.equal(fragment, contracts.expression); assert.equal(ordered, contracts.ordered);
+      assert.equal(retained, true); calls.push('whole-plan'); return plan;
+    },
+  };
+  run.runtime = runtime;
+  const originals = {installation: {projectRuntime: runtime, retainedRelationOutput: true,
+    managedSourceProfile: profile, computeRuns: new WeakMap([[prepared, run]])}};
+  const adapter = {managedWholeSourceCapacity(facts) {
+    assert.equal(this, adapter); assert.equal(facts.preparedProgram, prepared);
+    assert.equal(facts.sourceSelection, selection); assert.equal(facts.installedContracts, admission);
+    calls.push('whole-capacity'); if (capacityFailure !== undefined) throw capacityFailure;
+    if (invalidate) run.closed = true;
+    return Object.freeze({capacity, wholeInput: true, transferBytes: 17n, executionBytes: 29n});
+  }, managedCaptureCapacity() {assert.fail('No Query fallback after a whole-input refusal');}};
+  const ports = {installedManagedRunContracts(value) {assert.equal(value, originals); return contracts;},
+    prepareInstalledSequenceContractOriginal(value) {assert.equal(value, originals); return {admission};},
+    installedSourceFor(value, ref) {assert.equal(value, profile); assert.equal(ref, 'same-source'); return adapter;},
+    clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
+  const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
+    '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
+  return {prepare: () => prepare(originals, run), calls, plan, run, runtime};
+}
+
+test('whole Source Host constructor retains the original typed input without a Query or zero-prefix classifier', () => {
+  const f = wholeSourcePlanConstructor();
+  assert.equal(f.prepare(), f.plan);
+  assert.deepEqual(f.calls, ['original-prefix', 'select-original', 'whole-capacity', 'whole-plan']);
+  assert.equal(Object.isFrozen(f.run.sourceCapacities), true);
+  assert.equal(f.run.sourceCapacities[0].kind, 'whole-input');
+});
+
+test('whole Source Host constructor keeps the original refusal and post-capacity retirement without fallback', () => {
+  const original = new Error('original selected capacity refused');
+  const refused = wholeSourcePlanConstructor({capacityFailure: original});
+  assert.throws(refused.prepare, error => error === original);
+  assert.equal(refused.run.sourceCapacities, undefined);
+  assert.equal(refused.calls.includes('whole-plan'), false);
+  const retired = wholeSourcePlanConstructor({invalidate: true});
+  assert.throws(retired.prepare, {code: 'ForeignInstalledComputeRun'});
+  assert.equal(retired.calls.includes('whole-plan'), false);
+});
