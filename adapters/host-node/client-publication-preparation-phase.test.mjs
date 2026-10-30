@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
@@ -627,7 +628,7 @@ function sourceRouteBinding(name, context, optional = false) {
   return new Function(...Object.keys(context), `return (${text.slice(found.start, found.end)});`)(...Object.values(context));
 }
 
-function sourceRouteCallerFixture({kind = 'whole-input', queryFailure} = {}) {
+function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapter} = {}) {
   const prepared = {}, requested = {}, sourceSelection = {}, preparedSource = {};
   const sourceAccess = {}, sourceProfile = {}, reference = 'connector://fixture/rows#original';
   const events = [], identities = new WeakMap();
@@ -637,7 +638,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure} = {}) {
     if (result?.$tag === 1) return result._0;
     throw Object.assign(new Error('MoonBitHostFailure', {cause: result?._0}), {code: 'MoonBitHostFailure'});
   };
-  const adapter = {sourceAccess, managedWholeSourceCapacity() {}, async prepare(facts) {
+  const originalAdapter = {sourceAccess, managedWholeSourceCapacity() {}, async prepare(facts) {
     assert.equal(facts.preparedProgram, prepared);
     assert.equal(facts.requestIdentity, requested);
     assert.equal(facts.sourceAccess, sourceAccess);
@@ -645,6 +646,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure} = {}) {
     assert.equal(facts.requireImmediateReadAuthorization, true);
     events.push('same-adapter'); return preparedSource;
   }};
+  const adapter = wrapAdapter === undefined ? originalAdapter : wrapAdapter(originalAdapter, prepared);
   const moon = {
     clientProgramAcquisitionCount(body) {assert.equal(body, prepared); return 1;},
     clientProgramSelectSingleKeyedAcquisition(body) {assert.equal(body, prepared); return ok(undefined);},
@@ -697,4 +699,45 @@ test('whole-input Host request and acquisition keep one original identity withou
   assert.equal(await f.prepare(), f.preparedSource);
   assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
   assert.deepEqual(f.events, ['typed-selection', 'typed-selection', 'typed-selection', 'same-adapter']);
+});
+
+test('whole-input caller controls preserve Query refusal and reject a changed request identity', () => {
+  const original = new Error('Original Query refusal');
+  const query = sourceRouteCallerFixture({kind: 'query', queryFailure: original});
+  assert.throws(() => query.request(), error => error.code === 'ClientProgramUnsupported' && error.cause.cause === original);
+  assert.deepEqual(query.counts(), {identityCalls: 1, queryCalls: 1});
+  assert.equal(query.events.includes('same-adapter'), false);
+  const whole = sourceRouteCallerFixture();
+  assert.equal(whole.request().requested, whole.requested);
+  assert.throws(() => whole.request('different-request'), {code: 'ForeignInstalledComputeRun'});
+  assert.deepEqual(whole.counts(), {identityCalls: 1, queryCalls: 0});
+  assert.deepEqual(whole.events, ['typed-selection']);
+});
+
+test('whole-input acquisition uses the actual managed-source wrapper and preserves its current refusal', async () => {
+  for (const retireDuringPrepare of [false, true]) {
+    const parent = {}, refusal = new Error('Original managed Source current refusal');
+    let live = true, entered = 0, currentChecks = 0;
+    const f = sourceRouteCallerFixture({wrapAdapter(adapter, prepared) {
+      const originalPrepare = adapter.prepare;
+      adapter.managedCaptureCapacity = () => assert.fail('No Query-capacity substitute');
+      adapter.ledgerCapacity = () => assert.fail('No Ledger construction');
+      adapter.prepare = async facts => {
+        assert.equal(facts.managedRun, parent); entered++;
+        const result = await Reflect.apply(originalPrepare, adapter, [facts]);
+        if (retireDuringPrepare) live = false;
+        return result;
+      };
+      return bindInstalledManagedSources(adapter, body => {
+        assert.equal(body, prepared); currentChecks++;
+        if (!live) throw refusal;
+        return parent;
+      });
+    }});
+    assert.equal(f.request().requested, f.requested);
+    if (retireDuringPrepare) await assert.rejects(f.prepare(), error => error === refusal);
+    else assert.equal(await f.prepare(), f.preparedSource);
+    assert.equal(entered, 1); assert.equal(currentChecks, 2);
+    assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
+  }
 });
