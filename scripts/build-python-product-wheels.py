@@ -22,7 +22,7 @@ from python_interface_inventory import wheel_source_correspondence
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM  # noqa: E402
+_DEFAULT_PACKAGING_TARGET = object()
 
 
 def host_capacity_original(source: str, components: object) -> bytes:
@@ -183,7 +183,7 @@ def copy_source(source: str, original: Path, target: Path) -> None:
 
 def build(artifact: Path, destination: Path, *, version: str, bindings_source: Path | None = None,
           native_libraries: Path | None = None,
-          target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> dict[str, object]:
+          target_platform: str | object = _DEFAULT_PACKAGING_TARGET) -> dict[str, object]:
     release = select_release_version(version)
     version = str(release['pythonVersion'])
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
@@ -200,6 +200,8 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         raise ValueError('Original Python runtime recipe is unavailable')
     recipe = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recipe)
+    if target_platform is _DEFAULT_PACKAGING_TARGET:
+        target_platform = recipe._LOCAL_COMPONENT_PLATFORM
     components = recipe.verify_artifact(artifact, target_platform=target_platform)
     original_components = components
     source_artifact_digest = sha256(artifact / 'artifact.json')
@@ -321,6 +323,8 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
 
 
 if __name__ == '__main__':
+    from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
