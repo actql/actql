@@ -5004,7 +5004,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9ece5971833e72e215f8f8906df790840974280090345240c8951e09c843bd3c",
+      "sha256": "fc48d9f007f6bbb9dda0e2875051a3108c3a4094855002cb98a8b2e2451bd01f",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5200,7 +5200,7 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun",
           "parameters": [
             "runtime",
             "prepared",
@@ -5209,8 +5209,17 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
           "async": false
         },
         {
@@ -9064,7 +9073,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9481,7 +9490,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -12263,11 +12272,12 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
-            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
           ],
           "exports": [],
           "attributes": {
@@ -12603,7 +12613,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -14181,7 +14191,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -14299,7 +14309,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
