@@ -5,9 +5,14 @@
     {
       "id": "A01",
       "required": "Merge/Conventional Commit cannot select a version, create tags or publish",
-      "currentSlice": "No automatic bump in new planner; existing workflow audit pending",
+      "currentSlice": "Node and Native preparation require explicit cohort inputs; no source version/latest default; workflow/authority audit pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: real Node and Native CLI cannot silently use source version or latest"
+        }
+      ]
     },
     {
       "id": "A02",
@@ -232,7 +237,7 @@
     {
       "id": "A22",
       "required": "RC and final require separate metadata/artifacts/approval",
-      "currentSlice": "Shared explicit SemVer/PEP440 conversion; artifact gate pending",
+      "currentSlice": "Node/Native preparation uses shared explicit SemVer grammar and isolated metadata; Python conversion is shared but actual versioned Python staging and separate RC/final artifact acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -242,6 +247,10 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        },
+        {
+          "kind": "selected local metadata/CLI refusal component; no product artifact or publication acceptance",
+          "test": "release preparation: isolated Node and Native metadata preserves explicit RC and original source"
         }
       ]
     },
