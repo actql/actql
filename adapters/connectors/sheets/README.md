@@ -207,3 +207,48 @@ Reader, Ledger or cleanup engine and does not enable a partial normal path.
 `test/sheets-grid-pages.actual.test.mjs` consumes the actual portable provider
 and independently authored Google-shaped grid fixtures. These selected tests
 are registered in the existing remote-site runtime check, not a new CI lane.
+
+## Typed tab metadata
+
+`catalog/tabs.mbt` projects the documented `sheets.sheets` metadata columns
+`id`, `title`, `index`, `row_count` and `column_count` under their original
+spreadsheet binding. IDs and positions are nonnegative provider int32 values
+admitted as logical Int64; titles preserve exact original text. Grid counts
+are nullable Int64 because object tabs contain no grid. GRID and DATA_SOURCE
+tabs require their actual grid extents; OBJECT tabs are retained with NULL
+counts, rather than silently filtered out or assigned invented zero extents.
+The API's absent sheetType has its declared GRID meaning. Missing identity,
+title, position or required grid values, malformed numbers, duplicate IDs,
+contradictory kind/grid data and foreign spreadsheet identity refuse the page.
+
+Integer admission uses the original JSON number span, existing exact decimal
+normalization and canonical scalar reader before the existing typed Value
+recheck. It cannot turn a rounded binary64 placeholder into an ID or extent.
+All five fields of every tab are checked and bounded before column selection.
+The opaque page retains typed values, spreadsheet identity and the original
+response digest. Its canonical rows use the existing Int64 wire encoding;
+its schema uses the existing ValueContract emitter. Neither is a ResourceRef,
+publication, grant or proof of a currently authorized physical read.
+
+`site/sheets-tabs-pages.mjs::prepareSheetsTabsPages` supplies only synchronous
+GET metadata request and complete typed row-wire callbacks. Original provider
+methods/receiver, spreadsheet ID, full columns and finite limits are retained
+before callbacks. The existing read operation is reused; no new permission
+or Source request is issued. There is no I/O in the projection or callback
+factory. Actual credential/current, attempts/body charge, retained response,
+cancellation, stop and cleanup remain with the original shared Reader. An
+error retains its original cause through `SheetsTabsPagesFailure`.
+
+Raw body/decode workspace, typed rows, encoded row wire and the Reader's
+physical response may overlap. Finite byte/node/row/value/output limits are
+checks, not constructor, simultaneous-retention or failed-child funding.
+The existing installed loader is unchanged. Normal adoption still requires
+an original published Source, exact checked request, same-parent backing and
+the existing Account/Host lifetime; this helper enables no partial normal path.
+
+Google's [SheetProperties and GridProperties](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/sheets)
+define stable nonnegative sheetId, tab kinds and object-tab grid absence.
+The [spreadsheets.get](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/get)
+field mask supplies metadata without grid cell data. Pure provider tests
+retain independent complete rows and malformed-boundary expectations; Node
+tests exercise the actual standalone provider and separate explicit ports.
