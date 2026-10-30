@@ -12,7 +12,7 @@ import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet, verifyReleasePromotionReview,
   releaseSetSummary} from './release-set.mjs';
 import {observeNativePublicationTarget, observeNpmStageTarget, observePythonReleaseTarget,
-  observeReleaseSet, observeReleaseChannels} from './release-registry.mjs';
+  observeReleaseSet, observeReleaseChannels, observeNativeLatestTarget} from './release-registry.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -647,6 +647,7 @@ export async function promoteNpmReleaseChannels(options) {
   assert(atLeast(process.versions.node, '22.14.0'));
   const verify = () => verifyReleasePromotionReview({directory, expectedSha256, reviewDirectory, expectedReviewSha256});
   const checked = await verify(), transitions = checked.plan.transitions;
+  assert.equal(checked.plan.schemaVersion,'actql-release-promotion-plan/0.1','This runner accepts only the original npm channel plan');
   const ordered = checked.fixed.manifest.artifacts.flatMap(artifact => transitions.filter(value =>
     value.targetId === artifact.targetId && value.name === artifact.name));
   assert.equal(ordered.length, transitions.length);
@@ -725,6 +726,90 @@ export async function promoteNpmReleaseChannels(options) {
     promotionReviewSha256: expectedReviewSha256, attemptId, operationCount, results, state: 'selected-current-channels-observed',
     qualification: 'same-original protocol/readback only; not owner approval, trusted public acceptance, permission isolation, exclusive lease/CAS or complete release acceptance'};
   await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
+}
+
+// SAME protected publisher protocol; Native Latest changes only that pointer.
+// Conditional initialization never turns 404 into absence: fresh complete
+// owner inventory must confine it to unassigned or the SAME immutable target.
+// After a send, confirmation ALWAYS requires a positive exact Latest id/tag.
+// Independent approval/public acceptance, trusted validator/credentials and
+// exclusive cross-repository execution remain the external executor's duties.
+export async function promoteNativeReleaseLatest(options) {
+  const allowed=['directory','expectedSha256','reviewDirectory','expectedReviewSha256','receiptsDirectory',
+    'fetchOwner','fetchCdn','fetchResponse','runGitHub'];
+  assert(options&&Object.keys(options).every(key=>allowed.includes(key)),'Unexpected Native Latest execution fields');
+  const {directory,expectedSha256,reviewDirectory,expectedReviewSha256,receiptsDirectory,
+    fetchOwner,fetchCdn=fetch,fetchResponse=fetch,runGitHub}=options;
+  assert.equal(typeof fetchOwner,'function','No protected complete owner reader supplied');
+  assert.equal(typeof runGitHub,'function','No protected Native Latest mutation port supplied');
+  const verify=()=>verifyReleasePromotionReview({directory,expectedSha256,reviewDirectory,expectedReviewSha256});
+  const checked=await verify();assert.equal(checked.plan.schemaVersion,'actql-native-latest-promotion-plan/0.1');
+  assert.equal(checked.plan.transitions.length,1);const move=checked.plan.transitions[0],targetId=move.targetId;
+  const cohort=checked.fixed.manifest.cohorts.find(value=>value.targetId===targetId);assert.equal(cohort.kind,'native-standalone');
+  const {verifyNativeStandalone}=await import('./native-standalone-release.mjs');
+  const standalone=await verifyNativeStandalone(dirname(join(directory,cohort.path)));
+  requireNativeCohortPackageVersions(JSON.parse(standalone.origin.manifest));
+  const observe=()=>observeNativeLatestTarget(directory,expectedSha256,targetId,{fetchOwner,fetchCdn});
+  const publicBytes=async()=>{
+    const report=await observeReleaseSet(directory,expectedSha256,{fetchResponse});
+    assert(report.observations.every(value=>value.state==='present'),'Complete original public fixed-set bytes unavailable');return report;
+  };
+  const valid=value=>{
+    assert.equal(value.state,'observed','Original Native Latest boundary is unknown or conflicting');
+    assert.equal(value.candidate.releaseId,move.releaseId);assert.equal(value.candidate.tag,move.tag);
+    const identical=value.current.state==='present'&&value.current.releaseId===move.releaseId&&value.current.tag===move.tag;
+    if(!identical)assert.deepEqual(value.current,move.before,'Native Latest changed outside the original approved transition');
+    return identical;
+  };
+  const initialPublic=await publicBytes(),initial=await observe();valid(initial);
+  assert(isAbsolute(receiptsDirectory));const root=join(await realpath(dirname(receiptsDirectory)),basename(receiptsDirectory));
+  for(const input of [await realpath(directory),await realpath(reviewDirectory)])
+    assert(root!==input&&!root.startsWith(`${input}${sep}`),'Native Latest receipts must be outside frozen inputs');
+  await privateDirectory(root);const releaseRoot=join(root,expectedSha256);await privateDirectory(releaseRoot);
+  const reviewRoot=join(releaseRoot,expectedReviewSha256);await privateDirectory(reviewRoot);
+  const targetRoot=join(reviewRoot,'native-latest');await privateDirectory(targetRoot);
+  for(const name of await readdir(targetRoot)){
+    assert(name.startsWith('attempt-')&&stageUuid(name.slice(8)),'Unrecognized original Native Latest attempt');
+    const st=await lstat(join(targetRoot,name));assert(st.isDirectory()&&!st.isSymbolicLink());
+  }
+  const attemptId=randomUUID(),attempt=join(targetRoot,`attempt-${attemptId}`);await mkdir(attempt,{mode:0o700});await syncDirectory(targetRoot);
+  const record=(name,value)=>writePrivateOriginal(join(attempt,name),Buffer.from(`${JSON.stringify(value,null,2)}\n`));
+  await record('public-preflight.json',initialPublic);await record('latest-preflight.json',initial);
+  await verify();await record('public-before.json',await publicBytes());const before=await observe();await record('latest-before.json',before);
+  const identical=valid(before);let operationCount=0;
+  if(!identical){
+    const request=Object.freeze({method:'PATCH',url:`https://api.github.com/repos/actql/actql/releases/${move.releaseId}`,
+      body:Object.freeze({make_latest:'true'})});
+    await record('intent.json',{schemaVersion:'actql-native-latest-intent/0.1',manifestSha256:expectedSha256,
+      promotionReviewSha256:expectedReviewSha256,targetId,attemptId,move,request,state:'outcome-unknown'});
+    operationCount=1;
+    try{
+      const reply=await runGitHub(request,Object.freeze({manifestSha256:expectedSha256,promotionReviewSha256:expectedReviewSha256,targetId,kind:'native-latest'}));
+      assert(reply&&typeof reply.stdout==='string'&&typeof reply.stderr==='string'&&
+        Buffer.byteLength(reply.stdout)+Buffer.byteLength(reply.stderr)<=4*1024*1024,'Original Native Latest terminal response unavailable');
+      await record('terminal.json',reply);assert(reply.code===0&&reply.signal===null&&reply.status===200,'Native Latest command did not confirm completion');
+      const body=JSON.parse(reply.stdout);assert(body.id===move.releaseId&&body.tag_name===move.tag&&body.draft===false&&
+        body.prerelease===false&&body.immutable===true,'Original Native Latest response identity differs');
+    }catch(failure){
+      const retain=error=>Object.defineProperty(error,'originalMutationFailure',{value:failure,enumerable:false});
+      try{await record('unknown.json',{state:'unknown',reason:'original-mutation-unconfirmed',originalIntent:'intent.json'});}catch(cleanup){throw retain(cleanup);}
+      throw retain(Error(`Original Native Latest outcome unknown; preserve ${attempt} and explicitly reobserve the same digests`));
+    }
+  }
+  try{
+    await record('public-after.json',await publicBytes());const after=await observe();await record('latest-after.json',after);
+    valid(after);assert(after.current.state==='present'&&after.current.releaseId===move.releaseId&&after.current.tag===move.tag,
+      'Native Latest needs positive exact id/tag readback; conditional initialization is not confirmation');
+    await verify();
+  }catch(failure){
+    try{await record('readback-unknown.json',{state:'unknown',reason:'original-public-or-current-readback-unconfirmed'});}
+    catch(cleanup){Object.assign(cleanup,{originalLatestError:failure,originalAttempt:attempt});throw cleanup;}
+    throw Error(`Original Native Latest readback unknown; preserve ${attempt}`,{cause:failure});
+  }
+  const summary={schemaVersion:'actql-native-latest-attempt/0.1',manifestSha256:expectedSha256,promotionReviewSha256:expectedReviewSha256,
+    targetId,attemptId,operationCount,releaseId:move.releaseId,tag:move.tag,state:'exact-original-latest-observed',
+    qualification:'protocol/current-byte readback only; no owner identity, permission separation, accepted install, exclusive lease/CAS or complete release acceptance'};
+  await record('summary.json',summary);return {...summary,receiptDirectory:attempt};
 }
 
 export async function publishPackageRelease({directory, executePublish, fetchMetadata = fetch, verify = verifyPackageRelease}) {

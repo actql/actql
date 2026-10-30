@@ -2,7 +2,7 @@
 // not provide approval, registry CAS or the exclusive writer's authority.
 import assert from 'node:assert/strict';
 import {admitReleaseRequest} from './release-policy.mjs';
-import {compareReleaseVersions} from './release-version.mjs';
+import {compareReleaseVersions, releaseVersion} from './release-version.mjs';
 
 const exact = (value, keys) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
@@ -61,4 +61,60 @@ export function promotionPlan(fixed, moves, report, reportSha256) {
       'Independent owner approval of this exact manifest and channel transition plan',
       'One exclusive protected executor with fresh channel checks; a prior read is not registry CAS'],
     qualification: 'local channel-transition DATA for owner review only; no mutation, credential, approval or lease'};
+}
+
+export function nativeLatestPromotionPlan(fixed, move, report, reportSha256) {
+  assert.match(fixed.sha256,/^[a-f0-9]{64}$/u);assert.match(reportSha256,/^[a-f0-9]{64}$/u);
+  const selected=admitReleaseRequest(fixed.manifest.request,fixed.manifest.policy);
+  exact(move,['targetId','before']);
+  const target=selected.request.targets.find(value=>value.id===move.targetId);
+  assert(target?.ecosystem==='native'&&target.channels.includes('latest'),'Select the explicit Native Latest target');
+  assert(!selected.version.prerelease,'A prerelease cannot become GitHub Latest');
+  assert.equal(fixed.manifest.cohorts.find(value=>value.targetId===target.id)?.kind,'native-standalone');
+  exact(report,['schemaVersion','manifestSha256','targetId','startedAt','state','requests','qualification',
+    'candidate','current','inventory','publication','endedAt']);
+  assert.equal(report.schemaVersion,'actql-native-latest-observation/0.1');assert.equal(report.state,'observed');
+  assert.equal(report.manifestSha256,fixed.sha256);assert.equal(report.targetId,target.id);
+  assert.deepEqual(report.candidate,{releaseId:report.candidate.releaseId,tag:selected.version.gitTag,
+    source:selected.request.source.commit,version:selected.version.version});
+  const id=report.candidate.releaseId;assert(Number.isSafeInteger(id)&&id>0);
+  assert.equal(report.publication.manifestSha256,fixed.sha256);assert.equal(report.publication.targetId,target.id);
+  assert.equal(report.publication.state,'published');assert.equal(report.publication.releaseId,id);
+  assert(Array.isArray(report.inventory)&&report.inventory.length>0&&report.inventory.length<=1000);
+  const ids=new Set();for(const value of report.inventory){
+    exact(value,['releaseId','tag','draft','prerelease']);assert(Number.isSafeInteger(value.releaseId)&&value.releaseId>0&&!ids.has(value.releaseId));
+    ids.add(value.releaseId);assert(typeof value.tag==='string'&&typeof value.draft==='boolean'&&typeof value.prerelease==='boolean');
+  }
+  assert(report.inventory.some(value=>value.releaseId===id&&value.tag===selected.version.gitTag&&!value.draft&&!value.prerelease));
+  const artifacts=fixed.manifest.artifacts.filter(value=>value.targetId===target.id);
+  assert.deepEqual(report.publication.observations.map(value=>value.file),artifacts.map(value=>value.file));
+  assert(report.publication.observations.every(value=>value.state==='present'));
+  for(const [index,value]of report.publication.observations.entries()){
+    const {name,version,bytes,sha256}=artifacts[index];assert.deepEqual(value.identity,{name,version,bytes,sha256});
+    assert(Number.isSafeInteger(value.assetId)&&value.assetId>0);
+  }
+  assert.equal(report.publication.immutableSetting?.enabled,true);
+  assert.deepEqual(move.before,report.current,'Latest changed from the explicit original transition');
+  let expectedVersion=null;
+  if(report.current.state==='present'){
+    exact(report.current,['state','releaseId','tag']);assert(Number.isSafeInteger(report.current.releaseId)&&report.current.releaseId>0);
+    assert(report.inventory.some(value=>value.releaseId===report.current.releaseId&&value.tag===report.current.tag&&!value.draft&&!value.prerelease));
+    assert(typeof report.current.tag==='string'&&report.current.tag.startsWith('v'));
+    const previous=releaseVersion(report.current.tag.slice(1));assert.equal(previous.gitTag,report.current.tag);assert(!previous.prerelease);
+    expectedVersion=previous.version;
+    assert(compareReleaseVersions(selected.version.version,expectedVersion)>=0,'Native Latest cannot roll a newer full release backward');
+    if(report.current.releaseId===id)assert.equal(report.current.tag,selected.version.gitTag);
+  }else{
+    exact(report.current,['state','releaseId']);assert.equal(report.current.state,'unassigned-or-selected');assert.equal(report.current.releaseId,id);
+    const eligible=report.inventory.filter(value=>!value.draft&&!value.prerelease);
+    assert.equal(eligible.length,1);assert.deepEqual(eligible[0],{releaseId:id,tag:selected.version.gitTag,draft:false,prerelease:false});
+  }
+  return {schemaVersion:'actql-native-latest-promotion-plan/0.1',manifestSha256:fixed.sha256,
+    channelObservationSha256:reportSha256,source:selected.request.source,version:selected.version.version,
+    transitions:[{targetId:target.id,name:'GitHub Release',channel:'latest',expectedVersion,toVersion:selected.version.version,
+      before:structuredClone(report.current),releaseId:id,tag:selected.version.gitTag,
+      action:report.current.state==='present'&&report.current.releaseId===id?'already-identical':'proposed'}],
+    execution:'unavailable',pending:['Exact public Native consumer acceptance and independent owner approval of both digests',
+      'One protected exclusive executor with fresh original inventory/current/asset checks'],
+    qualification:'Native Latest transition DATA only; conditional initialization is not a Latest-404 absence claim, approval or CAS'};
 }
