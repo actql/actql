@@ -21,6 +21,8 @@ from python_release_cohort import (read_cohort, select_release_version,
 from python_interface_inventory import wheel_source_correspondence
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
+from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM  # noqa: E402
 
 
 def host_capacity_original(source: str, components: object) -> bytes:
@@ -180,7 +182,8 @@ def copy_source(source: str, original: Path, target: Path) -> None:
 
 
 def build(artifact: Path, destination: Path, *, version: str, bindings_source: Path | None = None,
-          native_libraries: Path | None = None) -> dict[str, object]:
+          native_libraries: Path | None = None,
+          target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> dict[str, object]:
     release = select_release_version(version)
     version = str(release['pythonVersion'])
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
@@ -197,7 +200,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         raise ValueError('Original Python runtime recipe is unavailable')
     recipe = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recipe)
-    components = recipe.verify_artifact(artifact)
+    components = recipe.verify_artifact(artifact, target_platform=target_platform)
     original_components = components
     source_artifact_digest = sha256(artifact / 'artifact.json')
     artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
@@ -205,7 +208,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
     stages = destination / 'stages'
     stages.mkdir()
     runtime = stages / 'python-local-runtime'
-    recipe.prepare(artifact, runtime, bindings_source=bindings_source, native_libraries=native_libraries)
+    recipe.prepare(artifact, runtime, bindings_source=bindings_source, native_libraries=native_libraries, target_platform=target_platform)
     for package in ('python-product', 'python-sdk'):
         stage = stages / package
         stage.mkdir()
@@ -242,7 +245,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
     transforms.append({'file': manifest.relative_to(destination).as_posix(),
                        'before_sha256': source_artifact_digest,
                        'after_sha256': hashlib.sha256(after).hexdigest()})
-    components = recipe.inspect_local_components(runtime_root, package_version=version)
+    components = recipe._inspect_local_components_for_packaging(runtime_root, target_platform=target_platform, package_version=version)
     if (components.source_sha != original_components.source_sha
             or components.module_sha256 != original_components.module_sha256
             or components.duckdb_sha256 != original_components.duckdb_sha256
@@ -296,11 +299,11 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         raise ValueError('Python cohort source changed during build')
     # Reinspect the same original artifact after copying/building. Wheel success
     # is component packaging evidence, never Core execution or public acceptance.
-    final = recipe.verify_artifact(artifact)
+    final = recipe.verify_artifact(artifact, target_platform=target_platform)
     if final != original_components or sha256(artifact / 'artifact.json') != source_artifact_digest:
         raise ValueError('Python cohort original components changed during build')
     if (manifest.read_bytes() != release_manifest
-            or recipe.inspect_local_components(runtime_root, package_version=version) != components):
+            or recipe._inspect_local_components_for_packaging(runtime_root, target_platform=target_platform, package_version=version) != components):
         raise ValueError('Python release stage changed during wheel construction')
     result: dict[str, object] = {'source_sha': source, 'package_version': version,
         'artifact_sha256': artifact_digest,
@@ -324,6 +327,9 @@ if __name__ == '__main__':
     parser.add_argument('--version', required=True, help='Explicit complete SemVer; mapped by the shared release parser')
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
+    parser.add_argument('--target-platform', choices=[_LOCAL_COMPONENT_PLATFORM], default=_LOCAL_COMPONENT_PLATFORM,
+                        help='Original artifact target; not an execution-platform or new wheel-tag permission')
     arguments = parser.parse_args()
     print(json.dumps(build(arguments.artifact_directory, arguments.destination,
-        version=arguments.version, bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries)))
+        version=arguments.version, bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries,
+        target_platform=arguments.target_platform)))
