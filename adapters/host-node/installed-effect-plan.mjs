@@ -24,8 +24,9 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }
     return fields;
   };
-  const fields = own(recipe, Object.hasOwn(recipe, 'requestConstruction')
-    ? ['memberOperations', 'rowOperations', 'requestConstruction'] : ['memberOperations', 'rowOperations']);
+  const fields = own(recipe, ['memberOperations', 'rowOperations',
+    ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : [])]);
   const operations = name => {
     const values = fields[name].value;
     if (!Array.isArray(values) || values.length > maxOperations) {
@@ -52,8 +53,29 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }
     requestConstruction = Object.freeze({operationIndex});
   }
+  let credentialOperations;
+  if (fields.credentialOperations !== undefined) {
+    const values = fields.credentialOperations.value;
+    if (!Array.isArray(values) || values.length < 1 || values.length > 4) fail('InvalidInstalledEffectPlanRecipe');
+    const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
+    const phases = new Set(), indexes = new Set(requestConstruction === undefined ? [] : [requestConstruction.operationIndex]);
+    credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
+      const entry = own(entries[String(index)].value, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes']);
+      const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
+        maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
+      if (!['capture-check', 'apply-check', 'resume-check', 'write'].includes(phase) || phases.has(phase) ||
+          !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length ||
+          indexes.has(operationIndex) || ![maxRequestBytes,maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+        fail('InvalidInstalledEffectPlanRecipe');
+      }
+      phases.add(phase); indexes.add(operationIndex);
+      return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes});
+    }));
+    if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
+  }
   return Object.freeze({memberOperations, rowOperations,
-    ...(requestConstruction === undefined ? {} : {requestConstruction})});
+    ...(requestConstruction === undefined ? {} : {requestConstruction}),
+    ...(credentialOperations === undefined ? {} : {credentialOperations})});
 }
 
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {

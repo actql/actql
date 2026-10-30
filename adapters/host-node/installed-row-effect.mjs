@@ -91,7 +91,8 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
@@ -1122,13 +1123,49 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     version: ownerOf(member).profile.targetCheck, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
 
+  // This is the same capture retainer and original Run/Plan, including its
+  // failed child prefix. The implementation recipe selects a DISTINCT native
+  // occurrence for each phase; equal operation names do not share a slot.
+  const prepareCredentialOperation = async ({member, rowIndex, phase, operation,
+    site, originalAuthorization, useId, resource, purpose, invoke,
+    managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
+    dispatchRequestCid, assertCurrent, signal}) => {
+    const recipe = ownerOf(member).managedPlanRecipe;
+    const selected = recipe?.credentialOperations?.find(entry => entry.phase === phase);
+    if (selected === undefined || recipe.rowOperations[selected.operationIndex].operation !== operation ||
+        managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
+        typeof retireRequestAliases !== 'function' || typeof assertCurrent !== 'function') {
+      fail('InstalledEffectPhysicalPlanUnavailable');
+    }
+    const readChildren = moon.clientProgramInstalledEffectManagedPlanCaptureChildren;
+    if (typeof readChildren !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
+    const maxChildren = Reflect.apply(readChildren, moon, [managedEffect.operationPlan]);
+    if (!Number.isSafeInteger(maxChildren) || maxChildren < 1 || requestChildren.length >= maxChildren) {
+      fail('InstalledEffectPhysicalChildLimit');
+    }
+    // Lookup recognizes only the original credential returned by this Site.
+    // Its issuer receives the untouched authorization, never the useId copy.
+    const originalSite = installedRowCredentialOperationSite(site.credential);
+    return prepareInstalledRowCaptureChild({children: requestChildren,
+      create: () => prepareInstalledEffectCredentialChild({run: managedEffect,
+        memberIndex: member.memberIndex, rowIndex,
+        operationIndex: selected.operationIndex, operation, originalSite,
+        originalAuthorization, useId, resource, purpose, runInvocationCid, dispatchRequestCid,
+        maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: selected.maxResponseBytes,
+        assertCurrent, observeCurrent: async () => {assertCurrent();},
+        requestsRetired: retireRequestAliases, invoke}), assertCurrent, signal});
+  };
+
   // Every create row's provider check, under a current read decision.
   const checkRows = async ({members, entries, runInvocationCid, dispatches,
-    subjectOf, signal, assertCurrent}) => {
+    subjectOf, signal, assertCurrent, physicalOperations, operationPhase = 'capture'}) => {
     assertCurrent?.();
     for (const [index, member] of members.entries()) {
-      const {owned, site} = ownerOf(member);
+      const {owned, site, managedPlanRecipe} = ownerOf(member);
       if (member.kind !== 'create' || owned.check === undefined) continue;
+      if (managedPlanRecipe?.credentialOperations !== undefined && typeof physicalOperations !== 'function') {
+        fail('InstalledEffectPhysicalPlanUnavailable');
+      }
       const subjectCid = subjectOf(member);
       const decision = await readDecision(member, owned.check.resource, subjectCid,
         signal, assertCurrent);
@@ -1138,11 +1175,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const grant = site.issueReadGrant({operation: owned.check.operation,
           decision, resource: owned.check.resource, runInvocationCid,
           dispatchRequestCid: dispatches[index], maxUses: 1});
-        await owned.checkRequest({member, request: entry.request,
-          authorization: {...grant,
-            useId: `${dispatches[index]}-check-${subjectCid}-${rowIndex}`},
-          credential: site.credential, callResource: site.callResource,
-          signal});
+        const useId = `${dispatches[index]}-check-${subjectCid}-${rowIndex}`;
+        if (managedPlanRecipe?.credentialOperations !== undefined) {
+          await physicalOperations({member, rowIndex, phase: `${operationPhase}-check`,
+            operation: owned.check.operation, site, originalAuthorization: grant, useId,
+            resource: owned.check.resource, purpose: 'read',
+            runInvocationCid, dispatchRequestCid: dispatches[index], assertCurrent, signal,
+            invoke: ({authorization, credential, callResource}) =>
+              owned.checkRequest({member, request: entry.request, authorization, credential, callResource, signal})});
+        } else {
+          await owned.checkRequest({member, request: entry.request,
+            authorization: {...grant, useId},
+            credential: site.credential, callResource: site.callResource, signal});
+        }
         assertCurrent?.();
       }
     }
@@ -1287,7 +1332,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // and `previewRows` are each member's rows in the approved Preview's order.
   const physicalRoute = ({members, entries, previewRows, runInvocationCid,
     dispatches, subjectCid, applyPreview, ledger, targetReads, assertCurrent,
-    dispatchIndexes}) => {
+    dispatchIndexes, physicalOperations, operationPhase = 'apply'}) => {
+    // A saved route cannot borrow the fresh capture's parent merely from its
+    // recipe or CID. The recovery owner must supply its actual retainer first.
+    if (typeof physicalOperations !== 'function' && members.some(member =>
+      ownerOf(member).managedPlanRecipe?.credentialOperations !== undefined)) {
+      fail('InstalledEffectPhysicalPlanUnavailable');
+    }
     // Once the durable claim exists, selection drift does not establish an
     // unsent outcome. Preserve the claim and any retained response for recovery.
     const assertClaimedCurrent = () => {
@@ -1350,7 +1401,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           fresh.push(description);
         }
         await checkRows({members, entries, runInvocationCid, dispatches,
-          subjectOf: () => subjectCid, signal, assertCurrent});
+          subjectOf: () => subjectCid, signal, assertCurrent, physicalOperations, operationPhase});
         assertCurrent?.();
         const currentVersions = new Map();
         for (const [index, member] of members.entries()) {
@@ -1412,7 +1463,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                 expected[field] !== claim[field])) {
             fail('InvalidInstalledRowEffectDispatch');
           }
-          const {owned, site} = ownerOf(member);
+          const {owned, site, managedPlanRecipe} = ownerOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
           const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
@@ -1430,12 +1481,20 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             claim: ownedClaim, requestCid: entry.requestCid,
             execute: () => {
               assertClaimedCurrent();
-              return owned.send({member, request: entry.request,
-                current: now[memberIndex],
-                authorization: {...grant, useId:
-                  `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`},
-                credential: site.credential, callResource: site.callResource,
-                signal, ...resourceFields(member)});
+              const useId = `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`;
+              if (managedPlanRecipe?.credentialOperations !== undefined) {
+                if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
+                return physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
+                  operation: owned.writeOperation(member), site, originalAuthorization: grant, useId,
+                  resource: member.resource, purpose: 'effect', runInvocationCid,
+                  dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
+                  invoke: ({authorization, credential, callResource}) =>
+                    owned.send({member, request: entry.request, current: now[memberIndex],
+                      authorization, credential, callResource, signal, ...resourceFields(member)})});
+              }
+              return owned.send({member, request: entry.request, current: now[memberIndex],
+                authorization: {...grant, useId}, credential: site.credential,
+                callResource: site.callResource, signal, ...resourceFields(member)});
             }});
           assertClaimedCurrent();
           if (!captured.claimed) {
@@ -1727,6 +1786,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       proposals.length = 0;
       return true;
     };
+    const physicalOperations = facts => {
+      if (managedEffect?.runtime !== moon || managedEffect.prepared !== prepared ||
+          managedEffect.request !== identity) fail('ForeignInstalledEffectManagedRun');
+      return prepareCredentialOperation({...facts, managedEffect, requestChildren, retireRequestAliases});
+    };
     ownChildren(requestChildren);
     const childrenPending = () => requestChildren.some(value =>
       typeof value?.prepared?.status !== 'function' ||
@@ -1941,7 +2005,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       Object.freeze(rows.map(row => row.entry))));
     // Every create row passes the provider check before a Preview.
     await checkRows({members, entries, runInvocationCid, dispatches,
-      subjectOf: member => checkSubject(runInvocationCid, member), signal, assertCurrent});
+      subjectOf: member => checkSubject(runInvocationCid, member), signal, assertCurrent,
+      physicalOperations, operationPhase: 'capture'});
     assertCurrent?.();
     const capabilities = members.map((member, index) => admitCapability(
       member, entries[index], currents[index], runInvocationCid,
@@ -2052,7 +2117,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         dispatchIndexes: body.effects.map(orderedSourceIndexes),
         runInvocationCid, dispatches,
         subjectCid: moon.clientProgramEffectApplySubjectCid(previewInputs),
-        applyPreview, ledger, targetReads, assertCurrent});
+        applyPreview, ledger, targetReads, assertCurrent, physicalOperations});
       const preflight = {proofs: plans.map(item => item.proof),
         ...basePreflight({effects: body.effects, members, requestScope,
           keys: preview.keys})};
@@ -2397,7 +2462,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
           runInvocationCid, dispatches,
           subjectCid: control.effectComputationPreviewSemanticCid(preview),
-          applyPreview, ledger, targetReads, assertCurrent});
+          applyPreview, ledger, targetReads, assertCurrent, operationPhase: 'resume'});
         const reconcileStoredResponses = async ({members: claims,
           preview: ledgerPreview}) => {
           route.assertClaimedCurrent();
