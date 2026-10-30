@@ -67556,7 +67556,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "953c7f35126ac4af012ea0761f64ff70b5c83d69c0f81106d1da2fd3bd30ada5",
+      "sha256": "c40d77cb047c742a707397980de2f9453a8d2a0759e400926e8d99ccfb9c3e0d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67637,12 +67637,12 @@
           "async": true
         },
         {
-          "name": "startInstalledRowRun/complete/complete",
+          "name": "startInstalledRowRun/complete/captureAccess/captureAccess",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/complete/complete#2",
+          "name": "startInstalledRowRun/complete/captureAccess/captureAccess#2",
           "parameters": [
             "dag",
             "task"
@@ -67650,7 +67650,20 @@
           "async": false
         },
         {
-          "name": "startInstalledRowRun/complete/complete#3",
+          "name": "startInstalledRowRun/complete/captureAccess/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/complete",
+          "parameters": [
+            "authorityScopeCid",
+            "effectiveDataPolicyCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/complete/complete#2",
           "parameters": [
             "authorityScopeCid",
             "effectiveDataPolicyCid"
@@ -68045,9 +68058,11 @@
             "startInstalledRowRun/closeAfterFailure/closeAfterFailure",
             "startInstalledRowRun/closeAfterFailure/init:close/init:close",
             "startInstalledRowRun/complete",
+            "startInstalledRowRun/complete/captureAccess/captureAccess",
+            "startInstalledRowRun/complete/captureAccess/captureAccess#2",
+            "startInstalledRowRun/complete/captureAccess/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
             "startInstalledRowRun/complete/complete",
             "startInstalledRowRun/complete/complete#2",
-            "startInstalledRowRun/complete/complete#3",
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
@@ -68236,6 +68251,10 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.test.mjs",
+                "anchor": "original Source evidence is issued once then consumed from the same live capture without wire admission"
               }
             ]
           }

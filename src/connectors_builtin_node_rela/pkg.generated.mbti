@@ -1570,6 +1570,8 @@ pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisiti
 
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_issue_source_evidence_original(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
 
 pub fn client_program_row_source_listing_report_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?

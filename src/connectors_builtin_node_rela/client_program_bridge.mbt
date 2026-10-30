@@ -9026,6 +9026,23 @@ pub fn client_program_row_source_capture_source(
 }
 
 ///|
+#export_name("clientProgramRowSourceIssueSourceEvidenceOriginal")
+pub fn client_program_row_source_issue_source_evidence_original(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capture : @client_row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[@publication.RunEvidenceValue, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.issue_row_source_evidence(
+    acquisition, capture, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+    observed_at,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceIssueSourceEvidence")
 pub fn client_program_row_source_issue_source_evidence(
   acquisition : @client_row_source_host.RowAcquisition,

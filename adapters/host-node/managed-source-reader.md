@@ -77,3 +77,21 @@ owner or duplicate its grant/current decisions. The constructed Account, factory
 method references and failed-child overlap still belong in the actual original
 initial/Source reservation; the explicit-port regression is not physical or
 normal retirement acceptance.
+
+## Original Source evidence transfer
+
+Live row capture can prepare Source evidence with
+`prepareSourceEvidenceOriginal(options)`, which performs the existing current
+check and calls the same Core issuer through its typed Node projection. The
+existing capture retains that exact `RunEvidenceValue` until
+`capture.takeSourceEvidenceOriginal()` transfers it once. Taking is synchronous
+and performs no current callback, wire encoding, parsing or evidence admission.
+The original wire-returning issuance API retains its existing semantics.
+
+An unconsumed evidence value and its original capture association remain held
+while RowRun cleanup is pending. Only successful original RowRun retirement
+clears them; closing during the issuance current check prevents later issuance.
+The retained value, capture reference and preparation state are part of the
+existing capture/publication overlap that the actual constructor and caller
+must fund. This port supplies no reservation, publication authority, persisted
+evidence admission or normal execution acceptance.
