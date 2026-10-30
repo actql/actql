@@ -84,7 +84,7 @@ test('Notion repeated cursor page and total row bounds refuse incomplete capture
     if(mode==='rows')limits.maxTotalRows=1;
     const code={cursor:'NotionUserListRepeatedCursor',pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit'}[mode];
     await assert.rejects(f.create({limits}).read(),error=>error.cause.code===code);
-    assert.equal(f.state.requests.length,mode==='pages'?1:2);f.row.assertNoCapture();
+    assert.equal(f.state.requests.length,mode==='cursor'?2:1);f.row.assertNoCapture();
   }
 });
 
