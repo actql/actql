@@ -25,13 +25,6 @@ function fixture(withModel = false) {
       assert.equal(value, parent); assert.equal(p, prepared); assert.equal(r, request);
       controls.getters++; controls.onRead?.(runs.get(prepared)); return ok(controls.returnedPlan);
     },
-    clientProgramNodeEffectManagedPlanPrepare(value, selected) {
-      assert.equal(value, original); assert.equal(selected, plan); assert(!withModel); return ok(admission);
-    },
-    clientProgramInstalledEffectManagedPlanBegin(value, p, r, selected) {
-      assert.equal(value, admission); assert.equal(p, prepared); assert.equal(r, request); assert.equal(selected, plan);
-      assert(!withModel); return controls.failBegin ? {$tag: 0, _0: undefined} : ok(parent);
-    },
     clientProgramInstalledEffectModelDemandPrepare(p, compiled, compilation, definition, occurrence, graph) {
       assert(withModel); assert.equal(p, prepared); assert.equal(compiled, model.compiled);
       assert.equal(compilation, facts.compilation); assert.equal(definition, model.definition);

@@ -198,20 +198,6 @@ pub fn client_program_installed_effect_managed_plan_operation(
 }
 
 ///|
-#export_name("clientProgramNodeEffectManagedPlanPrepare")
-pub fn client_program_node_effect_managed_plan_prepare(
-  original : @resources.OriginalNodeManagedRunReference,
-  plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  @resources.ImportedChildLedgerIssue,
-] {
-  @resources.prepare_node_managed_run_admission(original, plan)
-}
-
-///|
 #export_name("clientProgramNodeEffectManagedPlanCleanup")
 pub fn client_program_node_effect_managed_plan_cleanup(
   admission : @resources.NodeManagedRunAdmission[
@@ -219,24 +205,6 @@ pub fn client_program_node_effect_managed_plan_cleanup(
   ],
 ) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
   @resources.cleanup_node_managed_run_admission(admission)
-}
-
-///|
-#export_name("clientProgramInstalledEffectManagedPlanBegin")
-pub fn client_program_installed_effect_managed_plan_begin(
-  admission : @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  prepared : @publication_host.PreparedClientEffectComputation,
-  request : @publication_host.ClientRequestIdentity,
-  plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  @client_local_host.ClientInstalledManagedRun,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
-  )
 }
 
 ///|

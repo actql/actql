@@ -3360,3 +3360,13 @@ The actual installed Plan and normal Host remain responsible for complete
 request, response, confirmation-read and failed-child overlap. No numeric quote,
 missing inventory, raw Prepared or independently prepared manager Root can
 replace that original connection.
+
+The detached ordinary Effect Plan admission and begin entry are removed from
+Core and its Node exports once this caller adopts the Request. Source/provider
+and operation controls use the same preparation-owned initial input, completed
+Plan and retirement instead. A consumed input admission is no longer a cleanup
+owner: the adopted Run retains that duty. Pending operations keep the Run's
+preparation retirement pending without refunding consumed attempts. The
+separately selected Model admission/Scope remains until its own original first
+census and preparation connection are installed; it cannot use an ordinary
+purpose or a later reconstructed census as a substitute.
