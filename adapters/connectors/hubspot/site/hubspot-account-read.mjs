@@ -53,12 +53,15 @@ export async function observeHubSpotAccount({moon, originalPortalId,
     responseHeaders: [], maxResponseBytes: context.limits.maxResponseBytes, signal,
   });
   try {
+    // Keep the received HTTP outcome before accounting/current callbacks can
+    // await. Later mutation cannot upgrade that original provider rejection.
+    const accepted = response.accepted && response.statusCode === 200;
     // Received bytes remain real usage even if authority was revoked while
     // awaiting them. No provider decoding precedes the original Ledger charge.
     const charge = await context.callbacks.chargeResponse(response.body);
     await context.callbacks.current();
     signal?.throwIfAborted();
-    if (!response.accepted || response.statusCode !== 200) {
+    if (!accepted) {
       fail('HubSpotAccountObservationRejected');
     }
     const projected = JSON.parse(project(response.body, originalPortalId,
