@@ -10,10 +10,10 @@ extern "js" fn preparation_module_scope(
 ///|
 // The raw JS scope has no generic FFI ABI. Keep the original nominal Result
 // inside MoonBit; a foreign throw unwinds the same finish before propagating.
-fn[E] preparation_module_call(
-  body : () -> Result[Unit, E],
+fn[T, E] preparation_module_call(
+  body : () -> Result[T, E],
   finish : () -> Unit,
-) -> Result[Unit, E] {
+) -> Result[T, E] {
   let result = Ref(None)
   preparation_module_scope(() => result.val = Some(body()), finish)
   result.val.unwrap()

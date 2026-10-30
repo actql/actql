@@ -997,6 +997,8 @@ pub(all) enum PreparationWorkPhase {
   LowerAndGraph
   ExecutionPlan
   PublicationProof
+  RequestValuePolicyCheck
+  RequestPolicySubjectPreparation
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {
