@@ -6,7 +6,7 @@
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
 import {invocationBindingsMatch} from '../host-common/owned-invocation-context.mjs';
-import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsOk, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -1421,6 +1421,8 @@ export async function createInstalledRowSource({moon, declaration,
     fail('InvalidInstalledRowSourceOperations');
   }
   const preparations = new WeakMap();
+  // SAME pending constructor read, retained only until handoff or original retirement.
+  const preparingSourceReads = new Set();
   const keyedPreparations = new WeakMap();
   function prepareOriginalAcquisition(requirement) {
     if (retainedAcquisitionContracts && acquisitionContracts === undefined) fail('InstalledSourceInitializationClosed');
@@ -1708,91 +1710,109 @@ export async function createInstalledRowSource({moon, declaration,
       planned = checked(moon.clientProgramInstalledManagedCaptureSourceRead(
         managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
     }
-    const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
-      preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
-      registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
-      : runtimeField(planned, 1);
-    const plannedAcquisition = wholeInput ? runtimeField(planned, 2) : undefined;
-    const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
-      : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
-    if (!Array.isArray(facts) || facts.length !== 6 ||
-        !facts.every(value => typeof value === 'string')) {
-      fail('InstalledSourceEvidenceFactsUnavailable');
-    }
-    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
-    if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
-    const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
-      : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
-    const sourceInput = wholeInput ? moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement) : undefined;
-    if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
-        sourceInput.some(value => typeof value !== 'string' || !cidPattern.test(value)))) {
-      fail('InstalledSourceProgramMismatch');
-    }
-    const prepared = Object.freeze({
-      checkedSource: Object.freeze({
-        ...(wholeInput ? {sourceInput: Object.freeze([...sourceInput])}
-          : {requirementCid: moon.clientProgramQueryRequirementCid(requirement)}),
-        sourceRef, sourceContractCid, carrierSchemaContractCid,
-        sourceDataPolicyCid, dataClassification, sourceViewContractCid,
-        ...(wholeInput ? {} : {
-          inputContractCid: moon.clientProgramQueryRequirementInputContractCid(requirement),
-          outputContractCid: moon.clientProgramQueryRequirementOutputContractCid(requirement)}),
-      }),
-      readTuple: Object.freeze({connection: site.connection, resource,
-        operation: 'read'}),
-      physicalBinding: physicalTarget(resource, fields),
-      occurrence,
-    });
-    const physicalBindingCid = valueCid(prepared.physicalBinding);
-    const authorizePreparation = async () => {
-      const decision = await decideRead(prepared, access);
-      const refused = decision?.action === 'deny'
-        ? authorizationRuntimeCode(decision) : undefined;
-      if (refused !== undefined) {
-        throw Object.assign(new Error(refused), {code: refused,
-          authorization: decision});
+    const plannedRead = planned === undefined ? undefined : runtimeField(planned, 0);
+    if (plannedRead !== undefined) preparingSourceReads.add(plannedRead);
+    try {
+      const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
+        preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
+        registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
+        : runtimeField(planned, 1);
+      const plannedAcquisition = wholeInput ? runtimeField(planned, 2) : undefined;
+      const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
+        : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
+      if (!Array.isArray(facts) || facts.length !== 6 ||
+          !facts.every(value => typeof value === 'string')) {
+        fail('InstalledSourceEvidenceFactsUnavailable');
       }
-    };
-    // Original provider compatibility authorizes before its pure acquisition
-    // preparation. The ordinary path keeps its original opposite order.
-    if (directReadIdentity !== undefined) await authorizePreparation();
-    // The actual installation retains the imported child before returning
-    // this same opaque read. A failure below remains with that original
-    // supplier; no local scalar/fallback Ledger or cleanup ACK is created.
-    const originalRead = planned !== undefined ? runtimeField(planned, 0)
-      : prepareSourceRead === undefined ? undefined :
-        prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
-    if (planned !== undefined && prepareSourceRead !== undefined &&
-        prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement,
-          occurrence, managedRun, originalRead})) !== originalRead) fail('InstalledSourceReadUnavailable');
-    if (originalRead !== undefined) {
-      if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
-      // Bind includes the same current check. No external operation occurs
-      // between a separate check and this original-owner binding.
-      checked(effectful
-        ? moon.clientProgramInstalledSourceReadBindEffectProgram(originalRead, checkedOwner)
-        : moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner));
+      const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+        sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
+      if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
+      const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
+        : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
+      const sourceInputOption = wholeInput ? moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement) : undefined;
+      const sourceInput = wholeInput && runtimeIsBoxedSome(sourceInputOption)
+        ? runtimeField(sourceInputOption, 0) : undefined;
+      if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
+          sourceInput.some(value => typeof value !== 'string' || !cidPattern.test(value)))) {
+        fail('InstalledSourceProgramMismatch');
+      }
+      const prepared = Object.freeze({
+        checkedSource: Object.freeze({
+          ...(wholeInput ? {sourceInput: Object.freeze([...sourceInput])}
+            : {requirementCid: moon.clientProgramQueryRequirementCid(requirement)}),
+          sourceRef, sourceContractCid, carrierSchemaContractCid,
+          sourceDataPolicyCid, dataClassification, sourceViewContractCid,
+          ...(wholeInput ? {} : {
+            inputContractCid: moon.clientProgramQueryRequirementInputContractCid(requirement),
+            outputContractCid: moon.clientProgramQueryRequirementOutputContractCid(requirement)}),
+        }),
+        readTuple: Object.freeze({connection: site.connection, resource,
+          operation: 'read'}),
+        physicalBinding: physicalTarget(resource, fields),
+        occurrence,
+      });
+      const physicalBindingCid = valueCid(prepared.physicalBinding);
+      const authorizePreparation = async () => {
+        const decision = await decideRead(prepared, access);
+        const refused = decision?.action === 'deny'
+          ? authorizationRuntimeCode(decision) : undefined;
+        if (refused !== undefined) {
+          throw Object.assign(new Error(refused), {code: refused,
+            authorization: decision});
+        }
+      };
+      // Original provider compatibility authorizes before its pure acquisition
+      // preparation. The ordinary path keeps its original opposite order.
+      if (directReadIdentity !== undefined) await authorizePreparation();
+      // The actual installation retains the imported child before returning
+      // this same opaque read. A failure below remains with that original
+      // supplier; no local scalar/fallback Ledger or cleanup ACK is created.
+      const originalRead = planned !== undefined ? plannedRead
+        : prepareSourceRead === undefined ? undefined :
+          prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
+      if (planned !== undefined && prepareSourceRead !== undefined &&
+          prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement,
+            occurrence, managedRun, originalRead})) !== originalRead) fail('InstalledSourceReadUnavailable');
+      if (originalRead !== undefined) {
+        if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
+        // Bind includes the same current check. No external operation occurs
+        // between a separate check and this original-owner binding.
+        checked(effectful
+          ? moon.clientProgramInstalledSourceReadBindEffectProgram(originalRead, checkedOwner)
+          : moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner));
+      }
+      // An installed provider may select its existing pure typed preparer. It
+      // must return this exact requirement/declaration's original acquisition;
+      // this is neither an I/O callback nor permission to replace a checked Run.
+      const acquisition = planned !== undefined ? runtimeField(planned, 2)
+        : prepareOriginalAcquisition(requirement);
+      if (planned === undefined && originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
+        originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
+      const providerCaptureCapacity = planned !== undefined ? runtimeField(planned, 3)
+        : originalReader === undefined ? undefined :
+          moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
+      if (originalReader !== undefined && providerCaptureCapacity === undefined) {
+        fail('InstalledSourceCapacityUnavailable');
+      }
+      if (directReadIdentity === undefined) await authorizePreparation();
+      if (plannedRead !== undefined && !preparingSourceReads.has(plannedRead)) {
+        fail('InstalledSourceReadUnavailable');
+      }
+      preparations.set(prepared, Object.freeze({checkedOwner, effectful,
+        requirement, resource, access, acquisition, wholeInput,
+        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
+      ordinaryRecoveryBinding(prepared);
+      preparingSourceReads.delete(plannedRead);
+      return prepared;
+    } catch (error) {
+      if (plannedRead !== undefined && preparingSourceReads.has(plannedRead)) {
+        try {
+          checked(moon.clientProgramInstalledSourceReadRetire(plannedRead));
+          preparingSourceReads.delete(plannedRead);
+        } catch { /* SAME Source close retains the original retirement retry. */ }
+      }
+      throw error;
     }
-    // An installed provider may select its existing pure typed preparer. It
-    // must return this exact requirement/declaration's original acquisition;
-    // this is neither an I/O callback nor permission to replace a checked Run.
-    const acquisition = planned !== undefined ? runtimeField(planned, 2)
-      : prepareOriginalAcquisition(requirement);
-    if (planned === undefined && originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
-      originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
-    const providerCaptureCapacity = planned !== undefined ? runtimeField(planned, 3)
-      : originalReader === undefined ? undefined :
-        moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
-    if (originalReader !== undefined && providerCaptureCapacity === undefined) {
-      fail('InstalledSourceCapacityUnavailable');
-    }
-    if (directReadIdentity === undefined) await authorizePreparation();
-    preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-      requirement, resource, access, acquisition, wholeInput,
-      occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
-    ordinaryRecoveryBinding(prepared);
-    return prepared;
   }
 
   async function open(options) {
@@ -2650,6 +2670,10 @@ export async function createInstalledRowSource({moon, declaration,
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close() {
+      for (const read of preparingSourceReads) {
+        checked(moon.clientProgramInstalledSourceReadRetire(read));
+        preparingSourceReads.delete(read);
+      }
       if (originalReader?.retire !== undefined &&
           Reflect.apply(originalReader.retire, originalReader.receiver, []) !== true) {
         fail('InstalledSourceReaderCleanupPending');

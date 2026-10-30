@@ -97,3 +97,107 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
     assert.throws(() => startInstalledRowRun({...base, ...patch}), {code: 'InstalledWholeSourceReadUnavailable'});
   }
 });
+
+async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
+  const {readFile} = await import('node:fs/promises');
+  const {types} = await import('node:util');
+  const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
+  const {checked} = await import('../host-common/runtime-result.mjs');
+  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('  async function prepare({preparedProgram, preparedEffect, registry, values,');
+  const end = source.indexOf('\n  async function open(options)', start);
+  const closeStart = source.lastIndexOf('    close() {');
+  const closeEnd = source.indexOf('\n  });', closeStart);
+  assert(start > 0 && end > start && closeStart > end && closeEnd > closeStart);
+  const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
+  let retireCalls = 0, siteCloses = 0;
+  const moon = {
+    clientProgramInstalledManagedSourceInputKind(actual, owner) {
+      assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); return ok('whole-input');
+    },
+    clientProgramInstalledManagedCaptureSourceRead() {assert.fail('whole Source must retain its own acquisition');},
+    clientProgramInstalledManagedWholeSourceRead(actual, owner, request, declared) {
+      assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); assert.equal(declared, declaration);
+      return ok({_0: read, _1: {}, _2: {}, _3: {}});
+    },
+    // This deliberately malformed DATA observation fails AFTER the same
+    // original read has been opened, before any provider/RowRun/send exists.
+    clientProgramWholeSourceFacts: () => validFacts ? ['source', 'contract', 'carrier', 'policy', 'class', 'view'] : [],
+    clientProgramWholeSourceTarget: () => ['resource', 'field'],
+    clientProgramWholeSourceInputIdentity: () => identity,
+    clientProgramInstalledSourceReadBindProgram(actual, owner) {
+      assert.equal(actual, read); assert.equal(owner, preparedProgram); return ok();
+    },
+    clientProgramInstalledSourceReadRetire(actual) {
+      assert.equal(actual, read); retireCalls++;
+      if (pendingRetirement) return {$tag: 0, _0: 'original-read-still-pending'};
+      return ok();
+    },
+  };
+  const bindings = {moon, declaration, runtimeField, runtimeIsOk, runtimeIsBoxedSome, checked,
+    fail(code) {throw Object.assign(new Error(code), {code});},
+    sourceAccess: {}, directReadIdentity: undefined, originalReader: {retire: () => true, receiver: {}},
+    prepareSourceRead: undefined, sourceInitialization: undefined,
+    site: {close() {siteCloses++;}}, nodeTypes: types,
+    preparingSourceReads: new Set(), sourceRefs: new Set(['source']), preparations: new WeakMap(),
+    cidPattern: /^sha256:[0-9a-f]{64}$/u,
+    physicalTarget: (resource, fields) => ({resource, fields}), valueCid: value => JSON.stringify(value),
+    decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
+  const fixture = new Function(...Object.keys(bindings), source.slice(start, end) +
+    '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
+  return {fixture, input: {preparedProgram, managedRun},
+    retireCalls: () => retireCalls, siteCloses: () => siteCloses,
+    allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
+}
+
+test('whole Source failed preparation retires the same unopened read before parent cleanup', async () => {
+  const f = await failedPreparationFixture();
+  await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.equal(f.retireCalls(), 1);
+  f.fixture.close();
+  assert.equal(f.retireCalls(), 1);
+  assert.equal(f.siteCloses(), 1);
+});
+
+test('whole Source failed read retirement remains with the same Source close retry', async () => {
+  const f = await failedPreparationFixture({pendingRetirement: true});
+  await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.equal(f.retireCalls(), 1);
+  assert.throws(() => f.fixture.close(), error => error.cause === 'original-read-still-pending');
+  assert.equal(f.siteCloses(), 0);
+  f.allowRetirement();
+  f.fixture.close();
+  assert.equal(f.retireCalls(), 3);
+  assert.equal(f.siteCloses(), 1);
+});
+
+
+test('whole Source identity keeps boxed payload and refuses None or malformed original CID pairs', async () => {
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  const some = value => Object.assign(Object.create({$tag: 1}), {_0: value});
+  const f = await failedPreparationFixture({validFacts: true, identity: some(pair)});
+  const prepared = await f.fixture.prepare(f.input);
+  assert.deepEqual(prepared.checkedSource.sourceInput, pair);
+  assert(Object.isFrozen(prepared.checkedSource.sourceInput));
+  f.retireOriginal();
+  f.fixture.close();
+  for (const identity of [{$tag: 0}, pair, some([pair[0]]), some([pair[0], 'foreign'])]) {
+    const refused = await failedPreparationFixture({validFacts: true, identity});
+    await assert.rejects(refused.fixture.prepare(refused.input), {code: 'InstalledSourceProgramMismatch'});
+    assert.equal(refused.retireCalls(), 1);
+    refused.fixture.close();
+  }
+});
+
+
+test('whole Source close cannot return a constructor read retired during authorization await', async () => {
+  let resume;
+  const authorization = new Promise(resolve => {resume = resolve;});
+  const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
+  const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}, authorization});
+  const preparing = f.fixture.prepare(f.input);
+  f.fixture.close();
+  assert.equal(f.retireCalls(), 1);
+  resume({action: 'dispatch'});
+  await assert.rejects(preparing, {code: 'InstalledSourceReadUnavailable'});
+});

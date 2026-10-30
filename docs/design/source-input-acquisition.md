@@ -175,3 +175,14 @@ Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.
 They do not establish the ordinary SDK, Account, authenticated transport,
 publication, separate-process Saved or final normal-distribution acceptance.
+
+The Node consumer decodes the original whole-input identity's optional Array
+through the pinned compiler binding before checking its two CIDs. An absent
+identity or malformed pair refuses; it cannot become Query evidence or a new
+request identity. Once the managed parent opens a Source read, the Source
+retains that same constructor read until preparation hands it off. Any earlier
+failure retires the original read. A pending retirement stays with the same
+Source close retry, before Site and constructor-material retirement; returning
+a failed preparation does not acknowledge that cleanup or release its parent.
+A close that retires this constructor read during an authorization await also
+fences its later handoff; resolving the authorization Promise cannot revive it.
