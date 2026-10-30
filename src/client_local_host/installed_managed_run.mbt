@@ -1225,9 +1225,11 @@ pub fn retire_installed_managed_run(
   }
   // Every original child ACK precedes control retirement. Keep the spent
   // occurrence fence closed even if later Root retirement remains pending.
-  if !value.effect_operations.is_empty() || value.effect_operation_controls is Some(_) {
+  if !value.effect_operations.is_empty() ||
+    value.effect_operation_controls is Some(_) {
     value.effect_operation_closing = true
-    if value.effect_operation_controls is Some(control) && value.ledger is Some(ledger) {
+    if value.effect_operation_controls is Some(control) &&
+      value.ledger is Some(ledger) {
       match @resources.settle_capacity(ledger, control) {
         Ok(_) => value.effect_operation_controls = None
         Err(issue) => return Err(Ledger(issue))

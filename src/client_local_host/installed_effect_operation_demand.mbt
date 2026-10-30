@@ -497,8 +497,7 @@ pub fn prepare_installed_effect_managed_plan(
     operation_control_capacity,
   )
   if retained + controls > 9223372036854775807L - control_retained ||
-    execution + controls + temporary >
-    9223372036854775807L - control_execution {
+    execution + controls + temporary > 9223372036854775807L - control_execution {
     return Err(Unsupported)
   }
   let limits = {
