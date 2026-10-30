@@ -47987,7 +47987,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "db0219260704d87a8c2953348efe66483e34a1dd52261cb62e9cc34bbc508762",
+      "sha256": "a08fa13aa023d6cafe20e04bff3324a2ef3831410a1a8d7202930f7bb0e480be",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -48157,27 +48157,6 @@
         {
           "name": "installPreparedProjectMockSources/modelPreparation/publicationCapacity/publicationCapacity",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectMockSources/prepareManagedEffectMockModelRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "control",
-            "plan",
-            "selection",
-            "publicationCapacity",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectMockSources/prepareManagedEffectRun",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
           "async": false
         },
         {
@@ -48428,12 +48407,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "// Physical installation of the same already retained Mock declarations. The"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "export async function installPreparedProjectMockSources({moon, mockPreparation,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
@@ -48444,6 +48431,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run !== held.run || read.source !== index ||"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -48454,6 +48445,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
@@ -48464,18 +48459,30 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "} catch (error) { record.failure = error; throw error; }"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -48486,12 +48493,20 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn check_installed_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -48506,6 +48521,18 @@
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
                 "anchor": "test('repeated Source slots hold distinct children and close only their original Source',async()=>{"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "retired Mock Effect discriminator cannot enter the Pure Run constructor"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "retired Mock Effect manager entry cannot acquire another Model Root"
               }
             ]
           }
@@ -48599,75 +48626,6 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "installPreparedProjectMockSources/prepareManagedEffectMockModelRun",
-            "installPreparedProjectMockSources/prepareManagedEffectRun"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }
@@ -77061,7 +77019,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "deca3238bc79e0c441992302fcfe5c8e83c9bef02b5b6538e554a38b711449cd",
+      "sha256": "34cdae63bc34504a13540690c67721ed0646b4b9919e3aa14a42d291908e7ef4",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77138,9 +77096,7 @@
             "prepared",
             "purpose",
             "model",
-            "effectful",
-            "content",
-            "operationPlan"
+            "content"
           ],
           "async": false
         },
@@ -77433,14 +77389,6 @@
           "parameters": [
             "prepared",
             "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-          "parameters": [
-            "prepared",
-            "model"
           ],
           "async": false
         },
@@ -77922,7 +77870,6 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
             "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
           ],
           "exports": [],
@@ -77935,6 +77882,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -77945,6 +77896,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
@@ -77955,6 +77910,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -77965,6 +77924,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
@@ -77975,6 +77938,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -77985,6 +77952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
@@ -77995,6 +77966,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -78005,6 +77980,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
@@ -78015,6 +77994,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -78025,6 +78008,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "retired Mock Effect discriminator cannot enter the Pure Run constructor"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "retired Mock Effect manager entry cannot acquire another Model Root"
               }
             ]
           }
