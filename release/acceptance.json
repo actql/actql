@@ -257,7 +257,7 @@
     {
       "id": "A19",
       "required": "Python entry works without Node/npm/ActQL CLI",
-      "currentSlice": "Existing actual Python builder now requires explicit shared version projection; original/full staged component readers and fixed version/byte-bound wheel checks remain; product candidate/Node-free installation/public acceptance pending",
+      "currentSlice": "Digest-bound official PyPI consumer launcher uses the original complete wheel verifier and sync/async fixture, separate fresh Node-free venvs, exact pip report/installed payload audits and original Run ref/close/live-FD observations. Inert/local-pip controls only; selected real public candidate/runtime acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -267,6 +267,10 @@
         {
           "kind": "Inert packaging and metadata-component evidence, not product runtime/install acceptance",
           "test": "test_full_original_and_staged_component_readers_keep_exact_binary_and_recipe_identity"
+        },
+        {
+          "kind": "Inert wheel/actual local pip/injected public report component only; no public PyPI or product runtime acceptance",
+          "test": "test_real_pip_inert_entry_install_audits_actual_tree_but_local_report_is_not_public_acceptance"
         }
       ]
     },
@@ -333,12 +337,16 @@
     {
       "id": "A23",
       "required": "Loopback/private install is not public install acceptance",
-      "currentSlice": "Node install harness records private-loopback and explicit official-public modes separately, with actual public observations/lock/payload audit when executed. Actual public execution and all product/Source/platform acceptance remain pending",
+      "currentSlice": "Node and Python consumer launchers distinguish actual official public byte/install evidence from private/inert mechanisms. Python requests only the original entry and audits stable pip report plus exact wheel payload; real public candidate/platform execution remains pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "Inert mode/argument guard only; no real public installation",
           "test": "public consumer: mode is explicit, digest-bound and never falls back to loopback or an arbitrary registry"
+        },
+        {
+          "kind": "Argument/environment/injected-HTTP controls only; no real public install",
+          "test": "Python public consumer: pip requests only the exact public entry using the shared version projection and no source builds"
         }
       ]
     },
@@ -355,6 +363,10 @@
         {
           "kind": "Inert archive byte/absence control only; no approval or published recovery",
           "test": "standalone archive tamper missing bytes and changed checksum inventory remain failures"
+        },
+        {
+          "kind": "Inert installed wheel/RECORD/source-link controls; no published recovery or owner approval",
+          "test": "test_changed_original_wheel_or_record_and_linked_site_cannot_supply_correspondence"
         }
       ]
     },
