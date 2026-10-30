@@ -1040,7 +1040,7 @@ test('installed Effect caller consumes actual Request manager adoption and same 
 });
 
 test('failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission', async () => {
-  for (const phase of ['moduleFailure', 'adoptFailure']) {
+  for (const phase of ['completeFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalEffectRequest({[phase]: failure});
     await f.view.fundedPreparation(f.sdkRequest, undefined);
     assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
