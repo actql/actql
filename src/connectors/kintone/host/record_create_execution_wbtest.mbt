@@ -117,3 +117,147 @@ test "copied CREATE Mapping retaining every original field is not the original" 
     is Err(MappingMismatch),
   )
 }
+
+///|
+fn restore_create_mapping() -> RecordCreateMapping {
+  prepare_record_create_mapping(
+    create_mapping_declaration(create_mapping_catalog()),
+    "inquiries",
+    create_mapping_sources(),
+    "required",
+    delete_declaration_limits(),
+  ).unwrap()
+}
+
+///|
+test "cold CREATE retains complete original saved body and checked values under same Mapping" {
+  let mapping = restore_create_mapping()
+  let saved = "{\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"next 東京\"},\"Tags\":{\"value\":[\"red\",\"red\"]}}]}"
+  let restored = restore_record_create_execution_request(
+    mapping,
+    b"[{\"Subject\":\"next 東京\",\"Tags\":[\"red\",\"red\"]}]",
+    saved,
+    8192,
+    create_construction_write(16),
+    create_construction_request(),
+  ).unwrap()
+  assert_true(record_create_mapping_matches_request(mapping, restored))
+  assert_eq(@catalog.record_create_request_body(restored), saved)
+  assert_eq(
+    @catalog.record_create_request_values_json(restored, 8192, 1000, 16).unwrap(),
+    "[{\"Subject\":\"next 東京\",\"Tags\":[\"red\",\"red\"]}]",
+  )
+  let acknowledgement = @catalog.project_record_create_acknowledgement(
+    restored,
+    200,
+    b"{\"ids\":[\"9007199254740993\"],\"revisions\":[\"0007\"]}",
+    create_construction_request(),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @catalog.record_create_acknowledgement_request(acknowledgement),
+      restored,
+    ),
+  )
+}
+
+///|
+test "cold CREATE refuses changed spelling app rows and complete saved body" {
+  let mapping = restore_create_mapping()
+  let values = b"[{\"Subject\":\"x\",\"Tags\":[\"a\",\"b\"]}]"
+  for
+    body in [
+      "{\"app\":\"13\",\"records\":[{\"Subject\":{\"value\":\"x\"},\"Tags\":{\"value\":[\"a\",\"b\"]}}]}",
+      " {\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"x\"},\"Tags\":{\"value\":[\"a\",\"b\"]}}]}",
+      "{\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"x\"},\"Tags\":{\"value\":[\"b\",\"a\"]}}]}",
+      "{\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"x\"},\"Tags\":{\"value\":[\"a\",\"b\"]}}],\"extra\":true}",
+      "{\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"x\"},\"Tags\":{\"value\":[\"a\",\"b\"]}},{\"Subject\":{\"value\":\"x\"}}]}",
+      "{\"app\":\"12\",\"records\":[]}",
+    ] {
+    assert_true(
+      restore_record_create_execution_request(
+        mapping,
+        values,
+        body,
+        8192,
+        create_construction_write(16),
+        create_construction_request(),
+      )
+      is Err(Catalog(Request(InvalidRequest))),
+    )
+  }
+}
+
+///|
+test "cold CREATE keeps Mapping typed value and independent comparison bounds refusals" {
+  let mapping = restore_create_mapping()
+  let body = "{\"app\":\"12\",\"records\":[{\"Subject\":{\"value\":\"x\"}}]}"
+  let values = b"[{\"Subject\":\"x\"}]"
+  let copied : RecordCreateMapping = { ..mapping, }
+  assert_true(
+    restore_record_create_execution_request(
+      copied,
+      values,
+      body,
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(MappingMismatch),
+  )
+  assert_true(
+    restore_record_create_execution_request(
+      mapping,
+      b"[{\"Subject\":123}]",
+      body,
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(Catalog(Write(InvalidValue("Subject")))),
+  )
+  assert_true(
+    restore_record_create_execution_request(
+      mapping,
+      b"[{\"Optional\":\"x\"}]",
+      "{\"app\":\"12\",\"records\":[{\"Optional\":{\"value\":\"x\"}}]}",
+      8192,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(MappingMismatch),
+  )
+  assert_true(
+    restore_record_create_execution_request(
+      mapping,
+      values,
+      body,
+      values.length() - 1,
+      create_construction_write(16),
+      create_construction_request(),
+    )
+    is Err(Catalog(BudgetExceeded)),
+  )
+  assert_true(
+    restore_record_create_execution_request(
+      mapping,
+      values,
+      body,
+      8192,
+      create_construction_write(16),
+      { ..create_construction_request(), max_output_bytes: body.length() - 1, },
+    )
+    is Err(Catalog(BudgetExceeded)),
+  )
+  assert_true(
+    restore_record_create_execution_request(
+      mapping,
+      values,
+      "mismatch",
+      8192,
+      create_construction_write(16),
+      { ..create_construction_request(), max_output_nodes: 1, },
+    )
+    is Err(Catalog(Request(BudgetExceeded))),
+  )
+}
