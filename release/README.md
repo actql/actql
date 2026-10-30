@@ -475,6 +475,13 @@ pending until their independent evidence exists.
 
 ## Read-only public registry observation
 
+The [Native Draft publication protocol](native-cli.md#exact-byte-native-draft-publication-protocol)
+uses the same full Native archive and registry byte owners, but requires separate
+protected owner read/mutation ports with no default credentials or executable
+publish CLI. Complete draft visibility, immutable settings and exact asset
+recovery are distinct from the anonymous public observer below. Final channel
+promotion, owner authority and real public installation remain unaccepted.
+
 ```sh
 node scripts/release.mjs observe <fixed-directory> <externally-retained-SHA256>
 ```
@@ -610,8 +617,8 @@ backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
 
-If the supplied stage or Python project runner throws, the generic returned
-error retains its
+If the supplied stage, Python project or Native mutation runner throws,
+the generic returned error retains its
 SAME private exception as non-enumerable `originalPublisherFailure`. If
 recording Unknown also fails, that original physical write error is returned
 with the same private runner exception. Neither normal error inspection nor

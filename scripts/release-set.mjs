@@ -370,6 +370,34 @@ export async function readFrozenReleaseArtifact(directory, expectedSha256, targe
   return {artifact: structuredClone(artifact), bytes};
 }
 
+// Deterministic proposed Draft metadata from the same fixed presentation DATA.
+// This is neither owner approval nor a publication/channel operation.
+export function nativeReleaseDraftRequest(fixed, targetId) {
+  const {manifest} = fixed, target = manifest.request.targets.find(value => value.id === targetId);
+  assert.equal(target?.ecosystem, 'native'); assert.equal(target.destination, 'https://github.com/actql/actql');
+  assert.equal(manifest.request.targets.filter(value => value.ecosystem === 'native').length, 1,
+    'One GitHub release must contain its complete selected Native target');
+  const artifacts = manifest.artifacts.filter(value => value.targetId === targetId);
+  const lines = [`ActQL ${manifest.release.version}`, '', manifest.request.notes.summary, '',
+    `Source: ${manifest.request.source.repository}/commit/${manifest.request.source.commit}`,
+    `Release-set SHA256: ${fixed.sha256}`, `Platforms: ${target.platforms.join(', ')}`,
+    `Requested profiles: ${target.profiles.join(', ')}`, '',
+    'Profile/platform availability is limited to the exact bound acceptance evidence; artifact presence alone does not certify support.'];
+  for (const field of ['breakingChanges', 'migration', 'knownLimitations']) {
+    lines.push('', `${field}:`, ...manifest.request.notes[field].map(value => `- ${value}`));
+  }
+  lines.push('', 'Artifact SHA256:');
+  for (const artifact of artifacts) lines.push(`${artifact.sha256}  ${artifact.file} (${artifact.bytes} bytes)`);
+  if (fixed.review) for (const item of fixed.review.acceptance.filter(value => value.targetId === targetId))
+    lines.push('', `Supplied ${item.phase}: ${item.status}; original evidence: ${item.evidence.join(', ') || '(none)'}`,
+      ...item.limitations.map(value => `- ${value}`));
+  const body = `${lines.join('\n')}\n`;
+  assert(Buffer.byteLength(body) <= 65536, 'Native release presentation exceeds its finite bound');
+  return {tag_name: manifest.release.gitTag, target_commitish: manifest.request.source.commit,
+    name: `ActQL ${manifest.release.version}`, body, draft: true, prerelease: manifest.release.prerelease,
+    generate_release_notes: false, make_latest: 'false'};
+}
+
 // Registry observations are DATA, not approval/currentness or a publication
 // command. Real ecosystem reobservation adapters still own their HTTP/auth
 // semantics. A timeout/unavailable response cannot be supplied as absence.

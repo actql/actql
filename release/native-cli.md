@@ -159,6 +159,73 @@ executor/acceptance duties. Header-only fixtures or an archive check never
 establish those outcomes.
 
 
+## Exact-byte Native Draft publication protocol
+
+```sh
+node scripts/release.mjs native-publish-plan <fixed-directory> <externally-retained-SHA256> <native-target-id>
+```
+
+This command verifies the complete original standalone archive/ABI inventory
+and matching compiled-version record, then shows the exact proposed Draft and
+asset set. It remains `execution: unavailable`. The fixed review must bind the
+proposed publication scope. Declared `passed` evidence remains supplied DATA,
+not an accepted installation, permission or owner approval.
+
+The existing publisher Owner exposes `publishNativeRelease` only for a separate
+protected executor. There is no default mutation runner, credential discovery,
+executable publish CLI or workflow. The executor must independently establish
+owner approval of the exact upper digest, trusted immutable validator/policy,
+real accepted install evidence, permitted recovery, credential separation and
+one exclusive current execution across repositories. GETs and local receipts
+are not a lock or registry compare-and-swap.
+
+Its separate owner API read port must actually see **all** drafts and releases
+and have Administration-read permission for the immutable-release setting.
+The reader requires enabled immutability before and after each observation,
+complete paginated release/asset inventories, one selected release id, exact
+tag/source and the fixed candidate's exact title/body/prerelease metadata.
+An anonymous 404 cannot supply absence. Disabled/unavailable settings, duplicate
+drafts, wrong source or presentation, foreign/partial assets and different bytes
+block the operation. No repository setting is enabled or changed by this code.
+
+API asset reads and their signed-CDN continuation use separate ports. API
+credentials must remain inside the protected API-only reader; the CDN gets only
+the normal public byte request. Signed query strings are not retained in
+receipts. Every existing asset is checked through the original finite actual
+length/SHA256 reader and its complete inventory is reobserved afterward.
+
+The selected Draft's original `upload_url` template must match the exact
+GitHub upload origin/repository/release id and remain unchanged across the
+read window. Each asset request expands only that validated original template.
+Missing or different templates refuse; no arbitrary upload destination is used.
+
+The sequence creates a Draft only after complete owner-visible absence,
+uploads only absent original assets, then publishes that same Draft id only
+after all selected archives and `SHA256SUMS` match. Original immutable files
+are copied to private mode-0400 request payloads; synced intent precedes each
+mutation. The exact `make_latest: "false"` is explicit at creation and
+publication. Final Latest/channel promotion and public consumer acceptance
+remain separate owner-controlled duties. A complete existing immutable release
+is reused without another send. A published incomplete or mutable release is
+never repaired by adding, renaming, deleting or replacing assets.
+
+The supplied mutation runner must settle only when its **original** request/job
+is terminal. Lost live observation retains that same external handle. A thrown,
+malformed or failed terminal reply leaves the synced intent Unknown and stops;
+it is not absence and does not trigger an in-process retry. A later separately
+authorized same-digest recovery reobserves the complete actual state and does
+not resend a confirmed Draft or asset. If the original scope did not include
+same-byte recovery, a later attempt refuses. Failed receipts and private original
+payloads remain at their original paths. Missing/tampered fixed artifacts never
+cause a rebuild or version bump.
+
+After publication the reader requires the actual release's immutable flag,
+actual Git tag commit and all original asset bytes. This is byte/settings
+readback, **not** verification of a GitHub attestation, platform signature,
+notarization, public runtime or complete release acceptance. Those evidence
+and actual production trust/settings checks remain separate requirements.
+Inert archive and injected API tests do not establish any real publication.
+
 ## Public standalone Remote consumer
 
 After the owner has published the exact fixed set, use its externally retained
