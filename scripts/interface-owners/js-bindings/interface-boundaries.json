@@ -73355,7 +73355,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const originalRead = planned !== undefined ? runtimeField(planned, 0)"
+                "anchor": "const originalRead = planned !== undefined ? plannedRead"
               }
             ],
             "inputsOutputs": [
