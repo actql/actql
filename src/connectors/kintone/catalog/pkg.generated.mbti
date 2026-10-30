@@ -21,6 +21,8 @@ pub fn checked_record_rows(CheckedRecordPage) -> Array[Array[@value_admission.Ch
 
 pub fn checked_record_settings(CheckedRecordPage) -> AppNumberSettings?
 
+pub fn form_field_count(FormFieldCatalog) -> Int
+
 pub fn form_field_definition_matches(FormFieldCatalog, FormFieldCatalog, Array[String]) -> Bool
 
 pub fn form_field_named(FormFieldCatalog, Array[String]) -> FormFieldMetadata?
@@ -164,6 +166,8 @@ pub fn record_update_request_observation(RecordUpdateRequest, RecordMutationLimi
 pub fn record_update_request_values(RecordUpdateRequest) -> Array[(OriginalRecordTarget, RecordWriteValues)]
 
 pub fn record_write_field_contract(FormFieldCatalog, String) -> @value_contract.Contract?
+
+pub fn record_write_field_contract_at(FormFieldCatalog, Int) -> @value_contract.Contract?
 
 pub fn record_write_values_body(RecordWriteValues) -> String
 

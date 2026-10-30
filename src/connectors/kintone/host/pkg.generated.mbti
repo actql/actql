@@ -4,7 +4,9 @@ package "actql/actql/connectors/kintone/host"
 import {
   "actql/actql/client_row_source_host",
   "actql/actql/connectors/kintone/catalog",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
+  "actql/actql/execution_relation",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -36,6 +38,10 @@ pub fn project_record_create_preview_outcome(RecordCreateMapping, @catalog.Recor
 pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.RecordDeleteRequest, @catalog.RecordDeleteAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue]
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
+
+pub fn record_create_mapped_request_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_request_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
 
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
 
@@ -133,6 +139,11 @@ pub enum RecordCreateOutcomeIssue {
 
 pub struct RecordCreatePreviewOutcome {
   // private fields
+}
+
+pub(all) struct RecordCreateRequestConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
 }
 
 pub struct RecordDeclaration {

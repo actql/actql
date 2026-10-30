@@ -352,6 +352,8 @@ pub fn installed_effect_operation_extent_physical(ClientInstalledEffectOperation
 
 pub fn installed_effect_operation_extent_transfer(ClientInstalledEffectOperationExtent) -> Int64
 
+pub fn installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_source_reader_profile(Int, Int) -> Array[Int]?
