@@ -729,3 +729,48 @@ response cannot substitute an individual row projection.
   dispatch order. Mapped/raw Account-Credential-SQLite-TLS counters preserve
   request assertions, refusal, response loss, no resend and retained cleanup.
   Authored Preview DATA fixtures do not establish an approved installed write.
+
+## Original keyed UPSERT material
+
+The typed Text-key constructor consumes the existing complete original unique
+key lookup and the same Form-admitted intended values. A present observation
+selects the existing revision-checked UPDATE against its original native target;
+complete absence selects CREATE with the same enforced key. The selector key is
+not a native record ID, and the key need not be repeated in the mapped values.
+A changed supplied key, incomplete lookup, missing required create field or
+foreign Form refuses. A failed branch never selects another request or retries
+a physical operation. This bounded constructor does not establish the complete
+installed UPSERT Mapping, both add/edit permissions, approval or current lookup
+authority.
+
+The provider before holder retains the original declaration, full lookup page,
+checked row and nominal target when present. Its private selected-name snapshot
+survives mutation of escaped declaration metadata. Complete absence carries no
+invented native target, before object or revision. A present request can reuse
+that same nominal target; raw ID/revision strings cannot reconstruct one. The
+existing DELETE projection and this holder share one original-page before and
+version implementation, preserving checked value types, field/array order and
+wide ID/revision strings without a JavaScript number roundtrip.
+
+Mapped object JSON uses the original Form field Contract and existing value
+admission. Duplicate keys, native wrapper fields and incompatible carriers
+refuse. The original checked values remain paired with their request. The
+existing CREATE serializer and saved-body comparison stay distinct and retain
+their exact wire. UPDATE request and acknowledgement self references identify
+the actual issued objects; equal copies cannot supply a correlated outcome.
+
+Response projection selects only the already chosen native branch. Its complete
+bounded response and exact digest remain paired with the original request;
+malformed, non-success or foreign replies do not try another codec. Projected
+outcome DATA is not a terminal Receipt or a physical ACK: the common Host still
+binds the saved response, approved Preview, current authority and durable claim.
+Lost replies retain the existing Unknown/reconciliation and no-resend law.
+
+The lookup/Form/page, immutable selected names, checked values, native request,
+before matrix/wire/version and response/outcome can coexist. Self references,
+arrays, UTF-8 buffers and writer prefixes need their actual simultaneous backing
+before construction. Positive parser/identity limits and a nominal match are
+not funding or cleanup evidence. The same existing capture/Source/Effect owners
+retain physical reads, permission, claim, cancellation and cleanup. Node and
+RelA expose these original DATA values without a second owner or saved-state
+reconstruction policy.

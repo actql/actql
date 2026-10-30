@@ -1175,6 +1175,42 @@ pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/act
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_key_upsert_before(@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_key_upsert_before_identity(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> String
+
+pub fn client_program_kintone_key_upsert_before_key(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> String
+
+pub fn client_program_kintone_key_upsert_before_matches(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation) -> Bool
+
+pub fn client_program_kintone_key_upsert_before_target(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> @actql/actql/connectors/kintone/catalog.OriginalRecordTarget?
+
+pub fn client_program_kintone_key_upsert_before_version_cid(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> String?
+
+pub fn client_program_kintone_key_upsert_before_wire(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> String?
+
+pub fn client_program_kintone_key_upsert_create_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> @actql/actql/connectors/kintone/catalog.RecordCreateRequest?
+
+pub fn client_program_kintone_key_upsert_observed_request(@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertIssue]
+
+pub fn client_program_kintone_key_upsert_outcome(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_key_upsert_outcome_response_sha256(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome) -> String
+
+pub fn client_program_kintone_key_upsert_outcome_uses_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> Bool
+
+pub fn client_program_kintone_key_upsert_outcome_wire(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome) -> String
+
+pub fn client_program_kintone_key_upsert_request(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertIssue]
+
+pub fn client_program_kintone_key_upsert_response(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_key_upsert_response_uses_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> Bool
+
+pub fn client_program_kintone_key_upsert_update_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> @actql/actql/connectors/kintone/catalog.RecordUpdateRequest?
+
+pub fn client_program_kintone_key_upsert_uses_lookup(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordLookupObservation) -> Bool
+
 pub fn client_program_kintone_lookup_app(@actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> String
 
 pub fn client_program_kintone_lookup_body(@actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> String
@@ -1254,6 +1290,8 @@ pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/ac
 pub fn client_program_kintone_write_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordWriteLimits
 
 pub fn client_program_kintone_write_values(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[(String, @value_admission.CheckedValue)], @actql/actql/connectors/kintone/catalog.RecordWriteLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteIssue]
+
+pub fn client_program_kintone_write_values_json(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Bytes, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteJsonIssue]
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 

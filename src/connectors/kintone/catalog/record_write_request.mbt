@@ -12,6 +12,7 @@ pub struct RecordCreateRequest {
 /// Each original target remains paired with its own checked write values.
 /// Required revisions are never omitted or replaced by an unchecked -1.
 pub struct RecordUpdateRequest {
+  priv mut self : RecordUpdateRequest?
   priv records : Array[(OriginalRecordTarget, RecordWriteValues)]
   priv document : @encode.EncodedDocument
 }
@@ -236,7 +237,13 @@ pub fn prepare_record_update_request(
       return Err(BudgetExceeded)
     }
   }
-  Ok({ records: records.copy(), document, })
+  let result : RecordUpdateRequest = {
+    self: None,
+    records: records.copy(),
+    document,
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -263,6 +270,7 @@ pub struct RecordCreateAcknowledgement {
 
 ///|
 pub struct RecordUpdateAcknowledgement {
+  priv mut self : RecordUpdateAcknowledgement?
   priv request : RecordUpdateRequest
   priv records : Array[(String, String)]
   response_sha256 : String
@@ -449,7 +457,14 @@ pub fn project_record_update_acknowledgement(
       return Err(UncorrelatedResult)
     }
   }
-  Ok({ request, records, response_sha256: @sha.hex(bytes), })
+  let result : RecordUpdateAcknowledgement = {
+    self: None,
+    request,
+    records,
+    response_sha256: @sha.hex(bytes),
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -530,6 +545,20 @@ pub fn record_create_request_is_original(value : RecordCreateRequest) -> Bool {
 ///|
 pub fn record_create_acknowledgement_is_original(
   value : RecordCreateAcknowledgement,
+) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+/// Original request DATA, not authority or an acknowledged provider action.
+pub fn record_update_request_is_original(value : RecordUpdateRequest) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+/// Same decoded response object, not a copy with equal private request fields.
+pub fn record_update_acknowledgement_is_original(
+  value : RecordUpdateAcknowledgement,
 ) -> Bool {
   value.self is Some(original) && physical_equal(original, value)
 }
