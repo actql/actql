@@ -19,8 +19,8 @@ const next='opaque /%+é';
 function fixture({selectedLimits=limits,selectedPages}={}){
   const originalCatalog=checked(moon.hubspotProjectProperties(Buffer.from(propertiesBody),'companies',
     limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxProperties,limits.maxNameUnits));
-  const pages=selectedPages??[{results:[record('one'),record('two')],paging:{next:{after:next,link:'https://foreign.invalid/not-followed'}}},
-    {results:[record('three')]}];
+  const pages=selectedPages??[{results:[record('101'),record('102')],paging:{next:{after:next,link:'https://foreign.invalid/not-followed'}}},
+    {results:[record('103')]}];
   const requests=[],responses=[],charges=[],spent=new Set(),observed=[],rows=[],decodeBounds=[];
   const provider={...moon,hubspotProjectObjectPage(...args){
     decodeBounds.push(args[6]);return Reflect.apply(moon.hubspotProjectObjectPage,moon,args);
@@ -62,7 +62,7 @@ test('HubSpot list request and actual decoder share the remaining row allowance 
   assert.deepEqual(f.decodeBounds,[3,1]);
   assert.deepEqual(lists.map(request=>request.url.searchParams.get('after')),[null,next]);
   assert(lists.every(request=>request.url.searchParams.get('archived')==='false'&&request.url.searchParams.get('properties')==='amount,tags'));
-  assert.deepEqual(f.rows.map(row=>row.id),['one','two','three']);
+  assert.deepEqual(f.rows.map(row=>row.id),['101','102','103']);
   assert(f.rows.every(row=>row.amount==='0.0000000000'&&JSON.stringify(row.tags)==='["a","b"]'));
   assert.equal(f.requests.length,5);assert.equal(f.charges.length,5);assert.equal(f.observed.length,3);assert.equal(f.spent.size,5);
   assert.deepEqual(result.observations,f.responses);
