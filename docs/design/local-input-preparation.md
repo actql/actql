@@ -2761,6 +2761,20 @@ The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
 
+### Local native read retirement
+
+The Local Source retains its original physical reader and raw managed child
+through cleanup. The physical reader must acknowledge stop, followed by the
+captured original raw close method with its original receiver. Only then may
+the same ordinary or keyed typed read retire and the Local read become closed.
+Typed retirement is not evidence that native cleanup has completed.
+
+A pending or throwing native close retains the same read and prevents the
+existing parent-retirement loop from retiring that Run. A typed retirement
+failure also leaves the read retained for the same cleanup retry. Cleanup does
+not acquire a new Root, permission or current-state admission, and an absent,
+inherited or accessor `pending` field is not an acknowledgment.
+
 ### Normal SQL and AQL Request continuation
 
 SQL and Pipe Source inputs retain the same SDK snapshot and Request as native

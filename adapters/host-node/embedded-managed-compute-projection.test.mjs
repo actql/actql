@@ -472,3 +472,111 @@ test('LocalFiles Pure admission preserves original identity and Effect read cann
   assert.throws(() => read({checkedOwner: prepared, effectful: true, occurrence: {stage: 0}}),
     {code: 'InstalledEffectPlanUnavailable'});
 });
+
+// Execute the real Local cleanup owner with explicit typed-read/parent and
+// native-child ports. These are retirement ordering counters, not actual Core
+// capacity, FileHandle closure, ordinary Host or same-process Saved acceptance.
+function localReadCleanupFixture({keyed = false, physical = false} = {}) {
+  const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const install = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
+  const functions = install.body.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['captureClose', 'closeRead', 'close'].includes(node.id.name));
+  assert.equal(functions.length, 3);
+  const acknowledgment = tree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'acknowledged'));
+  assert(acknowledgment);
+  const typedRead = {}, parent = {}, events = [];
+  const state = {rawAck: {pending: false}, physicalAck: {pending: false},
+    rawCalls: 0, physicalCalls: 0, readRetireCalls: 0, parentRetireCalls: 0,
+    rawThrows: false, rawFailure: undefined, retireThrows: false, retireFailure: undefined,
+    readReceivers: [], readKinds: []};
+  const raw = {close() {
+    assert.strictEqual(this, raw); state.rawCalls++; events.push('raw');
+    if (state.rawThrows) throw state.rawFailure;
+    return state.rawAck;
+  }};
+  const native = {close() {
+    assert.strictEqual(this, native); state.physicalCalls++; events.push('physical');
+    return state.physicalAck;
+  }};
+  const read = {raw, keyed, value: typedRead, physical: physical ? native : undefined,
+    close: undefined, closeCaptured: false, closed: false};
+  const run = {value: parent, reads: new Map([[0, read]]), retired: false};
+  const runs = new Map([[{}, run]]);
+  const retireRead = kind => function(value) {
+    assert.strictEqual(value, typedRead); state.readRetireCalls++; state.readReceivers.push(this);
+    state.readKinds.push(kind); events.push('typed-read');
+    if (state.retireThrows) throw state.retireFailure;
+  };
+  const moon = {clientProgramInstalledSourceReadRetire: retireRead('ordinary'),
+    clientProgramInstalledKeyedSourceReadRetire: retireRead('keyed'),
+    clientProgramInstalledManagedRunRetire(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, parent);
+      state.parentRetireCalls++; events.push('parent');
+    }, clientProgramNodeManagedRunCleanup() {assert.fail('No replacement parent cleanup');}};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const cleanup = new Function('runs', 'moon', 'checked', 'fail',
+    text.slice(acknowledgment.start, acknowledgment.end) + ';let closing=false;\n' +
+    functions.map(node => text.slice(node.start, node.end)).join('\n') +
+    ';return {close,closeRead};')(runs, moon, value => value, fail);
+  return {...cleanup, state, read, raw, run, runs, moon, events};
+}
+
+test('Local Source typed read and parent remain live until the original raw child acknowledges', async () => {
+  const f = localReadCleanupFixture(); f.state.rawAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError', message: 'LocalFilesCleanupPending'});
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 0);
+  assert.equal(f.state.parentRetireCalls, 0); assert.equal(f.read.closed, false);
+  f.raw.close = () => assert.fail('Replacement close must not be selected');
+  f.state.rawAck = {pending: false}; await f.close();
+  assert.deepEqual(f.events, ['raw', 'raw', 'typed-read', 'parent']);
+  assert.deepEqual(f.state.readReceivers, [f.moon]);
+  assert.equal(f.read.closed, true); assert.equal(f.run.retired, true); assert.equal(f.runs.size, 0);
+});
+
+test('Local keyed cleanup preserves an original thrown undefined before typed retirement', async () => {
+  const f = localReadCleanupFixture({keyed: true}); f.state.rawThrows = true;
+  await assert.rejects(f.close(), cause => cause instanceof AggregateError &&
+    cause.errors.length === 1 && cause.errors[0] === undefined);
+  assert.equal(f.state.readRetireCalls, 0); assert.equal(f.state.parentRetireCalls, 0);
+  assert.equal(f.read.closed, false); f.state.rawThrows = false; await f.close();
+  assert.deepEqual(f.state.readKinds, ['keyed']); assert.deepEqual(f.state.readReceivers, [f.moon]);
+  assert.equal(f.state.parentRetireCalls, 1);
+});
+
+test('Local cleanup waits for physical and raw acknowledgments before typed retirement', async () => {
+  const f = localReadCleanupFixture({physical: true}); f.state.physicalAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError'});
+  assert.equal(f.state.rawCalls, 0); assert.equal(f.state.readRetireCalls, 0);
+  f.state.physicalAck = {pending: false}; f.state.rawAck = {pending: true};
+  await assert.rejects(f.close(), {name: 'AggregateError'});
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 0);
+  f.state.rawAck = {pending: false}; await f.close();
+  assert.equal(f.state.readRetireCalls, 1); assert.equal(f.state.parentRetireCalls, 1);
+});
+
+test('Local cleanup retains the same stopped child while typed retirement fails', async () => {
+  const f = localReadCleanupFixture(), failure = new Error('OriginalTypedRetirementPending');
+  f.state.retireThrows = true; f.state.retireFailure = failure;
+  await assert.rejects(f.close(), cause => cause instanceof AggregateError && cause.errors[0] === failure);
+  assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 1);
+  assert.equal(f.read.closed, false); assert.equal(f.state.parentRetireCalls, 0);
+  f.state.retireThrows = false; await f.close();
+  assert.equal(f.state.readRetireCalls, 2); assert.equal(f.state.parentRetireCalls, 1);
+  assert.deepEqual(f.state.readReceivers, [f.moon, f.moon]);
+});
+
+test('Local cleanup never treats absent inherited or accessor stop DATA as acknowledgment', async () => {
+  let getters = 0;
+  for (const ack of [undefined, Object.create({pending: false}),
+    Object.defineProperty({}, 'pending', {get() {getters++; return false;}})]) {
+    const f = localReadCleanupFixture(); f.state.rawAck = ack;
+    await assert.rejects(f.close(), {name: 'AggregateError'});
+    assert.equal(f.state.readRetireCalls, 0); assert.equal(f.state.parentRetireCalls, 0);
+    f.state.rawAck = {pending: false}; await f.close();
+    assert.equal(f.state.readRetireCalls, 1);
+  }
+  assert.equal(getters, 0);
+});

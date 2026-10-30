@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89c1c9457c65cb69a592699a047afcaf1e0cc1b718f4993ce075875e4e7ab738",
+      "sha256": "21f8bcffb2583dd50299b01f845b3427a472e7e616e1ca6d9828bd6c56a90205",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -960,6 +960,7 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/acquisition-outcome.mjs",
         "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/file-media-type.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-check-environment.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
@@ -1124,6 +1125,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "synchronization": [
@@ -1156,6 +1161,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "cancellation": [
@@ -1170,6 +1179,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "resources": [
@@ -1188,6 +1201,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "extension": [
@@ -1224,6 +1241,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local Source typed read and parent remain live until the original raw child acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
               }
             ]
           }

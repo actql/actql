@@ -310,10 +310,13 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   async function closeRead(read){
     if(read.closed)return;
     if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
-    if(read.value!==undefined)checked((read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:
-      moon.clientProgramInstalledSourceReadRetire)(read.value));
     captureClose(read);
     if(!acknowledged(await Reflect.apply(read.close,read.raw,[])))fail('LocalFileCleanupPending');
+    if(read.value!==undefined){
+      const retire=read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:
+        moon.clientProgramInstalledSourceReadRetire;
+      checked(Reflect.apply(retire,moon,[read.value]));
+    }
     read.closed=true;
   }
   async function close(){
