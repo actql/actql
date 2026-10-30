@@ -58,19 +58,15 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
     Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
-  let (admission, ledger, retirement, holder) = match
-    @resources.adopt_node_preparation_admission(
-      initial, input, capacity, prepared,
-    ) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  let value = new_installed_managed_run(admission, prepared, request, ledger)
-  value.source_free_preparation = Some(original)
-  value.preparation_retirement = Some(
-    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  adopt_preparation_owned_pure_plan(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    Some(original),
+    None,
   )
-  Ok(value)
 }
 
 ///|
@@ -91,6 +87,11 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     !physical_equal(plan.request, request) {
     return Err(ForeignOriginal)
   }
+  // Both fixed constructors now retain this opaque body type. The ordinary
+  // entry must still refuse Model rather than discarding its Scope census.
+  if !installed_managed_run_purpose_supported(prepared) {
+    return Err(Unsupported)
+  }
   let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
@@ -105,6 +106,33 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
+  adopt_preparation_owned_pure_plan(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    None,
+    Some(plan),
+  )
+}
+
+///|
+// Fixed Pure constructors have checked their actual ordinary/Model purpose
+// and Scope obligation. Share the same adoption and two lifetime holders;
+// neither a new initial admission nor a cleanup owner is constructed here.
+fn[I] adopt_preparation_owned_pure_plan(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  source_free : ClientInstalledManagedSourceFreePreparation?,
+  captured : ClientInstalledManagedCapturePlan?,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(
       initial, input, capacity, prepared,
@@ -113,7 +141,8 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     Ok(value) => value
   }
   let run = new_installed_managed_run(admission, prepared, request, ledger)
-  run.captured_preparation = Some(plan)
+  run.source_free_preparation = source_free
+  run.captured_preparation = captured
   run.preparation_retirement = Some(
     PurePreparation({ retirement, admission, holder: Some(holder), }),
   )

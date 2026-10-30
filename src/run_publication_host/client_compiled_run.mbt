@@ -63,6 +63,23 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// Bind the actual Task compiler retained by this Run, including its Model
+/// graph and manifests. Equal Plan bytes or another compiler invocation do
+/// not supply this immutable original; no current callback is involved.
+pub fn client_compiled_run_matches_tasks(
+  value : ClientCompiledRun,
+  owner : PreparedClientProgram,
+  compilation : ClientTaskCompilation,
+) -> Bool {
+  match value.compilation {
+    Tasks(original) =>
+      physical_equal(value.owner, owner) &&
+      physical_equal(original, compilation)
+    Values(_) | Effects(_) => false
+  }
+}
+
+///|
 /// Borrow the compiler's original checked view only for its exact Effect owner.
 /// Never reparse or issue a substitute Effect-free Program for recovery.
 pub fn client_compiled_effect_program(

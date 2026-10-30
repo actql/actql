@@ -3678,3 +3678,21 @@ reservation. Adoption transfers the same capacity and holders, while a
 separate read-bootstrap state is refused. Census cleanup remains with the
 original preparation retirement and cannot leave another bootstrap token for
 the admission to settle later.
+
+
+### Model compilation before the original module handoff
+
+The Pure Model constructor retains the original selected Graph and compiler
+configuration before measurement. Its same-Request compiler measures the
+issuer-owned component arrays and completed writer geometry, grows the
+original capacity and spends the existing ExecutionPlan work receipt. It
+returns the actual TaskCompilation to the original module/Plan; a separate
+compilation of equal bytes cannot replace it at Scope binding. The ordinary
+constructor still excludes Model, and the fixed Model profile retains its
+existing occurrence, serialization and Source shape guards.
+
+The Model Plan record, original component Graph storage and complete
+module/provider/codec/output overlap must be backed before allocation on
+that same parent. Fixed caller controls and compiler measurements do not
+establish physical funding or grant Model execution. Scope and body
+retirement retain their distinct original cleanup obligations.

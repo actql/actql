@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
+  ModelPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
   Selected
@@ -85,8 +86,16 @@ struct ClientRequestPreparation[I] {
     Bool,
     (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
   )?
+  mut program_model_compilation_inputs : (
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph,
+  )?
+  mut program_model_compilation : @publication_host.ClientTaskCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model : ClientInstalledManagedModelPlan?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
@@ -194,7 +203,11 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
     // or B initial recipe is represented by these caller-only controls.
-    record_headers: inventory_headers +
+    // Model compiler caller controls: original input tuple/Some, Model
+    // argument/artifact carriers, component Array/backing and closures.
+    // This is 11H21R9W, not recursive measurement or provider backing.
+    record_headers: 11L +
+    inventory_headers +
     js_headers +
     import_headers +
     ledger_headers +
@@ -204,7 +217,11 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    reference_slots: inventory_refs +
+    // Resident selected Model Plan link. Its Some/Plan/Scope constructor
+    // remains in the actual before-call domain backing.
+    reference_slots: 21L +
+    inventory_refs +
+    1L +
     js_refs +
     import_refs +
     ledger_refs +
@@ -214,7 +231,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: inventory_words +
+    scalar_words: 9L +
+    inventory_words +
     js_words +
     import_words +
     ledger_words +
@@ -323,8 +341,11 @@ pub fn[I] begin_request_preparation(
     program_artifact_plan_encoding_nodes: Ref(0L),
     program_artifact_work_issue: None,
     program_artifact_inputs: None,
+    program_model_compilation_inputs: None,
+    program_model_compilation: None,
     program_source_free: None,
     program_captured: None,
+    program_model: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -627,8 +648,12 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_artifact_inputs = None
+  owner.program_model_compilation = None
+  owner.program_model_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model = None
+
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if owner.effect_capacity is Some(capacity) {
