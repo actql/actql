@@ -154,6 +154,14 @@ foreign owners and unsupported selections refuse. Invocation DATA do not close
 a physical child; the same Run retains its input and pending cleanup until the
 original provider/RowRun retirement confirms and the body borrow is returned.
 
+The Host retains the original pure Request identity before acquired-input
+preflight and consumes the compiler's closed Query-or-whole-input selection.
+Only the Query branch constructs a Query requirement. Actual acquisition passes
+that same Request identity to the managed Source adapter, whose existing wrapper
+binds the original parent and checks currentness before and after preparation.
+An error cannot select another route, and neither the identity cache nor a
+selection's reference DATA grants a read or replaces the parent's cleanup.
+
 The focused Core and explicit-port Node cases exercise full input beyond a
 Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.

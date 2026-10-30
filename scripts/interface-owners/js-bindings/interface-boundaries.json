@@ -39693,7 +39693,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "94433c83d7e186bfb6b3c42b63fa214436b397a630141824d96d13cc02330de2",
+      "sha256": "2eae670b3a4675fa429201b489ca47a9f6914ae3b698ac3d3ddf492e795213d7",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -41344,6 +41344,14 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/originalSourceFreeRequest/originalSourceFreeRequest",
+          "parameters": [
+            "preparedProgram",
+            "requestId"
+          ],
           "async": false
         },
         {
@@ -47294,7 +47302,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/originalSourceFreeRequest/originalSourceFreeRequest"
           ],
           "exports": [],
           "attributes": {
@@ -47354,6 +47363,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "One original Effect computation retains one existing Journal cancellation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "inputsOutputs": [
@@ -47404,6 +47417,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "identity": [
@@ -47474,6 +47491,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "ownership": [
@@ -47540,6 +47561,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "synchronization": [
@@ -47602,6 +47627,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const after = observeControl();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "failure": [
@@ -47656,6 +47685,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "cancellation": [
@@ -47710,6 +47743,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "facts, and closed journals refuse. These managed references end with the"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "resources": [
@@ -47780,6 +47817,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "The complete original row has already been admitted"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "extension": [
@@ -47838,6 +47879,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Run bytes, while a new public observation acquires its own current original."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
               }
             ],
             "verification": [
@@ -47952,6 +47997,14 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole-input Host request and acquisition keep one original identity without a Query substitute"
               }
             ]
           }
