@@ -161,7 +161,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Anonymous bounded npm/PyPI HTTP byte observations feed the fixed same-bytes classifier. Actual protected upload/partial-publication recovery and standalone Native remain pending",
+      "currentSlice": "Anonymous bounded npm/PyPI and visible immutable GitHub Native byte observations feed the fixed same-bytes classifier. GitHub 404 remains unknown; authenticated draft/actual protected upload and partial-publication recovery remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -175,13 +175,17 @@
         {
           "kind": "Injected HTTP/cold-byte transport component only; no actual public publication or approval",
           "test": "registry observation: actual npm identity owner and bounded remote bytes feed same-bytes resume without writing the fixed set"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no real release/draft/install or approval",
+          "test": "Native observation: visible immutable tag/source and actual asset bytes use one complete inventory without changing fixed bytes"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Existing npm identity owner plus actual remote byte comparisons; PyPI checks complete selected release files/size/SHA256 and downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
+      "currentSlice": "Existing npm identity owner, PyPI selected release inventory and Native immutable tag/source/asset inventory plus actual downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -195,6 +199,10 @@
         {
           "kind": "Injected HTTP component only; no real registry write",
           "test": "registry observation: old foreign or empty PyPI releases cannot acquire a new platform/product by append"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte Native component only; no actual release mutation",
+          "test": "Native observation: foreign, missing and duplicate asset inventories block before any download"
         }
       ]
     },
@@ -236,9 +244,14 @@
     {
       "id": "A20",
       "required": "Native standalone works without Node and refuses missing binary",
-      "currentSlice": "Existing native builder/reader inventoried; candidate-specific acceptance pending",
+      "currentSlice": "Standalone archive adapter reuses original verified Native npm payload, byte/mode/ABI/Local metadata readers and exact checksum inventory. Inert packaging controls pass; complete real producer, Node-free CLI/Local bootstrap/version display/public download acceptance remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert archive/header/Local metadata component only; no Native execution or Node-free consumer acceptance",
+          "test": "standalone archive retains every original OS payload byte and mode with noncircular build/checksum metadata"
+        }
+      ]
     },
     {
       "id": "A21",
@@ -252,7 +265,11 @@
         },
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
-          "test": "unsupported Linux Python and standalone Native paths cannot inherit another verifier"
+          "test": "unsupported Linux Python and unverified Native archives cannot inherit another verifier"
+        },
+        {
+          "kind": "Inert Linux ELF packaging/ABI metadata only, not Linux execution or Local acceptance",
+          "test": "standalone Linux Remote archive keeps original ELF bytes and ABI facts without a Linux Local claim"
         }
       ]
     },
@@ -300,6 +317,10 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "fixed artifact tamper and missing bytes remain failures, never absence or rebuild permission"
+        },
+        {
+          "kind": "Inert archive byte/absence control only; no approval or published recovery",
+          "test": "standalone archive tamper missing bytes and changed checksum inventory remain failures"
         }
       ]
     },

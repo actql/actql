@@ -5,7 +5,7 @@ import {mkdtemp, mkdir, writeFile, rm, symlink, realpath, rename} from 'node:fs/
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {resolveExternalRestModules, verifyExternalRestTarballs} from './installed-modules.mjs';
+import {loadExternalRestModules, resolveExternalRestModules, verifyExternalRestTarballs} from './installed-modules.mjs';
 import * as normalCohort from './installed-modules.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {externalRestProvider} from './provider.fixture.mjs';
@@ -162,6 +162,30 @@ test('REST ordinary preflight refuses a second SDK namespace or workspace entry 
   await symlink(outside, join(f.modules, '@actql/node'));
   await assert.rejects(resolveExternalRestModules({consumerRoot: f.consumerRoot, connectorPackage: '@actql-connectors/acme'}),
     /StandardRestWorkspaceAliasRefused/u);
+});
+
+test('REST installed entrance loads the actual lazy installation and preserves its original import failure', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.modules, '@actql/node/index.mjs'), 'export function connect() {throw new Error("NoHostInMechanism");}\n');
+  await writeFile(join(f.modules, '@actql/local-node/index.mjs'), 'export const createInstalledConnectorTable = entries => ({entries});\n');
+  await writeFile(join(f.modules, '@actql/sdk/index.mjs'), 'export function getSubmissionInput() {}\n');
+  await writeFile(join(f.modules, '@actql-connectors/acme/index.mjs'),
+    'export const installedConnectors = [{source:{async load(){throw new Error("OriginalGeneratedInstallationImportFailure");}}}];\n');
+  await assert.rejects(loadExternalRestModules({consumerRoot: f.consumerRoot,
+    connectorPackage: '@actql-connectors/acme'}), /OriginalGeneratedInstallationImportFailure/u);
+});
+
+test('REST installed entrance checks every generated installation export before Host construction', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.modules, '@actql/node/index.mjs'), 'export function connect() {throw new Error("NoHostInMechanism");}\n');
+  await writeFile(join(f.modules, '@actql/local-node/index.mjs'), 'export const createInstalledConnectorTable = entries => ({entries});\n');
+  await writeFile(join(f.modules, '@actql/sdk/index.mjs'), 'export function getSubmissionInput() {}\n');
+  await writeFile(join(f.modules, '@actql-connectors/acme/index.mjs'),
+    'export const installedConnectors = [{source:{async load(){return {check(){},identityParts(){},load(){},publish(){}};}}}];\n');
+  const loaded = await loadExternalRestModules({consumerRoot: f.consumerRoot,
+    connectorPackage: '@actql-connectors/acme'});
+  assert.deepEqual(loaded.loadedInstallationExports, ['check', 'identityParts', 'load', 'publish']);
+  assert.equal(loaded.connectorTable.entries.length, 1);
 });
 
 test('REST ordinary preflight refuses a symlinked module root before any product import', async t => {

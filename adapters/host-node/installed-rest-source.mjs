@@ -59,30 +59,18 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     const {declaration, declared, environment} = prepare();
     const policy = services('sourceReaderImplementationProfile', {installation, sourceInitialization,
       metadataResponses: 0, originUnits: original.origin.length});
-    // Select the original authored bounds under the same Host policy. A
-    // reader selects one resource, so its aggregate is the largest product
-    // from a single resource, not a product of unrelated resource maxima.
-    if (!Number.isSafeInteger(policy.maxTotalResponseBytes) || policy.maxTotalResponseBytes <= 0) {
-      fail('RestSourceImplementationBoundsExceeded');
-    }
-    const selected = Object.fromEntries(Object.values(bounds).map(name => [name, 0]));
-    let maxTotalResponseBytes = 0;
+    // Author limits constrain this connector's semantics, not its physical
+    // funding. The same selected Host profile must cover them in full.
     for (const source of original.sources) {
       for (const [authorName, hostName] of Object.entries(bounds)) {
         const value = source.limits[authorName];
         if (!Number.isSafeInteger(value) || value <= 0 || value > policy[hostName]) {
           fail('RestSourceImplementationBoundsExceeded');
         }
-        selected[hostName] = Math.max(selected[hostName], value);
       }
-      const total = BigInt(source.limits.maxPages) * BigInt(source.limits.maxPageBytes);
-      if (total > BigInt(policy.maxTotalResponseBytes)) fail('RestSourceImplementationBoundsExceeded');
-      maxTotalResponseBytes = Math.max(maxTotalResponseBytes, Number(total));
     }
-    selected.maxTotalResponseBytes = maxTotalResponseBytes;
     const implementationLimits = Object.freeze(Object.fromEntries(
-      [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name =>
-        [name, Object.hasOwn(selected, name) ? selected[name] : policy[name]])));
+      [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])));
     const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
       columnCount: Math.max(...declared.views.map(view => view.fields.length))});
     const targets = new Map(original.sources.map(source => [source.resource, source]));
@@ -100,7 +88,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     const opened = await services('openRowSite', {installation, sourceInitialization,
       accountConfiguration: input.installed.accountConfigurationWire, connection,
       profile: Object.freeze({...input.site, resourceOrigin: original.origin}), resolveSecret,
-      ca: input.ca,
+      ...(input.ca === undefined ? {} : {ca: input.ca}),
       responseHeaders: [], runAcquisitionLimits: implementation.runAcquisitionLimits,
       admitsApprovalTarget(value, resource) {
         return value !== null && typeof value === 'object' && Array.isArray(value.fields) &&

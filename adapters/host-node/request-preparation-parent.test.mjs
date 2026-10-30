@@ -1294,3 +1294,100 @@ test('captured Request retains the original unclassified module issue and never 
   } finally {await f.failedCleanup();}
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
 });
+
+// Execute the actual four installing facade methods. Managers, currentness
+// and SDK lineage are explicit ports; no admission/Host/normal success is
+// inferred from these plain opaque fixture values.
+async function requestManagerFacadeFixture({source = true, compute = false} = {}) {
+  const {parse} = await import('acorn');
+  const {readFileSync} = await import('node:fs');
+  const sourceText = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(sourceText, {ecmaVersion: 'latest', sourceType: 'module'});
+  const wanted = ['requestPreparation', 'submittedIntentOriginal', 'fundedPreparation', 'borrowManagedPreparation'];
+  let object;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'ObjectExpression' && wanted.every(name =>
+      node.properties.some(property => property.type === 'Property' && property.key?.name === name))) object = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(ast); assert.ok(object);
+  const methods = wanted.map(name => object.properties.find(property => property.key?.name === name));
+  const sourceManager = {}, computeManager = {}, originals = {}, request = {}, originalRequest = {};
+  const environment = {}, prepared = {}, intent = {}, borrow = {};
+  const funded = Object.freeze({kind: 'effectful', prepared, originalInputs: Object.freeze({environment})});
+  const calls = []; let currentFailure, preparationFailure, lineageFailure;
+  for (const [kind, manager] of [['source', sourceManager], ['compute', computeManager]]) {
+    Object.assign(manager, {
+      submittedIntentOriginal(actual) {assert.equal(this, manager); assert.equal(actual, originalRequest); calls.push(kind + '-intent'); return intent;},
+      fundedPreparation(actual, selected) {
+        assert.equal(this, manager); assert.equal(actual, originalRequest); assert.equal(selected, environment);
+        calls.push(kind + '-funded'); if (preparationFailure) throw preparationFailure; return funded;
+      },
+      borrowPreparation(value, actual) {assert.equal(this, manager); assert.equal(value, prepared); assert.equal(actual, originalRequest); calls.push(kind + '-borrow'); return borrow;},
+    });
+  }
+  const validate = (kind, manager) => (actual, bag) => {
+    assert.equal(actual, manager); assert.equal(bag, originals); calls.push(kind + '-current');
+    if (currentFailure) throw currentFailure;
+  };
+  const view = new Function('sourceManaged', 'computeManaged', 'originals',
+    'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
+    'originalSourceManagedHostRequest', 'clientOperationError',
+    `return ({${methods.map(method => sourceText.slice(method.start, method.end)).join(',')}});`)(
+    source ? sourceManager : undefined, compute ? computeManager : undefined, originals,
+    validate('source', sourceManager), validate('compute', computeManager),
+    (bag, actual) => {assert.equal(bag, originals); assert.equal(actual, request); calls.push('original-request'); if (lineageFailure) throw lineageFailure; return originalRequest;},
+    code => Object.assign(new Error(code), {code}));
+  return {view, sourceManager, computeManager, request, environment, prepared, funded, intent, borrow, calls,
+    failCurrent(error) {currentFailure = error;}, failPreparation(error) {preparationFailure = error;},
+    failLineage(error) {lineageFailure = error;}};
+}
+
+test('actual Request facade keeps the same selected Source manager through intent funded preparation and borrow', async () => {
+  const f = await requestManagerFacadeFixture();
+  assert.equal(f.view.requestPreparation(), f.sourceManager);
+  assert.equal(f.view.submittedIntentOriginal(f.request), f.intent);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert.equal(f.view.borrowManagedPreparation(f.prepared, f.request), f.borrow);
+  assert.deepEqual(f.calls, ['source-current', 'source-current', 'original-request', 'source-intent',
+    'source-current', 'original-request', 'source-funded', 'source-current', 'original-request', 'source-borrow']);
+});
+
+test('selected Source Request facade retains refusal and precedence without another manager fallback', async () => {
+  const f = await requestManagerFacadeFixture({compute: true});
+  assert.equal(f.view.requestPreparation(), f.sourceManager);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert(!f.calls.some(call => call.startsWith('compute-')));
+  const failure = new Error('same selected Source current refusal'); f.failCurrent(failure);
+  for (const invoke of [() => f.view.submittedIntentOriginal(f.request),
+    () => f.view.fundedPreparation(f.request, f.environment),
+    () => f.view.borrowManagedPreparation(f.prepared, f.request)]) assert.throws(invoke, error => error === failure);
+  assert(!f.calls.some(call => call.startsWith('compute-')));
+  const failed = await requestManagerFacadeFixture({compute: true});
+  const cause = new Error('same Source preparation refusal'); failed.failPreparation(cause);
+  assert.throws(() => failed.view.fundedPreparation(failed.request, failed.environment), error => error === cause);
+  assert(!failed.calls.some(call => call.startsWith('compute-')));
+  const foreign = await requestManagerFacadeFixture({compute: true});
+  const lineage = new Error('same original SDK lineage refusal'); foreign.failLineage(lineage);
+  assert.throws(() => foreign.view.fundedPreparation(foreign.request, foreign.environment), error => error === lineage);
+  assert(!foreign.calls.some(call => call.endsWith('-funded')));
+});
+
+test('Compute-only and absent Request facade keep their existing original selection behavior', async () => {
+  const f = await requestManagerFacadeFixture({source: false, compute: true});
+  assert.equal(f.view.requestPreparation(), f.computeManager);
+  assert.equal(f.view.submittedIntentOriginal(f.request), f.intent);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert.equal(f.view.borrowManagedPreparation(f.prepared, f.request), f.borrow);
+  assert(!f.calls.some(call => call.startsWith('source-')));
+  const absent = await requestManagerFacadeFixture({source: false});
+  assert.throws(() => absent.view.requestPreparation(), {code: 'NodeManagedRunAdmissionUnavailable'});
+  assert.equal(absent.view.submittedIntentOriginal(absent.request), undefined);
+  assert.equal(absent.view.fundedPreparation(absent.request, absent.environment), undefined);
+  assert.equal(absent.view.borrowManagedPreparation(absent.prepared, absent.request), undefined);
+  assert.deepEqual(absent.calls, []);
+});

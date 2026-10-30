@@ -5602,22 +5602,25 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return computeManaged;
     },
     submittedIntentOriginal(request) {
-      const manager = computeManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
-      assertManagedComputeInstallationCurrent(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
     },
     fundedPreparation(request, environment, originalVerifier, signal) {
-      const manager = computeManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
-      assertManagedComputeInstallationCurrent(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
         originalVerifier, signal);
     },
     borrowManagedPreparation(prepared, request) {
-      const manager = computeManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
-      assertManagedComputeInstallationCurrent(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.borrowPreparation?.(prepared, originalSourceManagedHostRequest(originals, request));
     },
     bindManagedSources(runtime, profile) {

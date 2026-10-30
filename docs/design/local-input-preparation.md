@@ -3382,6 +3382,21 @@ do not prevent cleanup. The original delegation, parked-state, bootstrap,
 uncertain-report and physical-stop obligations remain separate. This observation
 neither resets history nor acknowledges a physical child.
 
+### Retained original Row acquisition reads
+
+A Pure captured Plan retains each original Row acquisition, requirement and
+capture capacity before Run adoption. Its shared read entry consumes those same
+originals for both base Row captures and explicitly selected provider captures.
+The optional provider recipe is checked when present; a base Row capture does
+not construct a replacement recipe or repeat acquisition preparation.
+
+Original prepared Program, Request, declaration and occurrence checks precede
+the existing single current boundary. The partial read stays on the same Run;
+post-callback checks reject a replaced Plan or capacity without discarding that
+cleanup duty. This typed tuple supplies no native reader, Account decision,
+physical backing, Model purpose or cleanup acknowledgement. Those obligations
+remain with their original installation and read owners.
+
 
 ## Source-free Tasks publication
 

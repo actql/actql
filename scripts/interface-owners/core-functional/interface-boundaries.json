@@ -8585,7 +8585,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9384,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -27511,7 +27511,7 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "141b9956e552c3073f6296b5a3039085235d4cb8bc1bf39150b97f74d66f9df6",
+      "sha256": "13a6ba2a072a10693aa93e629059ea9854a2d8489989b48f099b8246051c7284",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
@@ -27683,7 +27683,7 @@
     {
       "module": "src/client_local_host/preparation_publication_capture.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c57259374b4cdb6525e35dabc5df0ffdae34c814ee125b8aa99abd1af9cdc8e5",
+      "sha256": "902059d508feff46c261677581ac2889ea309d21de14aaed19c730bdc57980cd",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
@@ -28538,7 +28538,7 @@
     {
       "module": "src/client_local_host/preparation_publication_snapshot.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7c81d30eb31b620028e0b223d29d94d0f2fdb6626271d6aeeb6063e864b30760",
+      "sha256": "af284e952ed87e634958121e6fab517eae4457d49072a4da5c6491ebd24c1b1a",
       "role": "common-semantics",
       "owner": "Existing original publication and preparation-borrow owners",
       "exports": [],
@@ -33812,96 +33812,6 @@
       ]
     },
     {
-      "module": "src/client_local_host/preparation_parameter_source_layout.mbt",
-      "sha256": "464d605785f6583a11d9e92dfe5278834cb92332612471cd591f0a38852ea585",
-      "exports": [],
-      "operations": [
-        {
-          "name": "parameter_source_binding_construction_bytes",
-          "declaration": "parameter_source_binding_construction_bytes ( ) - > ( Int64 , Int64 ) ?"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing original Request and Parameter/Check semantic owners",
-      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "parameter_source_binding_construction_bytes"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
-                "anchor": "test \"one Parameter semantic phase"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Parameter Source"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
       "sha256": "109a882073b00c9e18e0e759d03f9d857c4223e37ef488fb860ef10cb89fc2c6",
       "exports": [],
@@ -37578,7 +37488,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "07a90b027a1aaeb3388e38974f0be86e590baa7dfb3158039077fdaa715911b0",
+      "sha256": "8ef1913fbc6e127cf7bc72d7c14abc36fd49110368eeb69c72ebe8e8d3a71e0f",
       "exports": [],
       "operations": [
         {
@@ -40439,7 +40349,7 @@
     {
       "module": "src/client_local_host/installed_capture_provider_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "141e85188f9f88088efb748810e75a040c9d73ccc8fa4b713871f288e92d4696",
+      "sha256": "763226f9441e87d28e2942ace94a855c84e0919c1eaadee326979b53f42d1d7f",
       "exports": [],
       "operations": [
         {
@@ -40460,7 +40370,7 @@
             "responsibility": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
-                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+                "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
               }
             ],
             "inputsOutputs": [
@@ -40531,6 +40441,14 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
                 "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
+                "anchor": "test \"original base Row read reuses the retained Request Plan without a provider replacement\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
+                "anchor": "test \"original base Row read keeps its partial child when current replaces the Plan capacity\""
               }
             ]
           }
@@ -40565,7 +40483,7 @@
             "responsibility": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
-                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+                "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
               }
             ],
             "inputsOutputs": [
@@ -40730,271 +40648,6 @@
         }
       ],
       "referenceQualification": "Original Source read contract and receipts remain unchanged. New Request captured-module delegate and its underlying captured compilation case are SOURCE/FORMAT ONLY; Core/Node canonical API generation, compiler, external ABI and actual normal caller/backing remain UNEXECUTED."
-    },
-    {
-      "module": "src/program_check/request_policy_subject_preparation.mbt",
-      "responsibilityFacet": "primary",
-      "sha256": "6a773cb29c38dec85fb97b515daa9d2ae4911cbc3fd0fe659213aabe8dd8baff",
-      "role": "common-semantics",
-      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
-      "exports": [],
-      "operations": [
-        {
-          "name": "begin_request_policy_subjects",
-          "declaration": "begin_request_policy_subjects ( original : CheckedProgram , limits : CompileLimits , ) - > RequestPolicySubjectPreparation raise UnitBuildFailure"
-        },
-        {
-          "name": "bind_prepared_request_policy_subject",
-          "declaration": "bind_prepared_request_policy_subject ( prepared : RequestPolicySubjectPreparation , index : Int , policy_cid : String ? , ) - > HostRequestValuePolicyEvidence ? raise UnitBuildFailure"
-        },
-        {
-          "name": "construct_request_policy_subjects",
-          "declaration": "construct_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
-        },
-        {
-          "name": "measure_request_policy_subjects",
-          "declaration": "measure_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
-        },
-        {
-          "name": "request_policy_subject_bindings_complete",
-          "declaration": "request_policy_subject_bindings_complete ( prepared : RequestPolicySubjectPreparation , ) - > Bool"
-        },
-        {
-          "name": "request_policy_subject_count",
-          "declaration": "request_policy_subject_count ( prepared : RequestPolicySubjectPreparation , ) - > Int"
-        },
-        {
-          "name": "request_policy_subject_output_extent",
-          "declaration": "request_policy_subject_output_extent ( prepared : RequestPolicySubjectPreparation , ) - > ( Int64 , Int64 , Int ) raise UnitBuildFailure"
-        },
-        {
-          "name": "request_policy_subject_wire",
-          "declaration": "request_policy_subject_wire ( prepared : RequestPolicySubjectPreparation , index : Int , ) - > String raise UnitBuildFailure"
-        },
-        {
-          "name": "request_policy_subjects_spent_work",
-          "declaration": "request_policy_subjects_spent_work ( prepared : RequestPolicySubjectPreparation , ) - > Int64"
-        },
-        {
-          "name": "retire_request_policy_subjects",
-          "declaration": "retire_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit"
-        }
-      ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "begin_request_policy_subjects",
-            "bind_prepared_request_policy_subject",
-            "construct_request_policy_subjects",
-            "measure_request_policy_subjects",
-            "request_policy_subject_bindings_complete",
-            "request_policy_subject_count",
-            "request_policy_subject_output_extent",
-            "request_policy_subject_wire",
-            "request_policy_subjects_spent_work",
-            "retire_request_policy_subjects"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              },
-              {
-                "path": "src/program_check/request_policy_subject_preparation_wbtest.mbt",
-                "anchor": "test \"request policy subjects preserve the exact legacy logical bound"
-              }
-            ]
-          }
-        }
-      ],
-      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
-    },
-    {
-      "module": "src/client_local_host/preparation_request_policy_subjects.mbt",
-      "responsibilityFacet": "primary",
-      "sha256": "e221e965c60f41602bcf5a834b58c5aa1cfe2d5516395ba4e119f9cd14391ccf",
-      "role": "common-semantics",
-      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
-      "exports": [],
-      "operations": [
-        {
-          "name": "[I]bind_request_computation_policy_subject",
-          "declaration": "[ I ] bind_request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , policy_cid : String ? , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]charge_request_policy_subjects",
-          "declaration": "[ I ] charge_request_policy_subjects ( child : ClientProgramCheckPreparation [ I , Unit ] , before : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]finish_request_computation_policy_subjects",
-          "declaration": "[ I ] finish_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]grow_request_policy_subjects",
-          "declaration": "[ I ] grow_request_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , bytes : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]prepare_request_computation_policy_subjects",
-          "declaration": "[ I ] prepare_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]prepare_request_policy_subjects_owned",
-          "declaration": "[ I ] prepare_request_policy_subjects_owned ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , prelude_bytes : Int64 , inspection : Int , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]request_computation_policy_subject",
-          "declaration": "[ I ] request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
-        },
-        {
-          "name": "[I]request_policy_subject_prelude_bytes",
-          "declaration": "[ I ] request_policy_subject_prelude_bytes ( owner : ClientRequestPreparation [ I ] , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , limits : @ checked . CompileLimits , ) - > ( Int64 , Int ) ?"
-        },
-        {
-          "name": "request_policy_subject_output_bytes",
-          "declaration": "request_policy_subject_output_bytes ( original : @ checked . RequestPolicySubjectPreparation , ) - > Int64 ?"
-        }
-      ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "[I]bind_request_computation_policy_subject",
-            "[I]charge_request_policy_subjects",
-            "[I]finish_request_computation_policy_subjects",
-            "[I]grow_request_policy_subjects",
-            "[I]prepare_request_computation_policy_subjects",
-            "[I]prepare_request_policy_subjects_owned",
-            "[I]request_computation_policy_subject",
-            "[I]request_policy_subject_prelude_bytes",
-            "request_policy_subject_output_bytes"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Same-Request verifier subject lifetime"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_policy_check_js_wbtest.mbt",
-                "anchor": "test \"funded policy subjects"
-              }
-            ]
-          }
-        }
-      ],
-      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
     },
     {
       "module": "src/client_local_host/installed_source_material.mbt",
@@ -45006,6 +44659,271 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/program_check/request_policy_subject_preparation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "6a773cb29c38dec85fb97b515daa9d2ae4911cbc3fd0fe659213aabe8dd8baff",
+      "role": "common-semantics",
+      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_request_policy_subjects",
+          "declaration": "begin_request_policy_subjects ( original : CheckedProgram , limits : CompileLimits , ) - > RequestPolicySubjectPreparation raise UnitBuildFailure"
+        },
+        {
+          "name": "bind_prepared_request_policy_subject",
+          "declaration": "bind_prepared_request_policy_subject ( prepared : RequestPolicySubjectPreparation , index : Int , policy_cid : String ? , ) - > HostRequestValuePolicyEvidence ? raise UnitBuildFailure"
+        },
+        {
+          "name": "construct_request_policy_subjects",
+          "declaration": "construct_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
+        },
+        {
+          "name": "measure_request_policy_subjects",
+          "declaration": "measure_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subject_bindings_complete",
+          "declaration": "request_policy_subject_bindings_complete ( prepared : RequestPolicySubjectPreparation , ) - > Bool"
+        },
+        {
+          "name": "request_policy_subject_count",
+          "declaration": "request_policy_subject_count ( prepared : RequestPolicySubjectPreparation , ) - > Int"
+        },
+        {
+          "name": "request_policy_subject_output_extent",
+          "declaration": "request_policy_subject_output_extent ( prepared : RequestPolicySubjectPreparation , ) - > ( Int64 , Int64 , Int ) raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subject_wire",
+          "declaration": "request_policy_subject_wire ( prepared : RequestPolicySubjectPreparation , index : Int , ) - > String raise UnitBuildFailure"
+        },
+        {
+          "name": "request_policy_subjects_spent_work",
+          "declaration": "request_policy_subjects_spent_work ( prepared : RequestPolicySubjectPreparation , ) - > Int64"
+        },
+        {
+          "name": "retire_request_policy_subjects",
+          "declaration": "retire_request_policy_subjects ( prepared : RequestPolicySubjectPreparation , ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_request_policy_subjects",
+            "bind_prepared_request_policy_subject",
+            "construct_request_policy_subjects",
+            "measure_request_policy_subjects",
+            "request_policy_subject_bindings_complete",
+            "request_policy_subject_count",
+            "request_policy_subject_output_extent",
+            "request_policy_subject_wire",
+            "request_policy_subjects_spent_work",
+            "retire_request_policy_subjects"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "src/program_check/request_policy_subject_preparation_wbtest.mbt",
+                "anchor": "test \"request policy subjects preserve the exact legacy logical bound"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_policy_subjects.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e221e965c60f41602bcf5a834b58c5aa1cfe2d5516395ba4e119f9cd14391ccf",
+      "role": "common-semantics",
+      "owner": "Existing checked Request policy/Source evidence and same-parent preparation owners; staged DATA and original work only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]bind_request_computation_policy_subject",
+          "declaration": "[ I ] bind_request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , policy_cid : String ? , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]charge_request_policy_subjects",
+          "declaration": "[ I ] charge_request_policy_subjects ( child : ClientProgramCheckPreparation [ I , Unit ] , before : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]finish_request_computation_policy_subjects",
+          "declaration": "[ I ] finish_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]grow_request_policy_subjects",
+          "declaration": "[ I ] grow_request_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , bytes : Int64 , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_computation_policy_subjects",
+          "declaration": "[ I ] prepare_request_computation_policy_subjects ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_policy_subjects_owned",
+          "declaration": "[ I ] prepare_request_policy_subjects_owned ( owner : ClientRequestPreparation [ I ] , input : I , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , prelude_bytes : Int64 , inspection : Int , limits : @ checked . CompileLimits , ) - > Result [ Int , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_computation_policy_subject",
+          "declaration": "[ I ] request_computation_policy_subject ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , index : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_policy_subject_prelude_bytes",
+          "declaration": "[ I ] request_policy_subject_prelude_bytes ( owner : ClientRequestPreparation [ I ] , child : ClientProgramCheckPreparation [ I , Unit ] , original : @ checked . CheckedProgram , limits : @ checked . CompileLimits , ) - > ( Int64 , Int ) ?"
+        },
+        {
+          "name": "request_policy_subject_output_bytes",
+          "declaration": "request_policy_subject_output_bytes ( original : @ checked . RequestPolicySubjectPreparation , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]bind_request_computation_policy_subject",
+            "[I]charge_request_policy_subjects",
+            "[I]finish_request_computation_policy_subjects",
+            "[I]grow_request_policy_subjects",
+            "[I]prepare_request_computation_policy_subjects",
+            "[I]prepare_request_policy_subjects_owned",
+            "[I]request_computation_policy_subject",
+            "[I]request_policy_subject_prelude_bytes",
+            "request_policy_subject_output_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-Request verifier subject lifetime"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_policy_check_js_wbtest.mbt",
+                "anchor": "test \"funded policy subjects"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
     }
   ]
 }

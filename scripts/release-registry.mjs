@@ -62,8 +62,8 @@ async function consume(response, maximum, visit, overflow = () => unavailable('R
   return bytes;
 }
 
-async function metadata(url, fetchResponse, requests) {
-  const response = await get(url, fetchResponse);
+async function metadata(url, fetchResponse, requests, request = get) {
+  const response = await request(url, fetchResponse);
   requests.push({url, status: response.status});
   if (response.status === 404) {await discard(response); return {status: 404};}
   if (response.status !== 200) {await discard(response); unavailable(`Registry metadata unavailable: HTTP ${response.status}`);}
@@ -77,15 +77,125 @@ async function metadata(url, fetchResponse, requests) {
 async function artifactBytes(url, artifact, fetchResponse, requests) {
   const response = await get(url, fetchResponse);
   requests.push({url, status: response.status});
+  await artifactBody(response, artifact, requests.at(-1));
+}
+
+async function artifactBody(response, artifact, record) {
   // A missing download after positive metadata is not version absence.
   if (response.status !== 200) {await discard(response); unavailable(`Published artifact unavailable: HTTP ${response.status}`);}
   const sha = createHash('sha256'), sri = createHash('sha512');
   const bytes = await consume(response, artifact.bytes, chunk => {sha.update(chunk); sri.update(chunk);},
     () => conflict(`Occupied artifact exceeds its fixed length: ${artifact.name}/${artifact.file}`));
   const actual = {bytes, sha256: sha.digest('hex'), integrity: `sha512-${sri.digest('base64')}`};
-  Object.assign(requests.at(-1), actual);
+  Object.assign(record, actual);
   for (const field of ['bytes', 'sha256', ...(artifact.ecosystem === 'npm' ? ['integrity'] : [])]) {
     if (actual[field] !== artifact[field]) conflict(`Occupied artifact has different ${field}: ${artifact.name}/${artifact.file}`);
+  }
+}
+
+const githubApi = 'https://api.github.com/repos/actql/actql';
+const githubHeaders = {accept: 'application/vnd.github+json', 'x-github-api-version': '2026-03-10'};
+const positiveId = value => Number.isSafeInteger(value) && value > 0;
+const gitObject = value => value && typeof value.sha === 'string' && /^[a-f0-9]{40}$/u.test(value.sha) && ['commit', 'tag'].includes(value.type);
+
+async function githubGet(url, fetchResponse, accept = githubHeaders.accept) {
+  try {
+    return await fetchResponse(url, {method: 'GET', credentials: 'omit', redirect: 'manual',
+      signal: AbortSignal.timeout(15_000), headers: {...githubHeaders, accept}});
+  } catch {unavailable('Public GitHub GET failed or timed out');}
+}
+
+async function githubMetadata(path, fetchResponse, requests) {
+  const reply = await metadata(`${githubApi}${path}`, fetchResponse, requests, githubGet);
+  // An anonymous 404 cannot rule out an existing draft or private resource.
+  if (reply.status !== 200) unavailable('Public GitHub metadata unavailable; an invisible draft is not absence');
+  return reply.body;
+}
+
+async function githubReleaseContext(fixed, fetchResponse, requests) {
+  const {manifest} = fixed, tag = manifest.release.gitTag;
+  const release = await githubMetadata(`/releases/tags/${encodeURIComponent(tag)}`, fetchResponse, requests);
+  if (!release || !positiveId(release.id) || typeof release.draft !== 'boolean' ||
+      typeof release.immutable !== 'boolean' || typeof release.prerelease !== 'boolean' || typeof release.tag_name !== 'string')
+    unavailable('Incomplete public GitHub release identity');
+  if (release.draft || !release.immutable || release.tag_name !== tag ||
+      release.prerelease !== manifest.release.prerelease)
+    conflict('Occupied GitHub release is draft, mutable or has a different tag/prerelease identity');
+  // target_commitish can be a moving branch. Resolve the actual tag instead.
+  const ref = await githubMetadata(`/git/ref/tags/${encodeURIComponent(tag)}`, fetchResponse, requests);
+  if (ref?.ref !== `refs/tags/${tag}` || !gitObject(ref.object)) unavailable('Exact public Git tag reference unavailable');
+  let object = ref.object;
+  const seen = new Set();
+  for (let count = 0; object.type === 'tag'; count++) {
+    if (count === 8 || seen.has(object.sha)) unavailable('Public annotated tag chain exceeds its finite bound or cycles');
+    seen.add(object.sha);
+    const tagged = await githubMetadata(`/git/tags/${object.sha}`, fetchResponse, requests);
+    if (tagged?.sha !== object.sha || !gitObject(tagged.object)) unavailable('Incomplete public annotated tag object');
+    object = tagged.object;
+  }
+  if (object.sha !== manifest.request.source.commit) conflict('Occupied GitHub release tag resolves to another source commit');
+  const expected = manifest.artifacts.filter(value => value.ecosystem === 'native');
+  if (new Set(expected.map(value => value.file)).size !== expected.length)
+    conflict('Selected standalone assets have duplicate names in the one GitHub release');
+  const assets = [], ids = new Set(), names = new Set();
+  for (let page = 1; ; page++) {
+    if (page > 10) unavailable('Public GitHub asset inventory exceeds its finite page bound');
+    const batch = await githubMetadata(`/releases/${release.id}/assets?per_page=100&page=${page}`, fetchResponse, requests);
+    if (!Array.isArray(batch) || batch.length > 100) unavailable('Malformed public GitHub asset page');
+    for (const item of batch) {
+      if (!item || !positiveId(item.id) || typeof item.name !== 'string' || names.has(item.name) || ids.has(item.id))
+        unavailable('Malformed or duplicate public GitHub asset identity');
+      names.add(item.name); ids.add(item.id); assets.push(item);
+    }
+    if (batch.length < 100) break;
+  }
+  for (const item of assets) {
+    const artifact = expected.find(value => value.file === item.name);
+    if (!artifact) conflict(`Occupied GitHub release contains an unselected asset: ${item.name}`);
+    if (item.state !== 'uploaded' || item.size !== artifact.bytes ||
+        (item.digest !== undefined && item.digest !== null && item.digest !== `sha256:${artifact.sha256}`))
+      conflict(`Occupied GitHub asset metadata differs: ${item.name}`);
+    if (item.browser_download_url !== `https://github.com/actql/actql/releases/download/${tag}/${encodeURIComponent(item.name)}`)
+      unavailable('Public GitHub asset download identity is outside the selected release');
+  }
+  if (assets.length !== expected.length)
+    conflict('An immutable public GitHub release is missing a selected asset; it cannot be appended to');
+  return assets;
+}
+
+function githubCdnUrl(value) {
+  if (typeof value !== 'string' || value !== value.trim() || /[\u0000-\u0020\u007f]/u.test(value))
+    unavailable('Malformed GitHub asset redirect');
+  let url;
+  try {url = new URL(value);} catch {unavailable('Malformed GitHub asset redirect URL');}
+  if (!['https://release-assets.githubusercontent.com', 'https://objects.githubusercontent.com'].includes(url.origin) ||
+      url.username || url.password || url.hash) unavailable('GitHub asset redirect is outside the selected public CDN origins');
+  return url;
+}
+
+async function githubArtifactBytes(item, artifact, fetchResponse, requests) {
+  let url = `${githubApi}/releases/assets/${item.id}`;
+  const seen = new Set();
+  for (let redirects = 0; ; redirects++) {
+    if (redirects > 3 || seen.has(url)) unavailable('Public GitHub asset redirect limit or cycle');
+    seen.add(url);
+    let response;
+    if (redirects === 0) response = await githubGet(url, fetchResponse, 'application/octet-stream');
+    else {
+      try {response = await fetchResponse(url, {method: 'GET', credentials: 'omit', redirect: 'manual',
+        signal: AbortSignal.timeout(15_000), headers: {accept: 'application/octet-stream'}});}
+      catch {unavailable('Public GitHub asset CDN GET failed or timed out');}
+    }
+    // Signed CDN queries are needed for the GET but never retained in a receipt.
+    const observed = new URL(url);
+    requests.push({url: `${observed.origin}${observed.pathname}`, status: response.status});
+    if (response.status === 302) {
+      const next = response.headers.get('location'); await discard(response);
+      url = githubCdnUrl(next).href;
+    } else {
+      await artifactBody(response, artifact, requests.at(-1));
+      return;
+    }
   }
 }
 
@@ -144,6 +254,7 @@ export async function observeReleaseSet(directory, expectedSha256, {fetchRespons
   assert.match(expectedSha256, /^[a-f0-9]{64}$/u, 'Supply the externally retained fixed manifest digest');
   const fixed = await verifyReleaseSet(directory, {expectedSha256});
   const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
+  let nativeContext;
   for (const artifact of fixed.manifest.artifacts) {
     const base = fields(artifact, ['targetId', 'file']);
     try {
@@ -152,7 +263,12 @@ export async function observeReleaseSet(directory, expectedSha256, {fetchRespons
       else if (artifact.ecosystem === 'pypi') state = await pypiObservation(artifact,
         fixed.manifest.artifacts.filter(value => value.ecosystem === 'pypi' &&
           normalizedName(value.name) === normalizedName(artifact.name) && value.version === artifact.version), fetchResponse, requests);
-      else unavailable('No selected existing standalone Native observation route');
+      else {
+        nativeContext ??= githubReleaseContext(fixed, fetchResponse, requests);
+        const assets = await nativeContext;
+        await githubArtifactBytes(assets.find(value => value.name === artifact.file), artifact, fetchResponse, requests);
+        state = 'present';
+      }
       observations.push({...base, state, ...(state === 'present' ? {identity: identity(artifact)} : {})});
     } catch (failure) {
       if (!(failure instanceof RegistryUnavailable || failure instanceof RegistryConflict)) throw failure;
