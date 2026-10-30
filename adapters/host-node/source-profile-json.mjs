@@ -23,12 +23,19 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
   if (reader === null || typeof reader !== 'object' || Array.isArray(reader) || types.isProxy(reader)) refuse();
   const json = Object.getOwnPropertyDescriptor(reader, 'readJson');
   const text = Object.getOwnPropertyDescriptor(reader, 'readText');
+  const originalText = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
   if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
-      !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function') refuse();
-  // Retain both original methods and their receiver before the first read awaits.
+      !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function' ||
+      originalText !== undefined && (!Object.hasOwn(originalText, 'value') ||
+        typeof originalText.value !== 'function')) refuse();
+  // Capture the initializer's optional actual-FD text method before any read awaits.
+  // Its absence cannot substitute a bounded reader or manufacture a byte ceiling.
   return Object.freeze({
     readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
     readText: (...args) => Reflect.apply(text.value, reader, args),
+    ...(originalText === undefined ? {} : {
+      readOriginalText: (...args) => Reflect.apply(originalText.value, reader, args),
+    }),
   });
 }
 
