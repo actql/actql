@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {isAbsolute} from 'node:path';
 import {types as nodeTypes} from 'node:util';
 import test from 'node:test';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 
 // Exercise the complete existing Site constructor with explicit metadata,
 // Journal and Source-reader ports; no Common/Account/physical I/O is selected.
@@ -94,4 +95,77 @@ test('metadata refuses a supplied invalid reader before its await and retains th
   }});
   assert.equal(await f.open(options(undefined)), f.site);
   assert.deepEqual(f.counts(), {nativeReads: 1, attached: 1});
+});
+
+function failedConstruction({pem = key, current = () => {}, custody = () => {},
+  close = () => {}} = {}) {
+  let closes = 0, custodyCalls = 0, retired = false;
+  const metadata = {privateKeyPath: '/original/issuer.pem', maxIssuerKeyBytes: 4096,
+    assertInitializingCurrent: current, close() {
+      assert.equal(this, metadata);
+      closes++;
+      close();
+      retired = true;
+    }, attach() {assert.fail('Failed construction cannot attach a Site');}};
+  const open = new Function('nodeTypes', 'isAbsolute', 'text', 'fail',
+    'ownCredentialSecretPresentation', 'ownCredentialAcquisitionLimits',
+    'prepareInstallationMetadataSite', 'readBoundedConfigurationText', 'createPrivateKey',
+    'retainInstalledHostInitializationFailure', 'openRowSourceCredentialCustody',
+    'openSqliteCredentialJournal', 'openHttpsCredentialBinding',
+    `${body}\nreturn openRowSourceCredentialSite;`)(
+    nodeTypes, isAbsolute, value => typeof value === 'string' && value.length > 0, fail,
+    () => undefined, () => undefined, async () => metadata,
+    () => assert.fail('Supplied Source reader must own this original read'), createPrivateKey,
+    retainInstalledHostInitializationFailure, () => {custodyCalls++; return custody();},
+    () => assert.fail('No independent Journal open'), () => assert.fail('No binding open'));
+  const reader = {readText(path, bounds) {
+    assert.equal(this, reader); assert.equal(path, metadata.privateKeyPath);
+    assert.deepEqual(bounds, {maxBytes: metadata.maxIssuerKeyBytes});
+    return pem;
+  }};
+  return {open: () => open(options(reader)), counts: () => ({closes, custodyCalls, retired})};
+}
+
+test('metadata wrong issuer type retires its same original view through existing initialization cleanup', async () => {
+  const pem = generateKeyPairSync('ec', {namedCurve: 'P-256'}).privateKey
+    .export({type: 'pkcs8', format: 'pem'});
+  const f = failedConstruction({pem});
+  let failure;
+  await assert.rejects(f.open(), cause => {failure = cause; return true;});
+  assert.deepEqual(f.counts(), {closes: 1, custodyCalls: 0, retired: true});
+  assert.equal(failure.primaryFailure.code, 'InvalidRowSourceCredentialSite');
+  assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+test('metadata current failure retains the same view for its original pending cleanup retry', async () => {
+  const original = new Error('OriginalMetadataCurrentRefused');
+  const pending = new Error('OriginalViewCleanupPending');
+  let ready = false;
+  const f = failedConstruction({current() {throw original;}, close() {if (!ready) throw pending;}});
+  let failure;
+  await assert.rejects(f.open(), cause => {failure = cause; return true;});
+  assert.equal(failure.primaryFailure, original);
+  assert.deepEqual(f.counts(), {closes: 1, custodyCalls: 0, retired: false});
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  ready = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(f.counts(), {closes: 2, custodyCalls: 0, retired: true});
+  assert.equal(failure.primaryFailure, original);
+});
+
+test('metadata custody construction failure joins the original child before retiring its view', async () => {
+  const original = new Error('OriginalCustodyConstructionFailed');
+  let pending = true, retries = 0;
+  original.cleanupHandle = Object.freeze({status: () => ({pending}), async retry() {retries++; return {pending};}});
+  const f = failedConstruction({custody() {throw original;}});
+  let failure;
+  await assert.rejects(f.open(), cause => {failure = cause; return true;});
+  assert.equal(failure.primaryFailure, original);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.deepEqual(f.counts(), {closes: 0, custodyCalls: 1, retired: false});
+  pending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(f.counts(), {closes: 1, custodyCalls: 1, retired: true});
+  assert.equal(retries, 2);
+  assert.equal(failure.primaryFailure, original);
 });
