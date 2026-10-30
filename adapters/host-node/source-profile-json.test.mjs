@@ -173,3 +173,45 @@ test('configuration reader selection refuses proxies accessors and incomplete or
   assert.throws(() => captureConfigurationReaders(undefined, 1, reject), cause => cause === error);
   assert.throws(() => captureConfigurationReaders({}, undefined, () => {}), TypeError);
 });
+
+test('configuration reader selection retains the original-text method across an awaited JSON read', async () => {
+  let release, reads = 0;
+  const pending = new Promise(resolve => {release = resolve;});
+  const exact = '\ufefforiginal CA\r\ntrailing space \n';
+  const cleanupHandle = Object.freeze({status: () => ({pending: true})});
+  const failure = Object.assign(new Error('same original text cleanup'),
+    {cleanupHandle, cleanupPending: true});
+  const reader = {
+    readJson(path) {assert.equal(this, reader); assert.equal(path, '/site.json'); return pending;},
+    readText() {assert.fail('A bounded text read cannot substitute for the original FD extent');},
+    readOriginalText(path) {
+      assert.equal(this, reader); assert.equal(path, '/ca.pem'); assert.equal(arguments.length, 1);
+      reads++;
+      if (reads === 2) throw failure;
+      return exact;
+    },
+  };
+  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original'));
+  const loading = selected.readJson('/site.json');
+  reader.readOriginalText = () => assert.fail('The method must be captured before the JSON await');
+  release({site: true}); await loading;
+  assert.equal(selected.readOriginalText('/ca.pem'), exact);
+  assert.throws(() => selected.readOriginalText('/ca.pem'), error => error === failure &&
+    error.cleanupHandle === cleanupHandle);
+  assert.equal(reads, 2); assert(Object.isFrozen(selected));
+});
+
+test('configuration reader selection refuses malformed original-text ports without fallback', () => {
+  const failure = new Error('connector-specific original-text refusal');
+  const refuse = () => {throw failure;};
+  for (const descriptor of [{get() {assert.fail('An original-text getter cannot be invoked');}},
+    {value: undefined}, {value: 1}]) {
+    const reader = {readJson() {assert.fail('read');}, readText() {assert.fail('fallback');}};
+    Object.defineProperty(reader, 'readOriginalText', descriptor);
+    assert.throws(() => captureConfigurationReaders(reader, undefined, refuse), error => error === failure);
+  }
+  const reader = Object.create({get readOriginalText() {assert.fail('Inherited methods are not originals');}});
+  Object.assign(reader, {readJson() {}, readText() {}});
+  assert.equal(Object.hasOwn(captureConfigurationReaders(reader, undefined, refuse), 'readOriginalText'), false);
+  assert.equal(Object.hasOwn(captureConfigurationReaders(undefined, undefined, refuse), 'readOriginalText'), false);
+});

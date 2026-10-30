@@ -63685,7 +63685,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f157b39cb13400f84b49645fb60d814a6d4c31c71a836bbb1bd354591ac5bb81",
+      "sha256": "02891cc441d8acae6109a2f3a74535a53c3f63a0327902411a8b079ebcdbc736",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -63719,6 +63719,13 @@
         },
         {
           "name": "captureConfigurationReaders/captureConfigurationReaders#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#3",
           "parameters": [
             "args"
           ],
@@ -64405,6 +64412,7 @@
             "captureConfigurationReaders",
             "captureConfigurationReaders/captureConfigurationReaders",
             "captureConfigurationReaders/captureConfigurationReaders#2",
+            "captureConfigurationReaders/captureConfigurationReaders#3",
             "captureConfigurationReaders/refuse/refuse"
           ],
           "exports": [
@@ -64513,6 +64521,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.test.mjs",
                 "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection retains the original-text method across an awaited JSON read'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses malformed original-text ports without fallback'"
               }
             ]
           }
@@ -88291,7 +88307,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "// Retain both original methods and their receiver before the first read awaits."
+                "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
                 "path": "adapters/host-node/rest-source-metadata.test.mjs",
