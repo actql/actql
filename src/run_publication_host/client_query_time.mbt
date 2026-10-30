@@ -101,8 +101,15 @@ fn prepare_client_query_time_sample(
     is Some(sample) else {
     return Err(InvalidSample)
   }
-  Ok({ owner, request, created_at, sample,
-    _observed_query_compilation: None, definition: None, context: None, })
+  Ok({
+    owner,
+    request,
+    created_at,
+    sample,
+    _observed_query_compilation: None,
+    definition: None,
+    context: None,
+  })
 }
 
 ///|
@@ -176,7 +183,9 @@ pub fn client_query_time_preparation_context_for_run(
     physical_equal(bound_definition, definition) &&
     preparation.context is Some(original) &&
     @publication.query_evaluation_time_matches(
-      original, compilation.admission, definition,
+      original,
+      compilation.admission,
+      definition,
     ) else {
     return Err(ForeignRun)
   }
@@ -198,8 +207,13 @@ pub fn client_query_time_preparation_invocation(
   guard preparation._observed_query_compilation is Some(compiled) &&
     preparation.definition is Some(definition) &&
     client_query_time_preparation_context_for_run(
-      preparation, owner, compiled, definition, preparation.request,
-    ) is Ok(_) else {
+      preparation,
+      owner,
+      compiled,
+      definition,
+      preparation.request,
+    )
+    is Ok(_) else {
     return None
   }
   Some((preparation, preparation.request, compiled, definition))

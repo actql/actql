@@ -118,17 +118,21 @@ pub fn installed_managed_run_invocation_original(
   @publication_host.ClientCompiledRun,
   @publication.PublicationContract,
 )? {
-  guard installed_managed_run_compilation_original(run, prepared) is Some(artifact) else {
+  guard installed_managed_run_compilation_original(run, prepared)
+    is Some(artifact) else {
     return None
   }
   let time = match run.captured_preparation {
     Some(plan) => plan._observed_query_time
-    None => run.source_free_preparation.bind(plan => {
-      plan._observed_query_time.map(original => original.0)
-    })
+    None =>
+      run.source_free_preparation.bind(plan => {
+        plan._observed_query_time.map(original => original.0)
+      })
   }
   guard time is Some(time) else { return None }
-  let invocation = @publication_host.client_query_time_preparation_invocation(time, prepared)
+  let invocation = @publication_host.client_query_time_preparation_invocation(
+    time, prepared,
+  )
   guard invocation is Some((_, request, compiled, _)) &&
     physical_equal(request, run.request) &&
     @publication_host.client_compiled_run_matches_pure_compilation(

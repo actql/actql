@@ -238,30 +238,50 @@ pub fn[I] prepare_request_program_compilation(
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
   retained_output~ : Bool,
-  provider_factory~ : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
-) -> Result[@publication_host.ClientRunCompilation, ClientRequestProgramPlanIssue] {
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[
+  @publication_host.ClientRunCompilation,
+  ClientRequestProgramPlanIssue,
+] {
   if owner.program_compilation is Some(_) {
     return Err(Preparation(WrongPhase))
   }
-  let prepared = match retain_request_program_module_inputs(
-    owner, input, contracts, None, manifests~, compilation_limits~,
-    retained_output~, provider_factory~,
-  ) {
+  let prepared = match
+    retain_request_program_module_inputs(
+      owner,
+      input,
+      contracts,
+      None,
+      manifests~,
+      compilation_limits~,
+      retained_output~,
+      provider_factory~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
   owner.phase = Selecting
   preparation_module_call(
     () => {
-      match @publication_host.bind_prepared_client_compiler_contracts(
-        prepared, contracts.original.value.ordered_contract,
-      ) {
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          contracts.original.value.ordered_contract,
+        ) {
         Err(_) => return Err(Preparation(ForeignOriginal))
         Ok(_) => ()
       }
-      match prepare_request_compilation_owned(
-        owner, input, prepared, manifests, compilation_limits, None,
-      ) {
+      match
+        prepare_request_compilation_owned(
+          owner,
+          input,
+          prepared,
+          manifests,
+          compilation_limits,
+          None,
+        ) {
         Err(issue) => Err(issue)
         Ok(artifact) => {
           owner.phase = ProgramPlanReserved
@@ -360,7 +380,10 @@ fn[I] retain_request_program_module_inputs(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
-) -> Result[@publication_host.PreparedClientProgram, ClientRequestProgramPlanIssue] {
+) -> Result[
+  @publication_host.PreparedClientProgram,
+  ClientRequestProgramPlanIssue,
+] {
   if owner.program_model is Some(_) ||
     owner.program_body_attempted ||
     owner.program_artifact_work is Some(_) ||
@@ -448,10 +471,17 @@ fn[I] prepare_request_program_module_body_owned(
     @publication.PublicationContract,
   )? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
-  let prepared = match retain_request_program_module_inputs(
-    owner, input, contracts, captured, manifests~, compilation_limits~,
-    retained_output~, provider_factory~,
-  ) {
+  let prepared = match
+    retain_request_program_module_inputs(
+      owner,
+      input,
+      contracts,
+      captured,
+      manifests~,
+      compilation_limits~,
+      retained_output~,
+      provider_factory~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -472,14 +502,17 @@ fn[I] prepare_request_program_module_body_owned(
             return Err(Preparation(ForeignOriginal))
           }
           if captured is Some(plan) &&
-            (!physical_equal(plan.request, request) ||
+            (
+              !physical_equal(plan.request, request) ||
               !(plan._observed_query_time is Some(selected) &&
-                physical_equal(selected, original))) {
+              physical_equal(selected, original))
+            ) {
             return Err(Preparation(ForeignOriginal))
           }
-          match @publication_host.client_query_time_preparation_context_for_run(
-            original, prepared, compiled, definition, request,
-          ) {
+          match
+            @publication_host.client_query_time_preparation_context_for_run(
+              original, prepared, compiled, definition, request,
+            ) {
             Err(issue) => return Err(QueryTime(issue))
             Ok(_) => ()
           }
@@ -495,9 +528,11 @@ fn[I] prepare_request_program_module_body_owned(
       // Forward the exact already-admitted immutable catalogue before any
       // module callback, measurement or retained compiler emission exists.
       if owner.program_compilation is None {
-        match @publication_host.bind_prepared_client_compiler_contracts(
-          prepared, installed.value.ordered_contract,
-        ) {
+        match
+          @publication_host.bind_prepared_client_compiler_contracts(
+            prepared,
+            installed.value.ordered_contract,
+          ) {
           Err(_) => return Err(Preparation(ForeignOriginal))
           Ok(_) => ()
         }
