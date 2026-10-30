@@ -179,20 +179,9 @@ fn borrow_installed_effect_operation_original(
   if retained <= 0L || execution <= 0L {
     return Err(InsufficientCapacity)
   }
-  // Retain the original control token before the next fallible operation
-  // reservation. Failed construction cannot silently discard this live debit.
-  if owner.effect_operation_controls is None {
-    let capacity = plan.operation_control_capacity
-    let control = match
-      @resources.reserve_capacity(
-        ledger,
-        @execution.execution_capacity_retained_bytes(capacity),
-        @execution.execution_capacity_execution_bytes(capacity),
-      ) {
-      Ok(original) => original
-      Err(issue) => return Err(Ledger(issue))
-    }
-    owner.effect_operation_controls = Some(control)
+  match ensure_installed_effect_operation_controls(owner, ledger, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let backing : ClientEffectOperationBacking = if extent.physical_attempt {
     match
@@ -343,4 +332,66 @@ pub fn retire_installed_effect_operation(
       Ok(true)
     }
   }
+}
+
+///|
+fn ensure_installed_effect_operation_controls(
+  owner : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.effect_operation_controls is Some(_) {
+    return Ok(())
+  }
+  let capacity = plan.operation_control_capacity
+  let original = match
+    @resources.reserve_capacity(
+      ledger,
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    ) {
+    Ok(original) => original
+    Err(issue) => return Err(Ledger(issue))
+  }
+  owner.effect_operation_controls = Some(original)
+  Ok(())
+}
+
+///|
+/// Debit the original Plan's already quoted management controls BEFORE the
+/// Node consumer constructs its variable capture/child inventory. This is a
+/// reservation on the same admitted Run, never another quote/Root/admission.
+/// Direct original borrowers retain the same idempotent reserve fallback.
+pub fn begin_installed_effect_operation_controls(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_closing {
+    return Err(Retired)
+  }
+  if owner.effect_operation_opening {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  let result = match
+    installed_effect_managed_operation_plan(owner, prepared, request) {
+    Err(issue) => Err(issue)
+    Ok(plan) =>
+      if !physical_equal(plan, expected_plan) {
+        Err(ForeignOriginal)
+      } else {
+        match owner.ledger {
+          None => Err(ForeignOriginal)
+          Some(ledger) =>
+            ensure_installed_effect_operation_controls(owner, ledger, plan)
+        }
+      }
+  }
+  owner.effect_operation_opening = false
+  result
 }

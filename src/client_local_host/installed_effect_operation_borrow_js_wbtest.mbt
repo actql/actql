@@ -364,3 +364,68 @@ test "Effect cleanup refuses a copied operation view before and after original r
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "original Effect controls are debited once before the consumer borrows a body" {
+  let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
+  let before = @resources.ledger_usage(ledger)
+  let copy : ClientInstalledEffectManagedPlan = { ..plan, }
+  assert_true(
+    begin_installed_effect_operation_controls(owner, prepared, request, copy)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  let original = owner.effect_operation_controls.unwrap()
+  let debited = @resources.ledger_usage(ledger)
+  assert_eq(
+    debited.reserved_retention_bytes,
+    before.reserved_retention_bytes +
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(original, owner.effect_operation_controls.unwrap()),
+  )
+  assert_eq(@resources.ledger_usage(ledger), debited)
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_true(
+    physical_equal(original, owner.effect_operation_controls.unwrap()),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    debited.reserved_retention_bytes + 50L,
+  )
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "one-short Effect controls refuse before any operation view is constructed" {
+  let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
+  let before = @resources.ledger_usage(ledger)
+  let controls = @execution.execution_capacity_retained_bytes(
+    plan.operation_control_capacity,
+  )
+  // Unused-capacity accounting fixture, not an actual allocated backing body.
+  let bytes = @resources.ledger_limits(ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes -
+    controls +
+    1L
+  assert_true(bytes > 0L)
+  let pressure = @resources.reserve_capacity(ledger, bytes, 0L).unwrap()
+  assert_true(
+    begin_installed_effect_operation_controls(owner, prepared, request, plan)
+    is Err(Ledger(@resources.RetentionLimit)),
+  )
+  assert_true(owner.effect_operation_controls is None)
+  assert_eq(owner.effect_operations.length(), 0)
+  assert_false(owner.effect_operation_opening)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}

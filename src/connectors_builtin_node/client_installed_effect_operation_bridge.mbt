@@ -111,3 +111,16 @@ pub fn client_program_installed_effect_operation_extent_transfer(
 ) -> Int64 {
   @client_local_host.installed_effect_operation_extent_transfer(original)
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlsBegin")
+pub fn client_program_installed_effect_operation_controls_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_controls(
+    owner, prepared, request, plan,
+  )
+}
