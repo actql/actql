@@ -315,3 +315,27 @@ test "Calendar free busy applies complete response cell and projection budgets i
   )
   assert_true(calendar_free_busy_schema_wire(1, 64, 8) is Err(BudgetExceeded))
 }
+
+///|
+test "Calendar free busy preserves canonical submillisecond Request bounds without a clock projection" {
+  for
+    (start, end) in [
+      ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0002Z"),
+      ("1969-12-31T23:59:59.999999999Z", "1970-01-01T00:00:00.000Z"),
+    ] {
+    let query = prepare_calendar_free_busy_query(
+      ["original@example.test"],
+      start,
+      end,
+      free_busy_limits(),
+    ).unwrap()
+    assert_eq(
+      calendar_free_busy_request_wire(query),
+      "{\"timeMin\":\"" +
+      start +
+      "\",\"timeMax\":\"" +
+      end +
+      "\",\"timeZone\":\"UTC\",\"calendarExpansionMax\":1,\"items\":[{\"id\":\"original@example.test\"}]}",
+    )
+  }
+}
