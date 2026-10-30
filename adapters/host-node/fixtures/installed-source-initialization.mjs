@@ -1,8 +1,13 @@
 // Actual initial Resource/service entrance for installed-provider components.
 // This is not the public Host installation/current or Request-borrow route.
 import assert from 'node:assert/strict';
-import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/request-preparation-adapter.mjs';
+// A retained external Common uses its own relative CJS resource issuer. The
+// component must select that SAME original adapter, without copying a module
+// or rebinding Common's FFI to a new namespace. Normal local execution uses
+// the default adjacent adapter and runtime together.
+const {openHostInitializationPreparation, closeHostInitializationPreparation} =
+  await import(process.env.ACTQL_TEST_PREPARATION_ADAPTER_URL ??
+    new URL('../../local-node/request-preparation-adapter.mjs', import.meta.url).href);
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   installedSourceConfigurationReader, beginInstalledSourceInitialization,
   finishInstalledSourceInitialization, retireInstalledSourceInitialization}
