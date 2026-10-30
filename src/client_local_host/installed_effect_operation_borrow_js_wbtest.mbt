@@ -29,13 +29,19 @@ test "Effect operation reserves original occurrence before construction and reta
     owner, prepared, request, plan, 0, true, 2, 0, "operation",
   ).unwrap()
   let reserved = @resources.ledger_usage(ledger)
+  let control_retained = @execution.execution_capacity_retained_bytes(
+    plan.operation_control_capacity,
+  )
+  let control_execution = @execution.execution_capacity_execution_bytes(
+    plan.operation_control_capacity,
+  )
   assert_eq(
     reserved.reserved_retention_bytes,
-    before.reserved_retention_bytes + 50L,
+    before.reserved_retention_bytes + control_retained + 50L,
   )
   assert_eq(
     reserved.reserved_execution_bytes,
-    before.reserved_execution_bytes + 70L,
+    before.reserved_execution_bytes + control_execution + 70L,
   )
   assert_eq(reserved.reserved_attempts, before.reserved_attempts)
   assert_true(start_installed_effect_operation(operation) is Err(Unsupported))
@@ -46,7 +52,7 @@ test "Effect operation reserves original occurrence before construction and reta
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
-    before.reserved_retention_bytes,
+    before.reserved_retention_bytes + control_retained,
   )
   assert_true(
     borrow_installed_effect_operation(
@@ -312,7 +318,8 @@ test "Effect spent occurrence controls stay debited on the same Ledger until Run
   let held = @resources.ledger_usage(ledger)
   assert_eq(held.live_reservations, before.live_reservations + 2)
   assert_true(
-    held.reserved_retention_bytes > before.reserved_retention_bytes + 50L,
+    held.reserved_retention_bytes >
+    before.reserved_retention_bytes + control_retained + 50L,
   )
   assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
   let closed_child = @resources.ledger_usage(ledger)

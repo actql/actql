@@ -105,6 +105,7 @@ struct ClientInstalledEffectManagedPlan {
   configuration : ClientPreparedLocalConfiguration
   rows : Int
   held_children : Int
+  operation_control_capacity : @execution.ExecutionCapacity
   _observed_compute_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
 }
@@ -401,7 +402,8 @@ pub fn prepare_installed_effect_managed_plan(
   let owner_slots = closed_values_append_capacity(workspace.owners).unwrap()
   let row_slots = closed_values_append_capacity(workspace.rows).unwrap()
   let input_slots = closed_values_append_capacity(workspace.input_rows).unwrap()
-  // Fixed retained controls: Plan(1H,19R,4W), six Array wrappers/backings
+  // Fixed retained controls: Plan(1H,20R,4W) and its operation-control
+  // capacity(1H,0R,2W), six Array wrappers/backings
   // (12H,6R,6W), two LedgerLimits(2H,0R,12W), source-free Some(1H,1R,1W).
   // Operations/declarations are exact copies; transport arrays own scalar
   // slots; acquisitions are appended with pinned spare capacity. Per selected
@@ -419,13 +421,13 @@ pub fn prepare_installed_effect_managed_plan(
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
   let controls = @execution.preparation_representation_cost({
-    record_headers: 16L +
+    record_headers: 17L +
     5L * members +
     sources +
     time_holder +
     3L * model_holder +
     3L * provider_sources.to_int64(),
-    reference_slots: 26L +
+    reference_slots: 27L +
     members +
     sources +
     2L * acquisition_slots +
@@ -435,7 +437,7 @@ pub fn prepare_installed_effect_managed_plan(
     time_holder +
     9L * model_holder +
     7L * provider_sources.to_int64(),
-    scalar_words: 24L -
+    scalar_words: 26L -
     model_holder +
     5L * sources +
     4L * members +
@@ -483,12 +485,28 @@ pub fn prepare_installed_effect_managed_plan(
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)
   }
+  let operation_control_capacity = match
+    installed_effect_operation_control_capacity(held_children.to_int()) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
+  let control_retained = @execution.execution_capacity_retained_bytes(
+    operation_control_capacity,
+  )
+  let control_execution = @execution.execution_capacity_execution_bytes(
+    operation_control_capacity,
+  )
+  if retained + controls > 9223372036854775807L - control_retained ||
+    execution + controls + temporary >
+    9223372036854775807L - control_execution {
+    return Err(Unsupported)
+  }
   let limits = {
     ..compute_limits,
     attempts: attempts.to_int(),
     transfer_bytes: transfer,
-    retained_bytes: retained + controls,
-    execution_bytes: execution + controls + temporary,
+    retained_bytes: retained + controls + control_retained,
+    execution_bytes: execution + controls + temporary + control_execution,
   }
   Ok({
     prepared,
@@ -512,6 +530,7 @@ pub fn prepare_installed_effect_managed_plan(
     configuration,
     rows,
     held_children: held_children.to_int(),
+    operation_control_capacity,
     _observed_compute_limits: original_compute_limits,
     limits,
   })

@@ -33,6 +33,8 @@ struct ClientInstalledManagedRun {
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   effect_operations : Array[ClientInstalledEffectOperationBorrow]
   mut effect_operation_opening : Bool
+  mut effect_operation_closing : Bool
+  mut effect_operation_controls : @resources.CapacityReservation?
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -701,6 +703,8 @@ fn new_installed_managed_run_owned(
     keyed_reads: [],
     effect_operations: [],
     effect_operation_opening: false,
+    effect_operation_closing: false,
+    effect_operation_controls: None,
     source_free_preparation: None,
     captured_preparation: None,
     preparation_retirement: None,
@@ -1218,6 +1222,18 @@ pub fn retire_installed_managed_run(
     if !operation.retired {
       return Err(CleanupPending)
     }
+  }
+  // Every original child ACK precedes control retirement. Keep the spent
+  // occurrence fence closed even if later Root retirement remains pending.
+  if !value.effect_operations.is_empty() || value.effect_operation_controls is Some(_) {
+    value.effect_operation_closing = true
+    if value.effect_operation_controls is Some(control) && value.ledger is Some(ledger) {
+      match @resources.settle_capacity(ledger, control) {
+        Ok(_) => value.effect_operation_controls = None
+        Err(issue) => return Err(Ledger(issue))
+      }
+    }
+    value.effect_operations.clear()
   }
   if value.preparation_retirement is Some(original) {
     return match original {

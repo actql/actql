@@ -20,6 +20,54 @@ pub struct ClientInstalledEffectOperationBorrow {
 }
 
 ///|
+// Variable same-Run inventory, not a new Root or provider allowance. The
+// operation token below funds provider bodies; this separate capacity token
+// keeps spent occurrence controls live after those bodies actually retire.
+fn installed_effect_operation_control_capacity(
+  children : Int,
+) -> @execution.ExecutionCapacity? {
+  if children < 0 {
+    return None
+  }
+  guard closed_values_append_capacity(children) is Some(slots) else {
+    return None
+  }
+  let count = children.to_int64()
+  // Per selected occurrence: view(1H,3R,6W), owner/ledger/backing Some
+  // (3H,3R,3W), backing variant(1H,1R,1W), original B Reservation
+  // (1H,5R,8W), observed-quantity tuple(1H,0R,3W), and the pure branch's
+  // CapacityReservation wrapper(1H,1R). Co-count the pure wrapper for every
+  // physical alternative. No quantity/output holders are constructed here.
+  // Shared original control reservation/wrapper/observed tuple/Some adds
+  // (4H,7R,12W); one appended array backing adds (1H,slotsR). The existing
+  // fixed Host/Run prelude and B original-inventory owner are not re-quoted.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 5L + 8L * count,
+    reference_slots: 7L + slots + 13L * count,
+    scalar_words: 12L + 21L * count,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  // A growing backing overlaps its old backing. Price that constructor peak
+  // through the same pinned append capacity, not an arbitrary byte margin.
+  let workspace : @execution.PreparationRepresentationUnits = {
+    record_headers: 1L,
+    reference_slots: slots,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 /// Select the SAME original occurrence before constructor/I/O work. Row index
 /// is checked against the original Plan bound; an equal extent or a spent
 /// occurrence cannot be reissued. Authority still comes from Account/claim.
@@ -39,6 +87,9 @@ pub fn borrow_installed_effect_operation(
 ] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_closing {
+    return Err(Retired)
   }
   if owner.effect_operation_opening {
     return Err(AlreadyBound)
@@ -101,6 +152,20 @@ fn borrow_installed_effect_operation_original(
   // Empty/control-only DATA cannot fund an actual constructor or operation.
   if retained <= 0L || execution <= 0L {
     return Err(InsufficientCapacity)
+  }
+  // Retain the original control token before the next fallible operation
+  // reservation. Failed construction cannot silently discard this live debit.
+  if owner.effect_operation_controls is None {
+    let capacity = plan.operation_control_capacity
+    let control = match @resources.reserve_capacity(
+      ledger,
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    ) {
+      Ok(original) => original
+      Err(issue) => return Err(Ledger(issue))
+    }
+    owner.effect_operation_controls = Some(control)
   }
   let backing : ClientEffectOperationBacking = if extent.physical_attempt {
     match
