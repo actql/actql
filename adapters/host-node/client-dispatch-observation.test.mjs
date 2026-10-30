@@ -430,3 +430,71 @@ test('preparation custody remains borrowed while original cleanup is pending', a
   assert.equal(owner.operation(ref), undefined);
   assert.throws(() => candidate.preparedProgram, /BorrowReleased|Retired/);
 });
+
+// Execute the exact single-Source dispatch call and the actual imported plan
+// adapter. Native/physical ports stop at invocation; this is caller evidence.
+async function singleSourcePublicationPolicyFixture(selectedPolicy) {
+  const {acquiredTaskPublicationPlan}=await import('./local-values-plan.mjs');
+  const calls=[];
+  function select(node) {
+    if (!node||typeof node!=='object') return;
+    if (node.type==='CallExpression'&&node.callee.type==='Identifier'&&
+        node.callee.name==='acquiredTaskPublicationPlan') calls.push(node);
+    for(const value of Object.values(node)){
+      if(Array.isArray(value))for(const child of value)select(child);
+      else if(value&&typeof value==='object')select(value);
+    }
+  }
+  select(ast);assert.equal(calls.length,1,'Select the original single-Source publication call only');
+  const preparedProgram={},compiled={},definition={},nativeCapture={},identity={},logicalInput={},
+    sourceEvidence=Object.freeze({name:'source_evidence',identity:'source-evidence-original'});
+  const readPolicy='sha256:'+'a'.repeat(64),resultPolicy='sha256:'+'b'.repeat(64),
+    sentinel=Error('OriginalInvocationPortBoundary');
+  const capture=Object.freeze({source:()=>nativeCapture});
+  const captured=Object.freeze({capture,identity,logicalInput,
+    checkedSource:Object.freeze({sourceDataPolicyCid:readPolicy})});
+  const held={plan:Object.freeze({compiled,runDefinition:definition})},entry={sourceCapture:captured};
+  const counts={policy:0,owner:0,source:0,invocation:0};
+  const moon={clientProgramPublicationDataPolicyCid(original){
+    assert.equal(original,preparedProgram);counts.policy++;
+    return selectedPolicy===undefined?resultPolicy:selectedPolicy();
+  },clientProgramCapturedSourceMatches(original,source){
+    assert.equal(original,preparedProgram);assert.equal(source,nativeCapture);counts.source++;return true;
+  }};
+  const authorityScopeCid='sha256:'+'c'.repeat(64),captureStartedAt='2026-10-30T00:00:00.000Z',
+    captureCompletedAt='2026-10-30T00:00:01.000Z';
+  const control={checkClientCompiledRunOwner(original,prepared){
+    assert.equal(original,compiled);assert.equal(prepared,preparedProgram);counts.owner++;
+  },issueCheckedClientCompiledInvocation(original,run,fields,_limits,preparation,prepared){
+    counts.invocation++;assert.equal(original,compiled);assert.equal(run,definition);
+    assert.equal(fields.dataPolicyCid,resultPolicy,'Result publication uses the checked Program policy');
+    assert.equal(fields.source.captured,captured);assert.equal(fields.source.sourceEvidence,sourceEvidence);
+    assert.equal(fields.source.captured.checkedSource.sourceDataPolicyCid,readPolicy,
+      'The original Source observation retains its distinct read policy');
+    assert.equal(fields.source.authorityScopeCid,authorityScopeCid);
+    assert.equal(fields.source.captureStartedAt,captureStartedAt);
+    assert.equal(fields.source.captureCompletedAt,captureCompletedAt);
+    assert.equal(preparation,undefined);assert.equal(prepared,preparedProgram);throw sentinel;
+  }};
+  const ports={moon,control,acquiredTaskPublicationPlan,held,preparedProgram,entry,sourceEvidence,
+    authorityScopeCid,captureStartedAt,captureCompletedAt,namespaceId:'explicit-policy-component',
+    submission:{requestId:'original-explicit-request'},storeAuthorityCid:'sha256:'+'d'.repeat(64),
+    now:()=>captureCompletedAt};
+  const run=()=>compileFunction(`return (${source.slice(calls[0].start,calls[0].end)});`,Object.keys(ports))(...Object.values(ports));
+  return {run,counts,sentinel,readPolicy,resultPolicy,captured,sourceEvidence};
+}
+
+test('single Source publication selects checked Result policy and retains original Source policy evidence',async()=>{
+  const f=await singleSourcePublicationPolicyFixture();
+  assert.throws(f.run,error=>error===f.sentinel);
+  assert.deepEqual(f.counts,{policy:1,owner:1,source:1,invocation:1});
+});
+
+test('single Source publication missing or refused checked Result policy never falls back to read policy',async()=>{
+  const missing=await singleSourcePublicationPolicyFixture(()=>undefined);
+  assert.throws(missing.run,{message:'InvalidAcquiredTaskPublication'});
+  assert.deepEqual(missing.counts,{policy:1,owner:1,source:0,invocation:0});
+  const primary=Error('OriginalCheckedPolicyRefusal'),refused=await singleSourcePublicationPolicyFixture(()=>{throw primary;});
+  assert.throws(refused.run,error=>error===primary);
+  assert.deepEqual(refused.counts,{policy:1,owner:0,source:0,invocation:0});
+});
