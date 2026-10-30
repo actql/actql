@@ -662,6 +662,58 @@ this bundle and original fixed set. A future exclusive executor must reobserve
 actual public bytes and channel values under its real authority. No credential,
 2FA, stage approval, channel mutation or workflow is supplied by these commands.
 
+### npm promotion protocol inside the protected executor
+
+`promoteNpmReleaseChannels` in `scripts/publish-package-release.mjs` is the
+existing publisher owner's channel protocol. Its explicit inputs are the
+original fixed directory/SHA256, separate review directory/SHA256, a private
+receipt directory, an exact npm tool version, a protected `runNpm` port and
+the existing public HTTP reader. No default runner or `release.mjs promote`
+mutation route is connected. Callback presence and supplied receipt claims
+do not establish independent approval, actual public-install acceptance,
+publisher permissions or an exclusive writer.
+
+Before calling it, the separately protected executor must accept the actual
+installation evidence and the owner's exact approval of both digests and
+the channel moves. It must retain one exclusive execution across every
+read, command and readback, including other repositories and other writer
+credentials. Repository-scoped concurrency or a prior GET is not registry
+CAS. Completed/revoked authority must not be reused to invoke this protocol.
+These external configuration and acceptance duties remain pending.
+
+The current verified tool branches are npm 11.21 or later in major 11 and
+npm 12.2 or later in major 12, with Node 22.14 or later. npm 12.0/12.1 are
+not accepted merely because their major is larger than 11; an unknown future
+major needs a deliberate tool compatibility check. The actual runner version
+must equal the explicit pin. The protected runner must use its own clean,
+pinned npm configuration and Environment-bound OIDC permissions; credentials
+and ambient workspace/configuration must not come from the candidate.
+[OIDC dist-tag support](https://docs.npmjs.com/adding-dist-tags-to-packages/)
+is separate from stage/direct-publish permission.
+
+The protocol verifies the original review and complete public artifact bytes,
+then checks all selected channels. Each move must still have its original
+explicit prior value or already have the exact destination version. Commands
+run in the fixed artifact dependency order, with explicit package version,
+channel, official registry, scripts disabled and workspace expansion disabled.
+No version, new package, default tag, rebuild, upload or removal is inferred.
+
+Every command has a synced private original intent before send. Full public
+byte and selected-channel fences run before and after each move and finally;
+unrelated selected tags must remain unchanged. Successful stdout/exit alone
+does not confirm a move. A missing/nonzero response or failed readback leaves
+an original Unknown receipt, stops before the next package and never rolls
+back or automatically retries. The runner must settle only when its same
+original child is terminal; observation loss cannot start another command.
+
+A separately authorized same-digest invocation reobserves actual originals;
+it skips a channel already at the exact destination and may execute only the
+remaining original moves whose prior values still match. It does not trust a
+prior success flag or change the approved plan. All attempts stay distinct,
+and original fixed/review files stay unchanged. This is protocol preparation,
+not proof that the real exclusive executor, owner approval, registry settings,
+2FA stage approval, public installation or GitHub Latest is configured.
+
 ## Source and maintenance review
 
 ```sh
