@@ -1212,6 +1212,30 @@ The actual Host retains those existing operation and lifetime duties. Typed
 forwarding alone does not establish a matching compiled package or an executed
 public operation.
 
+## Effect completion report and persistence response
+
+The existing protocol Owner carries the complete opaque final carrier in
+`actql-remote-effect-completion-report/0.1`. It binds the exact carrier bytes
+and their CID to the receiver's original approved resume delivery: Dispatch,
+Checkpoint and review report, Resolution and verified Resolution, resume intent,
+claimant and generation. The report CID covers the canonical outer object.
+The inner String is unchanged, including whitespace and escapes. Borrowed
+original completion inputs alone are not a complete final carrier.
+
+This is transport admission, separate from the receiving Owner's complete
+Common Completion admission and current Site/Run/resume checks. Historical
+delivery DATA cannot renew execution authority. The caller funds the actual
+carrier, UTF-8/hash workspace and encoded/decoded outer overlap under its same
+selected bounds; framing that does not fit refuses without raising those bounds.
+
+`actql-remote-effect-completion-reply/0.1` binds the same report, complete carrier,
+Dispatch, Checkpoint, resume intent and claimant/generation. Accepted means the
+existing receiving Owner has durably confirmed that exact completion through
+its immutable save and Run CAS/readback. A codec cannot establish persistence.
+Unknown save produces no ACK: reconciliation retains this same report without
+repeating the Effect. The response is neither a Checkpoint ACK nor a generic
+completion proof, publication commit, permission renewal or cleanup ACK.
+
 ## Original holder terminal reports
 
 The portable protocol represents an immutable ordered inventory of original

@@ -42,7 +42,8 @@ async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,1
     clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
-    clientProgramBorrowRequestProgramPreparation(){assert.fail('No Prepared borrow selected');},
+    clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
+    clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
   const context=Object.freeze({runtime:moon,preparedEnvironment:{},retainedRelationOutput:false});
@@ -346,7 +347,7 @@ test('normal generic Native Request prepares the original Parameters compiler mo
     assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
     assert.equal(contracts,selectedContract);assert.equal(retained,false);calls.push('module-original');return ok(undefined);
   };
-  moon.clientProgramBorrowRequestProgramPreparation=function(parent){
+  moon.clientProgramBorrowRequestProgramPlanInput=function(parent){
     assert.equal(parent,f.parent);calls.push('borrow-original');return ok(holder);
   };
   moon.clientProgramPreparationBorrowRead=value=>{assert.equal(value,holder);return prepared;};
@@ -373,13 +374,13 @@ test('normal generic Native Request prepares the original Parameters compiler mo
     assert.equal(first.prepared,prepared);assert.equal(second.prepared,prepared);
     assert.equal(first.kind,'effect_free');assert.equal(first.originalInputs.parametersCursor,parametersCursor);
     assert.equal(first.originalInputs.parameters,undefined);
-    assert.deepEqual(calls,['compile-original','module-original','borrow-original']);
+    assert.deepEqual(calls,['compile-original','borrow-original','module-original']);
     assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.equal(f.calls.includes('select'),false);
   }finally{
     f.view.finishSourceProducer(receipt,'failed');await f.view.close();
   }
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
-  assert.deepEqual(calls,['compile-original','module-original','borrow-original','return-original']);
+  assert.deepEqual(calls,['compile-original','borrow-original','module-original','return-original']);
 });
 
 test('normal generic Native Request preserves its first compiler refusal without a second preparation', async () => {
@@ -408,6 +409,14 @@ test('normal generic Native Request preserves failed Plan construction and rejec
   f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
   f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
   const failure=new Error('OriginalModuleConstructorFailed');let compiles=0,modules=0,reentry;
+  const prepared = {}, holder = {};
+  moon.clientProgramBorrowRequestProgramPlanInput = () => ok(holder);
+  moon.clientProgramPreparationBorrowRead = value => {assert.equal(value, holder); return prepared;};
+  moon.clientProgramPreparationBorrowRetirementStarted = value => {assert.equal(value, holder); return true;};
+  const abort = moon.clientProgramAbortRequestPreparation; let returned = false;
+  moon.clientProgramAbortRequestPreparation = owner => returned
+    ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalInputPending')};
+  moon.clientProgramPreparationBorrowReturn = value => {assert.equal(value, holder); returned = true; return ok(true);};
   moon.clientProgramPrepareRequestNativeComputation=()=>{compiles++;return ok('effect_free');};
   moon.clientProgramPrepareRequestProgramModuleBody=function(){
     modules++;
@@ -437,7 +446,7 @@ test('normal generic Native Request adopts the same Run and retains its current 
   moon.clientProgramClosedValuesCompilationOriginal=()=>assert.fail('The parent-only Run has no ClosedValues phase');
   moon.clientProgramPrepareRequestNativeComputation=()=>ok('effect_free');
   moon.clientProgramPrepareRequestProgramModuleBody=()=>ok(undefined);
-  moon.clientProgramBorrowRequestProgramPreparation=()=>ok(holder);
+  moon.clientProgramBorrowRequestProgramPlanInput=()=>ok(holder);
   moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
   moon.clientProgramRequestParametersOriginal=()=>ok(undefined);
   moon.clientProgramAdoptRequestProgramPreparation=function(parent,actualIdentity){
@@ -542,7 +551,7 @@ test('normal default and empty options use the same Request without legacy Close
     for (const name of Object.keys(f.context.runtime)) if (name.includes('ClosedValues')) delete f.context.runtime[name];
     const never=()=>assert.fail('No semantic/module or legacy scanner work during SDK capture');
     for (const name of ['clientProgramPrepareRequestNativeComputation','clientProgramPrepareRequestProgramModuleBody',
-      'clientProgramBorrowRequestProgramPreparation','clientProgramRequestParametersOriginal',
+      'clientProgramBorrowRequestProgramPlanInput','clientProgramRequestParametersOriginal',
       'clientProgramAdoptRequestProgramPreparation','clientProgramInstalledManagedRunCompilationOriginal',
       'clientProgramPreparationBorrowRead','clientProgramPreparationBorrowSibling',
       'clientProgramPreparationBorrowRetirementStarted','clientProgramPreparationBorrowReturn']) f.context.runtime[name]=never;
@@ -591,7 +600,7 @@ test('normal SQL and AQL Request keeps native Parameters declarations and one co
       assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(selected,contracts);
       assert.equal(retained,false);calls.push('module-original');return ok(undefined);
     };
-    moon.clientProgramBorrowRequestProgramPreparation=actual=>{assert.equal(actual,f.parent);return ok(holder);};
+    moon.clientProgramBorrowRequestProgramPlanInput=actual=>{assert.equal(actual,f.parent);return ok(holder);};
     moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
     moon.clientProgramRequestParametersOriginal=()=>ok(parametersCursor);
     let returned=false;const abort=moon.clientProgramAbortRequestPreparation;
@@ -631,7 +640,7 @@ test('normal JSON and YAML Source forwards one captured document and Parameters 
     moon.clientProgramPrepareRequestProgramModuleBody=function(parent,original,selected){
       assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(selected,contracts);calls.push('module');return ok(undefined);
     };
-    moon.clientProgramBorrowRequestProgramPreparation=actual=>{assert.equal(actual,f.parent);return ok(holder);};
+    moon.clientProgramBorrowRequestProgramPlanInput=actual=>{assert.equal(actual,f.parent);return ok(holder);};
     moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
     moon.clientProgramRequestParametersOriginal=()=>ok(parametersCursor);
     let returned=false;const abort=moon.clientProgramAbortRequestPreparation;
@@ -675,7 +684,16 @@ test('normal first Request Plan keeps its original typed row refusal or unclassi
     moon.clientProgramRequestProgramModuleIssueCode = function(original) {
       assert.equal(this, moon); assert.equal(original, result); projections++; return category;
     };
-    moon.clientProgramBorrowRequestProgramPreparation = () => assert.fail('No body after Plan refusal');
+    const prepared = {}, holder = {};
+    moon.clientProgramBorrowRequestProgramPlanInput = (parent, original) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt); return ok(holder);
+    };
+    moon.clientProgramPreparationBorrowRead = value => {assert.equal(value, holder); return prepared;};
+    moon.clientProgramPreparationBorrowRetirementStarted = value => {assert.equal(value, holder); return true;};
+    const abort = moon.clientProgramAbortRequestPreparation; let returned = false;
+    moon.clientProgramAbortRequestPreparation = owner => returned
+      ? Reflect.apply(abort, moon, [owner]) : {$tag: 0, _0: new Error('OriginalInputPending')};
+    moon.clientProgramPreparationBorrowReturn = value => {assert.equal(value, holder); returned = true; return ok(true);};
     try {
       for (let attempt = 0; attempt < 2; attempt++) {
         await assert.rejects(f.view.fundedPreparation(request, undefined), error => {
@@ -765,7 +783,7 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramRequestParametersOriginal = () => ok(undefined);
   moon.clientProgramCompleteRequestEffectPreparation = function(owner, original, actualPlan) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt); assert.equal(actualPlan, plan);
-    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestEffectPreparation = function(owner, actualIdentity) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(actualIdentity, identity);
@@ -809,7 +827,7 @@ test('installed Effect caller consumes actual Request manager adoption and same 
 });
 
 test('failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission', async () => {
-  for (const phase of ['completeFailure', 'adoptFailure']) {
+  for (const phase of ['moduleFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalEffectRequest({[phase]: failure});
     await f.view.fundedPreparation(f.sdkRequest, undefined);
     assert.throws(() => f.view.adoptEffectPreparation(f.prepared, f.sdkRequest, f.identity, f.plan), error => error === failure);
@@ -829,4 +847,334 @@ test('Request Effect borrowed methods keep original receiver and reject foreign 
   assert.throws(() => f.view.adoptEffectPreparation(f.prepared, {}, f.identity, f.plan), {code: 'ForeignInstalledSourceProducer'});
   assert(!f.events.includes('complete')); await f.failedCleanup();
   assert.deepEqual(f.events, ['compile', 'borrow', 'sibling', 'return']);
+});
+
+
+test('captured Pure Request keeps its original compiler input before Source Plan construction', async () => {
+  const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {};
+  const events = []; let retiring = false, returned = false;
+  // Semantic compilation/typed capture are explicit Core ports; the actual
+  // manager, snapshot, input receipt and original Resource parent are real.
+  // This case establishes no Source I/O, Account authority or physical backing.
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const originalInput = {version: 'actql/0.1', id: 'source-compute',
+    results: {answer: {from: {result: 'r', stage: 'compute'}}}, stages: [
+      {id: 'acquire', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+        results: {r: {fields: ['id'], from: 'captured'}},
+        steps: [{as: 'filtered', filter: 'id > 0'}, {as: 'captured', select: ['id']}]},
+      {id: 'compute', inputs: {x: {result: {result: 'r', stage: 'acquire'}}},
+        results: {r: {fields: ['id'], from: 'out'}},
+        steps: [{filter: 'id > 2'}, {as: 'out', select: ['id']}]},
+    ]};
+  const receipt = f.view.beforeSourceSnapshot('program', originalInput, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: originalInput, parameters: null}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  moon.clientProgramPrepareRequestNativeComputation = function(parent, original) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    events.push('compile'); return ok('effect_free');
+  };
+  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, original) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    events.push('input-borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return prepared;
+  };
+  moon.clientProgramAcquisitionCount = function(value) {
+    assert.equal(this, moon); assert.equal(value, prepared); events.push('original-acquisition-count'); return 1;
+  };
+  moon.clientProgramPrepareRequestProgramModuleBody = () => assert.fail('captured Source must not enter the Source-free module constructor');
+  moon.clientProgramBorrowRequestProgramPreparation = () => assert.fail('the original input holder must survive until actual capture Plan completion');
+  moon.clientProgramRequestParametersOriginal = function(parent, original) {
+    assert.equal(parent, f.parent); assert.equal(original, receipt); return ok(undefined);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); return retiring;
+  };
+  moon.clientProgramPreparationBorrowReturn = function(value) {
+    assert.equal(this, moon); assert.equal(value, holder); assert(retiring); assert(!returned);
+    returned = true; events.push('input-return'); return ok(true);
+  };
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = function(parent) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); retiring = true;
+    return returned || !events.includes('input-borrow')
+      ? Reflect.apply(abort, moon, [parent]) : {$tag: 0, _0: new Error('OriginalCaptureInputPending')};
+  };
+  try {
+    const selected = await f.view.fundedPreparation(request, undefined);
+    assert.equal(selected.kind, 'effect_free'); assert.equal(selected.prepared, prepared);
+    assert.deepEqual(events, ['compile', 'input-borrow', 'original-acquisition-count']);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).admitted, true);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+  } finally {
+    f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();
+  }
+  assert.equal(events.filter(value => value === 'compile').length, 1);
+  assert.equal(events.filter(value => value === 'input-return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+async function originalCapturedRequest({moduleFailure, adoptFailure} = {}) {
+  const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {}, identity = {}, plan = {}, value = {};
+  const events = []; let retiring = false, returned = false;
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const originalInput = {version: 'actql/0.1', id: 'source-compute',
+    results: {answer: {from: {result: 'r', stage: 'compute'}}}, stages: [
+      {id: 'acquire', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+        results: {r: {fields: ['id'], from: 'captured'}},
+        steps: [{as: 'filtered', filter: 'id > 0'}, {as: 'captured', select: ['id']}]},
+      {id: 'compute', inputs: {x: {result: {result: 'r', stage: 'acquire'}}},
+        results: {r: {fields: ['id'], from: 'out'}},
+        steps: [{filter: 'id > 2'}, {as: 'out', select: ['id']}]},
+    ]};
+  const receipt = f.view.beforeSourceSnapshot('program', originalInput, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: originalInput, parameters: null}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  moon.clientProgramPrepareRequestNativeComputation = () => {events.push('compile'); return ok('effect_free');};
+  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, input) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt);
+    events.push('borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = original => {assert.equal(original, holder); return returned ? undefined : prepared;};
+  moon.clientProgramAcquisitionCount = original => {assert.equal(original, prepared); return 1;};
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  moon.clientProgramPrepareRequestProgramModuleBody = () => assert.fail('no Source-free module for captured Program');
+  moon.clientProgramAdoptRequestProgramPreparation = () => assert.fail('no Source-free adoption for captured Program');
+  moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, selected) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt); assert.equal(selected, plan);
+    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
+  };
+  moon.clientProgramAdoptRequestCapturePreparation = function(parent, selected) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(selected, identity);
+    events.push('adopt'); if (adoptFailure) throw adoptFailure; return ok(value);
+  };
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = parent => {
+    assert.equal(parent, f.parent); retiring = true;
+    return returned ? Reflect.apply(abort, moon, [parent]) : {$tag: 0, _0: new Error('OriginalCaptureInputPending')};
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = original => {assert.equal(original, holder); return retiring;};
+  moon.clientProgramPreparationBorrowReturn = original => {
+    assert.equal(original, holder); assert(retiring); assert(!returned);
+    returned = true; events.push('return'); return ok(true);
+  };
+  return {...f, moon, request, prepared, identity, plan, value, receipt, events,
+    failedCleanup: async () => {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();},
+    retireAdopted: async () => {
+      retiring = true; f.view.severPreparation(prepared, f.original);
+      Reflect.apply(abort, moon, [f.parent]); f.view.retireSeveredPreparation(f.original);
+      f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
+    }};
+}
+
+test('captured Request completes one original Plan and adopts its same parent without an independent Run', async () => {
+  const f = await originalCapturedRequest();
+  await f.view.fundedPreparation(f.request, undefined);
+  let constructors = 0;
+  const construct = () => {
+    constructors++;
+    assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
+      {code: 'ForeignInstalledSourceProducer'});
+    f.moon.clientProgramPrepareRequestCaptureModuleBody = f.moon.clientProgramAdoptRequestCapturePreparation =
+      () => assert.fail('original Core methods and namespace receiver were captured before constructor entry');
+    return f.plan;
+  };
+  assert.throws(() => f.view.adoptPreparation(f.prepared, f.request, f.identity), {code: 'ForeignInstalledSourceProducer'});
+  assert.throws(() => f.view.adoptCapturePreparation({...f.prepared}, f.request, f.identity, construct),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.adoptCapturePreparation(f.prepared, {}, f.identity, construct), undefined);
+  assert.equal(constructors, 0);
+  const run = f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct);
+  assert.equal(run.original, f.original); assert.equal(run.value, f.value);
+  assert.equal(constructors, 1); assert.deepEqual(f.events, ['compile', 'borrow', 'module', 'adopt']);
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct),
+    {code: 'ForeignInstalledSourceProducer'});
+  await f.retireAdopted();
+  assert.equal(f.events.filter(value => value === 'return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('captured Request keeps original failed completion or adoption without replaying its constructor', async () => {
+  for (const phase of ['moduleFailure', 'adoptFailure']) {
+    const failure = new Error(phase), f = await originalCapturedRequest({[phase]: failure});
+    await f.view.fundedPreparation(f.request, undefined);
+    let constructors = 0;
+    const construct = () => {constructors++; return f.plan;};
+    for (let attempt = 0; attempt < 2; attempt++) {
+      assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, construct), error => error === failure);
+    }
+    assert.equal(constructors, 1); assert.equal(f.events.filter(value => value === 'module').length, 1);
+    assert.equal(f.events.filter(value => value === 'adopt').length, phase === 'adoptFailure' ? 1 : 0);
+    await f.failedCleanup();
+    assert.equal(f.events.filter(value => value === 'return').length, 1);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
+
+test('captured Request constructs its accounted module before original Run adoption on the same borrow', async () => {
+  const f = await originalCapturedRequest(), seen = [];
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, plan) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent);
+    assert.equal(input, f.receipt); assert.equal(plan, f.plan);
+    seen.push('accounted-module'); return ok(undefined);
+  };
+  f.moon.clientProgramCompleteRequestCapturePreparation = () => assert.fail('bare Plan completion bypassed original accounted compilation');
+  await f.view.fundedPreparation(f.request, undefined);
+  let run;
+  try {
+    run = f.view.adoptCapturePreparation(f.prepared, f.request, f.identity, () => {
+      seen.push('construct');
+      f.moon.clientProgramPrepareRequestCaptureModuleBody = () => assert.fail('original module receiver/method was not captured');
+      return f.plan;
+    });
+    assert.equal(run.value, f.value); assert.equal(run.original, f.original);
+    assert.deepEqual(seen, ['construct', 'accounted-module']);
+    assert.deepEqual(f.events, ['compile', 'borrow', 'adopt']);
+  } finally {
+    if (run === undefined) await f.failedCleanup(); else await f.retireAdopted();
+  }
+  assert.equal(f.events.filter(value => value === 'return').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+test('captured Request refuses absent accounted module before invoking its Plan constructor', async () => {
+  const f = await originalCapturedRequest();
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = undefined;
+  f.moon.clientProgramCompleteRequestCapturePreparation = () => assert.fail('retired bare completion is not a fallback');
+  await f.view.fundedPreparation(f.request, undefined);
+  let constructors = 0;
+  assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity,
+    () => {constructors++; return f.plan;}), {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.equal(constructors, 0);
+  await f.failedCleanup();
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('captured Request retains the original unclassified module issue and never retries construction', async () => {
+  const f = await originalCapturedRequest(), issue = new Error('original module refusal');
+  const outcome = {$tag: 0, _0: issue}; let constructors = 0, modules = 0, projections = 0;
+  f.moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, plan) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent);
+    assert.equal(input, f.receipt); assert.equal(plan, f.plan); modules++; return outcome;
+  };
+  f.moon.clientProgramRequestProgramModuleIssueCode = function(actual) {
+    assert.equal(this, f.moon); assert.equal(actual, outcome); projections++; return undefined;
+  };
+  await f.view.fundedPreparation(f.request, undefined);
+  let originalFailure;
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      assert.throws(() => f.view.adoptCapturePreparation(f.prepared, f.request, f.identity,
+        () => {constructors++; return f.plan;}), error => {
+        assert.equal(error.code, 'MoonBitHostFailure'); assert.equal(error.cause, issue);
+        if (originalFailure === undefined) originalFailure = error;
+        return error === originalFailure;
+      });
+    }
+    assert.deepEqual([constructors, modules, projections], [1, 1, 1]);
+    assert.equal(f.events.includes('adopt'), false);
+  } finally {await f.failedCleanup();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+// Execute the actual four installing facade methods. Managers, currentness
+// and SDK lineage are explicit ports; no admission/Host/normal success is
+// inferred from these plain opaque fixture values.
+async function requestManagerFacadeFixture({source = true, compute = false} = {}) {
+  const {parse} = await import('acorn');
+  const {readFileSync} = await import('node:fs');
+  const sourceText = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(sourceText, {ecmaVersion: 'latest', sourceType: 'module'});
+  const wanted = ['requestPreparation', 'submittedIntentOriginal', 'fundedPreparation', 'borrowManagedPreparation'];
+  let object;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'ObjectExpression' && wanted.every(name =>
+      node.properties.some(property => property.type === 'Property' && property.key?.name === name))) object = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(ast); assert.ok(object);
+  const methods = wanted.map(name => object.properties.find(property => property.key?.name === name));
+  const sourceManager = {}, computeManager = {}, originals = {}, request = {}, originalRequest = {};
+  const environment = {}, prepared = {}, intent = {}, borrow = {};
+  const funded = Object.freeze({kind: 'effectful', prepared, originalInputs: Object.freeze({environment})});
+  const calls = []; let currentFailure, preparationFailure, lineageFailure;
+  for (const [kind, manager] of [['source', sourceManager], ['compute', computeManager]]) {
+    Object.assign(manager, {
+      submittedIntentOriginal(actual) {assert.equal(this, manager); assert.equal(actual, originalRequest); calls.push(kind + '-intent'); return intent;},
+      fundedPreparation(actual, selected) {
+        assert.equal(this, manager); assert.equal(actual, originalRequest); assert.equal(selected, environment);
+        calls.push(kind + '-funded'); if (preparationFailure) throw preparationFailure; return funded;
+      },
+      borrowPreparation(value, actual) {assert.equal(this, manager); assert.equal(value, prepared); assert.equal(actual, originalRequest); calls.push(kind + '-borrow'); return borrow;},
+    });
+  }
+  const validate = (kind, manager) => (actual, bag) => {
+    assert.equal(actual, manager); assert.equal(bag, originals); calls.push(kind + '-current');
+    if (currentFailure) throw currentFailure;
+  };
+  const view = new Function('sourceManaged', 'computeManaged', 'originals',
+    'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
+    'originalSourceManagedHostRequest', 'clientOperationError',
+    `return ({${methods.map(method => sourceText.slice(method.start, method.end)).join(',')}});`)(
+    source ? sourceManager : undefined, compute ? computeManager : undefined, originals,
+    validate('source', sourceManager), validate('compute', computeManager),
+    (bag, actual) => {assert.equal(bag, originals); assert.equal(actual, request); calls.push('original-request'); if (lineageFailure) throw lineageFailure; return originalRequest;},
+    code => Object.assign(new Error(code), {code}));
+  return {view, sourceManager, computeManager, request, environment, prepared, funded, intent, borrow, calls,
+    failCurrent(error) {currentFailure = error;}, failPreparation(error) {preparationFailure = error;},
+    failLineage(error) {lineageFailure = error;}};
+}
+
+test('actual Request facade keeps the same selected Source manager through intent funded preparation and borrow', async () => {
+  const f = await requestManagerFacadeFixture();
+  assert.equal(f.view.requestPreparation(), f.sourceManager);
+  assert.equal(f.view.submittedIntentOriginal(f.request), f.intent);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert.equal(f.view.borrowManagedPreparation(f.prepared, f.request), f.borrow);
+  assert.deepEqual(f.calls, ['source-current', 'source-current', 'original-request', 'source-intent',
+    'source-current', 'original-request', 'source-funded', 'source-current', 'original-request', 'source-borrow']);
+});
+
+test('selected Source Request facade retains refusal and precedence without another manager fallback', async () => {
+  const f = await requestManagerFacadeFixture({compute: true});
+  assert.equal(f.view.requestPreparation(), f.sourceManager);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert(!f.calls.some(call => call.startsWith('compute-')));
+  const failure = new Error('same selected Source current refusal'); f.failCurrent(failure);
+  for (const invoke of [() => f.view.submittedIntentOriginal(f.request),
+    () => f.view.fundedPreparation(f.request, f.environment),
+    () => f.view.borrowManagedPreparation(f.prepared, f.request)]) assert.throws(invoke, error => error === failure);
+  assert(!f.calls.some(call => call.startsWith('compute-')));
+  const failed = await requestManagerFacadeFixture({compute: true});
+  const cause = new Error('same Source preparation refusal'); failed.failPreparation(cause);
+  assert.throws(() => failed.view.fundedPreparation(failed.request, failed.environment), error => error === cause);
+  assert(!failed.calls.some(call => call.startsWith('compute-')));
+  const foreign = await requestManagerFacadeFixture({compute: true});
+  const lineage = new Error('same original SDK lineage refusal'); foreign.failLineage(lineage);
+  assert.throws(() => foreign.view.fundedPreparation(foreign.request, foreign.environment), error => error === lineage);
+  assert(!foreign.calls.some(call => call.endsWith('-funded')));
+});
+
+test('Compute-only and absent Request facade keep their existing original selection behavior', async () => {
+  const f = await requestManagerFacadeFixture({source: false, compute: true});
+  assert.equal(f.view.requestPreparation(), f.computeManager);
+  assert.equal(f.view.submittedIntentOriginal(f.request), f.intent);
+  assert.equal(await f.view.fundedPreparation(f.request, f.environment), f.funded);
+  assert.equal(f.view.borrowManagedPreparation(f.prepared, f.request), f.borrow);
+  assert(!f.calls.some(call => call.startsWith('source-')));
+  const absent = await requestManagerFacadeFixture({source: false});
+  assert.throws(() => absent.view.requestPreparation(), {code: 'NodeManagedRunAdmissionUnavailable'});
+  assert.equal(absent.view.submittedIntentOriginal(absent.request), undefined);
+  assert.equal(absent.view.fundedPreparation(absent.request, absent.environment), undefined);
+  assert.equal(absent.view.borrowManagedPreparation(absent.prepared, absent.request), undefined);
+  assert.deepEqual(absent.calls, []);
 });

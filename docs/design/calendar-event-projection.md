@@ -48,6 +48,49 @@ are not a normal installation factory. A matching original Profile getter and
 the complete checked Source/parent/backing connection remain required. Raw API
 time parameters do not by themselves establish exact SQL predicate pushdown.
 
+## Request and original environment
+
+The Events request adapter consumes the same parameter-bound `requestWire`
+provided by the existing RowAcquisition caller. Its complete `request_schema`
+body is an object contract with four required non-null strings: `calendar_id`,
+`time_min`, `time_max` and `time_zone`. It is distinct from the response row's
+column-schema map. Missing/null/extra fields do not select a calendar, timezone
+or time bound by default. Original business strings are preserved, including
+offsets, fractional seconds and non-normalized calendar identifiers. JSON
+serialization is provider DATA, not the Request/Source identity or authority.
+
+`prepareCalendarEventsRequestPages` consumes the caller's same original
+CheckEnvironment, obtains its retained Profile and makes the synchronous query
+projection in that same Common runtime, then supplies the query to the existing
+pure page hooks. It captures methods/receiver and limits before use and performs
+no exchange, accounting, grant or cleanup itself. Actual Source publication,
+complete parent and original environment delivery must be connected by their
+existing owners before this is a normal reader.
+
+## One compiler namespace
+
+The Common runtime's `calendarEventsProfileFromEnvironment` bridge exposes
+the exact Profile retained by the supplied original CheckEnvironment, through
+the existing `checking_environment_calendar_profile` and
+`selected_calendar_profile` accessors. An environment without a selected
+artifact refuses; the getter does not admit bytes, select a profile or enable
+Calendar. Supplying a different environment is not proof of correspondence to
+the caller's Source or Run. The shared Host must retain and supply that same
+checked-environment original at its actual preparation boundary. This keeps the
+provider's request/page conversion independent of ambient timezone state.
+
+The Profile's zone Map must be consumed by the same compiler namespace that
+issued it. The pinned JS runtime's default string hash seed belongs to its
+module; moving a retained Map to another compiled module does not move that
+module's lookup seed. Calendar Events therefore keeps the Profile getter,
+request/query and typed page/row operations together in the Common module.
+The separate Calendar provider retains stateless schema/facts/column wire
+projections, not a duplicate opaque Events API path. Do not serialize and
+re-admit the Profile, fix a global seed, remap a namespace or infer authority
+from equal CIDs to bypass this original-value boundary.
+
+## Shared custody boundary
+
 Publication and physical reading must still bind the actual original calendar,
 timezone, selected profile and response to the same checked acquisition. The
 shared Host owns current authorization, original request/response custody,

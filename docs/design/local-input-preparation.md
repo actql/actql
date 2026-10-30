@@ -3413,6 +3413,16 @@ request, response, confirmation-read and failed-child overlap. No numeric quote,
 missing inventory, raw Prepared or independently prepared manager Root can
 replace that original connection.
 
+The detached ordinary Effect Plan admission and begin entry are removed from
+Core and its Node exports once this caller adopts the Request. Source/provider
+and operation controls use the same preparation-owned initial input, completed
+Plan and retirement instead. A consumed input admission is no longer a cleanup
+owner: the adopted Run retains that duty. Pending operations keep the Run's
+preparation retirement pending without refunding consumed attempts. The
+separately selected Model admission/Scope remains until its own original first
+census and preparation connection are installed; it cannot use an ordinary
+purpose or a later reconstructed census as a substitute.
+
 
 ## Source-free Tasks publication
 
@@ -3445,3 +3455,59 @@ peaks are funded by the existing snapshot representation recipe before the
 constructor runs. Empty results retain no decoded text; invalid/overflow bounds
 remain refusals. This changes no logical policy ceiling, semantic authority,
 Result occurrence, currentness fence, reservation owner or cleanup obligation.
+
+## Source readers receive the same checked Run
+
+The installed managed Source view forwards its already selected original Run
+for both Pure and Effect preparations. The frozen reader facts retain the
+original checked owner, request fields and captured callback receiver. The
+view still checks the caller's original owner and current Run after the
+provider await before recording a preparation association. This forwards
+existing Plan custody; it issues no second preparation, read authority,
+physical child or cleanup acknowledgement.
+
+## Request-owned captured Source Plan construction
+
+A Pure compiler result is not a Source-free witness. The Request retains its
+original Program Plan input and checked acquisition count before selecting
+its installed continuation. Zero acquisitions construct the existing module
+body; captured Sources complete and adopt their exact capture Plan through
+the same borrowed input, Request and parent. Failed construction or adoption
+retains its original failure and cleanup custody; it cannot select detached
+Run admission or invoke the constructor again.
+
+The Host's capture constructor consumes its retained requirement/capacity,
+transport and contract inventory and selected output mode. A selected
+QueryTime original is passed unchanged to both requirement and Plan
+construction. After Core adopts the same Plan, the Host cuts its duplicate
+inventory alias. Provider preparation receives the same original managed
+Run, rechecks it after an await and retains only the original association.
+This semantic forwarding does not supply missing physical reader backing,
+Source authorization, completion evidence or cleanup acknowledgement.
+
+## Captured suffix demand survives general metadata selection
+
+A Pure captured Source retains the existing checked schema demand for its
+Compute suffix on the same capacity Plan. The original graph offset and
+prepared sequence owners determine that inventory. It is not a second
+Program check or a replacement bound inferred from observed rows.
+
+A suffix inventory cannot specialize metadata for the entire captured graph.
+That independent metadata condition remains unchanged; selecting its general
+layout does not discard the schema demand already used by the Plan's value
+policy. Quote, configured Compute and publication therefore retain the same
+original demand. Effect/general inputs keep their existing selection, and
+all row, value, wire, work and original-parent checks remain separate.
+
+## Accounted captured module before Run adoption
+
+The captured Source continuation constructs its original module artifact under
+the same Request and retained Program input borrow before adopting the Run.
+The selected capture Plan keeps that measured compilation; the original Run
+getter forwards it to publication without another compiler invocation. Bare
+Node completion of a capture Plan is not an alternative normal entrance.
+
+The manager captures the module and adoption methods with their original
+receiver before invoking its private Plan constructor. A failed module or
+adoption remains on the same Request for retirement and cannot replay the
+constructor, substitute a source-free Plan or select a detached Run.

@@ -54,7 +54,12 @@
       "required": "Owner approval binds exact version and bytes",
       "currentSlice": "Fixed release-set and protected executor pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "fixed header binds the explicit release line and every version projection"
+        }
+      ]
     },
     {
       "id": "A06",
@@ -71,9 +76,18 @@
     {
       "id": "A07",
       "required": "Changed source/scope/channel/digest invalidates approval",
-      "currentSlice": "Upper manifest and approval binding pending",
+      "currentSlice": "Upper fixed manifest binds full request, source, release projections, child manifests and exact artifact identity; protected approval/executor pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "changed request or detached digest cannot reuse the externally retained original manifest identity"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "an upper artifact identity cannot diverge from its complete original child manifest"
+        }
+      ]
     },
     {
       "id": "A08",
@@ -132,12 +146,16 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Reuse existing npm whole-cohort preflight/identical-integrity receipt; upper multi-ecosystem resume pending",
+      "currentSlice": "Existing npm same-integrity resume retained; upper read-only supplied-observation classifier distinguishes present/absent/unknown/conflict, real cross-ecosystem observation/upload pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "partial publication resumes exact remaining versions and never republishes confirmed bytes"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
         }
       ]
     },
@@ -150,6 +168,10 @@
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "registry absence, unavailability and occupied version mismatch stay distinct"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
         }
       ]
     },
@@ -165,14 +187,24 @@
       "required": "Exact public Node entry installs outside repository",
       "currentSlice": "Candidate-specific tar/platform/consumer and public registry acceptance pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Node release verifier feeds a fixed upper set without rebuilding its original archives"
+        }
+      ]
     },
     {
       "id": "A19",
       "required": "Python entry works without Node/npm/ActQL CLI",
       "currentSlice": "Existing Python cohort/build paths inventoried; candidate-specific acceptance pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
+        }
+      ]
     },
     {
       "id": "A20",
@@ -190,6 +222,10 @@
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "Python has an explicit package/platform/profile selection and no npm-style channel"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "unsupported Linux Python and standalone Native paths cannot inherit another verifier"
         }
       ]
     },
@@ -202,6 +238,10 @@
         {
           "kind": "selected component case, not full condition acceptance",
           "test": "explicit versions map once to Python without selecting or incrementing a version"
+        },
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "actual Python wheel metadata checker uses the common RC version and preserves packaging-only scope"
         }
       ]
     },
@@ -215,9 +255,14 @@
     {
       "id": "A24",
       "required": "Missing/rebuilt artifacts cannot inherit approval",
-      "currentSlice": "Upper fixed manifest and immutable artifact custody gate pending",
+      "currentSlice": "Externally retained manifest digest and actual fixed files reobserved; missing/tampered bytes refuse without rebuild or inherited approval",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
+          "test": "fixed artifact tamper and missing bytes remain failures, never absence or rebuild permission"
+        }
+      ]
     },
     {
       "id": "A25",

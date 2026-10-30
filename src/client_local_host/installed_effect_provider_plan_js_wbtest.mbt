@@ -2,12 +2,14 @@
 test "provider Source reader borrows only its same original planned Ledger and capture" {
   let provider = @execution.execution_capacity(1111L, 2222L).unwrap()
   let plan = effect_operation_source_plan_fixture(provider=Some(provider))
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
     plan.prepared,
     plan.request,
     plan,
@@ -67,17 +69,22 @@ test "provider Source Plan refuses the original one-short envelope before any ph
   for field in [4, 5] {
     let quote = prepared_installed_effect_managed_requirements(plan)
     quote[field] -= 1L
-    let admission = effect_parent_test_admission(plan, quote)
+    let (input, initial, _, capacity) = effect_preparation_test_capacity(
+      plan, quote,
+    )
     assert_true(
-      begin_prepared_installed_effect_managed_run(
-        admission,
+      begin_preparation_owned_installed_effect_managed_run(
+        initial,
+        input,
+        capacity,
         plan.prepared,
         plan.request,
         plan,
       )
       is Err(InsufficientCapacity),
     )
-    @resources.cleanup_node_managed_run_admission(admission).unwrap()
+    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+    @resources.cleanup_node_preparation_admission(initial).unwrap()
   }
 }
 
@@ -85,12 +92,14 @@ test "provider Source Plan refuses the original one-short envelope before any ph
 test "provider Source handoff attaches the same original planned read once before a caller can substitute it" {
   let provider = @execution.execution_capacity(1111L, 2222L).unwrap()
   let plan = effect_operation_source_plan_fixture(provider=Some(provider))
-  let admission = effect_parent_test_admission(
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
   )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission,
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
     plan.prepared,
     plan.request,
     plan,

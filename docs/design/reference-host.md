@@ -1634,3 +1634,12 @@ which cannot construct the selected input retires its actual preparation and
 reports unavailability; this does not define a new language restriction or
 qualify the remaining frontend construction paths. Original cleanup failures
 remain attached to the same producer until their actual retirement.
+
+The installed Request facade preserves the same Source-first manager selected
+for the SDK lineage through submitted-intent lookup, funded preparation and
+the typed preparation borrow. Each operation checks that original manager
+under its own installation purpose and forwards the same original Request.
+A selected Source's currentness or preparation refusal cannot switch to a
+Compute manager. Compute-only and unselected installations keep their existing
+selection behavior; this correspondence creates no parent, allowance or read
+authority.

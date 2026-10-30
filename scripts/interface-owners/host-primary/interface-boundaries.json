@@ -4987,7 +4987,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "96e4e26c6640d3f77261c97ad268913b948a552eddd99fa264758134d95f3061",
+      "sha256": "fce76fe14e93b565ef0bb02b2a61bca1ea82bb8bf3dbcc10f78a114c5ec0f9c9",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5487,7 +5487,19 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
           "parameters": [
             "value"
           ],
@@ -7688,6 +7700,35 @@
           "async": false
         },
         {
+          "name": "prepareManagedComputeCapturePlan",
+          "parameters": [
+            "originals",
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/plan/plan",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/plan/plan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/plan/plan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicKeyCid/publicKeyCid",
           "parameters": [
             "value"
@@ -7955,6 +7996,15 @@
           "name": "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedManagedCaptureInventory",
+          "parameters": [
+            "originals",
+            "run",
+            "contracts"
           ],
           "async": false
         },
@@ -12297,9 +12347,124 @@
               }
             ]
           }
+        },
+        {
+          "exports": [],
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
+            "prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/plan/plan",
+            "prepareManagedComputeCapturePlan/plan/plan#2",
+            "prepareManagedComputeCapturePlan/plan/plan#3",
+            "retainedManagedCaptureInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('ordinary captured Source Host adopts its same Request Plan without detached admission ports'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -12407,9 +12572,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {

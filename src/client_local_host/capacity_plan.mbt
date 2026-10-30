@@ -196,7 +196,9 @@ fn client_local_capacity_plan(
         schema_inventory: inventory,
         demand_inventory: dispatch_inventory,
         value_node_demand,
-        scalar_demand: None,
+        // A general metadata layout does not invalidate the independently
+        // checked schema demand already used by this Plan's value policy.
+        scalar_demand,
         values,
         execution,
         measurement,

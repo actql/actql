@@ -49,6 +49,9 @@ fn prepare_installed_compute_preparation(
       let configuration = client_local_capacity_plan(
         tail,
         max_rows,
+        // Retain the existing checked Pure leaf proof for both Compute and
+        // publication. Source presence does not erase its immutable schemas.
+        scalar_values=owner is Pure(_),
         graph=Some(graph),
         graph_offset=first,
       )
