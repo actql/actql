@@ -739,7 +739,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // inventory, on the same input reservation. It is not a capacity or
         // authorization callback, and does not run for another purpose.
         const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
-        const plan = constructPlan();
+        const plan = state.requiresQueryTime ? constructPlan(invocation) : constructPlan();
         state.capturePlan = plan;
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {

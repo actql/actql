@@ -575,7 +575,7 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
 // The Request manager invokes this only while its original constructor input
 // remains borrowed. Complete/adopt retains this exact Plan; no Run quote or
 // sequence preparation is substituted after an original refusal.
-function prepareManagedComputeCapturePlan(originals, run) {
+function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
   const {projectRuntime: moon, retainedRelationOutput} = originals.installation;
   if (typeof retainedRelationOutput !== 'boolean') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -585,13 +585,19 @@ function prepareManagedComputeCapturePlan(originals, run) {
   const installed = prepareInstalledSequenceContractOriginal(originals);
   let plan;
   if (inventory[0].kind === 'whole-input') {
-    if (inventory.length !== 1 || typeof moon.clientProgramPrepareInstalledManagedWholeSourcePlan !== 'function') {
+    const timed = run.queryTimePreparation !== undefined;
+    const construct = timed ? moon.clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime
+      : moon.clientProgramPrepareInstalledManagedWholeSourcePlan;
+    if (inventory.length !== 1 || typeof construct !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
     const original = inventory[0];
-    plan = checked(moon.clientProgramPrepareInstalledManagedWholeSourcePlan(
+    const args = [
       run.prepared, run.request, original.capacity, original.transferBytes, original.executionBytes,
-      installed.admission, contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput));
+      installed.admission, contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput];
+    // Same temporary Core Option as ModuleBody. The typed constructor checks
+    // it; no additional projection, retained carrier or legacy timed fallback.
+    plan = checked(Reflect.apply(construct, moon, timed ? [...args, invocationOriginal] : args));
   } else {
     if (inventory.some(value => value.kind !== 'query') ||
         typeof moon.clientProgramInstalledManagedCapturePlanPrepare !== 'function') {
@@ -5779,7 +5785,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         const funded = sourceProfile === undefined
           ? manager.adoptPreparation?.(prepared, originalRequest, request, constructInvocation)
           : manager.adoptCapturePreparation?.(prepared, originalRequest, request,
-            () => prepareManagedComputeCapturePlan(originals, run), constructInvocation);
+            invocation => prepareManagedComputeCapturePlan(originals, run, invocation), constructInvocation);
         if (funded !== undefined) {
           run.original = funded.original;run.value = funded.value;run.preparationFunded = true;
           // Core now retains the same inventory through its original Plan.
