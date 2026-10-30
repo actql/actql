@@ -213,3 +213,46 @@ test "Calendar Event preserves zero-duration pairs and refuses reversed or absen
     assert_true(event_times(body) is Err(InvalidEvent | InvalidTime))
   }
 }
+
+///|
+test "Calendar Event retains skipped civil-day equality without accepting reversed original dates" {
+  let wire =
+    #|{"conversion_law":"actql-calendar-boundaries/0.1","coverage_end_ms":253402300800000,"coverage_start_ms":-62135596800000,"tzdb_version":"calendar-event-skip-test","version":"actql-tzdb-table/0.1","zones":{"Fixture/Skipped":{"initial_offset_seconds":0,"transitions":[{"at_ms":1767312000000,"offset_seconds":86400}]},"UTC":{"initial_offset_seconds":0,"transitions":[]}}}
+  let profile = @calendar_profile.admit(
+    @utf8.encode(wire),
+    "sha256:08b6baeb6744a5f5b98e9f5fb58c4a4dae1b4ab3e9f2db9a8172e525e623bcf2",
+    "calendar-event-skip-test",
+    {
+      max_bytes: 4096,
+      max_nodes: 100,
+      max_depth: 12,
+      max_zones: 2,
+      max_transitions: 1,
+    },
+  ).unwrap()
+  let times = project_calendar_event_times(
+    @utf8.encode(
+      (
+        #|{"kind":"calendar#event","start":{"date":"2026-01-02"},"end":{"date":"2026-01-03"}}
+      ),
+    ),
+    "Fixture/Skipped",
+    profile,
+    event_time_limits(),
+  ).unwrap()
+  assert_eq(times.start, "2026-01-02T00:00:00.000Z")
+  assert_eq(times.end, times.start)
+  assert_true(
+    project_calendar_event_times(
+      @utf8.encode(
+        (
+          #|{"kind":"calendar#event","start":{"date":"2026-01-03"},"end":{"date":"2026-01-02"}}
+        ),
+      ),
+      "Fixture/Skipped",
+      profile,
+      event_time_limits(),
+    )
+    is Err(ReversedInterval),
+  )
+}

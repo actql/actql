@@ -2,6 +2,7 @@
 package "actql/actql/connectors/calendar/catalog"
 
 import {
+  "actql/actql/calendar_profile",
   "moonbitlang/core/debug",
 }
 
@@ -42,6 +43,8 @@ pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarF
 
 pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]
 
+pub fn project_calendar_event_times(Bytes, String, @calendar_profile.Profile, CalendarEventTimeLimits) -> Result[CalendarEventTimes, CalendarEventTimeIssue]
+
 pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]
 
 pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]
@@ -49,6 +52,33 @@ pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPa
 // Errors
 
 // Types and methods
+pub(all) enum CalendarEventTimeIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidEvent
+  InvalidTime
+  MixedTimeKinds
+  ReversedInterval
+  TimeZoneUnavailable
+  TimeZoneCoverage
+  ResolutionWorkLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarEventTimeLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_resolution_work : Int
+}
+
+pub struct CalendarEventTimes {
+  start : String
+  end : String
+  all_day : Bool
+  response_sha256 : String
+  calendar_profile_cid : String
+}
+
 pub(all) enum CalendarFreeBusyIssue {
   InvalidLimits
   InvalidQuery
