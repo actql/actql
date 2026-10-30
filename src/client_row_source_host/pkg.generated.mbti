@@ -191,6 +191,8 @@ pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> R
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
 
+pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]
+
 pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
@@ -260,6 +262,14 @@ pub fn row_run_attempt(RowRun) -> RowAttempt
 pub fn row_run_listing_complete(RowRun) -> Bool
 
 pub fn row_source_columns(RowSourcePreparation) -> Array[String]
+
+pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
+
+pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]
+
+pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int
+
+pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String
 
 pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement
 
@@ -549,6 +559,16 @@ pub(all) enum RowSourceIssue {
   KeyedCardinality
   KeyedLimit(String)
 } derive(@debug.Debug)
+
+type RowSourceJsonPage
+
+pub(all) enum RowSourceJsonPageIssue {
+  InvalidLimits
+  InvalidPage
+  InvalidItems
+  InvalidCursor
+  NoNextCursor
+} derive(Eq, @debug.Debug)
 
 type RowSourcePreparation
 

@@ -45716,6 +45716,338 @@
         }
       ],
       "referenceQualification": "Typed/component/source-only. Actual normal Host verifier connection, backend physical supply and matching ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_row_source_host/json_page_projection.mbt",
+      "sha256": "e4d051cef6481668feb745176eac0c2263f053804f3bd2953f982618c6d838a0",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "json_page_path",
+          "declaration": "json_page_path ( root : @ source . Node , path : Array [ String ] , ) - > Result [ @ source . Node ? , RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "project_row_source_json_page",
+          "declaration": "project_row_source_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ RowSourceJsonPage , RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "row_source_json_page_has_next_cursor",
+          "declaration": "row_source_json_page_has_next_cursor ( value : RowSourceJsonPage ) - > Bool"
+        },
+        {
+          "name": "row_source_json_page_next_cursor",
+          "declaration": "row_source_json_page_next_cursor ( value : RowSourceJsonPage , ) - > Result [ String , RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "row_source_json_page_row_count",
+          "declaration": "row_source_json_page_row_count ( value : RowSourceJsonPage ) - > Int"
+        },
+        {
+          "name": "row_source_json_page_rows_wire",
+          "declaration": "row_source_json_page_rows_wire ( value : RowSourceJsonPage ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "json_page_path",
+            "project_row_source_json_page",
+            "row_source_json_page_has_next_cursor",
+            "row_source_json_page_next_cursor",
+            "row_source_json_page_row_count",
+            "row_source_json_page_rows_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
+      "sha256": "629a75f152942c0da4376175e29e1f929ae011edd0e73214a3e1178b3c1c2347",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_row_source_json_page_has_next_cursor",
+          "declaration": "client_program_row_source_json_page_has_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_json_page_next_cursor",
+          "declaration": "client_program_row_source_json_page_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_json_page_row_count",
+          "declaration": "client_program_row_source_json_page_row_count ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Int"
+        },
+        {
+          "name": "client_program_row_source_json_page_rows_wire",
+          "declaration": "client_program_row_source_json_page_rows_wire ( value : @ client_row_source_host . RowSourceJsonPage , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_project_json_page",
+          "declaration": "client_program_row_source_project_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_row_source_json_page_has_next_cursor",
+            "client_program_row_source_json_page_next_cursor",
+            "client_program_row_source_json_page_row_count",
+            "client_program_row_source_json_page_rows_wire",
+            "client_program_row_source_project_json_page"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
+      "sha256": "9ca05117795200e7fa0e7a7aa15c41b8fca21d6e68449357907f9721e99d2e99",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_row_source_json_page_has_next_cursor",
+          "declaration": "client_program_row_source_json_page_has_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_json_page_next_cursor",
+          "declaration": "client_program_row_source_json_page_next_cursor ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Result [ String , @ client_row_source_host . RowSourceJsonPageIssue ]"
+        },
+        {
+          "name": "client_program_row_source_json_page_row_count",
+          "declaration": "client_program_row_source_json_page_row_count ( value : @ client_row_source_host . RowSourceJsonPage , ) - > Int"
+        },
+        {
+          "name": "client_program_row_source_json_page_rows_wire",
+          "declaration": "client_program_row_source_json_page_rows_wire ( value : @ client_row_source_host . RowSourceJsonPage , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_project_json_page",
+          "declaration": "client_program_row_source_project_json_page ( bytes : Bytes , items_path : Array [ String ] , cursor_present : Bool , cursor_path : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceJsonPage , @ client_row_source_host . RowSourceJsonPageIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_row_source_json_page_has_next_cursor",
+            "client_program_row_source_json_page_next_cursor",
+            "client_program_row_source_json_page_row_count",
+            "client_program_row_source_json_page_rows_wire",
+            "client_program_row_source_project_json_page"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
