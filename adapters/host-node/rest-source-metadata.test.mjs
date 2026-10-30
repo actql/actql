@@ -31,10 +31,11 @@ test('REST metadata retains the same Host reader methods and exact original CA w
   const reader = {
     async readJson(path) {
       assert.strictEqual(this, reader);calls.push(['json', path]);
-      reader.readText = () => assert.fail('Captured before original JSON await');
+      reader.readOriginalText = () => assert.fail('Captured before original JSON await');
       return f.site;
     },
-    readText(path) {
+    readText() {assert.fail('Configured CA uses the actual-FD reader, not a caller bound');},
+    readOriginalText(path) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
       calls.push(['text', path]);return ca;
     },
@@ -50,7 +51,8 @@ test('REST metadata retains the same Host reader methods and exact original CA w
 test('REST identity binds changed CA bytes and path through the original Host reader', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
   let ca = 'authored-first-CA', site = f.site;
-  const reader = {readJson: async () => site, readText: async () => ca};
+  const reader = {readJson: async () => site,
+    readText() {assert.fail('No bounded CA read');}, readOriginalText: async () => ca};
   const parts = () => metadata.identityParts(f.profile, f.profile, undefined, undefined,
     {configurationReader: reader});
   const first = await parts();assert.equal(first[3].ca, ca);
@@ -64,7 +66,8 @@ test('REST normal metadata has no standalone reader or declaration fallback', as
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
   await assert.rejects(metadata.readInputs(f.profile), {code: 'RestSourceConfigurationReaderUnavailable'});
   await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
-    readJson: async () => f.site, readText: async () => Buffer.from('not-text'),
+    readJson: async () => f.site, readText() {assert.fail('No bounded CA read');},
+    readOriginalText: async () => Buffer.from('not-text'),
   }}), {code: 'InvalidInstalledRestSourceAuthority'});
   assert.throws(() => createRestSourceMetadata({...f.definition, authoredViewsWire: undefined}),
     {code: 'InvalidRestSourceInstallationDefinition'});
@@ -73,7 +76,8 @@ test('REST normal metadata has no standalone reader or declaration fallback', as
 test('REST configured CA cannot disappear into default trust when its original reader returns no text', async () => {
   const f = fixture(), metadata = createRestSourceMetadata(f.definition);
   await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
-    readJson: async () => f.site, readText: async () => undefined,
+    readJson: async () => f.site, readText() {assert.fail('No bounded CA read');},
+    readOriginalText: async () => undefined,
   }}), {code: 'InvalidInstalledRestSourceAuthority'});
 });
 

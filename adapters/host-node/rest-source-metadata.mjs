@@ -72,10 +72,11 @@ export function createRestSourceMetadata(definition) {
     if (configurationReader === undefined) fail('RestSourceConfigurationReaderUnavailable');
     const reads = captureConfigurationReaders(configurationReader, undefined,
       () => fail('RestSourceConfigurationReaderUnavailable'));
+    if (typeof reads.readOriginalText !== 'function') fail('RestSourceConfigurationReaderUnavailable');
     const site = checkSite(await reads.readJson(installed.siteProfilePath));
-    // The original Host reader owns the selected bound and physical read.
+    // The original Host reader owns the observed FD extent and physical read.
     // Keep its exact CA text; no author limit or unrelated secret bound is used.
-    const ca = site.caPath === undefined ? undefined : await reads.readText(site.caPath);
+    const ca = site.caPath === undefined ? undefined : await reads.readOriginalText(site.caPath);
     if (site.caPath !== undefined && typeof ca !== 'string') fail('InvalidInstalledRestSourceAuthority');
     return Object.freeze({installed, site, ca, definition: original,
       // Canonical configuration identities alone normalize descriptive text.
