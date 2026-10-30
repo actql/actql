@@ -319,6 +319,31 @@ test('ordinary preadmission and submission reuse the same original Request ident
   await f.initialControl.close();
 });
 
+test('ordinary Request identity retention refuses another requestId without replacing its original', () => {
+  const runtime = {}, prepared = {};
+  let calls = 0;
+  runtime.clientProgramRequestIdentity = (_prepared, _authority, requestId) => {
+    calls++;return Object.freeze({requestId});
+  };
+  const requestOf = sourceFreeRequestCaller(runtime, prepared);
+  const first = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.throws(() => requestOf({preparedProgram: prepared, requestId: 'another-request'}),
+    {code: 'ForeignInstalledComputeRun'});
+  assert.strictEqual(requestOf({preparedProgram: prepared, requestId: 'original-request'}).requested,
+    first.requested);
+  assert.equal(calls, 1);
+});
+
+test('ordinary Request identity retention never accepts a missing Core identity', () => {
+  const runtime = {}, prepared = {};
+  let calls = 0;
+  runtime.clientProgramRequestIdentity = () => {calls++;return undefined;};
+  const requestOf = sourceFreeRequestCaller(runtime, prepared);
+  assert.throws(() => requestOf({preparedProgram: prepared, requestId: 'original-request'}),
+    {code: 'ClientProgramNeedsInputs'});
+  assert.equal(calls, 1);
+});
+
 test('actual Host forwards the selected async manager result once without an optional raw fallback', async () => {
   const request={},environment={},result={};let calls=0;
   const raw={fundedPreparation(value,selected){

@@ -2645,6 +2645,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
     }
   };
+  // Preadmission and submission revisit the same Prepared through different
+  // packet wrappers. Retain its original Request identity, not an equivalent
+  // reconstruction that the live Run's exact-original fence must refuse.
+  // Weak ownership neither keeps the Prepared alive nor grants another Run.
+  const sourceFreeRequestIdentities = new WeakMap();
   const requestOf = ({preparedProgram, requestId}) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
@@ -2744,12 +2749,18 @@ async function openInstalledHost(originalInstallation, preparation) {
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
     } else prepareInferSelection(preparedProgram, occurrences[0]);
-    const requested = moon.clientProgramRequestIdentity(preparedProgram,
-      authorityScopeCid, requestId,
-      moon.clientProgramSourceFreeInputIntentCid());
-    if (requested === undefined) {
-      throw clientOperationError('ClientProgramNeedsInputs');
+    let originalIdentity = sourceFreeRequestIdentities.get(preparedProgram);
+    if (originalIdentity === undefined) {
+      const requested = moon.clientProgramRequestIdentity(preparedProgram,
+        authorityScopeCid, requestId,
+        moon.clientProgramSourceFreeInputIntentCid());
+      if (requested === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+      originalIdentity = Object.freeze({requestId, requested});
+      sourceFreeRequestIdentities.set(preparedProgram, originalIdentity);
+    } else if (originalIdentity.requestId !== requestId) {
+      throw clientOperationError('ForeignInstalledComputeRun');
     }
+    const {requested} = originalIdentity;
     const resultNames = [];
     for (let index = 0;
       index < moon.clientProgramResultCount(preparedProgram); index++) {
