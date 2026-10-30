@@ -120,6 +120,32 @@ capacity and retained Source-read association; a Query-capacity array cannot
 stand in for that different typed input. The existing current callback and
 post-callback original fences precede returning that same Ledger.
 
+Whole-input publication binds the same adopted Run, Plan, native RowRun capture
+and Source acquisition. A receiver-bound private capture view exposes that same
+native capture while live; copying its methods or retiring the input cannot
+supply another occurrence. The publication owner checks the exact Run association
+before issuance and again before retaining the completed invocation. The existing
+one-shot invocation slot remains consumed on semantic failure. Complete original
+Source evidence and logical input values must fit the caller's encoding bounds;
+equal wire representations cannot replace their native capture correspondence.
+
+The original Task compiler represents external inputs even for a single task.
+Its Result port follows the same closed acquisition selection: Query publishes
+its checked capture port; whole input publishes the actual authored Task output.
+The original graph's acquisition prefix is not changed by compilation. The
+whole-input Pure Plan also selects its existing checked schema-demand inventory
+before capacity construction, so Result-publication reservation reuses that
+same retained inventory and admitted row bound. No completed output, numeric
+profile substitute, second Ledger or new current decision supplies those inputs.
+
+The JS publication boundary selects from the adopted original Plan, rather than
+classifying a copied graph or falling back after an error. Whole input passes
+typed Source evidence and the same native capture to its whole-input issuer;
+the Query issuer keeps its original QueryRequirement array. Missing originals,
+foreign owners and unsupported selections refuse. Invocation DATA do not close
+a physical child; the same Run retains its input and pending cleanup until the
+original provider/RowRun retirement confirms and the body borrow is returned.
+
 The focused Core and explicit-port Node cases exercise full input beyond a
 Query result bound, original key refusal, callback/current fences, pending
 physical close, same-Request adoption and the still-pending Compute root.

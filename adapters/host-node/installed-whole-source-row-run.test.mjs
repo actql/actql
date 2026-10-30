@@ -70,6 +70,10 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     providerCaptureCapacity: capacity, occurrence: {stage: 0, input: 0, task: 0}},
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
+  assert.equal(Object.hasOwn(result, 'requirement'), false);
+  assert.equal(result.capture.originalWholeInput(), capture);
+  const copied = {...result.capture};
+  assert.throws(() => copied.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
   result.capture.retainTask(dag, 0);
   await result.prepareSourceEvidenceOriginal({authorityScopeCid: 'scope', effectiveDataPolicyCid: 'policy'});
   assert.equal(result.capture.takeSourceEvidenceOriginal(), evidence);
@@ -78,6 +82,7 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   stopped = true;
   assert.equal(await session.cleanup(), true);
   assert.equal(retired, true);
+  assert.throws(() => result.capture.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
   assert.equal(calls.filter(value => value === 'start').length, 1);
   assert.equal(calls.filter(value => value === 'read').length, 1);
   assert.equal(calls.filter(value => value === 'logical').length, 1);

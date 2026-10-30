@@ -218,7 +218,9 @@ pub fn prepared_client_requires_task_compilation(
     return true
   }
   if !@strategy.graph_source_free_inputs_complete(value.graph) {
-    return false
+    // External inputs belong to the Task compiler even when the checked
+    // graph has one task. Values requires an actual leading REL.values.
+    return true
   }
   guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
     return false

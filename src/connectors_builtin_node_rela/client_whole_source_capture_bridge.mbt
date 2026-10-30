@@ -183,6 +183,44 @@ pub fn client_program_installed_managed_whole_source_ledger(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedPublicationSourceKind")
+pub fn client_program_installed_managed_publication_source_kind(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_managed_publication_source_kind(owner, prepared)
+}
+
+///|
+#export_name("clientProgramIssueWholeSourcePublicationInvocation")
+pub fn client_program_issue_whole_source_publication_invocation(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  capture : @client_row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  source : @publication.RunEvidenceValue,
+  input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.issue_program_whole_source_publication_invocation(
+    owner, prepared, compiled, definition, capture, identity, source, input, authority_scope_cid,
+    data_policy_cid, capture_started_at, capture_completed_at, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramWholeSourceFacts")
 pub fn client_program_whole_source_facts(
   acquisition : @client_row_source_host.RowInputAcquisition,

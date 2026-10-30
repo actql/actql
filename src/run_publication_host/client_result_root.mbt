@@ -127,9 +127,9 @@ pub fn issue_prepared_client_direct_task_result_root(
 }
 
 ///|
-// A captured acquisition has no Compute target. Its checked acquisition
-// capture still identifies the exact producer Result port; do not invent a
-// Compute step merely to export that already produced Relation.
+// Query capture publishes its checked acquisition port. Whole input leaves
+// the original authored computation pending, so its Result uses that task's
+// checked output. The original graph's captured prefix remains unchanged.
 fn client_publication_task_target(
   value : PreparedClientProgram,
   task : Int,
@@ -144,9 +144,17 @@ fn client_publication_task_target(
       guard @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
         return None
       }
-      match prepare_client_query_acquisition(value, stage, 0) {
-        Ok(acquisition) =>
+      guard @context.program_identity_stage_requests(
+          @checked.source_identity(@strategy.graph_program(graph)),
+          stage,
+        )
+        is Some(requests) else {
+        return None
+      }
+      match @acquisition.select_source_acquisition_route(requests, 0, 1000000) {
+        Ok(QueryRoute(acquisition)) =>
           Some(@acquisition.query_acquisition_capture(acquisition))
+        Ok(WholeInputRoute(_)) => client_task_output_target(graph, task)
         Err(_) => None
       }
     }

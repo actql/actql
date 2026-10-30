@@ -89,6 +89,8 @@ pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_pla
 
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]
 
+pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]
+
 pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]

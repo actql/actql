@@ -370,6 +370,7 @@ pub fn prepare_installed_managed_whole_source_plan(
   let capacity_plan = client_local_capacity_plan(
     sequences,
     max_rows,
+    scalar_values=true,
     graph=Some(graph),
   )
   let inputs = Array::makei(sequences.length(), task => {

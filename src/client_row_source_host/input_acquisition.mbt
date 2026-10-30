@@ -520,6 +520,20 @@ pub fn check_row_input_compute_binding(
 }
 
 ///|
+/// Same completed input occurrence, not another Run with equal rows or limits.
+/// Liveness is checked by the existing capture getter at the consuming boundary.
+pub fn check_row_input_capture_run(
+  capture : RowSourceCapture,
+  run : RowRun,
+) -> Result[Unit, RowHostIssue] {
+  if !physical_equal(capture.run, run) ||
+    !(capture.observation is InputObservation(_)) {
+    return Err(InvalidState)
+  }
+  Ok(())
+}
+
+///|
 /// Existing JSON input/capture representation bounds plus this actual
 /// provider recipe. These DATA describe overlap, never a reservation or grant.
 pub fn row_input_acquisition_capacity(

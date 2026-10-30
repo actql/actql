@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9adced0a7af1e75b4d61f2ba8ddc546c76bdfcdb5fe48bb422bc4341cbf45fab",
+      "sha256": "034f1fb9254eabcefd0a9fd51f72dcd439a0b7cf9c03e5fc5d4fbd015c271a5e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -18423,6 +18423,13 @@
         },
         {
           "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation#2",
           "parameters": [
             "captured"
           ],
@@ -26917,6 +26924,78 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
               }
             ]
           }
@@ -67703,7 +67782,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e3038050302aabaef1c63c211601fe5a70ff75874e0fd8d3a3a261c32a8529b8",
+      "sha256": "6baff730040d10323c57864698d2df98aa696b6bed6e6033721d8705c1c0f7c9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67795,6 +67874,11 @@
             "dag",
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -68769,6 +68853,78 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
               }
             ]
           }

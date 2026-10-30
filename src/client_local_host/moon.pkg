@@ -57,6 +57,7 @@ import {
 
 options(
   targets: {
+    "installed_whole_source_publication_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_plan_js_wbtest.mbt": [ "js" ],
     "installed_whole_source_dispatch_js_wbtest.mbt": [ "js" ],
     "preparation_parameter_source_current_wbtest.mbt": [ "js" ],

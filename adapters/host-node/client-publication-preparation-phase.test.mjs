@@ -234,9 +234,10 @@ test('original Source publication consumes retained observation tokens on its sa
   const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
     compiledRunTokens: new WeakMap([[compiled, original]]), token: value => {assert.equal(value, definition); return contract;},
     evidenceToken: value => {assert.equal(value, evidence); return evidenceOriginal;},
-    captureContractLimits: value => value, compiledRunResult: value => value,
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value,
     inspectEvidence: value => value, inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
-    moon: {clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: observation, _1: invocation};},
+    moon: {clientProgramInstalledManagedPublicationSourceKind: () => 'query',
+      clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: observation, _1: invocation};},
       clientProgramIssueCompiledTaskInvocation() {assert.fail('raw Source issuer bypassed the original Run');}},
   }, true);
   const bounds = {maxWireBytes: 11, maxNodes: 13, maxDepth: 17};
@@ -286,13 +287,60 @@ test('captured invocation refuses missing owner and copied evidence before porta
   const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, source = {}, evidence = {}, calls = [];
   const context = {compiledRunTokens: new WeakMap([[compiled, {}]]), token: value => value,
     evidenceToken: value => {if (value !== evidence) throw new TypeError('Foreign Run evidence'); return source;},
-    captureContractLimits: value => value, compiledRunResult: value => value, inspectEvidence: value => value,
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value, inspectEvidence: value => value,
     inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
-    moon: {clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: {}, _1: {}};}}};
+    moon: {clientProgramInstalledManagedPublicationSourceKind: () => 'query',
+      clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: {}, _1: {}};}}};
   const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', context, true);
   const captured = {logicalInput: {}, identity: {}, requirement: {}, capture: {source: () => ({})}};
   const input = {dataPolicyCid: 'policy', source: {sources: [{captured, sourceEvidence: evidence}, {captured, sourceEvidence: {}}]}};
   assert.throws(() => invoke(compiled, {}, input, {}, undefined, prepared), /Invalid original publication invocation profile/);
   assert.throws(() => invoke(compiled, {}, input, {}, owner, prepared), /Foreign Run evidence/);
   assert.equal(calls.length, 0);
+});
+
+
+test('whole Source publication forwards the same native capture and never a Query requirement', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, compiledOriginal = {}, definition = {},
+    nativeCapture = {}, identity = {}, logical = {}, evidence = {}, evidenceOriginal = {},
+    observation = {}, invocation = {}, calls = [], foreign = new Error('foreign original');
+  let available = true, kind = 'whole-input';
+  const capture = Object.freeze({source() {assert.equal(this, capture); return {};},
+    originalWholeInput() {
+      assert.equal(this, capture);
+      if (!available) throw foreign;
+      return nativeCapture;
+    }});
+  const captured = {capture, identity, logicalInput: logical};
+  Object.defineProperty(captured, 'requirement', {get() {assert.fail('whole Source queried a Query requirement');}});
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
+    compiledRunTokens: new WeakMap([[compiled, compiledOriginal]]), token: value => {
+      assert.equal(value, definition); return definition;
+    }, evidenceToken: value => {assert.equal(value, evidence); return evidenceOriginal;},
+    captureContractLimits: value => value, compiledRunResult: value => value, checked: value => value,
+    inspectEvidence: value => value, inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramInstalledManagedPublicationSourceKind(actual, body) {
+      assert.equal(actual, owner); assert.equal(body, prepared); return kind;
+    }, clientProgramIssueWholeSourcePublicationInvocation(...args) {
+      calls.push(args); return {_0: observation, _1: invocation};
+    }, clientProgramIssueCapturedPublicationInvocation() {assert.fail('whole Source entered Query issuance');}},
+  }, true);
+  const bounds = {maxWireBytes: 11, maxNodes: 13, maxDepth: 17};
+  const source = {captured, sourceEvidence: evidence, authorityScopeCid: 'authority',
+    captureStartedAt: 'start', captureCompletedAt: 'end'};
+  const issue = () => invoke(compiled, definition, {dataPolicyCid: 'policy', source}, bounds, owner, prepared);
+  assert.equal(issue().invocation, invocation);
+  assert.deepEqual(calls, [[owner, prepared, compiledOriginal, definition, nativeCapture, identity,
+    evidenceOriginal, logical, 'authority', 'policy', 'start', 'end', 11, 13, 17]]);
+  available = false;
+  assert.throws(issue, error => error === foreign);
+  available = true;
+  source.captured = {identity, logicalInput: logical, capture: {...capture}};
+  assert.throws(issue, {code: 'ERR_ASSERTION'});
+  source.captured = {identity, logicalInput: logical, capture: {source: capture.source}};
+  assert.throws(issue, /Invalid original whole Source capture/);
+  source.captured = captured;
+  kind = 'unknown';
+  assert.throws(issue, /Invalid original publication invocation profile/);
+  assert.equal(calls.length, 1);
 });

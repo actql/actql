@@ -3145,7 +3145,32 @@ function publicationControl(moon) {
         if (publicationPreparation === undefined || preparedProgram === undefined || compiled.kind !== 'tasks' ||
             !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
             sources.some(({captured}) => captured?.capture === undefined || captured?.identity === undefined ||
-              captured?.requirement === undefined || captured?.logicalInput === undefined)) {
+              captured?.logicalInput === undefined)) {
+          throw new TypeError('Invalid original publication invocation profile');
+        }
+        // The adopted original Plan selects the semantic input boundary.
+        // A missing/copy/foreign capture cannot fall back to a Query ABI.
+        const kind = checked(moon.clientProgramInstalledManagedPublicationSourceKind(
+          publicationPreparation, preparedProgram));
+        if (kind === 'whole-input') {
+          if (sources.length !== 1 || source.keyedObservation !== undefined) {
+            throw new TypeError('Invalid original publication invocation profile');
+          }
+          const {captured, sourceEvidence} = sources[0], capture = captured.capture;
+          const original = Object.getOwnPropertyDescriptor(capture, 'originalWholeInput');
+          if (original === undefined || !Object.hasOwn(original, 'value') || typeof original.value !== 'function') {
+            throw new TypeError('Invalid original whole Source capture');
+          }
+          const issued = compiledRunResult(moon.clientProgramIssueWholeSourcePublicationInvocation(
+            publicationPreparation, preparedProgram, value, token(definition),
+            Reflect.apply(original.value, capture, []), captured.identity,
+            evidenceToken(sourceEvidence), captured.logicalInput,
+            source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+          return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+            invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+        }
+        if (kind !== 'query' || sources.some(({captured}) => captured.requirement === undefined)) {
           throw new TypeError('Invalid original publication invocation profile');
         }
         const issued = compiledRunResult(moon.clientProgramIssueCapturedPublicationInvocation(
