@@ -416,7 +416,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4969,7 +4969,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -5223,7 +5223,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5476,7 +5476,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -6328,7 +6328,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8910,7 +8910,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10568,7 +10568,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "eb81ffdafaae658b50714ba81985105d94841ec0ff42e623149fbdfe494c79c1",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceWriteDriver"
@@ -11628,7 +11628,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11892,7 +11892,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "readSalesforceManagedQuery",
         "readSalesforceQuery"
@@ -13221,7 +13221,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -15068,7 +15068,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15565,7 +15565,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -15816,7 +15816,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9b701c1164401d32d4d81b7df7408cbe80f3268178d544ba3d5aadf5ce4aadd2",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
@@ -25188,7 +25188,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -27262,7 +27262,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -27622,7 +27622,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -27874,7 +27874,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -28133,7 +28133,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "354b24e37d70dc1ec122fa6b7c3e2aac4f60dad7a293cd2553e8ec45e2de5ab4",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -28978,7 +28978,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -30002,7 +30002,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -31463,7 +31463,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0f1121d591ebcd4e66a709452d28bc2941f7c965f57aea3006219b989e4e0f85",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -34064,7 +34064,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -34216,7 +34216,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -34340,7 +34340,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -37309,7 +37309,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -37731,7 +37731,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -40015,7 +40015,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4dc3df8598799065a85b171dba5e633201d582c7d81ad6a869608bd544506d8",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -43367,7 +43367,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -43887,10 +43887,6 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              },
-              {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
               }
@@ -44019,10 +44015,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "projectProfile?.retire(projectRuntime);"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -44187,10 +44179,6 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -44221,10 +44209,6 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "An unavailable"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -45180,10 +45164,6 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -47393,7 +47373,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -47743,84 +47723,6 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [
-            "readInitialControlHostInput",
-            "readSourceManagedOriginalInput",
-            "snapshotInitialControlHostInput"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "options = readInitialControlInstallationInput(control, originals);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
               }
             ]
           }
@@ -48436,101 +48338,14 @@
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
-          ],
-          "exports": [
-            "readLocalMockModelRunRequirements"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
-          "exports": [],
+          "exports": [
+            "readLocalMockModelRunRequirements"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -50346,13 +50161,13 @@
           }
         },
         {
-          "exports": [],
           "operations": [
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
             "retainedManagedCaptureInventory"
           ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -50452,241 +50267,6 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('ordinary captured Source Host adopts its same Request Plan without detached admission ports'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -50838,6 +50418,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "readInitialControlHostInput",
+            "readSourceManagedOriginalInput",
+            "snapshotInitialControlHostInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -50956,7 +50614,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -51633,7 +51291,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -52749,7 +52407,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4a4fe5df15808b3926f5d587c062374ff6d7f0725f0063e8c08239b2a74f2ebf",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
@@ -55590,7 +55248,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A — existing Model raw custody projection",
+      "owner": "A \u2014 existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -56661,7 +56319,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -56894,7 +56552,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -57697,7 +57355,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -58204,7 +57862,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -58921,7 +58579,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -60888,7 +60546,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -62746,7 +62404,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dbcf6a01e3d98edf76ea1f67234a00c959def03a9188dbb9ed9d3f41233c8d2c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -68882,7 +68540,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e3038050302aabaef1c63c211601fe5a70ff75874e0fd8d3a3a261c32a8529b8",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -69964,7 +69622,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "313a95890b72783fbd2ed065a26def64a39b032f901c9533a7bfe1603a614b0d",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -74266,7 +73924,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "90247d18abc6db953b021cc7efa9191bbcbbbb3dbd70b80c34b9b62f8af0f15b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -76073,7 +75731,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5d1adff308e3b5e67a1074576574560a9e2772567045375f223c538b32608eeb",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -76790,7 +76448,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -80129,7 +79787,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -80565,7 +80223,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -81332,7 +80990,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -81712,7 +81370,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -82130,7 +81788,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -83495,7 +83153,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -84040,7 +83698,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -85259,7 +84917,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -87106,7 +86764,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -97722,7 +97380,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -99569,7 +99227,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -101416,7 +101074,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -103263,7 +102921,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -129154,7 +128812,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -130428,7 +130086,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -130679,7 +130337,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -132526,7 +132184,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",

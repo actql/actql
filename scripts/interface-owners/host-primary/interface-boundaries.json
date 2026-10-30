@@ -8495,10 +8495,6 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              },
-              {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
               },
@@ -8579,10 +8575,6 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -8731,10 +8723,6 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -9029,10 +9017,6 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              },
-              {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
@@ -9093,10 +9077,6 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -9194,7 +9174,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9611,7 +9591,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -9961,84 +9941,6 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [
-            "readInitialControlHostInput",
-            "readSourceManagedOriginalInput",
-            "snapshotInitialControlHostInput"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "options = readInitialControlInstallationInput(control, originals);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
               }
             ]
           }
@@ -10654,101 +10556,14 @@
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
-          ],
-          "exports": [
-            "readLocalMockModelRunRequirements"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "src/client_local_host/installed_mock_model_run.mbt",
-                "anchor": "pub fn begin_installed_mock_model_managed_run("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
-                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
-          "exports": [],
+          "exports": [
+            "readLocalMockModelRunRequirements"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -12504,13 +12319,13 @@
           }
         },
         {
-          "exports": [],
           "operations": [
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
             "retainedManagedCaptureInventory"
           ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -12610,1059 +12425,6 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('ordinary captured Source Host adopts its same Request Plan without detached admission ports'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>",
-            "bytesCid/bytesCid",
-            "cid/cid",
-            "clientOperationError/clientOperationError",
-            "connectEmbeddedLocal",
-            "connectEmbeddedLocal/client/client",
-            "embeddedInstallationIdentity",
-            "embeddedInstallationIdentity/identities/identities",
-            "embeddedInstallationIdentity/identity/identity",
-            "embeddedInstallationIdentity/ordinary/ordinary",
-            "localStateRoot",
-            "now/now",
-            "openInstalledHost",
-            "openInstalledHost/activate/activate",
-            "openInstalledHost/activate/activate/activate",
-            "openInstalledHost/assertModelRuntime",
-            "openInstalledHost/assertNewModelRuntime",
-            "openInstalledHost/authorizedScope/authorizedScope",
-            "openInstalledHost/bindModelSdkStaticOriginals",
-            "openInstalledHost/bootstrapIngress/bootstrapIngress",
-            "openInstalledHost/bootstrapIngress/bootstrapIngress#2",
-            "openInstalledHost/bootstrapIngress/bootstrapIngress#3",
-            "openInstalledHost/bootstrapIngress/init:performInstalledRequest/init:performInstalledRequest",
-            "openInstalledHost/bootstrapPort/init:perform/init:perform",
-            "openInstalledHost/getPreparedSourceEnvironment",
-            "openInstalledHost/hostConnection/hostConnection",
-            "openInstalledHost/init:closePublicationStore/init:closePublicationStore",
-            "openInstalledHost/init:prepareShutdown/init:prepareShutdown",
-            "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitEffectDefinition/admitEffectDefinition",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/attach/attach",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeObservation/authorizeObservation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancel/cancel",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation/cancelEffectContinuation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelHeldRun/cancelHeldRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequest/cancelRequest",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequestRun/cancelRequestRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/installationBinding/installationBinding",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/keyedDescriptors/keyedDescriptors",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupCancellation/lookupCancellation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupHeld/lookupHeld",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners/observeOwners",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeRun/observeRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/components/components",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/flight/init:started/init:started",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/observedStart/observedStart",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireIncompleteEffects/retireIncompleteEffects",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/settleHeldRun/settleHeldRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory/bound/bound",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/startRun/startRun",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/terminal/terminal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/captureWork/captureWork",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/interruption/interruption",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
-            "openInstalledHost/negotiate/negotiate",
-            "openInstalledHost/negotiate/negotiate/negotiate",
-            "openInstalledHost/openInstalledHost",
-            "openInstalledHost/openInstalledHost#2",
-            "openInstalledHost/openInstalledHost#3",
-            "openInstalledHost/openInstalledHost#4",
-            "openInstalledHost/openInstalledHost#5",
-            "openInstalledHost/openInstalledHost#6",
-            "openInstalledHost/openInstalledHost#7",
-            "openInstalledHost/recoveredInstalledEffect",
-            "openInstalledHost/recoveredInstalledEffect/descriptors/descriptors",
-            "openInstalledHost/requireModelSdkEagerStartup",
-            "openInstalledHost/retireModelRuntime",
-            "openInstalledHost/runtimeOriginals/runtimeOriginals",
-            "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect",
-            "openInstalledRemoteHttpHost",
-            "openInstalledRemoteHttpHost/init:close/init:close",
-            "openInstalledRemoteHttpHost/init:handler/init:handler",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/handled/handled",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler",
-            "openInstalledRemoteHttpHost/init:handler/init:handler/init:handler#2",
-            "openInstalledRemoteHttpHost/openInstalledRemoteHttpHost",
-            "plus/plus",
-            "publicKeyCid/publicKeyCid",
-            "publishInstalledEffect",
-            "publishInstalledSource",
-            "sameEmbeddedInstallation",
-            "sameEmbeddedInstallation/sameEmbeddedInstallation",
-            "validateSourceNamespace",
-            "validateValuesMaxRows",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
-          ],
-          "exports": [
-            "connectEmbeddedLocal",
-            "openInstalledRemoteHttpHost",
-            "publishInstalledEffect",
-            "publishInstalledSource"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "One installed Local Host for the current OS user"
-              },
-              {
-                "path": "src/run_publication/run_state_observation.mbt",
-                "anchor": "pub fn prepare_run_state_observation("
-              },
-              {
-                "path": "src/run_publication/run_wait.mbt",
-                "anchor": "pub fn run_wait_ready("
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Project Task Host assembly"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original project profile choice"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile.mbt",
-                "anchor": "pub fn select_client_project_profile("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Preparation responsibility belongs to the existing Host instance"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "## Standard Local Account initialization"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "## Local Run observation authorization"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The final installed Check Environment and query-name publication retain their"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The lifetime getter closes over those installed originals in their initialization"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "One original Effect computation retains one existing Journal cancellation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "connectEmbeddedLocal"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_original_materials.mbt",
-                "anchor": "pub fn"
-              },
-              {
-                "path": "src/run_publication/run_state_observation.mbt",
-                "anchor": "pub fn RunStateObservation::wire("
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"run_wait\": {"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile.mbt",
-                "anchor": "pub fn client_project_profile_matches("
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "function getPreparedSourceEnvironment() {"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "exact submitted intent"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
-              },
-              {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
-              },
-              {
-                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
-                "anchor": "pub fn client_project_model_task_selection_for("
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile.mbt",
-                "anchor": "physical_equal(original, candidate)"
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
-                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "return readInitialControlInstallationAsset(control, originals,"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "options = readInitialControlInstallationInput(control, originals);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (original === undefined || original.host !== host || original.moon !== moon ||"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "installedHostShutdown"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const retained = Object.freeze(tasks);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "projectTasks = undefined;"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile.mbt",
-                "anchor": "selection.configuration = None"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "projectProfile?.retire(projectRuntime);"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Reference ownership follows the actual Host record and its real children."
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "standardAccountPreparation = await preparation.prepareStandardAccount("
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "// Keep the complete original enclosing function before/after its acquisition"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "createEmbeddedHostRegistry"
-              },
-              {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "configuration is always explicit Host installation"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "originalsForRuntime(runtime);"
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              },
-              {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "assertCurrent(scope, originals);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const after = observeControl();"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-host-cleanup.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/client-run-state-revision.test.mjs",
-                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
-              },
-              {
-                "path": "src/run_publication/run_wait.mbt",
-                "anchor": "return Err(InvalidSince)"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
-                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
-                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
-                "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});"
-              },
-              {
-                "path": "adapters/host-node/client-run-state-revision.test.mjs",
-                "anchor": "A changed payload without a revision increment cannot reuse the frame"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local-close-public.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: frame.cancellationRequested,"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Unknown or pending child cleanup retains responsibility."
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
-                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              },
-              {
-                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
-                "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "} finally { gate.close(); }"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.throws(host.get,{code:'ClientHostClosing'});"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "facts, and closed journals refuse. These managed references end with the"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-host-policy.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "src/run_publication/run_state_observation.mbt",
-                "anchor": "max_bytes : Int"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
-              },
-              {
-                "path": "src/run_publication/run_wait.mbt",
-                "anchor": "max_nodes : Int"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The initial Local reader selection is explicit:"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The installation envelope includes the Common selection's four reference"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "it does not add a profile field to the public connection wire."
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "requestedProfile.length > 65536"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Resource coverage distinguishes managed work/data limits"
-              },
-              {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const unsubscribe of subscriptions.values()) unsubscribe();"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "retirement cuts its private publication association and aliases after the existing"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "state; it does not repeat catalog admission or Account evaluation."
-              },
-              {
-                "path": "adapters/host-node/client-run-state-revision.test.mjs",
-                "anchor": "The complete original row has already been admitted"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/client-check-composition.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "fail('UnknownClientRequestJournalFormat');"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "const wait = requestRules.run_wait;"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              },
-              {
-                "path": "src/check_environment/public_model_task_environment.mbt",
-                "anchor": "pub fn project_public_model_task_environment("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile.mbt",
-                "anchor": "pub fn retire_client_project_profile("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "An unavailable"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Every prepared selected Host defers Publication services, including an ordinary"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Pure checking/static planning and named Result delivery do not borrow this"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "a changed or request-specific Environment receives its own preparation rather"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "scope, rather than resolving runtime or publication names outside that scope."
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "Run bytes, while a new public observation acquires its own current original."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local-close-public.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/installed-host-cleanup.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/client-run-state-revision.test.mjs",
-                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
-              },
-              {
-                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
-                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
-              },
-              {
-                "path": "src/run_publication/run_wait_wbtest.mbt",
-                "anchor": "test \"Run wait accepts only stable original observations above since\""
-              },
-              {
-                "path": "adapters/host-node/client-run-wait-since.test.mjs",
-                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
-                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
-                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
-              },
-              {
-                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
-                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
-              },
-              {
-                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
-                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
-              },
-              {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
-                "anchor": "test('actual absent project profile issues no mock record or answer original'"
-              },
-              {
-                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
-                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
-              },
-              {
-                "path": "packages/node/project-profile.typecheck.mts",
-                "anchor": "const selected={mode:"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              },
-              {
-                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
-                "anchor": "test('prepared Host routes the exact original image and original runtime/policies without a pathname read'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
-                "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
-                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
-              },
-              {
-                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
-              },
-              {
-                "path": "adapters/host-node/host-deferred-publication-startup.test.mjs",
-                "anchor": "selected ordinary Host cannot borrow Journal coverage for Publication activation"
-              },
-              {
-                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
-                "anchor": "test('ordinary Local STORE admits its actual Result purpose without a Mock observation'"
-              },
-              {
-                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
-                "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
-              },
-              {
-                "path": "adapters/host-node/local-run-authorization.test.mjs",
-                "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
-              },
-              {
-                "path": "adapters/host-node/client-run-wait-notification.test.mjs",
-                "anchor": "test('settlement during the asynchronous pending observation is latched'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{"
-              },
-              {
-                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
-                "anchor": "Local Run observation retries changed control and final publication conflicts"
-              },
-              {
-                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
-                "anchor": "initial Effect observation retains settlement after early acceptance"
-              },
-              {
-                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
-                "anchor": "Effect cancellation probes share one original observer through target and Source work"
-              },
-              {
-                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
-                "anchor": "Effect cancellation probes retain changed missing and failed current observations"
-              },
-              {
-                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
-                "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
               }
             ]
           }
@@ -13814,6 +12576,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "readInitialControlHostInput",
+            "readSourceManagedOriginalInput",
+            "snapshotInitialControlHostInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -13930,7 +12770,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -15508,7 +14348,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -15626,7 +14466,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
