@@ -577,7 +577,12 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       if (context?.member?.kind !== 'create' || !text(context.member.resource)) fail();
       const resource = context.member.resource;
       const value = freezeInput(context.value);
-      const request = Reflect.apply(map, write, [Object.freeze({resource, value})]);
+      const proposalWire = data(context, 'proposalWire', true);
+      if (proposalWire !== undefined && (typeof proposalWire !== 'string' ||
+          proposalWire.length > localContractLimits.maxWireBytes ||
+          Buffer.byteLength(proposalWire) > localContractLimits.maxWireBytes)) fail();
+      const request = Reflect.apply(map, write, [Object.freeze({resource, value,
+        ...(proposalWire === undefined ? {} : {proposalWire})})]);
       return bindRequest(request, resource, value);
     },
     requestCid: request => original(request).requestCid,
@@ -1126,7 +1131,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
       selector: row.selector, current, ...resourceFields(member),
-      ...(member.kind === 'create' ? {createRowIdentity: createRows[index].identity} : {}),
+      ...(member.kind === 'create' ? {createRowIdentity: createRows[index].identity,
+        ...(row.proposalWire === undefined ? {} : {proposalWire: row.proposalWire})} : {}),
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
@@ -1657,7 +1663,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const canonicalRows = rows => {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const inventory = checked(moon.clientProgramEffectCreateRowInventory(
-      rows.map(entry => JSON.stringify({state: 'present',
+      rows.map(entry => entry.proposalWire ?? JSON.stringify({state: 'present',
         value: entry.value})), rows.length, maxWireBytes, maxNodes,
       maxDepth));
     if (inventory.length !== rows.length ||
@@ -2052,6 +2058,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const rows = proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
+          ...(member.kind === 'create' ? {proposalWire: proposal.changesWire} : {}),
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
       });
@@ -2076,7 +2083,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           // children share the same retainer but do not consume a row slot.
           if (rowIndex >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
-            ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity} : {}),
+            ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
+              proposalWire: row.proposalWire} : {}),
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
             ...(contentOwner === undefined ? {} : {contentOwner}),
             ...resourceFields(member),

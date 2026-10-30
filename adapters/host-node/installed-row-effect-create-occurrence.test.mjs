@@ -88,7 +88,7 @@ function fixture({child=false,inventoryError,managed=false}={}){
   const commandContentRow=()=>undefined;
   const requestsOf=expression('requestsOf',{ownerOf,requestEntry,resourceFields,commandContentRow});
   const ports={moon,members:[member],ownerOf,assertCurrent(){events.push('current');},
-    proposals:[input.map(value=>({changesWire:JSON.stringify({value})}))],
+    proposals:[input.map(value=>({changesWire:JSON.stringify({state:'present',value})}))],
     runInvocationCid:cid('c'),dispatches:[cid('d')],reads:[undefined],signal:undefined,
     resourceFields,currents:[],rowsOf:[],observations:[],commandContentBorrower:()=>assert.fail('No Command borrow'),
     control:{},prepared,identity,inputs:{},sourceSet:{members:[{payload:{}}]},limits,
