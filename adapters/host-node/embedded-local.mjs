@@ -1991,8 +1991,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
-    ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment, originalVerifier) =>
-      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier)}),
+    ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
+      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal)}),
     ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
@@ -5497,12 +5497,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       assertManagedComputeInstallationCurrent(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
     },
-    fundedPreparation(request, environment, originalVerifier) {
+    fundedPreparation(request, environment, originalVerifier, signal) {
       const manager = computeManaged;
       if (manager === undefined) return undefined;
       assertManagedComputeInstallationCurrent(manager, originals);
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
-        originalVerifier);
+        originalVerifier, signal);
     },
     borrowManagedPreparation(prepared, request) {
       const manager = computeManaged;

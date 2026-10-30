@@ -19,6 +19,14 @@ const pending = value => {
 };
 const fileIdentity = stat => [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs];
 
+function immutablePolicySubject(value) {
+  if (value !== null && typeof value === 'object') {
+    for (const item of Object.values(value)) immutablePolicySubject(item);
+    Object.freeze(value);
+  }
+  return value;
+}
+
 export function assertOrdinarySourcePreparationCurrent(view, originals, source) {
   const state = installations.get(view);
   if (state === undefined || state.originals !== originals || state.source !== source) {
@@ -358,14 +366,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
-    async fundedPreparation(request, environment) {
+    async fundedPreparation(request, environment, originalVerifier, signal) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
       if (state === undefined) return undefined;
       if (!requestPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
       if (state.context.environment !== environment || state.adopting || state.preparing ||
-          state.parent === undefined) {
+          state.parent === undefined ||
+          originalVerifier !== undefined && typeof originalVerifier !== 'function' ||
+          state.policyVerifierSelected &&
+            (state.policyVerifier !== originalVerifier || state.policySignal !== signal)) {
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
@@ -379,18 +390,73 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state.holder === undefined) {
         const contracts = originals.installation.sequenceContractOriginal;
         if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
+        const parent = state.parent;
+        const assertPreparingOriginal = () => {
+          if (closing || closed || producer.finished || producer.preparation !== state ||
+              producer.request !== request || state.parent !== parent ||
+              state.policyVerifier !== originalVerifier || state.policySignal !== signal) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          signal?.throwIfAborted();
+        };
+        state.policyVerifier = originalVerifier; state.policySignal = signal;
+        state.policyVerifierSelected = true;
         state.preparing = true;
         try {
           if (state.compilationKind === undefined) {
+            const prepareCheck = moon[producer.kind === 'program'
+              ? 'clientProgramPrepareRequestNativeComputation' : 'clientProgramPrepareRequestSourceComputation'];
+            const finishComputation = moon.clientProgramFinishRequestComputation;
+            const projectIssue = moon.clientProgramRequestPreparationIssueCode;
+            const policyMethods = originalVerifier === undefined ? [] : [
+              'clientProgramPrepareRequestPolicySubjects', 'clientProgramReadRequestPolicySubject',
+              'clientProgramBindRequestPolicySubject', 'clientProgramFinishRequestPolicySubjects',
+            ].map(name => moon[name]);
+            if ([prepareCheck, finishComputation, ...policyMethods].some(method => typeof method !== 'function')) {
+              fail('NodeManagedRunRuntimeUnavailable');
+            }
+            assertPreparingOriginal();
             const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
-            const result = producer.kind === 'program'
-              ? moon.clientProgramPrepareRequestNativeComputation(
-                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment, valuesMaxRows)
-              : moon.clientProgramPrepareRequestSourceComputation(
-                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment, valuesMaxRows);
-            state.compilationKind = checkedRequestProgramPreparation(moon, result);
+            checkedRequestProgramPreparation(moon, Reflect.apply(prepareCheck, moon, [
+              parent, producer.receipt, producer.body.input, producer.body.parameters,
+              environment, state.context.preparedEnvironment, valuesMaxRows,
+            ]), projectIssue);
+            assertPreparingOriginal();
+            if (originalVerifier !== undefined) {
+              const [prepareSubjects, readSubject, bindSubject, finishSubjects] = policyMethods;
+              const count = checkedRequestProgramPreparation(moon, Reflect.apply(prepareSubjects, moon,
+                [parent, producer.receipt, environment]), projectIssue);
+              if (!Number.isSafeInteger(count) || count < 0 || count > 1024) fail('ClientProgramPreparationFailure');
+              let wireBytes = 0;
+              for (let index = 0; index < count; index++) {
+                assertPreparingOriginal();
+                const wire = checkedRequestProgramPreparation(moon, Reflect.apply(readSubject, moon,
+                  [parent, producer.receipt, environment, index]), projectIssue);
+                if (typeof wire !== 'string' || (wireBytes += Buffer.byteLength(wire)) > 1048576) {
+                  fail('ClientProgramPreparationFailure');
+                }
+                const subject = immutablePolicySubject(JSON.parse(wire));
+                const policyCid = await originalVerifier(subject, {signal});
+                assertPreparingOriginal();
+                if (policyCid !== undefined &&
+                    (typeof policyCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(policyCid))) {
+                  fail('ClientProgramPreparationFailure');
+                }
+                // Core rechecks the original current capacity after the Host
+                // await. An explicit decline still consumes this SAME index.
+                checkedRequestProgramPreparation(moon, Reflect.apply(bindSubject, moon,
+                  [parent, producer.receipt, environment, index, policyCid]), projectIssue);
+                assertPreparingOriginal();
+              }
+              checkedRequestProgramPreparation(moon, Reflect.apply(finishSubjects, moon,
+                [parent, producer.receipt, environment]), projectIssue);
+              assertPreparingOriginal();
+            }
+            // The supplemented Environment stays inside this SAME check child.
+            // Finish still receives the original external Environment/publication.
+            state.compilationKind = checkedRequestProgramPreparation(moon, Reflect.apply(finishComputation, moon,
+              [parent, producer.receipt, environment, state.context.preparedEnvironment]), projectIssue);
+            assertPreparingOriginal();
           }
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different
@@ -628,6 +694,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.preparation=undefined;
       state.parent=state.admission=state.original=state.context=undefined;
       state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
+      state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
       run.value=run.producer=undefined;
       releaseFinishedProducer(producer);
     },

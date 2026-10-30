@@ -40,6 +40,7 @@ async function fixture({beginFailure, environment, control=[1024n,0n], policyLim
     clientProgramAbortRequestPreparation(actual){assert.equal(this,moon);assert.equal(actual,parent);calls.push('abort-parent');return stop();},
     clientProgramCleanupLocalPreparationAdmission(actual){assert.equal(this,moon);assert.equal(actual,admission);calls.push('cancel-admission');assert.equal(admission.ports.cancelUnpublished(),0);return ok(undefined);},
     clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
+    clientProgramPrepareRequestSourceComputation(){assert.fail('No Source semantic check selected');},
     clientProgramFinishRequestComputation(){return ok('effect_free');},
     clientProgramPrepareRequestPolicySubjects(){assert.fail('No policy verifier selected');},
     clientProgramReadRequestPolicySubject(){assert.fail('No policy descriptor selected');},

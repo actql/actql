@@ -117,12 +117,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       (getPreparedSourceEnvironment !== undefined && typeof getPreparedSourceEnvironment !== 'function') ||
       (getFundedPreparation !== undefined && typeof getFundedPreparation !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
-        (typeof verifyRequestValuePolicy !== 'function' ||
-          !funded && (typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
-          typeof moon.clientProgramBindHostVerifiedRequestValuePolicy !== 'function' ||
-          typeof moon.clientProgramCheckEnvironmentWithRequestValuePolicies !== 'function' ||
-          allowEffects && (typeof moon.clientProgramEffectRequestValuePolicySubjects !== 'function' ||
-            typeof moon.clientProgramEffectBindHostVerifiedRequestValuePolicy !== 'function')))) ||
+        (!funded || typeof verifyRequestValuePolicy !== 'function')) ||
       (!funded && allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
@@ -166,10 +161,11 @@ export function installNodeClientProgramPreparation({moon, environment,
     : request => preparePublishedEffect(request, environment);
   const prepareFunded = async (request, selectedEnvironment) => {
     try {
+      const signal = request.signal;
       const original = await getFundedPreparation(request, selectedEnvironment,
-        verifyRequestValuePolicy);
+        verifyRequestValuePolicy, signal);
       if (retired) fail('ClientProgramPreparationFailure');
-      request.signal?.throwIfAborted();
+      signal?.throwIfAborted();
       if (original === undefined || original === null ||
           !['effect_free', 'effectful'].includes(original.kind) ||
           original.prepared === null || typeof original.prepared !== 'object' ||
@@ -306,45 +302,9 @@ export function installNodeClientProgramPreparation({moon, environment,
       fail('ClientProgramRejected', error);
     }
   };
-  // Only a trusted installation supplies this verifier. Public Program fields
-  // never provide policy evidence, and no response classification is a default.
-  // Recheck through the common owner before Model selection or any Source I/O.
-  // The selected funded Request runs its verifier after semantic checking and
-  // before compilation. It must not enter this compiled-owner legacy recheck.
-  const verified = funded || verifyRequestValuePolicy === undefined ? disclosed : async request => {
-    const original = await disclosed(request);
-    request.signal?.throwIfAborted();
-    const effectful = effectOwned.has(original);
-    const readSubjects = effectful ? moon.clientProgramEffectRequestValuePolicySubjects :
-      moon.clientProgramRequestValuePolicySubjects;
-    const bindPolicy = effectful ? moon.clientProgramEffectBindHostVerifiedRequestValuePolicy :
-      moon.clientProgramBindHostVerifiedRequestValuePolicy;
-    const subjects = checked(readSubjects(original));
-    if (!Array.isArray(subjects) || subjects.length > 1024 ||
-        subjects.some(value => typeof value !== 'string') ||
-        subjects.reduce((bytes, value) => bytes + Buffer.byteLength(value), 0) > 1048576) {
-      fail('ClientProgramPreparationFailure');
-    }
-    const evidence = [];
-    for (const [index, wire] of subjects.entries()) {
-      request.signal?.throwIfAborted();
-      const subject = immutablePolicySubject(JSON.parse(wire));
-      const policyCid = await verifyRequestValuePolicy(subject, {signal: request.signal});
-      request.signal?.throwIfAborted();
-      if (policyCid === undefined) continue;
-      if (typeof policyCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(policyCid)) {
-        fail('ClientProgramPreparationFailure');
-      }
-      const proof = bindPolicy(original, index, policyCid);
-      if (proof === undefined) fail('ClientProgramPreparationFailure');
-      evidence.push(proof);
-    }
-    if (evidence.length === 0) return original;
-    const selected = moon.clientProgramCheckEnvironmentWithRequestValuePolicies(environment, evidence);
-    if (selected === undefined) fail('ClientProgramPreparationFailure');
-    return prepare(request, selected);
-  };
-  return Object.freeze(Object.assign(verified, {
+  // Trusted policy verification belongs to the funded Request before compile.
+  // No completed-input reprepare or externally substituted Environment remains.
+  return Object.freeze(Object.assign(disclosed, {
     retireReferences() {
       if (retired) return;
       retired = true;
@@ -428,14 +388,6 @@ export function installNodeClientProgramPreparation({moon, environment,
       throw new TypeError('Foreign Client preparation');
     },
   }));
-}
-
-function immutablePolicySubject(value) {
-  if (value !== null && typeof value === 'object') {
-    for (const item of Object.values(value)) immutablePolicySubject(item);
-    Object.freeze(value);
-  }
-  return value;
 }
 
 function effectPreparation(moon, outcome) {
