@@ -145,6 +145,11 @@ neither can be established.
 
 ## Limits and cost
 
+Received query response bodies count against the original read's byte budget,
+including HTTP error responses. Body accounting completes before decoding or
+reporting provider refusal; an error response does not become a successful
+page or complete the read.
+
 - Reads are paged by the API (2,000 records per SOQL page); the Connector
   follows pages up to the Program's row limit and stops with an error rather
   than returning a partial result.

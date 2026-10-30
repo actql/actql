@@ -1,8 +1,10 @@
 # Fixed SDK / Node release
 
-The first standard cohort is `@actql/client-wire`, `@actql/sdk`,
-`@actql/local-node`, and `@actql/node`, all at `0.0.1` with exact internal
-dependencies. `@actql/sdk` remains a remote Client with no Local runtime or
+The standard cohort is `@actql/client-wire`, `@actql/sdk`,
+`@actql/local-node`, and `@actql/node`, with one explicitly selected complete
+version and exact internal dependencies. The legacy `0.0.1` cohort file does
+not select a new release or authorize replacing an existing public version.
+`@actql/sdk` remains a remote Client with no Local runtime or
 DuckDB. `@actql/node` includes the standard Local implementation; consumers do
 not assemble internal packages. `@actql/otel-node` is optional and independent.
 Host implementation packages are not dependencies of this initial cohort.
@@ -43,7 +45,7 @@ Run preparation under the existing local heavy guard, with the repository's
 Node and MoonBit toolchain pins. Use a unique, absent RC destination:
 
 ```sh
-node scripts/package-release.mjs prepare /absolute/path/to/rc
+node scripts/package-release.mjs prepare /absolute/path/to/rc <explicit-cohort.json>
 node scripts/package-release.mjs verify /absolute/path/to/rc
 node scripts/test-package-release-install.mjs /absolute/path/to/rc
 node scripts/package-release.mjs plan /absolute/path/to/rc
@@ -77,7 +79,7 @@ receipts and failed-run evidence. `verify` checks both original and release
 bytes; it never builds, repairs or changes package versions.
 
 The external consumer starts with an empty directory and private npm cache.
-It installs only `@actql/node@0.0.1` or `@actql/sdk@0.0.1`, using a read-only
+It installs only the selected exact `@actql/node` or `@actql/sdk` version, using a read-only
 loopback registry that serves the fixed RC. npm resolves dependencies, and
 the acceptance audits exports/types and executes the existing Local/restart
 and short-query/HTTPS cases. This establishes registry installation mechanics,
@@ -90,30 +92,28 @@ and acceptance of affected paths; old receipts are never relabelled.
 
 ## Publication and recovery
 
-Public publication requires integration-owner GO for the exact names,
-versions, digests, registry, tag and evidence. Authentication checks and
-preparation do not grant that GO. Keep Hosted CI stopped.
+Public publication requires the owner's explicit approval of the exact names,
+versions, digests, registry, tag and evidence through a separate protected
+executor. Authentication checks, local JSON and preparation do not grant
+approval. The legacy `--publish` CLI is disabled before any credential or
+upload subprocess. Keep the existing hosted CI opt-in conditions unchanged.
 
-After GO, an authenticated operator invokes:
-
-```sh
-node scripts/publish-package-release.mjs --publish /absolute/path/to/rc
-```
-
-This publishes frozen archives in dependency order, with lifecycle scripts
-disabled. Before any write, all existing versions are inspected. A 404 is
+The existing tarball-only publisher library retains dependency order and
+same-byte resume for a future protected executor; it is not an authorized
+entrypoint on its own. Before any write, all existing versions are inspected. A 404 is
 absence; transport failure, registry failure and mismatched integrity are
 errors. Only an existing identical version is skipped. Publication command
 success and later registry confirmation are separate facts; immutable local
 receipts preserve successful commands even if confirmation is unavailable.
-After partial failure, inspect the same RC and rerun the command. It will not
+After partial failure, a protected executor must inspect the same approved
+fixed manifest and actual registry state. The existing library will not
 republish confirmed bytes, overwrite a version, choose a new version, or infer
 that an unconfirmed command never executed. Never publish mutable package
 directories instead of these archives.
 
 Before a next release, choose a new cohort version in the reviewed recipe,
 prepare and independently accept new archives, inspect existing versions, and
-obtain new GO. An incorrectly published immutable version is not repaired by
+obtain a new owner approval. An incorrectly published immutable version is not repaired by
 overwriting it: stop publication, disclose the affected version and scope,
 then obtain review for deprecation/tag correction and a new fixed version.
 The tool does not automatically unpublish, deprecate or change tags.
@@ -128,8 +128,13 @@ CLI packaging work.
 Local standard installation:
 
 ```sh
-npm install @actql/node
+npm install "@actql/node@${ACTQL_VERSION:?Set the owner-approved exact version}"
 ```
+
+Set `ACTQL_VERSION` to the owner's exact approved public version. A missing
+version, an unqualified package name or a local loopback acceptance does not
+identify the fixed public release. Use the resulting lockfile for repeatable
+installation.
 
 ```js
 import {open} from '@actql/node';
@@ -144,7 +149,7 @@ try {
 Remote Client only:
 
 ```sh
-npm install @actql/sdk
+npm install "@actql/sdk@${ACTQL_VERSION:?Set the owner-approved exact version}"
 ```
 
 ```js
@@ -172,7 +177,7 @@ the real CLI uses a new immutable version.
 
 ## Optional standalone Explorer cohort
 
-Explorer is separately installed with `npm install @actql/explorer`; it is not
+Explorer is separately installed at the selected exact version; it is not
 added to the initial Node/SDK release gate. `release/explorer-cohort.json` fixes
 the existing four packages followed by `explorer-ui` and `explorer`. Select it
 explicitly while keeping the normal clean-HEAD prepack and immutable digest flow:
@@ -221,3 +226,185 @@ For the checked-in Node/Explorer cohorts, independently compare every common
 `originalSha256`, final `sha256`/integrity and payload byte/mode inventory.
 Normal consumers keep their exact cohort and source checks. This mechanism
 is not formal registry publication or evidence of an installed E2E result.
+# Initial and continuing release preparation
+
+The common entry `node scripts/release.mjs plan <release-request.json>` validates
+an explicit candidate request without building, obtaining credentials, staging,
+uploading, creating tags or changing channels. `release-request.schema.json`
+describes its input; `release-policy.mjs` checks the cross-field rules. No real
+release request or version is selected by the synthetic test fixtures.
+
+The initial allowed package line is `0.0`. Complete final, alpha, beta and RC
+versions are explicit inputs; no patch/minor/major bump or next-version update
+exists. The shared parser maps those versions to Python metadata, and rejects
+unknown prerelease forms and build metadata rather than normalizing them.
+Package versions do not rename language, protocol, ABI or CID identity domains.
+
+Candidate policy and request files are DATA, not publisher authority. The old
+Node and Native CLI `--publish` entries are disabled before their credential or
+upload subprocesses. The reusable existing pack, digest, registry comparison
+and receipt functions remain available. A separately protected owner-approved
+executor is still required; a local `approved: true`, actor name, successful
+check, CI opt-in or merge cannot provide that authority. This code does not
+claim that externally usable owner credentials or arbitrary Release APIs have
+been isolated by repository code alone.
+
+`acceptance.json` retains all 26 release requirements and their outstanding
+evidence. No candidate artifact, platform support, public install, protected
+publisher setting or external acceptance is established by a valid plan.
+The existing ecosystem instructions below retain their artifact-verification
+details; their direct CLI publication examples are held until the protected
+execution path is connected and the owner approves a fixed release set.
+
+## Freeze existing artifacts
+
+`node scripts/release.mjs freeze <request.json> <cohorts.json> <new-directory>`
+connects existing ecosystem outputs without building or publishing. The cohort
+file is an explicit array of `{targetId, kind, directory}` records. Supported
+kinds are `node-npm`, `native-npm` and `python-wheels`. Native npm launcher
+packages are not standalone Native archives; no standalone adapter is connected
+at this layer yet. The existing Python wheel verifier currently selects only
+its actual macOS-arm64 layout and refuses other platforms.
+
+Each selected target must retain its complete, dependency-ordered child cohort,
+exact source/version and explicitly selected cohort tag. The existing ecosystem
+verifier runs before output is created. The new directory retains child-manifest
+bytes and copies the exact public artifacts; it does not preserve arbitrary
+build caches or rebuild missing files. Partial local output after a failed copy
+is not a completed candidate and is never silently reused.
+
+The upper `release-set.json` binds request, candidate policy, child manifest
+digests and all artifact names, versions, sizes, SHA256s and npm SRI. Its digest
+is detached in `release-set.sha256`, never stored inside its own hashed body.
+The detached file is local integrity DATA, not an approval. Use
+`node scripts/release.mjs verify <directory> <externally-retained-SHA256>` or
+`summary` with those same arguments to reobserve the fixed bytes. The Markdown
+and JSON summary come from that same manifest. A changed digest is a new
+candidate; it does not inherit any previous approval.
+
+`resume-plan <directory> <SHA256> <observations.json>` only classifies explicitly
+supplied registry observations. An observation identifies `targetId`, `file`
+and `state` (`absent`, `present`, `unknown`, `conflict`); a present observation also carries
+the exact artifact `identity` (name/version/bytes/SHA256 and npm integrity).
+Identical bytes may be reused, absence names the same missing bytes, unknown
+or conflict blocks the plan and any identity mismatch stops it. This input is not authenticated
+registry reobservation or owner authority, and the command never sends bytes.
+Protected execution, standalone Native observation, channel arbitration and
+release acceptance remain separate unfinished work.
+
+All sets from this layer remain explicitly `unaccepted`. The existing Python
+checker reused here establishes wheel metadata and frozen-byte correspondence,
+not original engine execution, normal install, Linux support or public registry
+acceptance. Synthetic metadata fixtures contain no usable engine. Real
+candidate assembly and acceptance wait for the selected coherent product
+source and owner-selected version/scope.
+
+## Read-only public registry observation
+
+```sh
+node scripts/release.mjs observe <fixed-directory> <externally-retained-SHA256>
+```
+
+This explicit command makes anonymous GET requests, without reading publisher
+credentials, staging, uploading or changing a channel. It verifies the local
+fixed set before and after the observation and returns a separate report; the
+fixed manifest is never updated with registry state. Save the report at a new
+original receipt location. A report is historical observation DATA, not an
+owner approval or a lock against later registry changes. The actual authorized
+executor must reobserve at its own publication boundary.
+
+For npm, the existing exact name/version/SRI reader remains the identity owner.
+The observer additionally downloads and streams the original tarball to compare
+size, SHA256 and SRI. For PyPI, it compares the exact release, file, size and
+SHA256 from the [release JSON API](https://docs.pypi.org/api/json/), using the
+standard [project-name normalization](https://packaging.python.org/en/latest/specifications/name-normalization/),
+and streams the wheel to verify its actual bytes. Unselected files, a yanked
+file or an occupied empty release cannot authorize appending a new platform or
+replacing an old placeholder. PyPI has no npm-style channel promotion.
+
+Only a 404 from the original version metadata route is absence. Authentication,
+rate-limit/server/transport failures, malformed metadata, failed artifact GETs
+and interrupted streams remain unknown. Different occupied identities/bytes
+remain conflicts. Both states block resume; neither causes a resend, version
+bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
+followed, and artifact downloads stay on the selected public registry origins.
+
+These checks are not a public fresh-install or runtime acceptance. Native npm
+launcher artifacts use the same npm route; standalone GitHub archives still
+require their actual assembly/observation connection. No observer grants
+publication authority or substitutes for the separate approved executor.
+
+## Channel transition review
+
+```sh
+node scripts/release.mjs channels <fixed-directory> <externally-retained-SHA256>
+node scripts/release.mjs promotion-plan <fixed-directory> <SHA256> <explicit-moves.json> <channel-report.json>
+```
+
+`channels` reads the selected npm packages' current dist-tag maps anonymously.
+Only a successful map can establish an absent tag; an unavailable map, including
+HTTP 404, stays unknown. The report is separate historical DATA. PyPI has no
+dist-tag route, and standalone GitHub Latest is not connected by this npm port.
+
+Each explicitly proposed move contains exactly `targetId`, `name`, `channel`
+and `expectedVersion` (a complete literal version, or null for an absent tag).
+The destination version comes from the fixed artifact, not another command
+argument. The plan binds the fixed manifest and the exact channel-report bytes,
+refuses stale expected values, unknown observations and unselected scope, and
+records an already-identical value separately. Normal promotion cannot move
+backward. Stable `latest` and `release-X.Y` cannot relabel a prerelease as final;
+a maintenance tag must match the candidate's actual parsed release line.
+An older maintenance line therefore cannot replace a newer stable latest.
+An intentional rollback is a separate owner recovery decision, not a normal
+promotion or automatic retry.
+
+Every plan remains `execution: unavailable`, pending exact public-install
+acceptance, independent owner approval and one protected exclusive executor.
+A prior GET followed by a PUT is not atomic CAS. The inspected npm CLI
+[dist-tag implementation](https://github.com/npm/cli/blob/latest/lib/commands/dist-tag.js)
+reads tags and writes a bare version without a conditional-update argument.
+The final execution design must also exclude other writers and recheck actual
+values under its authority. A GitHub concurrency name is repository-scoped;
+separate repositories must route through the same actual executor. No workflow,
+registry role, channel or exclusive-writer setting is configured by these plans.
+
+## Source and maintenance review
+
+```sh
+node scripts/release.mjs source-plan <request.json> <repository> [branches.json]
+node scripts/release.mjs maintenance-plan <request.json> <repository> <review.json> [branches.json]
+```
+
+`release/branches.json` initially selects only the already-permitted 0.0 line
+from `main`, with no maintenance cut. It does not grant another release line.
+Every allowed line needs one explicit source choice. Before a concurrent next
+line begins, the owner selects the maintenance cut and `release/X.Y` branch;
+after that selection, candidates for that line must name that branch rather
+than current main. No branch or tag is created by inspection. Policy, branch
+configuration, validators and workflows still need external protected review;
+candidate files cannot establish their own trust.
+
+The source plan reads exact local Git objects, checks branch membership and
+the fixed cut, captures original `cherry-pick -x` markers, and reports actual
+parents and changed paths. It detects original development commits merged
+across the maintenance cut. The maintenance plan refuses that broad history
+even if its author labels it a bug fix. This does not authenticate remote Git
+hosting or prove that a marker's patch is semantically correct.
+
+The maintenance request names `sourceCommit`, `line` and one record for every
+actual change commit, including merge/conflict work. Each record contains its
+`commit`, `category`, `originalPR`, affected `contracts`, `regressionEvidence`
+(description and SHA256), `adaptation`, and a `forwardPort` decision with
+`needed` and `reason`. Ordinary categories are bugfix, distribution, dependency,
+regression and docs. Feature, breaking and new optimization-project categories
+are refused. Source/commit mismatches and missing records or evidence refuse.
+Main backports retain their original PR and need no duplicate forward-port;
+line-only/emergency work must record the decision explicitly.
+
+These are complete review-DATA requirements, not semantic certification. The
+protected reviewer must inspect actual hunks, originals, claimed regression
+evidence and compatibility. A self-authored bugfix label, evidence hash or
+`approved: true` cannot replace that review. Use dedicated `cherry-pick -x`
+backport PRs and commit-level forward-ports; do not merge whole main into the
+maintenance branch or promise a support window implicitly. Maintenance merges
+do not pick a number, build a candidate or publish anything.

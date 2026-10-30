@@ -1216,3 +1216,30 @@ claim rule. Earlier retained requests are not retagged or silently upgraded.
 Actual late request construction, bounded overlap, capability/recipe binding,
 approval, durable claim, confirming reads and physical cleanup remain required;
 the documentation alone does not qualify ordinary GitHub writes.
+
+## Calendar Event unavailable cells
+
+The user-approved Calendar row contract keeps the declared `calendar.events`
+columns and represents genuinely unavailable values as NULL. The
+[normative connector types](../connectors/calendar.md#types) distinguish these
+from malformed present values. Google's
+[Event representation](https://developers.google.com/workspace/calendar/api/v3/reference/events)
+permits sparse cancelled/deleted items and an unavailable organizer email; its
+compatibility end for `endTimeUnspecified` is not an actual end.
+
+Organizer means the original email, with no ID/display-name fallback. An
+unavailable complete attendee list makes the whole cell NULL, while other
+available columns remain readable. A complete empty list remains `[]`. This
+avoids treating a truncated list as complete, fabricating email/status, or
+rejecting every other valid cell solely because attendance is unavailable.
+Validate all supplied values even when the list is incomplete. Only documented
+omitted boolean defaults apply; explicit null remains distinct.
+
+This makes the affected read columns nullable; downstream predicates and array
+operations observe those NULLs. It does not invent a status, timestamp, attendee,
+recurrence identity or compatibility end. `calendar_id` plus original `id`
+remains the row key; recurring instances may share `iCalUID`. Full declared-row
+capture, selected CalendarProfile, current Account/Site, checked Source and
+complete construction/retained/output/failed-child backing remain required.
+No normal reader, resource allowance or physical completion is issued by the
+row projection or this decision.

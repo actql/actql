@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "actql-release-policy/0.1",
+  "allowedLines": ["0.0"],
+  "publicationAuthority": "external-owner-approval-required"
+}

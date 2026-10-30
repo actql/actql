@@ -11890,7 +11890,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "346a80302aa10dfd246ac2cb6bad4d01f692473a4f0d7f6deea385e19e4f0567",
+      "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

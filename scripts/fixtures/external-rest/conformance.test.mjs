@@ -17,7 +17,7 @@ async function fixture(t) {
 test('conformance caller captures the actual original pending projection before wait and closes once', async t => {
   const f = await fixture(t), events = [];
   const reference = {run: 'synthetic-mechanism-only'}, rows = [{id: 'authored'}];
-  const execution = {ref: reference, wait: async () => events.push('wait'),
+  const execution = {ref: reference, wait: async () => {events.push('wait');return {status: 'succeeded'};},
     status: async () => ({status: 'succeeded'}), result: name => {
       assert.equal(name, 'rows'); return {all: async () => structuredClone(rows)};
     }};
@@ -32,6 +32,7 @@ test('conformance caller captures the actual original pending projection before 
   assert.deepEqual(result, {reference, rows});
   assert.deepEqual(await f.read('original-submission-input.json'),
     {available: true, input: {original: 'synthetic-input'}});
+  assert.deepEqual(await f.read('original-wait.json'), {status: 'succeeded'});
   const close = await f.read('first-close.json');
   assert.equal(close.acknowledged, true); assert.equal(close.fd.scopedStateFd0, true);
   assert.equal(close.fd.aliveAfterClose, true);
@@ -55,7 +56,7 @@ test('a pre-ref public rejection keeps original input and failure without an inv
 
 test('empty scoped descriptors never turn a failed first close into ACK or success', async t => {
   const f = await fixture(t), cleanup = Object.assign(new Error('synthetic cleanup pending'), {code: 'ClientCleanupPending'});
-  const execution = {ref: {run: 'synthetic-close-only'}, wait: async () => {},
+  const execution = {ref: {run: 'synthetic-close-only'}, wait: async () => ({status: 'succeeded'}),
     status: async () => ({status: 'succeeded'}), result: () => ({all: async () => []})};
   let closes = 0;
   const client = {startSource: () => Promise.resolve(execution),
@@ -98,4 +99,26 @@ test('a throwing canonical submission getter keeps the same pending rejection ob
   assert.equal(report.passed, false);assert.equal(report.primary.message, projectionFailure.message);
   assert.equal(report.publicCloseAcknowledged, true);
   assert.equal(Object.hasOwn(report, 'knownNotAccepted'), false);
+});
+
+test('an original failed wait cannot be replaced by later successful status or rows', async t => {
+  const f = await fixture(t), events = [];
+  const reference = {run: 'synthetic-original-failed-wait'};
+  const waited = {status: 'failed', result_available: false};
+  const pending = Promise.resolve({ref: reference,
+    wait: async () => {events.push('wait');return waited;},
+    status: async () => {events.push('status');return {status: 'succeeded'};},
+    result: () => ({all: async () => {events.push('rows');return [];}})});
+  const client = {startSource: () => {events.push('start');return pending;},
+    close: async () => {events.push('first-close');}};
+  await assert.rejects(captureStandardRestRead(client, {
+    publicSdk: {getSubmissionInput(value) {assert.equal(value, pending);return {original: 'failed-wait'};}},
+    program: {}, assertRows: rows => assert.deepEqual(rows, []),
+    outputRoot: f.outputRoot, stateRoots: [f.state]}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(events, ['start', 'wait', 'first-close']);
+  assert.deepEqual(await f.read('original-reference.json'), reference);
+  assert.deepEqual(await f.read('original-wait.json'), waited);
+  const outcome = await f.read('outcome.json');
+  assert.equal(outcome.passed, false);assert.equal(outcome.publicCloseAcknowledged, true);
+  assert.equal(outcome.scopedStateFd0, true);
 });

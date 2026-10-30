@@ -49,3 +49,23 @@ complete HubSpot read/write target.
   retains independent full schema and key-fact expectations. Execution/runtime
   source and artifact correspondence are recorded separately from this source
   reference; no current distribution or public acceptance is inferred.
+
+## Remaining-row request bound
+
+The object reader captures one pageRows value from the smaller of perPage
+and the same original acquisition's remaining row allowance, before preparing
+that page's request. The outgoing list limit and the actual provider decoder
+consume that same value. A positive remaining allowance is required before
+another request; no response is sliced to make a larger page fit.
+
+A next cursor at the row ceiling still refuses completion without another
+request. A server response exceeding the requested allowance still fails
+complete page admission. Original response charging, retained failure bytes,
+Account/current and nominal use checks, cursor handling and final property
+recheck keep their existing owners and ordering. This bound neither raises
+limits nor supplies Source authority, funding, completion or physical close.
+
+HubSpot's [list endpoint](https://developers.hubspot.com/docs/api-reference/legacy/crm/objects/companies/get-companies)
+defines limit as the per-page result maximum and after as the original
+forward cursor. No response-provided link is followed. The same operation,
+properties and archived selector remain selected by the existing reader.

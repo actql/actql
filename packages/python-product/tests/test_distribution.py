@@ -69,7 +69,7 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def wheel(self, directory, name, *, requirements, tag='py3-none-any', extra=None):
-        path = directory / 'fixture.whl'
+        path = directory / f"{name.replace('-', '_')}-0.0.0.dev0-{tag}.whl"
         metadata = Message()
         metadata['Metadata-Version'], metadata['Name'], metadata['Version'] = '2.4', name, '0.0.0.dev0'
         for requirement in requirements: metadata['Requires-Dist'] = requirement

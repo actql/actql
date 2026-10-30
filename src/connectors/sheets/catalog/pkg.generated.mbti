@@ -52,6 +52,8 @@ pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeReques
 
 pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]
 
+pub fn project_sheet_tabs(Bytes, String, SheetTabsLimits) -> Result[SheetTabsPage, SheetTabsIssue]
+
 pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]
 
 pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
@@ -79,6 +81,14 @@ pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
 pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]
 
 pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]
+
+pub fn sheet_tabs_column_names() -> Array[String]
+
+pub fn sheet_tabs_row_count(SheetTabsPage) -> Int
+
+pub fn sheet_tabs_rows_wire(SheetTabsPage, Array[String], Int, Int, Int) -> Result[String, SheetTabsIssue]
+
+pub fn sheet_tabs_schema_wire(Int, Int, Int) -> Result[String, SheetTabsIssue]
 
 pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]
 
@@ -171,6 +181,31 @@ pub struct RangeRequest {
   path : String
   value_wire : String
   cid : String
+}
+
+pub(all) enum SheetTabsIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  ForeignSpreadsheet
+  DuplicateSheet(Int)
+  InvalidCell(String)
+  InvalidSelection(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SheetTabsLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct SheetTabsPage {
+  spreadsheet_id : String
+  response_sha256 : String
+  // private fields
 }
 
 // Type aliases

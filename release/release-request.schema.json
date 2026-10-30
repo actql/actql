@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Explicit ActQL candidate release request; no publication authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "releaseId",
+    "version",
+    "source",
+    "targets",
+    "notes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "actql-release-request/0.1"
+    },
+    "releaseId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\\.(0|[1-9][0-9]*))?$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit",
+        "branch"
+      ],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/actql/actql"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "ecosystem",
+          "packages",
+          "platforms",
+          "profiles",
+          "destination",
+          "channels"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
+          },
+          "ecosystem": {
+            "enum": [
+              "npm",
+              "pypi",
+              "native"
+            ]
+          },
+          "packages": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "platforms": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "profiles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "destination": {
+            "enum": [
+              "https://registry.npmjs.org/",
+              "https://upload.pypi.org/legacy/",
+              "https://github.com/actql/actql"
+            ]
+          },
+          "channels": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9.-]*(?![\\s\\S])"
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "breakingChanges",
+        "migration",
+        "knownLimitations"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "breakingChanges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "migration": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "knownLimitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "description": "The shared release-policy validator additionally checks allowed major/minor lines, target/package uniqueness, ecosystem destinations/channels, literal text and breaking-change migration. Neither schema validity nor candidate policy data proves protected policy trust, branch admission, artifact availability, owner approval or platform acceptance."
+}
