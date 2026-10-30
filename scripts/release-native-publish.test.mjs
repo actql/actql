@@ -62,7 +62,8 @@ async function fixture(t, variant='reviewed') {
       browser_download_url:`https://github.com/actql/actql/releases/download/${spec.tag_name}/${encodeURIComponent(item.file)}`};
     assets.push(asset);bodies.set(asset.id,originals.get(item.file));return asset;
   };
-  const create = () => {release={...spec,id:71,draft:true,immutable:false};return release;};
+  const create = () => {release={...spec,id:71,draft:true,immutable:false,
+    upload_url:'https://uploads.github.com/repos/actql/actql/releases/71/assets{?name,label}'};return release;};
   const publish = () => {release.draft=false;release.immutable=!control.mutablePublished;ref={ref:`refs/tags/${spec.tag_name}`,object:{type:'commit',sha:spec.target_commitish}};};
   const fetchOwner=async(url,options)=>{
     assert(url.startsWith(api+'/'));assert.equal(options.method,'GET');assert.equal(options.redirect,'manual');assert.equal(options.body,undefined);
@@ -204,6 +205,17 @@ test('Native publish: original setting and release identity are checked again af
   for(const kind of ['disableDuringStream','replaceRelease']) {
     const f=await fixture(t);f.create();f.installAsset(f.artifacts[0]);f.control[kind]=true;
     assert.equal((await f.observe()).state,'unknown');assert.equal(f.commands.length,0);
+  }
+});
+
+test('Native publish: upload uses the original exact release template, absent foreign or changed template refuses',async t=>{
+  for(const kind of ['missing','foreign','other-id']) {
+    const f=await fixture(t);f.create();
+    if(kind==='missing')delete f.getRelease().upload_url;
+    else if(kind==='foreign')f.getRelease().upload_url='https://foreign.invalid/assets{?name,label}';
+    else f.getRelease().upload_url='https://uploads.github.com/repos/actql/actql/releases/72/assets{?name,label}';
+    assert.equal((await f.observe()).state,'unknown');
+    await assert.rejects(publishNativeRelease(f.options));assert.equal(f.commands.length,0);
   }
 });
 

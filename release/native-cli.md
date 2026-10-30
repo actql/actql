@@ -194,6 +194,11 @@ the normal public byte request. Signed query strings are not retained in
 receipts. Every existing asset is checked through the original finite actual
 length/SHA256 reader and its complete inventory is reobserved afterward.
 
+The selected Draft's original `upload_url` template must match the exact
+GitHub upload origin/repository/release id and remain unchanged across the
+read window. Each asset request expands only that validated original template.
+Missing or different templates refuse; no arbitrary upload destination is used.
+
 The sequence creates a Draft only after complete owner-visible absence,
 uploads only absent original assets, then publishes that same Draft id only
 after all selected archives and `SHA256SUMS` match. Original immutable files

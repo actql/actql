@@ -265,6 +265,9 @@ export async function observeNativePublicationTarget(directory, expectedSha256, 
       if (release.draft) {
         if (release.immutable || release.target_commitish !== spec.target_commitish)
           conflict('Draft source/immutability differs from the original candidate');
+        if (release.upload_url !== `https://uploads.github.com/repos/actql/actql/releases/${release.id}/assets{?name,label}`)
+          unavailable('Original Draft upload template is missing or outside the exact release');
+        result.uploadUrl = release.upload_url;
         await githubTagCommit(fixed, fetchOwner, requests, true);
         assets = await githubReleaseAssets(fixed, release, fetchOwner, requests);
         result.state = 'draft';
@@ -281,7 +284,7 @@ export async function observeNativePublicationTarget(directory, expectedSha256, 
       // Mutable Draft assets and presentation must be reobserved after their
       // streams, against the exact original selected release id, not just tag.
       const after = await githubMetadata(`/releases/${release.id}`, fetchOwner, requests);
-      for (const field of ['id', 'tag_name', 'draft', 'immutable', 'prerelease', 'name', 'body', 'target_commitish'])
+      for (const field of ['id', 'tag_name', 'draft', 'immutable', 'prerelease', 'name', 'body', 'target_commitish', 'upload_url'])
         if (after[field] !== release[field]) unavailable('Original release changed during byte observation');
       const afterAssets = await githubReleaseAssets(fixed, release, fetchOwner, requests);
       const pin = values => values.map(value => fields(value, ['id', 'name', 'state', 'size', 'digest', 'browser_download_url']))

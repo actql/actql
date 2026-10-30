@@ -451,7 +451,7 @@ export async function publishNativeRelease(options) {
     const payload = join(attempt, `payload-${index}`); await mkdir(payload, {mode: 0o700}); await syncDirectory(attempt);
     const path = join(payload, item.file); await writePrivateOriginal(path, captured.bytes, 0o400);
     const assetId = await execute('upload', {method: 'POST',
-      url: `https://uploads.github.com/repos/actql/actql/releases/${releaseId}/assets?name=${encodeURIComponent(item.file)}`,
+      url: current.uploadUrl.replace('{?name,label}', `?name=${encodeURIComponent(item.file)}`),
       headers: {'content-type': item.file.endsWith('.tar.gz') ? 'application/gzip' : 'text/plain', 'content-length': String(item.bytes)},
       file: path}, 201, item);
     const status = await lstat(path);
