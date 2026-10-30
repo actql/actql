@@ -118,11 +118,11 @@ export function installNodeClientProgramPreparation({moon, environment,
       (getFundedPreparation !== undefined && typeof getFundedPreparation !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
         (typeof verifyRequestValuePolicy !== 'function' ||
-          typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
+          !funded && (typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
           typeof moon.clientProgramBindHostVerifiedRequestValuePolicy !== 'function' ||
           typeof moon.clientProgramCheckEnvironmentWithRequestValuePolicies !== 'function' ||
           allowEffects && (typeof moon.clientProgramEffectRequestValuePolicySubjects !== 'function' ||
-            typeof moon.clientProgramEffectBindHostVerifiedRequestValuePolicy !== 'function'))) ||
+            typeof moon.clientProgramEffectBindHostVerifiedRequestValuePolicy !== 'function')))) ||
       (!funded && allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
@@ -166,7 +166,8 @@ export function installNodeClientProgramPreparation({moon, environment,
     : request => preparePublishedEffect(request, environment);
   const prepareFunded = async (request, selectedEnvironment) => {
     try {
-      const original = await getFundedPreparation(request, selectedEnvironment);
+      const original = await getFundedPreparation(request, selectedEnvironment,
+        verifyRequestValuePolicy);
       if (retired) fail('ClientProgramPreparationFailure');
       request.signal?.throwIfAborted();
       if (original === undefined || original === null ||
@@ -308,7 +309,9 @@ export function installNodeClientProgramPreparation({moon, environment,
   // Only a trusted installation supplies this verifier. Public Program fields
   // never provide policy evidence, and no response classification is a default.
   // Recheck through the common owner before Model selection or any Source I/O.
-  const verified = verifyRequestValuePolicy === undefined ? disclosed : async request => {
+  // The selected funded Request runs its verifier after semantic checking and
+  // before compilation. It must not enter this compiled-owner legacy recheck.
+  const verified = funded || verifyRequestValuePolicy === undefined ? disclosed : async request => {
     const original = await disclosed(request);
     request.signal?.throwIfAborted();
     const effectful = effectOwned.has(original);

@@ -487,7 +487,6 @@ export function readLocalPreparationContext(originals) {
   assertSourceManagedHostPreparation(originals);
   const installation = originals.installation;
   const context = installation.closedValuesPreparationContext;
-  if (installation.verifyRequestValuePolicy !== undefined) return undefined;
   if (context === undefined || context.runtime !== installation.projectRuntime ||
       context.control !== installation.initialControl ||
       installation.sequenceContractOriginal === undefined) return undefined;
@@ -1992,8 +1991,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
-    ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment) =>
-      preparation.fundedPreparation(request, selectedEnvironment)}),
+    ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment, originalVerifier) =>
+      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier)}),
     ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
@@ -5498,11 +5497,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       assertManagedComputeInstallationCurrent(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
     },
-    fundedPreparation(request, environment) {
+    fundedPreparation(request, environment, originalVerifier) {
       const manager = computeManaged;
       if (manager === undefined) return undefined;
       assertManagedComputeInstallationCurrent(manager, originals);
-      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment);
+      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
+        originalVerifier);
     },
     borrowManagedPreparation(prepared, request) {
       const manager = computeManaged;
