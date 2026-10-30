@@ -8926,7 +8926,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "8a2d2170cc7a6802c362b515d8523b900f081872bf62e4fd1f8a883c3044b37b",
+      "sha256": "4ed382d54ba76fde9b67d58acd45a4cd9b24e459833f5b0c1503da7517b97109",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -11169,6 +11169,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -11318,6 +11326,14 @@
               {
                 "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
                 "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -11883,6 +11899,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -11980,6 +12004,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12093,6 +12125,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12223,6 +12263,14 @@
               {
                 "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
                 "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12323,6 +12371,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12396,6 +12452,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12487,6 +12551,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
@@ -12560,6 +12632,14 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
               }
             ]
           }
