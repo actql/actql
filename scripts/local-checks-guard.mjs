@@ -95,7 +95,8 @@ export function heavyResourceRequest(value = {}) {
 }
 
 // These are cooperative verification reservations, not product limits or OS quotas.
-// Deduct still-held estimates as well as keeping actual free-space headroom.
+// Current memory availability already reflects running jobs. Check the next
+// job against that measurement, and all estimates against physical memory.
 export function heavyResourceAdmission(request, members, available) {
   request = heavyResourceRequest(request);
   const reserved = {memoryBytes: 0, diskBytes: 0, cpuThreads: 0};
@@ -104,15 +105,18 @@ export function heavyResourceAdmission(request, members, available) {
     for (const key of Object.keys(reserved)) reserved[key] += resources[key];
   }
   if (Object.keys(reserved).some(key => !Number.isSafeInteger(reserved[key]) ||
-      !Number.isSafeInteger(available?.[key]) || available[key] < 0)) {
+      !Number.isSafeInteger(available?.[key]) || available[key] < 0) ||
+      !Number.isSafeInteger(available.totalMemoryBytes) || available.totalMemoryBytes < 0) {
     throw new Error('Invalid heavy verification headroom');
   }
-  const required = {memoryBytes: reserved.memoryBytes + request.memoryBytes + 256 * mib,
+  const required = {memoryBytes: request.memoryBytes + 256 * mib,
     diskBytes: reserved.diskBytes + request.diskBytes + 128 * mib,
     cpuThreads: reserved.cpuThreads + request.cpuThreads};
+  const memoryPoolRequiredBytes = reserved.memoryBytes + required.memoryBytes;
   return {admitted: members.length < maximumHeavyJobs &&
+    memoryPoolRequiredBytes <= available.totalMemoryBytes &&
     Object.keys(required).every(key => required[key] <= available[key]),
-  limit: maximumHeavyJobs, request, reserved, required, available};
+  limit: maximumHeavyJobs, request, reserved, required, memoryPoolRequiredBytes, available};
 }
 
 export function availableVerificationMemory(platform, text, total) {
@@ -137,7 +141,9 @@ function verificationHeadroom(root) {
     ? execFileSync('/usr/bin/memory_pressure', ['-Q'], {encoding: 'utf8',
       timeout: 1000, maxBuffer: 8192, env: {...process.env, LC_ALL: 'C'}})
     : readFileSync('/proc/meminfo', 'utf8');
-  return {memoryBytes: availableVerificationMemory(process.platform, memory, totalmem()),
+  const totalMemoryBytes = totalmem();
+  return {memoryBytes: availableVerificationMemory(process.platform, memory, totalMemoryBytes),
+    totalMemoryBytes,
     cpuThreads: availableParallelism(),
     diskBytes: Number(bytes > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : bytes)};
 }
