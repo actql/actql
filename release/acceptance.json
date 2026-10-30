@@ -151,7 +151,7 @@
     {
       "id": "A15",
       "required": "Resume only missing approved identical bytes after partial publication",
-      "currentSlice": "Existing npm same-integrity resume retained; upper read-only supplied-observation classifier distinguishes present/absent/unknown/conflict, real cross-ecosystem observation/upload pending",
+      "currentSlice": "Anonymous bounded npm/PyPI HTTP byte observations feed the fixed same-bytes classifier. Actual protected upload/partial-publication recovery and standalone Native remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -161,13 +161,17 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP/cold-byte transport component only; no actual public publication or approval",
+          "test": "registry observation: actual npm identity owner and bounded remote bytes feed same-bytes resume without writing the fixed set"
         }
       ]
     },
     {
       "id": "A16",
       "required": "Occupied version with different bytes stops without bump/overwrite",
-      "currentSlice": "Existing npm publishedVersion comparator; protected execution binding pending",
+      "currentSlice": "Existing npm identity owner plus actual remote byte comparisons; PyPI checks complete selected release files/size/SHA256 and downloaded bytes. Conflict/unknown block; protected executor and live candidate acceptance remain pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
@@ -177,6 +181,10 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "same-bytes resume classification distinguishes confirmed, absent, unknown and conflict without executing"
+        },
+        {
+          "kind": "Injected HTTP component only; no real registry write",
+          "test": "registry observation: old foreign or empty PyPI releases cannot acquire a new platform/product by append"
         }
       ]
     },

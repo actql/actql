@@ -207,7 +207,7 @@ export function resumeReleaseSet(fixed, observations) {
     const matches = observations.filter(value => value.targetId === artifact.targetId && value.file === artifact.file);
     assert.equal(matches.length, 1, 'Missing or duplicated original registry observation');
     const value = matches[0]; assert(!seen.has(key)); seen.add(key);
-    assert(['absent', 'present', 'unknown'].includes(value.state), 'Unknown observation state');
+    assert(['absent', 'present', 'unknown', 'conflict'].includes(value.state), 'Unknown observation state');
     exact(value, ['targetId', 'file', 'state', ...(value.state === 'present' ? ['identity'] : [])]);
     if (value.state === 'present') {
       exact(value.identity, ['name', 'version', 'bytes', 'sha256', ...(artifact.ecosystem === 'npm' ? ['integrity'] : [])]);
@@ -215,9 +215,9 @@ export function resumeReleaseSet(fixed, observations) {
         `Occupied original artifact differs: ${key}/${field}`);
     }
     plan.push({targetId: artifact.targetId, file: artifact.file,
-      action: value.state === 'present' ? 'reuse-identical' : value.state === 'absent' ? 'missing-same-bytes' : 'stop-unknown'});
+      action: value.state === 'present' ? 'reuse-identical' : value.state === 'absent' ? 'missing-same-bytes' : `stop-${value.state}`});
   }
-  return {manifestSha256: fixed.sha256, blocked: plan.some(value => value.action === 'stop-unknown'), plan,
+  return {manifestSha256: fixed.sha256, blocked: plan.some(value => value.action.startsWith('stop-')), plan,
     qualification: 'supplied registry observation classification only; no upload, approval, retry or version selection'};
 }
 

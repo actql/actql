@@ -7,6 +7,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {releasePlan} from './release-policy.mjs';
 import {freezeReleaseSet, verifyReleaseSet, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
+import {observeReleaseSet} from './release-registry.mjs';
 
 export async function runReleasePlan(args) {
   const [command, requestFile, ...rest] = args;
@@ -26,6 +27,10 @@ export async function runRelease(args) {
     return freezeReleaseSet({request: JSON.parse(await readFile(resolve(values[0]), 'utf8')),
       policy, cohorts: JSON.parse(await readFile(resolve(values[1]), 'utf8')), destination: values[2]});
   }
+  if (command === 'observe') {
+    assert.equal(values.length, 2, 'usage: release.mjs observe <fixed-directory> <externally-retained-sha256>');
+    return observeReleaseSet(values[0], values[1]);
+  }
   if (['verify', 'summary', 'resume-plan'].includes(command)) {
     assert.equal(values.length, command === 'resume-plan' ? 3 : 2,
       'Supply the original directory and externally retained manifest SHA256; resume-plan also needs observation JSON');
@@ -34,7 +39,7 @@ export async function runRelease(args) {
     if (command === 'resume-plan') return resumeReleaseSet(fixed, JSON.parse(await readFile(resolve(values[2]), 'utf8')));
     return fixed;
   }
-  throw new Error('External release operation is unavailable: only plan/freeze/verify/summary/resume-plan are implemented; no publication authority');
+  throw new Error('External release operation is unavailable: only plan/freeze/verify/summary/observe/resume-plan are implemented; no publication authority');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -284,13 +284,13 @@ candidate; it does not inherit any previous approval.
 
 `resume-plan <directory> <SHA256> <observations.json>` only classifies explicitly
 supplied registry observations. An observation identifies `targetId`, `file`
-and `state` (`absent`, `present`, `unknown`); a present observation also carries
+and `state` (`absent`, `present`, `unknown`, `conflict`); a present observation also carries
 the exact artifact `identity` (name/version/bytes/SHA256 and npm integrity).
 Identical bytes may be reused, absence names the same missing bytes, unknown
-blocks the plan and any mismatch stops it. This input is not authenticated
+or conflict blocks the plan and any identity mismatch stops it. This input is not authenticated
 registry reobservation or owner authority, and the command never sends bytes.
-Live PyPI/Native observation adapters, protected execution, channel arbitration
-and release acceptance remain separate unfinished work.
+Protected execution, standalone Native observation, channel arbitration and
+release acceptance remain separate unfinished work.
 
 All sets from this layer remain explicitly `unaccepted`. The existing Python
 checker reused here establishes wheel metadata and frozen-byte correspondence,
@@ -298,3 +298,38 @@ not original engine execution, normal install, Linux support or public registry
 acceptance. Synthetic metadata fixtures contain no usable engine. Real
 candidate assembly and acceptance wait for the selected coherent product
 source and owner-selected version/scope.
+
+## Read-only public registry observation
+
+```sh
+node scripts/release.mjs observe <fixed-directory> <externally-retained-SHA256>
+```
+
+This explicit command makes anonymous GET requests, without reading publisher
+credentials, staging, uploading or changing a channel. It verifies the local
+fixed set before and after the observation and returns a separate report; the
+fixed manifest is never updated with registry state. Save the report at a new
+original receipt location. A report is historical observation DATA, not an
+owner approval or a lock against later registry changes. The actual authorized
+executor must reobserve at its own publication boundary.
+
+For npm, the existing exact name/version/SRI reader remains the identity owner.
+The observer additionally downloads and streams the original tarball to compare
+size, SHA256 and SRI. For PyPI, it compares the exact release, file, size and
+SHA256 from the [release JSON API](https://docs.pypi.org/api/json/), using the
+standard [project-name normalization](https://packaging.python.org/en/latest/specifications/name-normalization/),
+and streams the wheel to verify its actual bytes. Unselected files, a yanked
+file or an occupied empty release cannot authorize appending a new platform or
+replacing an old placeholder. PyPI has no npm-style channel promotion.
+
+Only a 404 from the original version metadata route is absence. Authentication,
+rate-limit/server/transport failures, malformed metadata, failed artifact GETs
+and interrupted streams remain unknown. Different occupied identities/bytes
+remain conflicts. Both states block resume; neither causes a resend, version
+bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
+followed, and artifact downloads stay on the selected public registry origins.
+
+These checks are not a public fresh-install or runtime acceptance. Native npm
+launcher artifacts use the same npm route; standalone GitHub archives still
+require their actual assembly/observation connection. No observer grants
+publication authority or substitutes for the separate approved executor.
