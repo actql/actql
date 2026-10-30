@@ -265,6 +265,60 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   `)(...Object.values(ports));
 }
 
+function sourceFreeRequestCaller(runtime, prepared) {
+  let request, originals;
+  visit(declared('openInstalledHost').body, node => {
+    if (node.type !== 'VariableDeclaration') return;
+    for (const declaration of node.declarations) {
+      if (declaration.id.name === 'requestOf') request = declaration;
+      if (declaration.id.name === 'sourceFreeRequestIdentities') originals = declaration;
+    }
+  });
+  assert(request);
+  Object.assign(runtime, {
+    clientProgramAcquisitionCount: value => {assert.strictEqual(value, prepared);return 0;},
+    clientProgramComposedInferOccurrences: () => [],
+    clientProgramSourceFreeInputIntentCid: () => 'original-input-intent',
+    clientProgramResultCount: () => 1,
+    clientProgramResultName: () => 'answer',
+  });
+  const ports = {moon: runtime, authorityScopeCid: 'original-authority',
+    prepareSubmit: {assertOwned: value => assert.strictEqual(value, prepared),
+      kindOf: () => 'effect_free'}, earlyContentPlans: new WeakMap(),
+    inferSelections: new WeakMap(), runtimeIsOkRequired: () => true,
+    runtimeField: value => value,
+    prepareInferSelection: (_prepared, occurrence) => assert.equal(occurrence, undefined),
+    clientOperationError: code => Object.assign(new Error(code), {code})};
+  return new Function(...Object.keys(ports),
+    (originals === undefined ? '' : `const ${text(originals)};`) +
+    `const ${text(request)};return requestOf;`)(...Object.values(ports));
+}
+
+test('ordinary preadmission and submission reuse the same original Request identity', async () => {
+  const p = managedRunPorts(), prepared = {}, original = {};
+  let identityCalls = 0, runPreparations = 0;
+  p.runtime.clientProgramRequestIdentity = (value, authority, requestId, input) => {
+    assert.strictEqual(value, prepared);assert.equal(authority, 'original-authority');
+    assert.equal(input, 'original-input-intent');identityCalls++;
+    return Object.freeze({requestId});
+  };
+  const requestOf = sourceFreeRequestCaller(p.runtime, prepared);
+  const raw = {prepareRun(value) {
+    assert.strictEqual(value, prepared);runPreparations++;return original;
+  }, close: () => ({pending: false})};
+  const f = lifecycle({runtime: p.runtime, factory: async () => raw});
+  await f.preparation.prepareManagedCompute();
+  const first = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, first.requested), p.value);
+  // The actual two Host entrances use separate submission wrappers but the
+  // same Prepared and original requestId, without another compiler/parent.
+  const second = requestOf({preparedProgram: prepared, requestId: 'original-request'});
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, second.requested), p.value);
+  assert.strictEqual(second.requested, first.requested);
+  assert.equal(identityCalls, 1);assert.equal(runPreparations, 1);
+  await f.initialControl.close();
+});
+
 test('actual Host forwards the selected async manager result once without an optional raw fallback', async () => {
   const request={},environment={},result={};let calls=0;
   const raw={fundedPreparation(value,selected){
