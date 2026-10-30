@@ -129,6 +129,18 @@ pub fn installed_managed_source_input_kind(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[String, ClientInstalledManagedRunIssue] {
+  if owner.preparation is Some(PreparationContentManaged(_, actual)) {
+    guard owner.original is Some(original) &&
+      physical_equal(original, owner) &&
+      owner.ledger is Some(_) &&
+      physical_equal(actual, prepared) &&
+      physical_equal(owner.request, request) &&
+      owner.keyed is Some(selected) &&
+      physical_equal(selected.prepared, prepared) else {
+      return Err(ForeignOriginal)
+    }
+    return Ok("query")
+  }
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.ledger is Some(_) &&
@@ -154,6 +166,15 @@ pub fn installed_managed_acquisition_result_publication(
   match installed_managed_source_input_kind(value, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if value.preparation is Some(PreparationContentManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    value.keyed is Some(_) {
+    return Ok(
+      @strategy.graph_requires_acquisition_result_publication(
+        @publication_host.prepared_client_graph(prepared),
+      ),
+    )
   }
   guard value.captured_preparation is Some(plan) else {
     return Err(ForeignOriginal)

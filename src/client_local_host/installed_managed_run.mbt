@@ -938,6 +938,12 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
+  if value.keyed is Some(selected) {
+    return prepare_retained_installed_keyed_content_ledger(
+      value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
+  }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
     Ok(owner) => owner
@@ -959,21 +965,7 @@ fn prepare_installed_managed_run_ledger_owned(
       values_body, fragment_body, ordered_body,
     )
   }
-  let required = if value.keyed is Some(keyed) {
-    guard capacities.length() == 1 else { return Err(Unsupported) }
-    guard owner is Pure(prepared) else { return Err(Unsupported) }
-    installed_managed_keyed_content_limits(
-      keyed,
-      prepared,
-      capacities[0],
-      transport_bytes[0],
-      transport_execution_bytes[0],
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-    )
-  } else if value.reads.is_empty() {
+  let required = if value.reads.is_empty() {
     if !capacities.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {

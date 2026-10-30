@@ -3901,3 +3901,35 @@ preparation. Host constructor selection and full domain backing remain separate
 connections. This interface does not create a Model Scope, broaden ordinary
 Source-free or captured-purpose predicates, or authorize a caller to omit a
 serialized output's real configuration and retirement.
+
+
+### Completed keyed Content requirement originals
+
+The installed keyed Content constructor retains the exact Direct acquisition,
+its computed coordinates, the original installed contract admission, selected
+optional capabilities and original transport bounds alongside its completed
+requirements. It consumes the coordinates and request count from the same
+keyed-demand calculation; neither fact is derived again merely to retain it.
+
+Later ledger selection compares those exact originals and scalar bounds, then
+returns the same completed limits. Changed, copied or independently restored
+contexts do not retarget an existing Plan; they enter the existing full
+constructor for their own selected preparation. The Direct read tuple likewise
+returns that Plan's original requirement, acquisition and capacity on the same
+Run. Its existing current boundary and post-callback original fence still own
+reentrant retirement and partial-read custody.
+
+This replaces the old runtime-requote fields rather than retaining both forms.
+The temporary `RowKeyedCapacity` is immutable owner/facts/limits DATA without
+physical duties; after the original quote it is no longer stored redundantly.
+The keyed acquisition and existing row limits still retain its relevant
+originals. No Resource, read child, cleanup token or physical acknowledgement is
+removed. The selected record has fewer logical slots, but its original peak
+reservation is preserved; this establishes no allocator or RSS savings.
+
+The retained-keyed ledger branch does no provider construction, semantic
+preparation or external callback after its initial Run current fence. It can
+therefore return that same checked Ledger without a second current call. Other
+branches that still construct sequences/providers retain their original
+post-construction current checks. The ordinary Source-free, Model and whole
+input purpose predicates are unchanged.
