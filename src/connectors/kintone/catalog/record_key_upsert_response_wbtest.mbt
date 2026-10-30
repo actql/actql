@@ -293,3 +293,55 @@ test "keyed UPSERT response encoding and identity budgets refuse without replaci
     )
   }
 }
+
+///|
+test "keyed UPSERT action is included in exact output bounds without replacing original response" {
+  for present in [false, true] {
+    let request = key_upsert_response_request(present)
+    let response = project_record_key_upsert_acknowledgement(
+      request,
+      200,
+      key_upsert_response_bytes(present),
+      mutation_limits(),
+    ).unwrap()
+    // Independent ASCII vectors: one object, action, result, record identity,
+    // revision and state; the CREATE result also retains its created Boolean.
+    let expected = if present {
+      "{\"action\":\"updated\",\"result\":{\"record_id\":\"9007199254740993\",\"revision\":\"0009007199254740995\"},\"state\":\"applied\"}"
+    } else {
+      "{\"action\":\"created\",\"result\":{\"created\":true,\"record_id\":\"9007199254740996\",\"revision\":\"0009007199254740997\"},\"state\":\"applied\"}"
+    }
+    let exact : RecordMutationLimits = {
+      ..mutation_limits(),
+      max_output_bytes: expected.length(),
+      max_output_nodes: if present {
+        6
+      } else {
+        7
+      },
+      max_output_depth: 2,
+    }
+    let outcome = project_record_key_upsert_effect_outcome(
+      request, response, exact,
+    ).unwrap()
+    assert_eq(record_key_upsert_effect_outcome_wire(outcome), expected)
+    for
+      limits in [
+        { ..exact, max_output_bytes: exact.max_output_bytes - 1, },
+        { ..exact, max_output_nodes: exact.max_output_nodes - 1, },
+        { ..exact, max_output_depth: 1, },
+      ] {
+      assert_true(
+        project_record_key_upsert_effect_outcome(request, response, limits)
+        is Err(BudgetExceeded),
+      )
+      assert_true(
+        record_key_upsert_acknowledgement_matches_request(response, request),
+      )
+    }
+    assert_eq(
+      record_key_upsert_effect_outcome_response_sha256(outcome),
+      @sha.hex(key_upsert_response_bytes(present)),
+    )
+  }
+}
