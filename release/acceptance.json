@@ -220,12 +220,16 @@
     {
       "id": "A18",
       "required": "Exact public Node entry installs outside repository",
-      "currentSlice": "Candidate-specific tar/platform/consumer and public registry acceptance pending",
+      "currentSlice": "Existing Node install harness has explicit digest-bound public mode: full original cohort and remote-byte preflight, isolated npm/HOME, exact one-entry install and original payload/lock audit. Inert components only; actual selected public candidate/runtime/platform acceptance pending",
       "acceptanceStatus": "pending",
       "executedEvidence": [
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "actual Node release verifier feeds a fixed upper set without rebuilding its original archives"
+        },
+        {
+          "kind": "Inert archive/injected-HTTP/installed-tree component only; not actual public npm or runtime acceptance",
+          "test": "public consumer: real original cohort verifier and existing npm identity/byte reader precede installation, without changing fixed bytes"
         }
       ]
     },
@@ -308,9 +312,14 @@
     {
       "id": "A23",
       "required": "Loopback/private install is not public install acceptance",
-      "currentSlice": "Separate acceptance/provenance records pending",
+      "currentSlice": "Node install harness records private-loopback and explicit official-public modes separately, with actual public observations/lock/payload audit when executed. Actual public execution and all product/Source/platform acceptance remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert mode/argument guard only; no real public installation",
+          "test": "public consumer: mode is explicit, digest-bound and never falls back to loopback or an arbitrary registry"
+        }
+      ]
     },
     {
       "id": "A24",

@@ -56,9 +56,13 @@ export function releasePackageMetadata(original, name, cohort) {
   return manifest;
 }
 
-export async function inventory(directory, prefix = '') {
+export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
+  assert.equal(typeof ignoreInstalledDependencies, 'boolean');
   const files = [];
   for (const name of (await readdir(directory)).sort()) {
+    // Only the public consumer asks to separate npm's installed dependency
+    // subtree from this package's own frozen payload. Archive checks never do.
+    if (ignoreInstalledDependencies && prefix === '' && name === 'node_modules') continue;
     const path = join(directory, name), relative = prefix + name;
     const stat = await lstat(path);
     assert(!stat.isSymbolicLink(), `Release payload symlink: ${relative}`);
