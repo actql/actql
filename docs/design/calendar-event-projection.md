@@ -105,3 +105,21 @@ timezone, selected profile and response to the same checked acquisition. The
 shared Host owns current authorization, original request/response custody,
 simultaneous constructor and output reservations, cancellation and cleanup.
 The temporal projection neither issues that backing nor acknowledges retirement.
+## Free/busy Request and pure pages
+
+The single-calendar free/busy Source Request contains the required original
+`calendar_id` String and `time_min`/`time_max` Timestamp Values. The provider
+derives one singleton selection for its existing bounded batch-query algorithm.
+It preserves canonical submillisecond instants using Common's exact comparator;
+an operational millisecond clock projection is neither needed nor appropriate.
+The response uses the existing strict key-preserving JSON parser because the
+calendar map's keys are original identifiers, not normalized metadata names.
+
+The pure page callbacks retain the same provider methods, opaque query and
+complete declared columns before returning POST request DATA or typed row wire.
+They do not send, authorize, charge, cancel, close or claim that a response body
+is a physical ACK. The shared reader must charge the complete actual response
+before projection and retain its original current, attempt and cleanup duties.
+The enclosing Source still needs its real declaration/acquisition and complete
+parent, retained output and failed-child backing. The legacy private reader
+can retire only after that same normal shared path replaces its actual uses.
