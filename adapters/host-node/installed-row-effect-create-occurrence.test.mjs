@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
+import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
@@ -305,4 +306,37 @@ test('managed create checks and cold routes refuse missing original parent reten
   const physicalRoute=expression('physicalRoute',{ownerOf:()=>owner,fail});
   assert.throws(()=>physicalRoute({members:[selected],operationPhase:'resume'}),{code:'InstalledEffectPhysicalPlanUnavailable'});
   assert.equal(entered,0);
+});
+
+test('actual claimed managed write enters its separate occurrence only inside the original durable dispatch',async()=>{
+  for(const claimed of [true,false]){
+    const events=[],selected={kind:'create',resource:'rows',memberIndex:4},request={},raw=Object.freeze({grant:{},scope:{}});
+    const claim=Object.fromEntries(['scope','locator','key','basis','intentFingerprintCid'].map(name=>[name,name]));
+    claim.canonicalRequestCid=cid('e');
+    const entry={request,requestCid:claim.canonicalRequestCid},description={},dispatching={},bytes=Buffer.from('{}');
+    const owned={describe:()=>description,writeOperation:()=> 'create',
+      send(context){events.push('send');assert.equal(context.request,request);assert.equal(context.authorization.grant,raw.grant);
+        return {observation:{useCid:'use',statusCode:200,body:bytes}};},
+      project(){events.push('project');return {kind:'provider-response'};}};
+    const owner={installed:[{}],owned,managedPlanRecipe:{credentialOperations:[{phase:'write'}]},
+      site:{issueEffectGrant(){events.push('grant');return raw;}}};selected.mapping=owner.installed[0];
+    const ledger={claimDispatch(original){assert.equal(original.canonicalRequestCid,claim.canonicalRequestCid);events.push('claim');return {claimed,dispatching};},
+      beginPhysicalFlight(original){assert.equal(original,dispatching);events.push('flight');return ()=>events.push('end');},
+      recordResponse(original){assert.equal(original.dispatching,dispatching);assert.equal(original.responseBytes,bytes);events.push('store');return {response:{}};}};
+    const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+      admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},
+      scopeKey:()=> 'scope',admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined})({
+        members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],
+        subjectCid:'subject',applyPreview:{},ledger,runInvocationCid:'run',assertCurrent(){},
+        physicalOperations(facts){events.push('managed');assert.equal(facts.originalAuthorization,raw);
+          assert.equal(facts.phase,'write');assert.equal(facts.rowIndex,0);assert.equal(facts.purpose,'effect');
+          assert.equal(facts.runInvocationCid,'run');assert.equal(facts.dispatchRequestCid,'dispatch');
+          return facts.invoke({authorization:{...raw,useId:facts.useId},credential:{},callResource(){}});}});
+    const current=await route.current({preflight:{observedRows:[]}});
+    const dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
+    const result=await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current});
+    assert.equal(result.claimed,claimed);
+    assert.deepEqual(events,claimed?['grant','claim','flight','managed','send','end','store','project']:['grant','claim']);
+    assert.equal(route.retire(),true);
+  }
 });
