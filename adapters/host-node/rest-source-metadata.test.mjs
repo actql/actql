@@ -69,3 +69,10 @@ test('REST normal metadata has no standalone reader or declaration fallback', as
   assert.throws(() => createRestSourceMetadata({...f.definition, authoredViewsWire: undefined}),
     {code: 'InvalidRestSourceInstallationDefinition'});
 });
+
+test('REST configured CA cannot disappear into default trust when its original reader returns no text', async () => {
+  const f = fixture(), metadata = createRestSourceMetadata(f.definition);
+  await assert.rejects(metadata.readInputs(f.profile, {configurationReader: {
+    readJson: async () => f.site, readText: async () => undefined,
+  }}), {code: 'InvalidInstalledRestSourceAuthority'});
+});
