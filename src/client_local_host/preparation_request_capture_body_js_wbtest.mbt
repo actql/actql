@@ -565,3 +565,39 @@ test "Source Compute Plan retains its checked leaf demand through original Reque
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_true(scalar && leaves)
 }
+
+///|
+test "captured Request retains the same accounted compilation for publication without recompiling" {
+  let (parent, input, prepared) = request_capture_fixture()
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let (plan, request) = request_capture_plan_fixture(prepared)
+  assert_true(plan.compilation is None)
+  prepare_request_capture_module_body(
+    parent,
+    input,
+    plan,
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    provider_factory=_ => [],
+  ).unwrap()
+  let compilation = plan.compilation.unwrap()
+  let spent = parent.program_artifact_work_spent
+  assert_eq(spent, parent.program_artifact_plan_encoding_nodes.val)
+  assert_true(spent > 0L)
+  let run = begin_request_capture_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(run.captured_preparation.unwrap(), plan))
+  for _ in 0..<3 {
+    assert_true(
+      physical_equal(
+        installed_managed_run_compilation_original(run, prepared).unwrap(),
+        compilation,
+      ),
+    )
+  }
+  assert_eq(parent.program_artifact_work_spent, spent)
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(installed_managed_run_compilation_original(run, prepared) is None)
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

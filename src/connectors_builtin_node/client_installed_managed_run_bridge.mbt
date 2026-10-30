@@ -134,26 +134,6 @@ pub fn client_program_installed_managed_run_source_read(
 }
 
 ///|
-#export_name("clientProgramInstalledManagedCaptureSourceRead")
-pub fn client_program_installed_managed_capture_source_read(
-  value : @client_local_host.ClientInstalledManagedRun,
-  declaration : @client_row_source_host.RowDeclaration,
-  occurrence : Int,
-) -> Result[
-  (
-    @client_local_host.ClientInstalledSourceRead,
-    @planning.QueryRequirement,
-    @client_row_source_host.RowAcquisition,
-    @client_local_host.ClientInstalledCaptureCapacity,
-  ),
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_installed_managed_capture_source_read(
-    value, declaration, occurrence,
-  )
-}
-
-///|
 /// The existing configured Host already retains its CapturedDAG. Project it
 /// directly; no Node wrapper or additional Run/cleanup holder is required.
 #export_name("clientProgramOpenInstalledManagedCaptureHost")

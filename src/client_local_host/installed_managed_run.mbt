@@ -74,11 +74,19 @@ pub fn installed_managed_run_compilation_original(
   guard run.original is Some(original) &&
     physical_equal(original, run) &&
     run.ledger is Some(_) &&
-    run.source_free_preparation is Some(plan) &&
-    plan.owner is Pure(owner) &&
-    physical_equal(owner, prepared) &&
     run.preparation is Some(PureManaged(_, admitted)) &&
     physical_equal(admitted, prepared) else {
+    return None
+  }
+  if run.captured_preparation is Some(plan) {
+    if !physical_equal(plan.prepared, prepared) {
+      return None
+    }
+    return plan.compilation
+  }
+  guard run.source_free_preparation is Some(plan) &&
+    plan.owner is Pure(owner) &&
+    physical_equal(owner, prepared) else {
     return None
   }
   plan.compilation
