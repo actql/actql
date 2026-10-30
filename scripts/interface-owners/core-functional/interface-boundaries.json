@@ -43090,7 +43090,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_managed_run_bridge.mbt",
       "sha256": "b9bfdcfd0d38ca8ff0ae80b19a67c062b2ba563cdcae1ed8a342363559547ca2",
       "responsibilityFacet": "primary",
-      "role": "js-binding",
+      "role": "common-semantics",
       "owner": "Existing Local Source and Node Effect owners; D retires unused raw Effect admission",
       "exports": [],
       "operations": [
