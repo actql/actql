@@ -126,12 +126,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, (run.producer.preparation === undefined ? run.operationPlan ?? prepared : run.producer.receipt));
     return run;
   }
-  function prepareRun(prepared, purpose, model, effectful = false, content, operationPlan) {
+  function prepareRun(prepared, purpose, model, content) {
     current();
     if (retiredRuns.has(prepared)) fail('ForeignInstalledModelPreparation');
     const old = runs.get(prepared);
     if (old !== undefined) {
-      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful || old.content !== content || old.operationPlan !== operationPlan) {
+      if (old.purpose !== purpose || old.model !== model || old.effectful !== false || old.content !== content || old.operationPlan !== undefined) {
         fail('ForeignInstalledModelPreparation');
       }
       return runFor(prepared).original;
@@ -139,7 +139,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     const request = callbacks.request(originals, prepared);
     const producer = producerForRequest(request);
     if (producer === undefined || liveRuns.size === 4096) fail('ForeignInstalledSourceProducer');
-    const run = {prepared, request, producer, purpose, model, effectful, content, operationPlan, original: undefined,
+    const run = {prepared, request, producer, purpose, model, effectful: false, content, operationPlan: undefined, original: undefined,
       children: [], fileIdentity: undefined};
     if (producer.liveRuns === Number.MAX_SAFE_INTEGER) fail('InstalledSourceProducerLimit');
     producer.liveRuns++;
@@ -147,19 +147,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     liveRuns.add(run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
-    const required = operationPlan !== undefined
-      ? callbacks.effectRequirements(originals, prepared, operationPlan)
-      : purpose === 'local-content'
+    const required = purpose === 'local-content'
       ? callbacks.contentRequirements(originals, prepared, content)
       : purpose === 'local-mock-model'
       ? callbacks.mockRequirements(originals, prepared, model)
-      : effectful ? callbacks.effectRequirements(originals, prepared)
       : callbacks.requirements(originals, prepared);
     run.required = required;
     const producerReceipt = producer.receipt;
     const requestOriginals = new WeakSet();
     requestOriginals.add(request);
-    run.original = resourceRuntime.retainOrdinaryManagedRun(operationPlan ?? prepared, required,
+    run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
       () => {
         current();
         if (run.producer.receipt !== producerReceipt ||
@@ -767,14 +764,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     },
     prepareContentRun(prepared, selected) {
       if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
-      return prepareRun(prepared, 'local-content', undefined, false, selected);
+      return prepareRun(prepared, 'local-content', undefined, selected);
     },
     prepareEffectRun() {fail('InstalledEffectPlanUnavailable');},
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);
-    },
-    prepareEffectLocalMockModelRun(prepared, model) {
-      return prepareRun(prepared, 'local-mock-model', model, true);
     },
     prepareRead(prepared, declaration, originalRun, occurrence) {
       const run = runFor(prepared);
