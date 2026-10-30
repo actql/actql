@@ -53,10 +53,13 @@ import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/connectors/kintone/host" @kintone_host,
+  "actql/actql/connectors/kintone/catalog" @kintone_catalog,
 } for "wbtest"
 
 options(
   targets: {
+    "installed_kintone_create_plan_js_wbtest.mbt": [ "js" ],
     "installed_effect_operation_borrow_js_wbtest.mbt": [ "js" ],
     "preparation_parameter_source_current_wbtest.mbt": [ "js" ],
     "preparation_program_check_context_input_js_wbtest.mbt": [ "js" ],
