@@ -3315,3 +3315,10 @@ construction, public check or error-string classification. Existing Option-only
 consumers keep their own established interface; the normal Result path preserves
 the typed cause. Request abort and the original body borrower still govern
 retirement, independently of the diagnostic projection.
+
+The same Request constructs and finishes its submitted intent before parsing
+the selected SQL/Pipe input. The private monotone work-phase fence therefore
+orders snapshot serialization, intent identity, lexical scanning and Source
+construction in that order. The public phase enumeration and each phase's work
+limit remain unchanged. Finishing an intent does not refund consumed work or
+permit an earlier or repeated phase; narrow and wide receipts share this fence.
