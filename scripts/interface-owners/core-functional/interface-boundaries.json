@@ -40598,7 +40598,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_construction.mbt",
-      "sha256": "f7c1730abbb1dc0a7149cc1e3187d26fb42d913d88675e75380ecfbcfe78b92f",
+      "sha256": "7424ce8052dd2d7fa203a7979c5f086ed729a6ca370dfe2b731f5475b16038ab",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -40612,6 +40612,14 @@
         {
           "name": "create_construction_max",
           "declaration": "create_construction_max ( left : @ shape . CollectionConstructionExtent , right : @ shape . CollectionConstructionExtent , ) - > @ shape . CollectionConstructionExtent"
+        },
+        {
+          "name": "record_create_mapped_proposal_construction_capacity",
+          "declaration": "record_create_mapped_proposal_construction_capacity ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_create_mapped_proposal_construction_inventory",
+          "declaration": "record_create_mapped_proposal_construction_inventory ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordCreateRequestConstructionInventory ?"
         },
         {
           "name": "record_create_mapped_request_construction_capacity",
@@ -40696,6 +40704,76 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "record_create_mapped_proposal_construction_capacity",
+            "record_create_mapped_proposal_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
               }
             ]
           }
@@ -41755,9 +41833,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_proposal_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "48c08e1e888e1064c5641ae3abf221af23467f8cb873016890098b6baf1eae75",
+      "sha256": "b5a3c5ff47bad0f2685b48a7c6443588fca848a8bd6fd476b3c4d23520cb214c",
       "operations": [
         {
           "name": "client_program_kintone_create_effect_outcome",
@@ -41818,6 +41965,10 @@
         {
           "name": "client_program_kintone_create_preview_outcome_wire",
           "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_create_request_construction_capacity",
@@ -41942,9 +42093,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_proposal_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "95c7fb3ac7c004cead52e2f24e9dc9b770eb89a8aefbd648ad1b4d1bfbad8f25",
+      "sha256": "97722262dd2512abc01097abb0f2a6f9ac224cdd5d8d4847581932345e825695",
       "operations": [
         {
           "name": "client_program_kintone_create_effect_outcome",
@@ -42005,6 +42225,10 @@
         {
           "name": "client_program_kintone_create_preview_outcome_wire",
           "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_create_request_construction_capacity",

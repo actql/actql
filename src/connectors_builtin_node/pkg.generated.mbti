@@ -1984,6 +1984,8 @@ pub fn client_program_kintone_create_preview_outcome_row_cid(@actql/actql/connec
 
 pub fn client_program_kintone_create_preview_outcome_wire(@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome) -> String
 
+pub fn client_program_kintone_create_proposal_construction_capacity(@actql/actql/connectors/kintone/host.RecordCreateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_create_recheck_form(@actql/actql/connectors/kintone/catalog.RecordCreateRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_create_request(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[@actql/actql/connectors/kintone/catalog.RecordWriteValues], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]

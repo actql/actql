@@ -1792,3 +1792,25 @@ A selected Source's currentness or preparation refusal cannot switch to a
 Compute manager. Compute-only and unselected installations keep their existing
 selection behavior; this correspondence creates no parent, allowance or read
 authority.
+
+## Kintone proposal constructor quantities
+
+The native Kintone proposal constructor quote includes the complete outer
+Common change envelope in addition to the existing mapped CREATE value and
+request constructors. The closed-object key-check inventory uses the supplied
+node bound, not the two allowed field names, so an unknown or duplicate key
+cannot make its failed prefix disappear from the quotation. The two original
+cursor lookups, state check and one-record carrier stay explicit.
+
+The same quote co-counts fresh text emission and cold comparison controls.
+Cold restoration borrows the saved body, checks its UTF8 bound at both existing
+entries, and uses the original comparison sink and complete serializer. It
+does not emit a replacement request, issue a tag or renew a lifetime. The
+saved String itself remains with the caller's separately backed material.
+
+These are native constructor quantities only. Input parser/index/String/Bytes,
+the enclosing capture prefix, Host request and response storage, credentials,
+failed children and all retained overlap must be composed and admitted on the
+same actual parent before construction. Quote construction also needs its
+original backing. A nonempty quantity does not select a Plan, provide a grant,
+acknowledge cleanup or enable an ordinary execution path.

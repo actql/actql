@@ -45,6 +45,10 @@ pub fn record_create_mapped_form_recheck_construction_capacity(RecordCreateMappi
 
 pub fn record_create_mapped_form_recheck_construction_inventory(RecordCreateMapping, @catalog.FormFieldLimits) -> RecordCreateProtocolConstructionInventory?
 
+pub fn record_create_mapped_proposal_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_proposal_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
 pub fn record_create_mapped_request_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_create_mapped_request_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
