@@ -18,7 +18,7 @@ export function prepareSheetsGridPages({moon,spreadsheetId,columns,range,names,l
       !limits||typeof limits!=='object'||typeof applySynchronousProjection!=='function')fail('InvalidSheetsGridPages');
   const bound=Object.freeze({...limits});
   if(!limitFields.every(name=>positive(bound[name]))||bound.maxRows>100||
-      !rangeFields.every(name=>Number.isSafeInteger(range[name])&&!Object.is(range[name],-0)&&range[name]>=0&&range[name]<2147483647)||
+      !rangeFields.every(name=>Number.isSafeInteger(range[name])&&!Object.is(range[name],-0)&&range[name]>=0&&range[name]<=2147483647)||
       range.endRow-range.startRow>bound.maxRows)fail('InvalidSheetsGridPages');
   const schema=columns.map(column=>{
     if(!column||typeof column!=='object'||Array.isArray(column)||
