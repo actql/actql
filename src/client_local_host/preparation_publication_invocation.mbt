@@ -30,7 +30,7 @@ pub fn issue_program_publication_invocation(
   }
   owner.publication_invocation_started = true
   match
-    @publication_host.issue_client_compiled_values_invocation(
+    @publication_host.issue_client_compiled_source_free_invocation(
       compiled, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
     ) {
     Err(issue) => Err(PublicationInvocation(issue))
