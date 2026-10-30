@@ -65,12 +65,24 @@ test "keyed UPSERT response keeps the selected original branch and independent w
       response,
       mutation_limits(),
     ).unwrap()
+    // The protocol shape reader admits DATA only; the original request's
+    // confirmed branch independently determines the required UPSERT action.
+    let admitted = @publication.parse_effect_outcome_shape(
+      record_key_upsert_effect_outcome_wire(outcome),
+      4096,
+      100,
+      10,
+    ).unwrap()
+    assert_eq(
+      @json.object_field(admitted, "action"),
+      Some(@json.String(if present { "updated" } else { "created" })),
+    )
     assert_eq(
       record_key_upsert_effect_outcome_wire(outcome),
       if present {
-        "{\"result\":{\"record_id\":\"9007199254740993\",\"revision\":\"0009007199254740995\"},\"state\":\"applied\"}"
+        "{\"action\":\"updated\",\"result\":{\"record_id\":\"9007199254740993\",\"revision\":\"0009007199254740995\"},\"state\":\"applied\"}"
       } else {
-        "{\"result\":{\"created\":true,\"record_id\":\"9007199254740996\",\"revision\":\"0009007199254740997\"},\"state\":\"applied\"}"
+        "{\"action\":\"created\",\"result\":{\"created\":true,\"record_id\":\"9007199254740996\",\"revision\":\"0009007199254740997\"},\"state\":\"applied\"}"
       },
     )
     assert_true(
