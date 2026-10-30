@@ -4,7 +4,8 @@
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
-  installedConfigurationChunkBytes, readOriginalConfigurationText, installedRuntimeBundleCid} from './source-profile-json.mjs';
+  installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
+  installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
@@ -247,6 +248,34 @@ export function installedSourceConfigurationReader(services) {
     } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
     finally {material.ioPending--;}
   }
+  async function readOriginal(path, binary) {
+    material.ioPending++;
+    const workspace = {nodes: 0n, text: 0n, wire: 0n};
+    material.workspaces.add(workspace);
+    let decoded;
+    try {
+      const value = await (binary ? readOriginalConfigurationBytes : readOriginalConfigurationText)(path, {
+        io: sourceIo(original, material),
+        beforeRead(bytes) {
+          reserveSource(original, material, 0n, 0n,
+            2n * BigInt(bytes) + BigInt(installedConfigurationChunkBytes), workspace);
+        },
+        beforeDecode(bytes) {
+          decoded = BigInt(bytes);
+          reserveSource(original, material, 0n, 12n * decoded,
+            8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        },
+      });
+      material.inputs.push(value); material.text += 12n * decoded;
+      // Keep the existing key/CA parser and native byte overlap after
+      // transferring the same original text or bytes to the Site.
+      material.wire += 8n * decoded;
+      material.workspaces.delete(workspace);
+      reconcileSource(original, material);
+      return value;
+    } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
+    finally {material.ioPending--;}
+  }
   const reader = Object.freeze({
     readJson(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
@@ -258,32 +287,11 @@ export function installedSourceConfigurationReader(services) {
     },
     async readOriginalText(path) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
-      material.ioPending++;
-      const workspace = {nodes: 0n, text: 0n, wire: 0n};
-      material.workspaces.add(workspace);
-      let decoded;
-      try {
-        const value = await readOriginalConfigurationText(path, {
-          io: sourceIo(original, material),
-          beforeRead(bytes) {
-            reserveSource(original, material, 0n, 0n,
-              2n * BigInt(bytes) + BigInt(installedConfigurationChunkBytes), workspace);
-          },
-          beforeDecode(bytes) {
-            decoded = BigInt(bytes);
-            reserveSource(original, material, 0n, 12n * decoded,
-              8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
-          },
-        });
-        material.inputs.push(value); material.text += 12n * decoded;
-        // Preserve the funded key-parser/native byte overlap after handing
-        // the same PEM text to the existing crypto constructor.
-        material.wire += 8n * decoded;
-        material.workspaces.delete(workspace);
-        reconcileSource(original, material);
-        return value;
-      } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
-      finally {material.ioPending--;}
+      return readOriginal(path, false);
+    },
+    async readOriginalBytes(path) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return readOriginal(path, true);
     },
   });
   material.configurationReader = reader;

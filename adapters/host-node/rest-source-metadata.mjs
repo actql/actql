@@ -67,22 +67,30 @@ export function createRestSourceMetadata(definition) {
         !absolute(value.credentialPrivateKeyPath) || !absolute(value.journalRoot) ||
         !Number.isSafeInteger(value.siteGeneration) || value.siteGeneration < 0 ||
         (value.caPath !== undefined && !absolute(value.caPath))) fail('InvalidInstalledRestSourceSite');
-    // No normal CA policy has been supplied by the Host selector yet. Never
-    // borrow the unrelated secret bound or add an author/public tuning field.
-    if (value.caPath !== undefined) fail('RestSourceTlsAuthorityPolicyUnavailable');
     return Object.freeze({...value});
   }
   async function readInputs(profile, {configurationReader, readJson} = {}) {
     const installed = checkProfile(profile);
     const reads = captureConfigurationReaders(configurationReader, readJson,
       () => fail('RestSourceConfigurationReaderUnavailable'));
+    const originalBytes = configurationReader === undefined ? undefined :
+      Object.getOwnPropertyDescriptor(configurationReader, 'readOriginalBytes');
+    if (originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
+        typeof originalBytes.value !== 'function')) fail('RestSourceConfigurationReaderUnavailable');
     const site = checkSite(await reads.readJson(installed.siteProfilePath));
-    return Object.freeze({installed, site, definition: original,
+    let ca;
+    if (site.caPath !== undefined) {
+      if (originalBytes === undefined) fail('RestSourceTlsAuthorityPolicyUnavailable');
+      ca = await Reflect.apply(originalBytes.value, configurationReader, [site.caPath]);
+      if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');
+    }
+    return Object.freeze({installed, site, ca, definition: original,
       // Canonical configuration identities alone normalize descriptive text.
       // Keep exact original strings too, including the Account wire, so that
       // physically distinct provider bindings cannot become Saved aliases.
       originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),
-        ...siteKeys.map(name => site[name])]))});
+        ...siteKeys.map(name => site[name]),
+        ...(site.caPath === undefined ? [] : ['tls-ca', site.caPath, hash(ca)])]))});
   }
   async function identityParts(profile, providerProfile, readJson, _installation, context) {
     const input = await readInputs(providerProfile, {configurationReader: context?.configurationReader, readJson});

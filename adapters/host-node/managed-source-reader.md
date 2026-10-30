@@ -24,3 +24,36 @@ does not reconstruct a Plan, issue a compiler input or reserve its constructor
 domain. The real Host caller must retain the original Plan input borrow through
 construction, artifact preparation, completion and adoption, and settle it under
 the existing Run retirement duties.
+
+## Initial Source configuration and original bytes
+
+The candidate initializer creates its one existing Source service before its
+first installation-identity file read. The actual initial parent precedes that
+service; the managed configuration reader consumes its Source successor. The
+Host loader later reuses the same runtime/root/principal service and retains
+its actual Project original and Host current callback. A failed construction
+keeps the same parent and selection for original cleanup. Source retirement
+precedes initial-parent close, and the selection clears only after that close.
+A Source-free identity does not create a configuration material merely to hash
+an empty source inventory.
+
+The existing file owner handles both original key text and CA bytes. It
+observes the extent on the opened FD, reserves the existing native workspace
+before reading, then reserves output/parser overlap before concatenation. A
+growing file refuses, while that same owner keeps failed close/transfer duties
+and retry. The Source material retains each actual output with prior inputs and
+failed/sibling workspaces. Raw CA bytes do not pass through UTF8 normalization,
+a JSON/secret ceiling or a second file/cleanup owner. REST captures the original
+byte-reader method and receiver before configuration awaits, includes the
+original CA path and exact byte digest in its physical-binding identity, and
+passes those same bytes to its original Site service. Absence keeps the old
+identity preimage. No author-facing capacity field is added.
+
+These Source/constructor and file-owner connections do not establish the full
+normal backing or execution result. The complete actual declaration, Environment,
+Site/native TLS, Reader, retained output and failed-child overlap still require
+the real matching initial/Request/Plan holdings. They supply no new Account,
+read permission, current decision, Ledger or cleanup acknowledgement. General
+unfiltered Source capture and ordinary read/failure/release/Saved remain separate
+required work. The focused initializer and raw-file cases use explicit parent,
+current and I/O accounting ports; they are not nominal Core or normal acceptance.

@@ -74,8 +74,18 @@ async function readConfiguration(path, maxBytes, openFile, project, beforeDecode
 // initializer funds the size observed on THIS opened FD before buffering; a
 // growing original refuses rather than reading beyond that actual envelope.
 // The existing same-handle close/retry owner remains the only I/O owner.
-export async function readOriginalConfigurationText(path,
-  {openFile = open, beforeRead, beforeDecode, io} = {}) {
+export async function readOriginalConfigurationText(path, options) {
+  return readOriginalConfiguration(path, options, bytes => bytes.toString('utf8'));
+}
+
+// Preserve the exact original CA bytes. Its observed FD extent belongs to the
+// same initializer as text/key input, rather than a borrowed secret ceiling.
+export async function readOriginalConfigurationBytes(path, options) {
+  return readOriginalConfiguration(path, options, bytes => bytes);
+}
+
+async function readOriginalConfiguration(path,
+  {openFile = open, beforeRead, beforeDecode, io} = {}, project) {
   if (typeof beforeRead !== 'function' || typeof beforeDecode !== 'function') {
     throw new TypeError('InvalidInstalledConfigurationConstruction');
   }
@@ -85,7 +95,7 @@ export async function readOriginalConfigurationText(path,
       throw new TypeError('InvalidInstalledSourceProfileByteLimit');
     }
     if (beforeRead(observed.size) !== undefined) throw new TypeError('InvalidInstalledConfigurationConstruction');
-    return readConfigurationBody(original, observed.size, bytes => bytes.toString('utf8'), beforeDecode);
+    return readConfigurationBody(original, observed.size, project, beforeDecode);
   }, io);
 }
 

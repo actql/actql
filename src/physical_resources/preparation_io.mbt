@@ -69,8 +69,10 @@ pub fn charge_preparation_io(
   if operation.retired {
     return Err(Retired)
   }
-  charge_transfer(operation.reservation.owner, operation.reservation, bytes)
-  .map_err(issue => PreparationCapacityIssue::Resource(issue))
+  charge_transfer(operation.reservation.owner, operation.reservation, bytes).map_err(issue => {
+      PreparationCapacityIssue::Resource(issue)
+    },
+  )
 }
 
 ///|

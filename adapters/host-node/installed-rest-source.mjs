@@ -100,6 +100,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     const opened = await services('openRowSite', {installation, sourceInitialization,
       accountConfiguration: input.installed.accountConfigurationWire, connection,
       profile: Object.freeze({...input.site, resourceOrigin: original.origin}), resolveSecret,
+      ca: input.ca,
       responseHeaders: [], runAcquisitionLimits: implementation.runAcquisitionLimits,
       admitsApprovalTarget(value, resource) {
         return value !== null && typeof value === 'object' && Array.isArray(value.fields) &&

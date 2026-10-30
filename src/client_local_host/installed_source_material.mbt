@@ -48,12 +48,20 @@ pub fn installed_source_construction_capacity(
   @execution.execution_capacity_inventory(
     [
       { unit: @execution.ValueNodeSlots, count: retained_nodes, copies: 1, },
-      { unit: @execution.DecodedTextBytes, count: retained_text_bytes, copies: 1, },
+      {
+        unit: @execution.DecodedTextBytes,
+        count: retained_text_bytes,
+        copies: 1,
+      },
       { unit: @execution.QuotedBytes, count: retained_wire_bytes, copies: 1, },
     ],
     [
       { unit: @execution.ValueNodeSlots, count: workspace_nodes, copies: 1, },
-      { unit: @execution.DecodedTextBytes, count: workspace_text_bytes, copies: 1, },
+      {
+        unit: @execution.DecodedTextBytes,
+        count: workspace_text_bytes,
+        copies: 1,
+      },
       { unit: @execution.QuotedBytes, count: workspace_wire_bytes, copies: 1, },
     ],
     @execution.RetainedAlongsideExecution,
