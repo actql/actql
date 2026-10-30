@@ -81,6 +81,8 @@ pub fn start_material(Int, Int, Int) -> CanonicalMaterial raise @encode_core.Enc
 
 pub fn stringify_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
+pub fn stringify_value_with_usage(CanonicalValue, Int, Int, Int) -> (String, Int, Int, Int) raise @encode_core.EncodeFailure
+
 // Errors
 pub(all) suberror CanonicalFailure {
   InvalidNumber

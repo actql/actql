@@ -49,6 +49,7 @@ fn local_update_normalization_fixture() -> (
   }
   let limits : ClientEffectComputationLimits = {
     program: {
+      values_max_rows: None,
       checking: {
         input,
         compilation: {

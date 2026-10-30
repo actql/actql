@@ -7,6 +7,7 @@ struct RunEvidenceValue {
   identity : String
   wire : String
   value : @json.CanonicalValue
+  wire_usage : (Int, Int, Int)?
 }
 
 ///|
@@ -90,10 +91,18 @@ fn run_evidence_value(
   if expected != identity {
     return Err(RunEvidenceIdentityMismatch)
   }
-  let wire = @json.stringify_value(value, max_wire_bytes, max_nodes, max_depth) catch {
+  let (wire, wire_bytes, wire_nodes, wire_depth) = @json.stringify_value_with_usage(
+    value, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(RunEvidenceEncoding)
   }
-  Ok({ name, identity, wire, value, })
+  Ok({
+    name,
+    identity,
+    wire,
+    value,
+    wire_usage: Some((wire_bytes, wire_nodes, wire_depth)),
+  })
 }
 
 ///|
@@ -174,12 +183,18 @@ fn seal_run_evidence_value_with_identity(
   // This exact body just supplied the identity above. Appending that field
   // cannot change its preimage; do not remove it and hash the body again.
   // The full completed wire still has its own original output bounds.
-  let wire = @json.stringify_value(
+  let (wire, wire_bytes, wire_nodes, wire_depth) = @json.stringify_value_with_usage(
     complete, max_wire_bytes, max_nodes, max_depth,
   ) catch {
     _ => return Err(RunEvidenceEncoding)
   }
-  Ok({ name, identity, wire, value: complete, })
+  Ok({
+    name,
+    identity,
+    wire,
+    value: complete,
+    wire_usage: Some((wire_bytes, wire_nodes, wire_depth)),
+  })
 }
 
 ///|
@@ -342,4 +357,23 @@ fn contract_string_from_value(
   name : String,
 ) -> String? {
   optional_string(@json.object_field(value, name))
+}
+
+///|
+/// A tighter limit restricts the same admitted immutable value. These exact
+/// construction facts grant no Source/Run/current authority and never parse,
+/// hash or emit the retained value again.
+pub fn run_evidence_value_fits(
+  value : RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard value.wire_usage is Some((bytes, nodes, depth)) else { return false }
+  max_wire_bytes >= 1 &&
+  max_nodes >= 1 &&
+  max_depth >= 1 &&
+  bytes <= max_wire_bytes &&
+  nodes <= max_nodes &&
+  depth <= max_depth
 }

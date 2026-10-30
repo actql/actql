@@ -204,9 +204,21 @@ pub fn stringify_value(
   max_nodes : Int,
   max_depth : Int,
 ) -> String raise @encode.EncodeFailure {
+  stringify_value_with_usage(value, max_bytes, max_nodes, max_depth).0
+}
+
+///|
+/// Retain exact usage from the SAME original text writer. The ordinary text
+/// projection and its immutable-bound facts share one emission algorithm.
+pub fn stringify_value_with_usage(
+  value : CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (String, Int, Int, Int) raise @encode.EncodeFailure {
   let output = @encode.writer(max_bytes, max_nodes, max_depth)
   emit_value(value, output)
-  @encode.finish(output)
+  @encode.finish_text_usage(output)
 }
 
 ///|

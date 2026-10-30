@@ -690,8 +690,8 @@ pub fn client_program_admit_composed_infer_sources(
   captures : Array[@query.CapturedInputSource],
   identities : Array[@query.CapturedSourceRelationIdentity],
   requirements : Array[@planning.QueryRequirement],
-  logical_wires : Array[String],
-  evidence_wires : Array[String],
+  logicals : Array[@publication.RunEvidenceValue],
+  evidence : Array[@publication.RunEvidenceValue],
   authority_scope_cid : String,
   started_at : String,
   completed_at : String,
@@ -700,37 +700,24 @@ pub fn client_program_admit_composed_infer_sources(
   @publication_host.ClientInferComposedSources,
   @publication_host.ClientInferCallScopeIssue,
 ] {
-  let count = logical_wires.length()
-  if count < 1 || count > 2 || evidence_wires.length() != count {
+  let count = logicals.length()
+  if count < 1 || count > 2 || evidence.length() != count {
     return Err(@publication_host.ForeignInput)
   }
-  let logicals = []
-  let evidence = []
   for index in 0..<count {
-    let logical = match
-      @publication.admit_run_evidence_value(
+    match
+      check_client_infer_original_evidence(
         "source_input_logical",
-        logical_wires[index],
-        100000,
-        10000,
-        100,
+        logicals[index],
       ) {
-      Ok(value) => value
-      Err(issue) => return Err(@publication_host.Evidence(issue))
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    let source = match
-      @publication.admit_run_evidence_value(
-        "source_evidence",
-        evidence_wires[index],
-        100000,
-        10000,
-        100,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(@publication_host.Evidence(issue))
+    match
+      check_client_infer_original_evidence("source_evidence", evidence[index]) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    logicals.push(logical)
-    evidence.push(source)
   }
   @publication_host.admit_client_infer_composed_sources(
     occurrence,

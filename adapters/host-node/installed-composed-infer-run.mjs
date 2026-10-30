@@ -218,16 +218,13 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
           {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
     }
   } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
-  const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input ?? {};
+  const {captured, captureStartedAt, captureCompletedAt} = input ?? {};
   const captures = sourceFree ? [] : multiple ? input.sources.map(source => source.captured) : [captured];
-  const wires = sourceFree ? [] : multiple ? input.sources.map(source => source.sourceEvidenceWire) : [sourceEvidenceWire];
   const sourceEvidence = sourceFree ? [] : multiple ? input.sourceEvidence : [input.sourceEvidence];
   for (const child of children) {
-    const sources = child.restoredInput === undefined && !sourceFree ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
-      captures.map(value => value.capture.source()), captures.map(value => value.identity),
-      captures.map(value => value.requirement),
-      captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)), wires, authorityScopeCid,
-      captureStartedAt, captureCompletedAt)) : undefined;
+    const sources = child.restoredInput === undefined && !sourceFree ? control.admitComposedInferSources(
+      child.selection.occurrence, captures, sourceEvidence, authorityScopeCid,
+      captureStartedAt, captureCompletedAt) : undefined;
     child.component = openNodeComposedInferProvider({moon, selected: child.selection, sources,
       control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
       originalPreparation,

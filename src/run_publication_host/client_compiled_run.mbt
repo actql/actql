@@ -785,3 +785,102 @@ pub fn issue_client_compiled_multi_task_invocation(
       Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }
+
+///|
+/// The captured inventory and original typed observations are retained facts,
+/// not serialized substitutes. Source coverage and live keyed custody remain
+/// the same semantic boundary as external wire admission.
+pub fn issue_client_compiled_captured_invocation(
+  run : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  keyed : ClientKeyedLookupObservation?,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  guard run.compilation is Tasks(compilation) &&
+    compilation.infers.is_empty() &&
+    bind_client_task_run(run.owner, compilation, run.admission, definition)
+    is Ok(_) else {
+    return Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+  }
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(@publication.RunEvidenceInvalidLimits)
+  }
+  for evidence in sources {
+    if !@publication.run_evidence_value_fits(
+        evidence, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return Err(@publication.RunEvidenceInvalidWire)
+    }
+  }
+  for input in inputs {
+    if !@publication.run_evidence_value_fits(
+        input, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return Err(@publication.RunEvidenceInvalidWire)
+    }
+  }
+  if keyed is Some(observation) {
+    if captures.length() != 1 ||
+      identities.length() != 1 ||
+      requirements.length() != 1 ||
+      sources.length() != 1 ||
+      inputs.length() != 1 {
+      return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
+    }
+    return issue_client_compiled_keyed_task_invocation_original(
+      run,
+      definition,
+      captures[0],
+      identities[0],
+      requirements[0],
+      sources[0],
+      inputs[0],
+      observation,
+      authority_scope_cid,
+      data_policy_cid,
+      capture_started_at,
+      capture_completed_at,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    )
+  }
+  if compilation.serialization is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
+  }
+  let count = prepared_client_acquisition_count(run.owner)
+  if (count != 1 && count != 2) ||
+    (count == 1 && !client_single_direct_observation_covers_sources(run.owner)) {
+    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
+  }
+  issue_client_multi_capture_observation(
+    run.owner,
+    client_task_compilation_template(compilation),
+    captures,
+    identities,
+    requirements,
+    OriginalSourceObservations(sources, inputs),
+    count,
+    authority_scope_cid,
+    data_policy_cid,
+    capture_started_at,
+    capture_completed_at,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}

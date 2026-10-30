@@ -173,7 +173,8 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
       acquired: acquiredTaskRunAdmission({moon, control, preparedProgram: pair.owner,
         authorityScopeCid, namespaceId: 'capture-boundary', now}),
       preparedProgram: pair.owner, sources: pair.captured.map((captured, task) =>
-        ({captured, sourceEvidenceWire: pair.sourceEvidenceWires[task]})),
+        ({captured, sourceEvidence: control.admitRunEvidence('source_evidence',
+          pair.sourceEvidenceWires[task], {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64})})),
       authorityScopeCid, effectiveDataPolicyCid: moon.clientProgramPublicationDataPolicyCid(pair.owner),
       captureStartedAt: pair.captureStartedAt, captureCompletedAt: pair.captureCompletedAt,
       namespaceId: 'capture-boundary', storeAuthorityCid: boundaryCid('d'), now});

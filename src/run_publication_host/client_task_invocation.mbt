@@ -296,8 +296,8 @@ pub fn issue_client_multi_task_invocation(
     captures,
     identities,
     requirements,
-    source_evidence_wires,
-    input_logical_wires,
+    WireSourceObservations(source_evidence_wires, input_logical_wires),
+    2,
     authority_scope_cid,
     data_policy_cid,
     capture_started_at,
@@ -346,8 +346,8 @@ pub fn issue_client_effect_multi_captured_invocation(
     captures,
     identities,
     requirements,
-    source_evidence_wires,
-    input_logical_wires,
+    WireSourceObservations(source_evidence_wires, input_logical_wires),
+    2,
     authority_scope_cid,
     data_policy_cid,
     capture_started_at,
@@ -365,8 +365,8 @@ fn issue_client_multi_capture_observation(
   captures : Array[@query.CapturedInputSource],
   identities : Array[@query.CapturedSourceRelationIdentity],
   requirements : Array[@planning.QueryRequirement],
-  source_evidence_wires : Array[String],
-  input_logical_wires : Array[String],
+  observations : ClientSourceObservations,
+  count : Int,
   authority_scope_cid : String,
   data_policy_cid : String,
   capture_started_at : String,
@@ -378,12 +378,15 @@ fn issue_client_multi_capture_observation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
-  if prepared_client_acquisition_count(prepared) != 2 ||
-    captures.length() != 2 ||
-    identities.length() != 2 ||
-    requirements.length() != 2 ||
-    source_evidence_wires.length() != 2 ||
-    input_logical_wires.length() != 2 {
+  let (source_count, input_count) = client_source_observation_counts(
+    observations,
+  )
+  if prepared_client_acquisition_count(prepared) != count ||
+    captures.length() != count ||
+    identities.length() != count ||
+    requirements.length() != count ||
+    source_count != count ||
+    input_count != count {
     return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
   }
   if prepared_client_publication_data_policy_cid(prepared) !=
@@ -393,7 +396,7 @@ fn issue_client_multi_capture_observation(
     )
   }
   let source_cids : Array[String] = []
-  for task in 0..<2 {
+  for task in 0..<count {
     let captured = captures[task]
     let identity = identities[task]
     let requirement = requirements[task]
@@ -406,24 +409,9 @@ fn issue_client_multi_capture_observation(
       is Some(facts) else {
       return Err(@publication.RunEvidenceReferenceMismatch("source_policy"))
     }
-    let source = match
-      @publication.admit_run_evidence_value(
-        "source_evidence",
-        source_evidence_wires[task],
-        max_wire_bytes,
-        max_nodes,
-        max_depth,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let input = match
-      @publication.admit_run_evidence_value(
-        "source_input_logical",
-        input_logical_wires[task],
-        max_wire_bytes,
-        max_nodes,
-        max_depth,
+    let (source, input) = match
+      client_source_observation_at(
+        observations, task, max_wire_bytes, max_nodes, max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -462,4 +450,69 @@ fn issue_client_multi_capture_observation(
     template, source_cids, data_policy_cid, capture_started_at, capture_completed_at,
     max_wire_bytes, max_nodes, max_depth,
   )
+}
+
+///|
+// A private representation choice at the original semantic boundary, not a
+// new proof, caller issuer or Source owner. Only external wire consumers parse.
+priv enum ClientSourceObservations {
+  WireSourceObservations(Array[String], Array[String])
+  OriginalSourceObservations(
+    Array[@publication.RunEvidenceValue],
+    Array[@publication.RunEvidenceValue]
+  )
+}
+
+///|
+fn client_source_observation_counts(
+  value : ClientSourceObservations,
+) -> (Int, Int) {
+  match value {
+    WireSourceObservations(sources, inputs) =>
+      (sources.length(), inputs.length())
+    OriginalSourceObservations(sources, inputs) =>
+      (sources.length(), inputs.length())
+  }
+}
+
+///|
+fn client_source_observation_at(
+  value : ClientSourceObservations,
+  index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.RunEvidenceValue),
+  @publication.RunEvidenceValueIssue,
+] {
+  match value {
+    OriginalSourceObservations(sources, inputs) =>
+      Ok((sources[index], inputs[index]))
+    WireSourceObservations(sources, inputs) => {
+      let source = match
+        @publication.admit_run_evidence_value(
+          "source_evidence",
+          sources[index],
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let input = match
+        @publication.admit_run_evidence_value(
+          "source_input_logical",
+          inputs[index],
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok((source, input))
+    }
+  }
 }
