@@ -342,3 +342,25 @@ test "Effect spent occurrence controls stay debited on the same Ledger until Run
     is Err(_),
   )
 }
+
+///|
+test "Effect cleanup refuses a copied operation view before and after original retirement" {
+  let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  let copied : ClientInstalledEffectOperationBorrow = { ..operation, }
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    retire_installed_effect_operation(copied, true) is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
+  let retired_copy : ClientInstalledEffectOperationBorrow = { ..operation, }
+  assert_true(
+    retire_installed_effect_operation(retired_copy, true)
+    is Err(ForeignOriginal),
+  )
+  assert_true(retire_installed_effect_operation(operation, true) is Ok(true))
+  retire_installed_managed_run(owner).unwrap()
+}
