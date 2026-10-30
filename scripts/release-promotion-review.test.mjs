@@ -377,3 +377,49 @@ test('npm promotion failure custody: refused Unknown write keeps its physical er
   assert.equal(JSON.parse(await readFile(join(attempt,'0-intent.json'))).state,'outcome-unknown');
   await assert.rejects(lstat(join(attempt,'0-unknown.json')),{code:'ENOENT'});
 });
+
+// Own returned DATA only; the first output read schedules mutation at the
+// consumer's next await. The original pinned runner/current ports stay intact.
+function promotionTerminalMutation(initial,later) {
+  const current={...initial},reads={code:0,signal:0,stdout:0,stderr:0},response={};let mutated=false;
+  for(const field of Object.keys(reads))Object.defineProperty(response,field,{enumerable:true,get(){
+    reads[field]++;
+    if(field==='stdout'&&reads[field]===1)queueMicrotask(()=>{Object.assign(current,later);mutated=true;});
+    return current[field];
+  }});
+  return {response,reads,mutated:()=>mutated};
+}
+
+for(const [name,code,signal]of [['nonzero',1,null],['signalled',0,'SIGTERM'],['unreported',undefined,undefined]])
+test(`npm promotion terminal snapshot: original ${name} cannot become confirmed during receipt IO`,async t=>{
+  const f=await promotionFixture(t),original=f.options.runNpm;
+  const initial={code,signal,stdout:'ORIGINAL promotion stdout\n',stderr:'ORIGINAL promotion stderr\n'};
+  const captured=promotionTerminalMutation(initial,{code:0,signal:null,stdout:'LATER stdout\n',stderr:'LATER stderr\n'});
+  await assert.rejects(f.run({runNpm:async(args,context)=>{
+    const reply=await original(args,context);return context.phase==='dist-tag'&&f.commands.length===1?captured.response:reply;
+  }}),failure=>{
+    assert.match(failure.message,/outcome unknown/u);
+    assert.match(failure.originalPromotionError.message,/command did not confirm completion/u);
+    assert.equal(Object.getOwnPropertyDescriptor(failure,'originalPromotionError').enumerable,false);return true;
+  });
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,stdout:1,stderr:1});
+  const target=join(f.options.receiptsDirectory,f.fixed.sha256,f.review.sha256),[name]=await readdir(target),attempt=join(target,name);
+  assert.deepEqual(JSON.parse(await readFile(join(attempt,'0-terminal.json'))),JSON.parse(JSON.stringify(initial)));
+  assert.equal(JSON.parse(await readFile(join(attempt,'0-unknown.json'))).originalIntent,'0-intent.json');
+  assert.equal(f.commands.length,1);assert.equal(f.tags.get(f.artifacts[0].name).latest,f.artifacts[0].version);
+  await assert.rejects(lstat(join(attempt,'0-confirmed.json')),{code:'ENOENT'});
+  await assert.rejects(lstat(join(attempt,'summary.json')),{code:'ENOENT'});
+});
+
+test('npm promotion terminal snapshot: original success and output survive later returned-object mutation',async t=>{
+  const f=await promotionFixture(t),original=f.options.runNpm;
+  const initial={code:0,signal:null,stdout:'ORIGINAL promotion stdout\n',stderr:'ORIGINAL promotion stderr\n'};
+  const captured=promotionTerminalMutation(initial,{code:1,signal:'SIGTERM',stdout:'LATER stdout\n',stderr:'LATER stderr\n'});
+  const result=await f.run({runNpm:async(args,context)=>{
+    const reply=await original(args,context);return context.phase==='dist-tag'&&f.commands.length===1?captured.response:reply;
+  }});
+  assert(captured.mutated());assert.deepEqual(captured.reads,{code:1,signal:1,stdout:1,stderr:1});
+  assert.equal(result.operationCount,4);assert.equal(result.state,'selected-current-channels-observed');
+  assert.deepEqual(JSON.parse(await readFile(join(result.receiptDirectory,'0-terminal.json'))),initial);
+  assert.deepEqual(f.commands,f.artifacts.map(item=>item.name));
+});

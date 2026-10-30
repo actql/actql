@@ -599,12 +599,12 @@ export async function promoteNpmReleaseChannels(options) {
     try {
       const response = await runNpm(args, Object.freeze({manifestSha256: expectedSha256,
         promotionReviewSha256: expectedReviewSha256, phase: 'dist-tag', transition: Object.freeze({...move})}));
-      assert(response && typeof response.stdout === 'string' && typeof response.stderr === 'string' &&
-        Buffer.byteLength(response.stdout) + Buffer.byteLength(response.stderr) <= 1024 * 1024,
+      const snapshot = response && {code: response.code, signal: response.signal, stdout: response.stdout, stderr: response.stderr};
+      assert(snapshot && typeof snapshot.stdout === 'string' && typeof snapshot.stderr === 'string' &&
+        Buffer.byteLength(snapshot.stdout) + Buffer.byteLength(snapshot.stderr) <= 1024 * 1024,
       'Original bounded npm terminal response unavailable');
-      await record(`${index}-terminal.json`, {code: response.code, signal: response.signal,
-        stdout: response.stdout, stderr: response.stderr});
-      assert(response.code === 0 && response.signal === null, 'Original npm promotion command did not confirm completion');
+      await record(`${index}-terminal.json`, snapshot);
+      assert(snapshot.code === 0 && snapshot.signal === null, 'Original npm promotion command did not confirm completion');
       // Command success is not a current channel or public-byte proof.
       current.set(key, move.toVersion); await fence(`${index}-after`);
       await record(`${index}-confirmed.json`, {move, state: 'exact-original-current-readback'});
