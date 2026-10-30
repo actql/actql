@@ -5439,5 +5439,247 @@
         }
       }
     ]
+  },
+  {
+    "module": "adapters/connectors/sheets/site/sheets-grid-pages.mjs",
+    "sha256": "8326e071f7ab6bc482c2cc51243daa8a3bcb83d434c0018fc46e4229c7abbbec",
+    "exports": [
+      "SHEETS_GRID_PAGES_OPERATION",
+      "SheetsGridPagesFailure",
+      "prepareSheetsGridPages"
+    ],
+    "operations": [
+      {
+        "name": "fail/fail",
+        "parameters": [
+          "code"
+        ],
+        "async": false
+      },
+      {
+        "name": "positive/positive",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages",
+        "parameters": [
+          "moon",
+          "spreadsheetId",
+          "columns",
+          "range",
+          "names",
+          "limits",
+          "applySynchronousProjection"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/codec/codec",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/codec/codec/codec",
+        "parameters": [
+          "args"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/codecLimits/codecLimits",
+        "parameters": [
+          "bytes"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/coordinates/coordinates",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/declared/declared",
+        "parameters": [
+          "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/decoded/decoded",
+        "parameters": [
+          "wire"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/frame/frame",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/init:decodePage/init:decodePage",
+        "parameters": [
+          "response",
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/init:fetchPage/init:fetchPage",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/init:onError/init:onError",
+        "parameters": [
+          "cause"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/prepareSheetsGridPages",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/prepareSheetsGridPages#2",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/prepareSheetsGridPages#3",
+        "parameters": [
+          "name"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareSheetsGridPages/schema/schema",
+        "parameters": [
+          "column"
+        ],
+        "async": false
+      },
+      {
+        "name": "SheetsGridPagesFailure/constructor:constructor/constructor:constructor",
+        "parameters": [
+          "cause"
+        ],
+        "async": false
+      }
+    ],
+    "imports": [],
+    "compilerFields": [],
+    "unresolvedSyntax": [],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets pure vendor request/typed-grid DATA under existing Common and shared Host owners; no Source authority, grant, funding, physical send/ACK or cleanup ownership",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "fail/fail",
+          "positive/positive",
+          "prepareSheetsGridPages",
+          "prepareSheetsGridPages/codec/codec",
+          "prepareSheetsGridPages/codec/codec/codec",
+          "prepareSheetsGridPages/codecLimits/codecLimits",
+          "prepareSheetsGridPages/coordinates/coordinates",
+          "prepareSheetsGridPages/declared/declared",
+          "prepareSheetsGridPages/decoded/decoded",
+          "prepareSheetsGridPages/frame/frame",
+          "prepareSheetsGridPages/init:decodePage/init:decodePage",
+          "prepareSheetsGridPages/init:fetchPage/init:fetchPage",
+          "prepareSheetsGridPages/init:onError/init:onError",
+          "prepareSheetsGridPages/prepareSheetsGridPages",
+          "prepareSheetsGridPages/prepareSheetsGridPages#2",
+          "prepareSheetsGridPages/prepareSheetsGridPages#3",
+          "prepareSheetsGridPages/schema/schema",
+          "SheetsGridPagesFailure/constructor:constructor/constructor:constructor"
+        ],
+        "exports": [
+          "SHEETS_GRID_PAGES_OPERATION",
+          "SheetsGridPagesFailure",
+          "prepareSheetsGridPages"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Pure grid pages for the shared Reader"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "adapters/connectors/sheets/site/sheets-grid-pages.mjs",
+              "anchor": "export function prepareSheetsGridPages"
+            }
+          ],
+          "identity": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "spreadsheet ID, numeric rectangle, complete declared scalar columns"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "original portable provider methods/receiver"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The synchronous projection"
+            }
+          ],
+          "failure": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Any error"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The callbacks do not send, charge, cancel, close, retry"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Request/response/page bounds"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "normal adoption requires its actual original Source"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
+              "anchor": "actual Sheets callback codec retains full grid duplicate rows blanks formula result and exact literal text"
+            }
+          ]
+        }
+      }
+    ]
   }
 ]
