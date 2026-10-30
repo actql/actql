@@ -40598,6 +40598,226 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/sourceview_resolution/source_acquisition.mbt",
+      "sha256": "6d83f43517cb8f890ad6866673ea445df75fe8fe170d8495e37bf7c02c091a53",
+      "exports": [],
+      "operations": [
+        {
+          "name": "derive_source_acquisition",
+          "declaration": "derive_source_acquisition ( requests : PipelineRequests , source_index : Int , max_work : Int , ) - > Result [ SourceAcquisition , SourceAcquisitionIssue ]"
+        },
+        {
+          "name": "source_acquisition_input",
+          "declaration": "source_acquisition_input ( value : SourceAcquisition ) - > @ pipeline . Target"
+        },
+        {
+          "name": "source_acquisition_mode",
+          "declaration": "source_acquisition_mode ( value : SourceAcquisition ) - > DirectMode"
+        },
+        {
+          "name": "source_acquisition_owner",
+          "declaration": "source_acquisition_owner ( value : SourceAcquisition ) - > PipelineRequests"
+        },
+        {
+          "name": "source_acquisition_pipeline",
+          "declaration": "source_acquisition_pipeline ( value : SourceAcquisition , ) - > @ pipeline . CheckedPipeline"
+        },
+        {
+          "name": "source_acquisition_request",
+          "declaration": "source_acquisition_request ( value : SourceAcquisition , ) - > ParameterizedRequest"
+        },
+        {
+          "name": "source_acquisition_source_index",
+          "declaration": "source_acquisition_source_index ( value : SourceAcquisition ) - > Int"
+        },
+        {
+          "name": "source_acquisition_work",
+          "declaration": "source_acquisition_work ( value : SourceAcquisition ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Source request and Program acquisition owner; logical preparation only, no authority or completed observation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "derive_source_acquisition",
+            "source_acquisition_input",
+            "source_acquisition_mode",
+            "source_acquisition_owner",
+            "source_acquisition_pipeline",
+            "source_acquisition_request",
+            "source_acquisition_source_index",
+            "source_acquisition_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "selects the original input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "actual pipeline input position"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "equal Programs, request wires or contract CIDs"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "receiving Host must retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "synchronous projections start no I/O"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "require their own acquisition paths"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Work limits cover"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "separate"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "prepared Program tests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_source_acquisition.mbt",
+      "sha256": "43c0a126dc206e1c11bbd7aac719c5cb96a83b6aec91c6b1355be2cea105841e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_source_acquisition_matches_effect_program",
+          "declaration": "client_source_acquisition_matches_effect_program ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , acquisition : @ acquisition . SourceAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_source_acquisition_matches_program",
+          "declaration": "client_source_acquisition_matches_program ( prepared : PreparedClientProgram , stage : Int , source_index : Int , acquisition : @ acquisition . SourceAcquisition , ) - > Bool"
+        },
+        {
+          "name": "prepare_client_effect_source_acquisition",
+          "declaration": "prepare_client_effect_source_acquisition ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisition , ClientSourceAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_source_acquisition",
+          "declaration": "prepare_client_source_acquisition ( prepared : PreparedClientProgram , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisition , ClientSourceAcquisitionIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Source request and Program acquisition owner; logical preparation only, no authority or completed observation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_source_acquisition_matches_effect_program",
+            "client_source_acquisition_matches_program",
+            "prepare_client_effect_source_acquisition",
+            "prepare_client_source_acquisition"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "selects the original input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "actual pipeline input position"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "equal Programs, request wires or contract CIDs"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "receiving Host must retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "synchronous projections start no I/O"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "require their own acquisition paths"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Work limits cover"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "separate"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "prepared Program tests"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
