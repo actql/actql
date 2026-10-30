@@ -72,6 +72,21 @@ export function installedSourceFixtureLifetime(t) {
             sources.push(source);
             return source;
           } catch (cause) {
+            // Bounded fixture diagnostics select only error/stack coordinates;
+            // never serialize a retained preparation, Credential or cleanup
+            // carrier. This does not classify the failure or drive its retry.
+            const pending = [cause], seen = new Set(), errors = [];
+            while (pending.length && errors.length < 8) {
+              const value = pending.shift();
+              if (value === null || typeof value !== 'object' || seen.has(value)) continue;
+              seen.add(value);
+              errors.push({name: value.name, code: value.code,
+                constructor: value.constructor?.name,
+                tag: typeof value.$tag === 'number' ? value.$tag : undefined,
+                stack: typeof value.stack === 'string' ? value.stack.split('\n').slice(0, 10) : undefined});
+              pending.push(value.cause, value.primaryFailure);
+            }
+            t.diagnostic(JSON.stringify({fixtureInitializationErrors: errors}));
             finishInstalledSourceInitialization(sourceInitialization, source, cause, true);
             throw cause;
           }
