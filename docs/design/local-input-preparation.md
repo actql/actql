@@ -3564,3 +3564,57 @@ do not admit arbitrary receipt-shaped DATA. The original supplier still checks
 membership and purpose, while the real caller must retain the same initial
 parent and satisfy its physical backing and retirement obligations. Compiled
 RelA and ordinary acceptance require matching artifacts and callers separately.
+
+## Recursive Result snapshots keep the original publication reservation
+
+An adopted Request can execute checked ARRAY and STRUCT values without a flat
+leaf schema proof. Publication retains that same checked dispatch inventory,
+row bound, Run and Result occurrence. Flat snapshots keep their existing
+schema-derived prequote. Recursive snapshot construction instead consumes the
+exact completed export's byte, value-node and open-container-depth observations.
+The existing finished writer supplies these facts without another traversal,
+hash, schema check or caller-provided dimensions. Equal-content exports cannot
+substitute the original stream and receipt.
+
+The publication continuation reserves its fixed control packet first. Before
+constructing a recursive snapshot it grows the same preparation-body reservation
+for retained canonical rows, decoded text, field inventory, recursive parser and
+cursor ancestry, key/sort holdings, and overlapping emission/admission writers.
+The original logical Relation wrapper contributes two value nodes and one open
+container; its bytes conservatively bound the bare row wire. Array and Object
+parser maxima are independent bounds from that original node count. The shared
+representation tariff remains the only conversion to reserved bytes. This later
+constructor reservation supplies no retroactive funding for execution or export.
+
+Each original Result occurrence is consumed before a reservation callback can
+reenter. A declined grow or cancelled snapshot cannot retry that occurrence, and
+cancelling its private issuer does not retire the parent export's Result pin.
+Completed snapshots remain held until original publication retirement. Later
+capture borrows those trees; its existing original construction extent supplies
+the recursive row-node envelope for nested writer keys, without copying rows or
+parsing them again. Physical funding, output storage and cleanup acknowledgement
+remain obligations of their existing owners.
+
+## Request checking precedes final body selection
+
+The Request's semantic-check boundary can complete while its original working
+reservation still has Unit body type. Native and query inputs retain their same
+Source/index, Program, Parameter cursor, Catalog and checked child. Completing
+this boundary issues no Prepared body, executable Plan, Run, policy attestation
+or retirement acknowledgement. Reobserving an already completed semantic phase
+does not run its checker or spend its work receipt again.
+
+The existing full preparation driver consumes that same checked child through
+its compiler and the one eventual Pure/Effect capacity continuation. It does
+not reconstruct an input or select a second reservation. Before that selection,
+original cancellation can still clear the checker and its aliases through the
+Request's existing cleanup; after selection the existing typed body owns its
+normal retirement duties.
+
+A trusted request-value verifier may require a supplemented checking Environment.
+The check-only boundary cannot certify that changed Environment with the old
+verdict: the actual Host must retain its original policy evidence, input and
+parent through the required supplemental semantic phase before final compiler
+and body selection. Neither an absent verifier result nor this Unit return is
+permission to serialize again, substitute a Source publication, skip policy
+verification or manufacture an unowned fallback preparation.

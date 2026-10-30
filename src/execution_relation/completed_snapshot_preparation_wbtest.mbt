@@ -19,6 +19,37 @@ fn snapshot_finish(
 }
 
 ///|
+test "snapshot original extent observes exact completed writer and refuses equal foreign receipt" {
+  let source = export_fixture(capture_fixture())
+  let (stream, receipt) = snapshot_export_fixture(source)
+  let (other, equal) = snapshot_export_fixture(source)
+  // Existing independent rows are37 UTF-8 bytes,7 value nodes,2 rows,depth2;
+  // logical wrapper adds28 bytes,2 nodes and one container, not policy depth20.
+  assert_eq(
+    completed_relation_export_snapshot_extent(stream, receipt).unwrap(),
+    (65, 9, 2, 3),
+  )
+  assert_eq(
+    completed_relation_export_snapshot_extent(other, equal).unwrap(),
+    (65, 9, 2, 3),
+  )
+  assert_true(
+    completed_relation_export_snapshot_extent(stream, equal)
+    is Err(ForeignMaterial),
+  )
+  assert_true(
+    completed_relation_export_snapshot_extent(other, receipt)
+    is Err(ForeignMaterial),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_relation_export_snapshot_extent(stream, receipt)
+    is Err(NotFinished),
+  )
+  cancel_completed_relation_export_receipt(equal)
+}
+
+///|
 test "snapshot preparation preserves exact wire and fields across quanta" {
   let source = export_fixture(capture_fixture())
   let (stream, receipt) = snapshot_export_fixture(source)

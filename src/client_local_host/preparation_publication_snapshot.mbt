@@ -20,10 +20,10 @@ fn program_snapshot_current(value : ClientProgramSnapshot) -> Bool {
 }
 
 ///|
-/// Fixed JSON-leaf snapshot path. The producer's original logical hash supplies
-/// exact B/N; depth3 is logical wrapper -> row array -> flat leaf row object.
-/// The original schema/row plan already funded the constructor and is checked
-/// again here. No caller dimensions or content/CID-equivalent substitute exist.
+/// The producer's original finished writer supplies exact B/N/depth. Flat
+/// snapshots were prequoted from their original schema; recursive snapshots
+/// grow the SAME body reservation before their constructor. No caller can
+/// supply dimensions or substitute an equal-content Result.
 pub fn begin_program_snapshot(
   value : ClientProgramPublication,
   output : @publication_host.PublicationOutputExport,
@@ -43,7 +43,7 @@ pub fn begin_program_snapshot(
     is Some(occurrence) else {
     return Err(WrongPhase)
   }
-  let (bytes, nodes, rows) = match
+  let (bytes, nodes, rows, depth) = match
     output.snapshot_original_extent(run, occurrence) {
     Ok(extent) => extent
     Err(issue) => return Err(PublicationSnapshot(issue))
@@ -55,7 +55,34 @@ pub fn begin_program_snapshot(
   // never reopens this occurrence or authorizes a second retained row copy.
   value.snapshot_starting = true
   value.next_snapshot_index += 1
-  match refresh_publication_original(value) {
+  let reservation = if value.snapshot_prequoted {
+    refresh_publication_original(value).map(_ => ())
+  } else {
+    let schema = @results.port_schema(
+      @execution.managed_result_occurrence_port(occurrence),
+    )
+    match
+      recursive_snapshot_layout(
+        bytes,
+        nodes,
+        depth,
+        @schema.field_count(schema),
+        @schema.field_reference_name_bytes(schema),
+      ) {
+      None => Err(Policy)
+      Some(layout) =>
+        match
+          (
+            @execution.preparation_representation_cost(layout.retained),
+            @execution.preparation_representation_cost(layout.temporary),
+          ) {
+          (Some(r), Some(e)) if r <= 9223372036854775807L - 96L =>
+            reserve_publication_constructor(value, r + 96L, e)
+          _ => Err(Policy)
+        }
+    }
+  }
+  match reservation {
     Err(issue) => {
       value.snapshot_starting = false
       return Err(issue)
@@ -66,7 +93,7 @@ pub fn begin_program_snapshot(
     value.snapshot_starting = false
     return Err(ForeignOriginal)
   }
-  let issuer = match output.start_captured_snapshot(bytes, nodes, 3) {
+  let issuer = match output.start_captured_snapshot(bytes, nodes, depth) {
     Ok(issuer) => issuer
     Err(issue) => {
       value.snapshot_starting = false

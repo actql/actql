@@ -28,3 +28,51 @@ test "captured context constructor permits original zero-result metadata" {
     publication_capture_constructor_layout(1000, 100, 6, 0, 1, 1, 0) is None,
   )
 }
+
+///|
+test "captured recursive rows retain existing trees and fund nested writer key overlap" {
+  let flat = publication_capture_constructor_layout(1000, 100, 8, 2, 2, 1, 0).unwrap()
+  let recursive = publication_capture_constructor_layout(
+    1000,
+    100,
+    8,
+    2,
+    2,
+    1,
+    0,
+    row_key_nodes=40,
+  ).unwrap()
+  // Rows are already held by original snapshots, so nested keys require
+  // writer workspace only, never another retained row tree or parser.
+  assert_true(flat.retained == recursive.retained)
+  assert_true(
+    @execution.preparation_representation_cost(recursive.temporary).unwrap() >
+    @execution.preparation_representation_cost(flat.temporary).unwrap(),
+  )
+  assert_true(
+    publication_capture_constructor_layout(
+      1000,
+      100,
+      8,
+      2,
+      2,
+      1,
+      0,
+      row_key_nodes=-1,
+    )
+    is None,
+  )
+  assert_true(
+    publication_capture_constructor_layout(
+      1000,
+      100,
+      8,
+      0,
+      0,
+      0,
+      0,
+      row_key_nodes=1,
+    )
+    is None,
+  )
+}

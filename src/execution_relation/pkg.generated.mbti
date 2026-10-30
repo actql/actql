@@ -562,6 +562,8 @@ pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
 
+pub fn completed_relation_export_snapshot_extent(CompletedOutputExport, CompletedRelationExportReceipt) -> Result[(Int, Int, Int, Int), CompletedExportIssue]
+
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool

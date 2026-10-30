@@ -9,6 +9,7 @@ struct ClientProgramPublication {
   mut publication_definition : @publication.PublicationContract?
   mut publication_invocation : @publication.PublicationContract?
   row_bound : Int?
+  snapshot_prequoted : Bool
   mut retained_quote : Int64
   mut execution_quote : Int64
   holder : @resources.PreparationBodyBorrow[
@@ -72,6 +73,8 @@ pub fn reserve_program_publication(
       source_free.capacity_plan
     }
   }
+  let snapshot_prequoted = plan.scalar_demand is Some(_) ||
+    plan.value_node_demand is Some(_)
   let (inventory, rows, text) = match plan.scalar_demand {
     Some(demand) => {
       guard plan.schema_inventory is Some(inventory) &&
@@ -80,17 +83,29 @@ pub fn reserve_program_publication(
       }
       (inventory, demand.rows, None)
     }
-    None => {
+    None =>
       // This SAME Plan already checked its flat Number/Boolean/Text schemas
       // and retained their node demand. Do not repeat schema admission or
       // treat absence of the numeric-only specialization as a foreign Run.
-      guard plan.value_node_demand is Some(demand) &&
-        plan.demand_inventory is Some(inventory) &&
-        physical_equal(demand.original, inventory) else {
-        return Err(ForeignOriginal)
+      match plan.value_node_demand {
+        Some(demand) => {
+          guard plan.demand_inventory is Some(inventory) &&
+            physical_equal(demand.original, inventory) else {
+            return Err(ForeignOriginal)
+          }
+          (inventory, demand.rows, Some(plan.values.max_text_bytes))
+        }
+        None => {
+          // The same checked dispatch inventory can contain ARRAY/STRUCT.
+          // Only snapshot construction is delayed until its original export
+          // supplies exact geometry; execution remains on this original Plan.
+          guard plan.demand_inventory is Some(inventory) &&
+            plan.publication is Some(publication) else {
+            return Err(ForeignOriginal)
+          }
+          (inventory, publication.rows, None)
+        }
       }
-      (inventory, demand.rows, Some(plan.values.max_text_bytes))
-    }
   }
   guard plan.graph is Some(graph) &&
     owner.publication_definition is Some(_) &&
@@ -138,42 +153,47 @@ pub fn reserve_program_publication(
     managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
-  guard scalar_snapshot_layout(
-      inventory.fields,
-      inventory.names,
-      rows,
-      total_text_bytes=text,
-    )
-    is Some(task) &&
-    @execution.preparation_representation_cost(task.retained) is Some(task_r) &&
-    @execution.preparation_representation_cost(task.temporary) is Some(task_e) else {
-    return Err(Policy)
-  }
-  let mut retained = task_r
-  let mut execution = task_e
-  for index in 0..<count {
-    guard @strategy.graph_result_occurrence(graph, index) is Some(occurrence) else {
-      return Err(Policy)
-    }
-    let schema = @results.port_schema(
-      @execution.managed_result_occurrence_port(occurrence),
-    )
+  let mut retained = 0L
+  let mut execution = 0L
+  if snapshot_prequoted {
     guard scalar_snapshot_layout(
-        @schema.field_count(schema),
-        @schema.field_reference_name_bytes(schema),
+        inventory.fields,
+        inventory.names,
         rows,
         total_text_bytes=text,
       )
-      is Some(snapshot) &&
-      @execution.preparation_representation_cost(snapshot.retained) is Some(r) &&
-      @execution.preparation_representation_cost(snapshot.temporary) is Some(e) else {
+      is Some(task) &&
+      @execution.preparation_representation_cost(task.retained) is Some(task_r) &&
+      @execution.preparation_representation_cost(task.temporary) is Some(task_e) else {
       return Err(Policy)
     }
-    if r > 9223372036854775807L - retained - 96L {
-      return Err(Policy)
+    retained = task_r
+    execution = task_e
+    for index in 0..<count {
+      guard @strategy.graph_result_occurrence(graph, index) is Some(occurrence) else {
+        return Err(Policy)
+      }
+      let schema = @results.port_schema(
+        @execution.managed_result_occurrence_port(occurrence),
+      )
+      guard scalar_snapshot_layout(
+          @schema.field_count(schema),
+          @schema.field_reference_name_bytes(schema),
+          rows,
+          total_text_bytes=text,
+        )
+        is Some(snapshot) &&
+        @execution.preparation_representation_cost(snapshot.retained) is Some(r) &&
+        @execution.preparation_representation_cost(snapshot.temporary)
+        is Some(e) else {
+        return Err(Policy)
+      }
+      if r > 9223372036854775807L - retained - 96L {
+        return Err(Policy)
+      }
+      retained += r + 96L
+      execution = Int64::max(execution, e)
     }
-    retained += r + 96L
-    execution = Int64::max(execution, e)
   }
   if retained > 9223372036854775807L - controls_retained ||
     execution > 9223372036854775807L - publication_projection_execution {
@@ -200,6 +220,7 @@ pub fn reserve_program_publication(
     publication_definition: owner.publication_definition,
     publication_invocation: owner.publication_invocation,
     row_bound: Some(rows),
+    snapshot_prequoted,
     retained_quote: total_r,
     execution_quote: total_e,
     holder,
