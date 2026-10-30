@@ -18,16 +18,25 @@ export function installedSourceFixtureLifetime(t) {
     after(close) {assert.equal(dependentClose, undefined); dependentClose = close;},
   };
   t.after(async () => {
-    for (const source of sources) await source.close();
-    if (initialization !== undefined) {
-      if (initialization.services !== undefined) {
-        assert.equal(retireInstalledSourceInitialization(initialization.services), true);
+    const failures = [];
+    try {
+      for (const source of sources) await source.close();
+      if (initialization !== undefined) {
+        if (initialization.services !== undefined) {
+          assert.equal(retireInstalledSourceInitialization(initialization.services), true);
+        }
+        initialization.childrenPending = false;
+        closeHostInitializationPreparation(initialization.state);
+        initialization.active = false;
       }
-      initialization.childrenPending = false;
-      closeHostInitializationPreparation(initialization.state);
-      initialization.active = false;
-    }
-    await dependentClose?.();
+    } catch (cause) {failures.push(cause);}
+    // This fixture's TLS listener/independent journal must still close when
+    // original Source/parent cleanup refuses. Keep that refusal; do not clear
+    // the original child duty or manufacture a parent retirement ACK.
+    try {await dependentClose?.();} catch (cause) {failures.push(cause);}
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1) throw new AggregateError(failures,
+      'InstalledSourceFixtureCleanupUnconfirmed', {cause: failures[0]});
   });
   return {transportContext, sources,
     open({root, moon, installation, runtimeBundleCid, baseEnvironmentWire}) {
