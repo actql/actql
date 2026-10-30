@@ -207,9 +207,7 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
     return Err(ForeignOriginal)
   }
   let selected = match
-    @infer_host.original_composed_bounds(
-      compiled, definition, occurrence, graph,
-    ) {
+    original_composed_model_limits(compiled, definition, occurrence, graph) {
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }

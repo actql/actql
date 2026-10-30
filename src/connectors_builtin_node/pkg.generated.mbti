@@ -654,6 +654,8 @@ pub fn client_program_check_infer_original_pre_restore_origin(@run_publication_h
 
 pub fn client_program_check_logical_map_binding(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_check_original_composed_infer_preparation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> String
@@ -2607,6 +2609,8 @@ pub fn client_program_prepare_source_computation_with_parameters(String, String,
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
 pub fn client_program_prepare_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSequenceContracts, @execution_relation.ExecutionCapacity?, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepared_composed_infer_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_infer_host.Limits, @client_infer_host.Issue]
 
 pub fn client_program_prepared_installed_managed_source_free_requirements(@client_local_host.ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
