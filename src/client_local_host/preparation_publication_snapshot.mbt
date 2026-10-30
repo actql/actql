@@ -20,8 +20,8 @@ fn program_snapshot_current(value : ClientProgramSnapshot) -> Bool {
 }
 
 ///|
-/// Fixed scalar snapshot path. The producer's original logical hash supplies
-/// exact B/N; depth3 is logical wrapper -> row array -> flat scalar row object.
+/// Fixed JSON-leaf snapshot path. The producer's original logical hash supplies
+/// exact B/N; depth3 is logical wrapper -> row array -> flat leaf row object.
 /// The original schema/row plan already funded the constructor and is checked
 /// again here. No caller dimensions or content/CID-equivalent substitute exist.
 pub fn begin_program_snapshot(

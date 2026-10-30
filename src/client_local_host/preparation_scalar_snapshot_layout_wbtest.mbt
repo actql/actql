@@ -108,3 +108,91 @@ test "scalar snapshot consumes canonical construction units without repricing" {
   }
   assert_true(scalar_snapshot_name_normalization_layout(-1) is None)
 }
+
+///|
+test "JSON leaf snapshot retains Unicode Text and prices original escaped wire" {
+  // Independent UTF-8 inventory: two label keys10, Tokyo6, then e+accent3,
+  // quote1, LF1, NUL1 and a supplementary scalar4 = 26 bytes, 19 UTF-16 units.
+  let wire = "[{\"label\":\"東京\"},{\"label\":\"é\\\"\\n\\u0000𝄞\"}]"
+  let quote = scalar_snapshot_layout(1, 5, 2, total_text_bytes=Some(26)).unwrap()
+  assert_eq(quote.retained.owned_utf16_units, 26L)
+  let numeric = scalar_snapshot_layout(1, 5, 2).unwrap()
+  assert_eq(quote.retained.record_headers, numeric.retained.record_headers + 2L)
+  assert_true(
+    @execution.preparation_representation_cost(quote.temporary).unwrap() >
+    @execution.preparation_representation_cost(numeric.temporary).unwrap(),
+  )
+  let parsed = @source.parse_json(wire, {
+    max_input_bytes: 1000,
+    max_nodes: 5,
+    max_depth: 2,
+  }).unwrap()
+  let cursor = @decode.admit(parsed, {
+    max_nodes: 5,
+    max_depth: 2,
+    max_string_bytes: 26,
+    max_total_string_bytes: 26,
+  }).unwrap()
+  let admission = @identity.start_cursor_admission(
+    cursor,
+    5,
+    2,
+    26,
+    26,
+    data_keys=true,
+  ).unwrap()
+  let mut value : @identity.CanonicalValue? = None
+  for _ in 0..<1000 {
+    match @identity.advance_cursor_admission(admission) {
+      @identity.CursorAdmissionContinue => ()
+      @identity.CursorAdmissionComplete(v, _, _) => {
+        value = Some(v)
+        break
+      }
+      _ => fail("original Unicode Text cursor admission")
+    }
+  }
+  let actual = @identity.representation_extent(value.unwrap(), 5, 2, 26).unwrap()
+  let containers = actual.arrays + actual.objects
+  let measured : @execution.PreparationRepresentationUnits = {
+    record_headers: actual.nodes + 3L * containers + 4L + 4L,
+    reference_slots: actual.nodes +
+    2L * containers +
+    actual.array_backing_slots +
+    actual.object_backing_slots +
+    8L,
+    scalar_words: actual.nodes + 2L * containers,
+    owned_utf16_units: 19L,
+    owned_wire_bytes: 0L,
+  }
+  assert_true(
+    @execution.preparation_representation_cost(quote.retained).unwrap() >=
+    @execution.preparation_representation_cost(measured).unwrap(),
+  )
+  let writer = @encode.writer(1000, 5, 2)
+  @identity.emit_value(value.unwrap(), writer)
+  assert_eq(@encode.finish(writer), wire)
+}
+
+///|
+test "JSON leaf snapshot preserves numeric wire bounds and empty invalid overflow guards" {
+  for (fields, names, rows) in [(0, 0, 0), (1, 2, 2), (100, 500, 1000)] {
+    // Independent pre-existing numeric specialization, not a second product
+    // calculator or acceptance fallback.
+    let expected = 30L +
+      rows.to_int64() * (3L + 6L * names.to_int64() + 29L * fields.to_int64())
+    assert_eq(
+      client_local_scalar_wire_byte_bound(fields, names, rows),
+      Some(expected.to_int()),
+    )
+  }
+  let empty = scalar_snapshot_layout(1, 5, 0, total_text_bytes=Some(500000)).unwrap()
+  assert_eq(empty.retained.owned_utf16_units, 0L)
+  assert_true(
+    scalar_snapshot_layout(1, 5, 0, total_text_bytes=Some(-1)) is None,
+  )
+  assert_true(
+    scalar_snapshot_layout(1, 5, 1, total_text_bytes=Some(2147483647)) is None,
+  )
+  assert_true(client_local_json_leaf_wire_byte_bound(1, 1, 357913931L) is None)
+}
