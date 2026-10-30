@@ -15,6 +15,9 @@ pub fn[I] start_node_preparation_admission(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
+  if admission.purpose != LocalPreparation {
+    return Err(Unavailable)
+  }
   owner.transitioning = true
   let outcome = start_node_managed_run_admission(admission)
   owner.transitioning = false
@@ -25,7 +28,7 @@ pub fn[I] start_node_preparation_admission(
 /// Read the immutable limits of this exact started input admission before a
 /// checked plan is transferred. No Ledger, new grant, purpose conversion or
 /// second imported child is exposed. The later adoption rechecks currentness.
-pub fn[I] node_source_compute_preparation_limits(
+pub fn[I] node_local_preparation_limits(
   owner : NodePreparationAdmission[I],
   input : I,
 ) -> Result[LedgerLimits, ImportedChildLedgerIssue] {
@@ -33,7 +36,7 @@ pub fn[I] node_source_compute_preparation_limits(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_source_compute_run_preparation(admission, input) {
+  match check_node_local_preparation_original(admission, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -62,7 +65,7 @@ pub fn[I] begin_node_preparation_inventory(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_managed_run_preparation(admission, input) {
+  match check_node_local_preparation_original(admission, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -109,7 +112,7 @@ pub fn[I, P] adopt_node_preparation_admission(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_managed_run_preparation(admission, input) {
+  match check_node_local_preparation_original(admission, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -238,5 +241,24 @@ pub fn[I] check_node_preparation_input(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  check_node_managed_run_preparation(admission, input)
+  check_node_local_preparation_original(admission, input)
+}
+
+///|
+/// The actual local-preparation supplier was selected before a checked domain
+/// existed. Keep that original input purpose through adoption; no completed
+/// Plan can convert it to a separately issued Source, Model or Content child.
+fn[I] check_node_local_preparation_original(
+  admission : NodeManagedRunAdmission[I],
+  input : I,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(admission, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if admission.purpose == LocalPreparation {
+    Ok(())
+  } else {
+    Err(Unavailable)
+  }
 }

@@ -3839,3 +3839,29 @@ of already stopped native backing. Existing provider-reader and keyed-transport
 owners retain their separate cleanup rules. None of these observations changes
 Run acceptance, authorizes a Source, confirms a business write, or turns Unknown
 into a known terminal result.
+
+
+### Local preparation purpose and domain adoption
+
+The fixed `prepareOriginalLocalPreparationPorts` supplier selects the
+`local-preparation` purpose before the input has a checked execution domain.
+Its Core admission retains that same purpose before and after adoption. It is
+not a preselected Source/Compute, Mock Model or Content admission. Equal limits
+or a completed Plan do not convert it to one of those legacy purposes.
+
+`node_local_preparation_limits` reads only the immutable limits of the original
+started input admission. It checks the original input and preparation purpose,
+but performs no current callback, new reservation or domain admission. The
+adoption boundary retains its existing current callback and post-callback
+state fence. The original reservation, census, child and work history survive
+the transfer; cleanup keeps its actual holders and independent physical duties.
+
+Each installed domain still needs its own same-parent constructor and retained
+Plan/materials before adoption. The ordinary Source-free and captured-purpose
+predicates do not become Model or serialization predicates. The old Model and
+Content entry points remain confined to their independently selected purposes;
+neither accepts the original preparation admission as a replacement. When a
+Model constructor adopts an already inventoried preparation, the existing
+`bind_client_model_read_scope` binds that same original census. Calling the
+pristine-bootstrap `begin_client_model_read_scope` would select a different
+lifecycle and is not a substitute for this binding.

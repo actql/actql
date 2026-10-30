@@ -3,6 +3,7 @@
 /// under a separately admitted Source/managed-Compute recipe. It is not a
 /// Source-only child, numerical profile, permission or another Resource owner.
 priv enum NodeManagedRunPurpose {
+  LocalPreparation
   SourceCompute
   LocalMockModel
   LocalContent
