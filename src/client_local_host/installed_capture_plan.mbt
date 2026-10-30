@@ -45,6 +45,41 @@ pub fn prepare_installed_managed_capture_plan(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  prepare_installed_managed_capture_plan_owned(
+    prepared,
+    request,
+    captures,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    false,
+    retained_output~,
+    provider_factory~,
+    query_time~,
+  )
+}
+
+///|
+fn prepare_installed_managed_capture_plan_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  captures : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  model_purpose : Bool,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
     @publication_host.client_request_program_cid(request) ||
@@ -54,7 +89,7 @@ pub fn prepare_installed_managed_capture_plan(
   }
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_captured_prefix(graph)
-  if !installed_managed_run_purpose_supported(prepared) ||
+  if !installed_managed_run_shape_supported(prepared, model_purpose) ||
     count < 1 ||
     captures.length() != count ||
     transport_bytes.length() != count ||

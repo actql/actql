@@ -167,6 +167,21 @@ pub fn[I] complete_request_program_preparation(
   input : I,
   plan : ClientInstalledManagedSourceFreePreparation,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.program_model is None && plan.owner is Pure(prepared) &&
+    installed_managed_run_purpose_supported(prepared) else {
+    return Err(WrongPhase)
+  }
+  complete_request_program_preparation_owned(owner, input, plan)
+}
+
+///|
+// Fixed ordinary/Model callers selected their original purpose and Plan.
+// Share only the exact same body completion and peak reservation handoff.
+fn[I] complete_request_program_preparation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedSourceFreePreparation,
+) -> Result[Unit, ClientRequestPreparationIssue] {
   guard owner.phase == ProgramPlanReserved &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
@@ -275,7 +290,8 @@ fn[I] prepare_request_program_module_body_owned(
     @local.ManagedProvider,
   ],
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
-  if owner.program_body_attempted ||
+  if owner.program_model is Some(_) ||
+    owner.program_body_attempted ||
     owner.program_artifact_work is Some(_) ||
     owner.program_artifact_work_issue is Some(_) {
     return Err(Preparation(WrongPhase))
@@ -299,6 +315,9 @@ fn[I] prepare_request_program_module_body_owned(
     _ => ()
   }
   if captured is Some(plan) {
+    if !installed_managed_run_purpose_supported(prepared) {
+      return Err(Installed(Unsupported))
+    }
     if !physical_equal(plan.prepared, prepared) ||
       !physical_equal(plan.installed_contracts, contracts) ||
       plan.values_body != contracts.original.values_body ||

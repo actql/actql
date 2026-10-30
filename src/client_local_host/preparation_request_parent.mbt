@@ -88,6 +88,7 @@ struct ClientRequestPreparation[I] {
   )?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model : ClientInstalledManagedModelPlan?
   mut program_keyed : ClientInstalledManagedKeyedPreparation?
   mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
@@ -211,9 +212,10 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    // Resident Content Plan and original Request links; neither is selected yet.
+    // Resident Content Plan/Request and selected Model Plan links. Selected
+    // Some/Plan/Scope construction belongs to its before-call domain backing.
     reference_slots: inventory_refs +
-    2L +
+    3L +
     js_refs +
     import_refs +
     ledger_refs +
@@ -336,6 +338,7 @@ pub fn[I] begin_request_preparation(
     program_artifact_inputs: None,
     program_source_free: None,
     program_captured: None,
+    program_model: None,
     program_keyed: None,
     program_content_request: None,
     program_body_attempted: false,
@@ -642,6 +645,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model = None
   owner.program_keyed = None
   owner.program_content_request = None
   let retiring = owner.phase == Retiring

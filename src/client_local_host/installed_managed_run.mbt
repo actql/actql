@@ -296,6 +296,25 @@ pub fn prepare_installed_managed_source_free_with_contracts(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  configure_installed_source_free_preparation(
+    prepared, original, retained_output, provider_factory,
+  )
+}
+
+///|
+// Both fixed purposes configure their same original sequences once. This
+// neither selects a purpose nor constructs a second Plan/Resource owner.
+fn configure_installed_source_free_preparation(
+  prepared : @publication_host.PreparedClientProgram,
+  original : ClientInstalledManagedSourceFreePreparation,
+  retained_output : Bool,
+  provider_factory : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[
+  ClientInstalledManagedSourceFreePreparation,
+  ClientInstalledManagedRunIssue,
+] {
   let configuration = match
     prepare_client_local_configuration(
       @publication_host.prepared_client_graph(prepared),

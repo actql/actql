@@ -8,6 +8,56 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+#export_name("clientProgramPreparedInstalledManagedModelRequirements")
+pub fn client_program_prepared_installed_managed_model_requirements(
+  original : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Array[Int64] {
+  @client_local_host.prepared_installed_managed_model_requirements(original)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelReadScope")
+pub fn client_program_prepare_request_model_read_scope(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_read_scope(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramCompleteRequestModelPreparation")
+pub fn client_program_complete_request_model_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_model_preparation(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramAdoptRequestModelPreparation")
+pub fn client_program_adopt_request_model_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_model_managed_run(parent, request, scope)
+}
+
+///|
 /// The fixed manager stores this unstarted admission before calling the
 /// separate phase driver. A later rejection/unknown outcome must clean this
 /// same original and cannot acquire another child for the same receipt.

@@ -125,6 +125,8 @@ pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_pub
 
 pub fn[I] begin_request_effect_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
+pub fn[I] begin_request_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
 pub fn[I] begin_request_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue]
 
 pub fn[I] begin_request_program_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -302,6 +304,8 @@ pub fn[I, S] complete_installed_source_material(@physical_resources.PreparationC
 pub fn[I] complete_request_content_preparation(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_effect_preparation(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] complete_request_model_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_program_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSourceFreePreparation) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -539,6 +543,14 @@ pub fn prepare_installed_managed_source_free_with_contracts(@run_publication_hos
 
 pub fn prepare_installed_managed_whole_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledWholeSourceCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_mock_model_capture_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientTaskCompilation, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_mock_model_capture_plan_binding(ClientInstalledManagedCapturePlan, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_mock_model_source_free_plan(ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_mock_model_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[ClientInstalledManagedSourceFreePreparation, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_sequence_contracts(String, String, String?, String?) -> Result[ClientInstalledSequenceContracts, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowDeclaration, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
@@ -623,6 +635,8 @@ pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], 
 
 pub fn[I] prepare_request_effect_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
 
+pub fn[I] prepare_request_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
+
 pub fn[I, T] prepare_request_native_computation(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
 
 pub fn[I, T] prepare_request_native_computation_check(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[Unit, ClientRequestTerminalIssue]
@@ -664,6 +678,8 @@ pub fn prepared_installed_effect_managed_source(ClientInstalledEffectManagedPlan
 pub fn prepared_installed_managed_capture_acquisition(ClientInstalledManagedCapturePlan, Int) -> @client_row_source_host.RowAcquisition?
 
 pub fn prepared_installed_managed_capture_requirements(ClientInstalledManagedCapturePlan) -> Array[Int64]
+
+pub fn prepared_installed_managed_model_requirements(ClientInstalledManagedModelPlan) -> Array[Int64]
 
 pub fn prepared_installed_managed_publication_limits(ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
 
@@ -1023,6 +1039,8 @@ type ClientInstalledKeyedSourceRead
 type ClientInstalledManagedCapturePlan
 
 type ClientInstalledManagedKeyedPreparation
+
+type ClientInstalledManagedModelPlan
 
 type ClientInstalledManagedRun
 

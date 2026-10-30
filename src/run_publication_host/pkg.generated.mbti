@@ -367,6 +367,8 @@ pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> 
 
 pub fn client_compiled_run_matches_effect(ClientCompiledRun, PreparedClientEffectComputation, ClientEffectCompilation) -> Bool
 
+pub fn client_compiled_run_matches_tasks(ClientCompiledRun, PreparedClientProgram, ClientTaskCompilation) -> Bool
+
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue

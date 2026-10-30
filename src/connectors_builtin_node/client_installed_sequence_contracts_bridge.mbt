@@ -15,6 +15,68 @@ pub fn client_prepare_installed_sequence_contracts(
 }
 
 ///|
+#export_name("clientProgramPrepareInstalledMockModelSourceFreeWithContracts")
+pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(
+  prepared : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientTaskCompilation,
+  original : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_mock_model_source_free_with_contracts(
+    prepared,
+    compilation,
+    original,
+    values,
+    fragment,
+    ordered,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledMockModelCapturePlanPrepare")
+pub fn client_program_installed_mock_model_capture_plan_prepare(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compilation : @publication_host.ClientTaskCompilation,
+  captures : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_mock_model_capture_plan(
+    prepared,
+    request,
+    compilation,
+    captures,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+    query_time~,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareInstalledManagedSourceFreeWithContracts")
 pub fn client_program_prepare_installed_managed_source_free_with_contracts(
   prepared : @publication_host.PreparedClientProgram,

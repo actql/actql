@@ -4150,3 +4150,42 @@ failure. This observation is only the final Plan writer dimension: it does not
 count earlier lowering, canonical admission, template construction, Model
 dispatch, physical I/O or cleanup. It is neither an allowance nor evidence that
 the compiler completed; a closing-byte refusal can follow all value visits.
+
+### Pure Model Plan on the original Request
+
+The fixed installed Mock Model profile can retain its source-free module or
+two-Source capture module together with the actual original Task compilation.
+`ClientInstalledManagedModelPlan` binds that same module to the Request,
+compiled Run, definition, occurrence and Infer graph. It is immutable demand
+DATA, not another Resource admission, Ledger or cleanup engine. Its limits add
+the selected module to the existing single Model/read overlap definition also
+used by Effect Plans. The ordinary constructors still exclude INFER and the
+Model entry retains its existing serialization/profile restrictions.
+
+The caller retains its original compiler/constructor borrow while backing
+compilation, module factories, the new Plan and all provider/material overlap.
+The existing early bounds are retained through the late binding; Node does
+not select them again. The Plan's resident record has nine reference fields
+and three scalar fields. Its module-option, returned carriers, Scope, census
+growth and caller frames are additional simultaneous construction, not covered
+merely by that resident record. The original Request's initial control quote
+pays for its additional resident Plan reference; selected construction and
+live `Some` carriers belong to the before-call domain backing.
+
+`prepare_request_model_read_scope` grows the original preparation census at
+its actual working extents and binds that same compiled Run before completion
+or Source reads. The caller retains the returned Scope before any later
+fallible handoff. `complete_request_model_preparation` completes from the same
+Plan without another compiler, module factory, quote or Request. Adoption uses
+the existing Node preparation transfer, original Run fields and two original
+body holders. The normal ordinary entries cannot discard a Model census or
+take that adoption as a fallback.
+
+The Scope's original physical cleanup acknowledgement and outstanding body
+borrowers remain separate obligations. Either can block final retirement.
+Closing the Scope from an adoption current callback must leave the original
+Request available to its existing cleanup owner; no new admission is issued.
+Normal Host selection, complete initial/provider/codec/output backing and
+removal of still-used legacy Model callers are separate migration work. This
+connection does not turn the fixed Mock purpose into a generic Model/Content
+or serialized-Model fallback.
