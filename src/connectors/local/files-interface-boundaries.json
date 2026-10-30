@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4169fe726ee9a13c2d6ccf0af8b59fb441ba48d61714156a5980336f8847e185",
+      "sha256": "907aebfe1b40ca7bcaf489a806f60af82c000657f3e80bcb938b2641b091f0ed",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -799,6 +799,13 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/retainedRun/retainedRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/sameRun/sameRun",
           "parameters": [
             "prepared"
@@ -1087,6 +1094,7 @@
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
             "installPreparedProjectLocalFiles/releaseSharedRead",
             "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+            "installPreparedProjectLocalFiles/retainedRun/retainedRun",
             "installPreparedProjectLocalFiles/sameRun/sameRun",
             "ownLimits",
             "ownLimits/ownLimits",
@@ -1199,6 +1207,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "read.externalClosing=work;"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const retainedRun=prepared=>"
               }
             ],
             "failure": [
@@ -1293,6 +1305,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
                 "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "reuse checks the requested tuple once without another current boundary"
               }
             ]
           }

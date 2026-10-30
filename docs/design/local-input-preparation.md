@@ -3790,6 +3790,14 @@ inventory. Effect and keyed Content retain their separate purpose-specific
 constructors until those actual consumers migrate. Ordinary adoption does not
 confer either purpose or a Source permission.
 
+Reusing an existing purpose-specific Run crosses the Project-current boundary
+once, reads its private retained tuple without another callback, and calls the
+existing Core binding/current operation once with the requested Request.
+Core retains ownership of Request equivalence and its refusal/current ordering;
+JavaScript reference equality does not replace that binding. The retained lookup
+is neither an admission nor a cached current observation. Actual callback,
+physical acquisition and await boundaries keep their separate current fences.
+
 The same Request Root observes the physical children retained on its original
 producer/Run inventory, including children acquired after adoption. Retirement
 fences new reads before cutting the heavy Prepared/Request aliases; existing
