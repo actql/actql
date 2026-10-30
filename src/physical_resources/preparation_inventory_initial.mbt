@@ -20,10 +20,11 @@ pub fn preparation_inventory_initial_control_slots(
   let slots = max_reservations.to_int64() +
     max_holdings.to_int64() +
     max_delegations.to_int64()
-  // Inventory1H6R7W, identity1H2R, three slot records3H6R,
+  // Inventory1H6R8W (including original attempt offset), identity1H2R,
+  // three slot records3H6R,
   // six array headers6H, ledger Some and returned identity Ok2H2R2W.
   // Each possible live entry adds Some1H1R1W + backing1R + order1W.
-  Some((13L + slots, 16L + 2L * slots, 9L + 2L * slots))
+  Some((13L + slots, 16L + 2L * slots, 10L + 2L * slots))
 }
 
 ///|
@@ -125,7 +126,7 @@ pub fn[I, P] discard_unbound_preparation_capacity_inventory(
     !original_inventory_preparation_owned(value) {
     return Ok(())
   }
-  if value.binding != PreparationUnbound ||
+  if !original_inventory_preparation_unbound(value) ||
     value.closing ||
     value.descriptor_issued ||
     value.read_claimed ||

@@ -21,8 +21,8 @@ test "Request initial census is already owned before snapshot without a Model ex
     is Err(@resources.InvalidBootstrap),
   )
   let (headers, refs, words) = request_preparation_inventory_slots
-  assert_eq((headers, refs, words), (19L, 28L, 21L))
-  // Independent pinned tariff arithmetic: 19*16+28*8+21*8 =696.
+  assert_eq((headers, refs, words), (19L, 28L, 22L))
+  // Independent pinned tariff arithmetic: 19*16+28*8+22*8 =704.
   // This is logical Resource control backing, not heap/RSS.
   assert_eq(
     @execution.preparation_representation_cost({
@@ -32,7 +32,7 @@ test "Request initial census is already owned before snapshot without a Model ex
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }),
-    Some(696L),
+    Some(704L),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)

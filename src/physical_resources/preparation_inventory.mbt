@@ -7,9 +7,60 @@ fn original_inventory_preparation_owned(
     | PreparationBound
     | PreparationFinishing
     | PreparationQuiescent
-    | PreparationSettling => true
+    | PreparationSettling
+    | PreparationUnboundSpent
+    | PreparationBoundSpent => true
     StandaloneUnbound | StandaloneBound => false
   }
+}
+
+///|
+fn original_inventory_preparation_unbound(
+  value : LedgerOriginalInventory,
+) -> Bool {
+  value.binding == PreparationUnbound ||
+  value.binding == PreparationUnboundSpent
+}
+
+///|
+// One scalar provenance fence, not a second usage ledger or refundable budget.
+// Only begin_preparation_io can classify its original pre-binding input token.
+fn record_original_non_preparation_token(
+  value : LedgerOriginalInventory,
+) -> Unit {
+  value.binding = match value.binding {
+    PreparationUnbound => PreparationUnboundSpent
+    PreparationBound => PreparationBoundSpent
+    original => original
+  }
+}
+
+///|
+fn record_original_prefix_work(ledger : Ledger, work : Int) -> Unit {
+  if work > 0 &&
+    ledger.original_inventory is Some(value) &&
+    value.binding == PreparationBound {
+    value.binding = PreparationBoundSpent
+  }
+}
+
+///|
+// Exact absolute issuance history remains on the Ledger. Captured/keyed
+// consumers count their own children from the same original Run cut, after
+// preparation-input attempts. No settled or foreign token can refill it.
+fn original_prefix_attempt_count_is(
+  value : LedgerOriginalInventory,
+  count : Int,
+) -> Bool {
+  let base = if original_inventory_preparation_owned(value) {
+    value.preparation_attempt_base
+  } else {
+    0
+  }
+  count >= 0 &&
+  base >= 0 &&
+  count <= 2147483647 - base &&
+  value.identity.ledger.next_attempt_serial == Some(base + count)
 }
 
 ///|
@@ -76,7 +127,7 @@ pub fn[I, P] grow_preparation_capacity_inventory(
   }
   guard owner.ledger.original_inventory is Some(value) &&
     physical_equal(value.bootstrap, owner.reservation) &&
-    value.binding == PreparationUnbound &&
+    original_inventory_preparation_unbound(value) &&
     !value.closing &&
     !value.descriptor_issued &&
     !value.read_claimed else {
@@ -103,7 +154,7 @@ pub fn[I, P] grow_preparation_capacity_inventory(
   // Debit growth remains charged on refusal; never publish stale new slots.
   guard owner.ledger.original_inventory is Some(current) &&
     physical_equal(value, current) &&
-    value.binding == PreparationUnbound &&
+    original_inventory_preparation_unbound(value) &&
     !value.closing &&
     !value.descriptor_issued &&
     !value.read_claimed &&
@@ -132,7 +183,10 @@ fn preparation_inventory_children_closed(
 // or operation borrows are separately checked by finish_preparation_retirement.
 fn preparation_inventory_can_retire(value : LedgerOriginalInventory) -> Bool {
   preparation_inventory_children_closed(value) &&
-  (value.binding == PreparationUnbound || value.binding == PreparationQuiescent)
+  (
+    original_inventory_preparation_unbound(value) ||
+    value.binding == PreparationQuiescent
+  )
 }
 
 ///|

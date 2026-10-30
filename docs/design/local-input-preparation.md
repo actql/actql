@@ -3946,6 +3946,25 @@ owners remain untouched; bound Model census custody still belongs to its
 Scope and preparation retirement. This cleanup cannot enable a Model fallback
 or replace its separately required constructor/completion/adoption connection.
 
+The preparation census also retains the absolute attempt serial at the
+original Run binding. Its existing binding scalar distinguishes input-only
+preparation history from an issued non-preparation token. Only the actual
+`begin_preparation_io` issuer classifies that original input child; no public
+flag or caller-reported count can do so. Reentry issuing another token remains
+spent even when the input issuer subsequently succeeds. Work after binding
+likewise consumes the first-prefix opportunity. Standalone census users retain
+their pristine-history prerequisite.
+
+The first Model prefix can therefore follow already settled input IO and
+completed preparation work without clearing their attempts, transfer, work or
+absolute serials. It still requires no active child, uncertain transfer,
+descriptor or read. Captured-prefix, keyed child and whole-key serialization
+guards use the same original attempt offset for their exact ordered tokens;
+they do not start serial numbering over at zero. Cleanup never refills a spent
+opportunity. This offset is one resident census scalar, funded by the existing
+Resource-owned initial representation dimensions and common tariff. It is not
+a copied usage ledger or a successful aggregate substitute for original tokens.
+
 
 ### Keyed Content construction on the original Request
 

@@ -32,7 +32,21 @@ pub fn[I, P] begin_preparation_io(
   }
   let working_phase = owner.phase
   owner.phase = Completing
-  let admitted = reserve_attempt(owner.ledger, transfer_bytes, 0L, 0L)
+  // Same original current/allocator as reserve_attempt. This private issuer
+  // classifies only this actual input child; no public Bool or DATA can mark a
+  // raw/business attempt as preparation. After Run binding even it is spent.
+  let admitted = match check_original_reservation_slot(owner.ledger) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      reserve_attempt_current(
+        owner.ledger,
+        transfer_bytes,
+        0L,
+        0L,
+        None,
+        preparation_input=true,
+      )
+  }
   owner.phase = working_phase
   let reservation = match admitted {
     Err(issue) => {

@@ -28,7 +28,7 @@ test "atomic preparation census owns one first token with no fabricated executio
 test "initial census shape belongs to Resource while prices remain outside it" {
   assert_true(
     preparation_inventory_initial_control_slots(6, 0, 0)
-    is Some((19L, 28L, 21L)),
+    is Some((19L, 28L, 22L)),
   )
   assert_true(preparation_inventory_initial_control_slots(-1, 0, 0) is None)
   assert_true(

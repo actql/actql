@@ -177,6 +177,7 @@ pub fn charge_planning(
     ..ledger.usage,
     planning_work: ledger.usage.planning_work + work,
   }
+  record_original_prefix_work(ledger, work)
   Ok(())
 }
 
@@ -212,6 +213,7 @@ fn reserve_attempt_current(
   retained_bytes : Int64,
   execution_bytes : Int64,
   quantities : QuantityAmounts?,
+  preparation_input? : Bool = false,
 ) -> Result[Reservation, LedgerIssue] {
   match check_original_reservation_slot_current(ledger) {
     Err(issue) => return Err(issue)
@@ -284,7 +286,7 @@ fn reserve_attempt_current(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
-  record_original_reservation(ledger, reservation)
+  record_original_reservation(ledger, reservation, preparation_input~)
   Ok(reservation)
 }
 
