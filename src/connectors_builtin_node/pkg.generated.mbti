@@ -1623,6 +1623,8 @@ pub fn client_program_issue_captured_effect_input_local_result_definition(@run_p
 
 pub fn client_program_issue_captured_effect_table_input_local_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
+pub fn client_program_issue_captured_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], @run_publication_host.ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_captured_task_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
@@ -1816,6 +1818,8 @@ pub fn client_program_keyed_lookup_join_prepare(@run_publication_host.PreparedCl
 pub fn client_program_keyed_lookup_join_start(@client_local_host.ClientKeyedJoinPreparation) -> Result[@local.ManagedProviderExecution, @client_local_host.ClientQueryResidualIssue]
 
 pub fn client_program_keyed_lookup_join_work(@local.ManagedProviderExecution) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_program_keyed_lookup_observation_originals(@run_publication_host.ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
 
 pub fn client_program_keyed_lookup_observation_wires(@run_publication_host.ClientKeyedLookupObservation) -> (String, String)?
 

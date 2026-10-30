@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "16c04b4474a58d2b04c884c886a1b72eb129b583be372f5a8d70d6cecc8a4651",
+      "sha256": "9adced0a7af1e75b4d61f2ba8ddc546c76bdfcdb5fe48bb422bc4341cbf45fab",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -3176,68 +3176,44 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledKeyedInvocation/init:issueCheckedClientCompiledKeyedInvocation",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
           "parameters": [
-            "compiled",
-            "definition",
-            "captured",
-            "sourceEvidenceWire",
-            "inputLogicalWire",
-            "keyedObservation",
-            "authorityScopeCid",
-            "dataPolicyCid",
-            "captureStartedAt",
-            "captureCompletedAt",
-            "limits"
+            "captured"
           ],
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued",
           "parameters": [
-            "compiled",
-            "definition",
-            "sources",
-            "authorityScopeCid",
-            "dataPolicyCid",
-            "captureStartedAt",
-            "captureCompletedAt",
-            "limits"
+            "captured"
           ],
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#2",
           "parameters": [
-            "source"
+            "captured"
           ],
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#2",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#3",
           "parameters": [
-            "source"
+            "captured"
           ],
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#3",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#4",
           "parameters": [
-            "source"
+            "sourceEvidence"
           ],
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#4",
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#5",
           "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#5",
-          "parameters": [
-            "source"
+            "captured"
           ],
           "async": false
         },
@@ -3797,6 +3773,13 @@
           "parameters": [
             "request",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -7617,13 +7600,6 @@
             "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
             "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
-            "publicationControl/init:issueCheckedClientCompiledKeyedInvocation/init:issueCheckedClientCompiledKeyedInvocation",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#3",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#4",
-            "publicationControl/init:issueCheckedClientCompiledMultiInvocation/init:issueCheckedClientCompiledMultiInvocation/issued/issued#5",
             "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
@@ -10078,6 +10054,120 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ledger usage observations"
+              }
+            ]
+          }
+        },
+        {
+          "exports": [],
+          "operations": [
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#4",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#5",
+            "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issueCheckedClientCompiledInvocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
               }
             ]
           }
@@ -27171,7 +27261,7 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "082c8b1a14e09af5c962c236c100d8f396706589fbc2aa7ea5dcc95b4e28759a",
+      "sha256": "141b9956e552c3073f6296b5a3039085235d4cb8bc1bf39150b97f74d66f9df6",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
@@ -27237,6 +27327,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
               }
             ],
             "identity": [
@@ -27325,6 +27419,10 @@
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
                 "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Source publication retains original evidence Plan and one invocation slot\""
               }
             ]
           }

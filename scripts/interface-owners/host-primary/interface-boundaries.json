@@ -13374,7 +13374,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "d646e5a70c10588a457e4a852ea278c403c74b751c8c60694b4cb50dbe576e3c",
+      "sha256": "10629499ea2d47504ad5e8ad5e01bdf362651be364b29756f8729337bccc7770",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13460,13 +13460,6 @@
             "namespaceId",
             "storeAuthorityCid",
             "now"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredKeyedTaskPublicationPlan/acquiredKeyedTaskPublicationPlan",
-          "parameters": [
-            "wire"
           ],
           "async": false
         },
@@ -13562,7 +13555,8 @@
         {
           "name": "acquiredMultiTaskPublicationPlan/observed/observed",
           "parameters": [
-            "source"
+            "captured",
+            "sourceEvidenceWire"
           ],
           "async": false
         },
@@ -13679,6 +13673,7 @@
             "resultDataPolicy",
             "requestIdentity",
             "compilationOriginal",
+            "publicationPreparation",
             "kind"
           ],
           "async": false
@@ -13921,7 +13916,6 @@
             "acquiredEffectPublicationPlan/acquiredEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan",
             "acquiredKeyedTaskPublicationPlan",
-            "acquiredKeyedTaskPublicationPlan/acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredEvidenceByUnit/acquiredEvidenceByUnit",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
@@ -14016,6 +14010,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
               }
             ],
             "identity": [
@@ -14168,6 +14166,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain one owner and admit each external evidence once'"
               }
             ]
           }

@@ -3459,3 +3459,20 @@ The manager captures the module and adoption methods with their original
 receiver before invoking its private Plan constructor. A failed module or
 adoption remains on the same Request for retirement and cannot replay the
 constructor, substitute a source-free Plan or select a detached Run.
+
+## Original captured Source publication
+
+The adopted Run issues its captured invocation once from the same checked
+capture/identity/requirement inventory, retained logical input and Source
+observations. Single, independent two-Source and keyed continuations use the
+same fixed owned entry. Wire bytes cannot replace the original capture or
+keyed lookup. Foreign definition and original-body checks precede the consumed
+invocation slot; a failed semantic issuance cannot replay it.
+
+Publication growth reads the same captured capacity Plan and checked demand
+as Compute. It does not reinterpret observed row counts as capacity, construct
+a source-free Plan or compile the Program again. External observation wire is
+admitted once at its explicit boundary and retained for both invocation and
+publication; an already retained logical input is never serialized for a
+second admission. Keyed publication reads its existing observation and logical
+identity directly, while stored/restored wire remains an external boundary.

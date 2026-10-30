@@ -224,3 +224,75 @@ test('Store original commit validation requires selected read owner and ignores 
  const invoke=get('../host-common/runtime-core.mjs','effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
  assert.equal(await invoke(...values,requireCurrent),true);assert.deepEqual(calls,['current',values]);await assert.rejects(invoke(...values,{maxNodes:1}),/Store publication validation owner unavailable/);
 });
+
+
+test('original Source publication consumes retained observation tokens on its same managed Run', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, original = {}, definition = {},
+    contract = {}, evidence = {}, evidenceOriginal = {}, logicalInput = {}, capture = {},
+    identity = {}, requirement = {}, observation = {}, invocation = {}, calls = [];
+  const captured = {logicalInput, identity, requirement, capture: {source: () => capture}};
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
+    compiledRunTokens: new WeakMap([[compiled, original]]), token: value => {assert.equal(value, definition); return contract;},
+    evidenceToken: value => {assert.equal(value, evidence); return evidenceOriginal;},
+    captureContractLimits: value => value, compiledRunResult: value => value,
+    inspectEvidence: value => value, inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: observation, _1: invocation};},
+      clientProgramIssueCompiledTaskInvocation() {assert.fail('raw Source issuer bypassed the original Run');}},
+  }, true);
+  const bounds = {maxWireBytes: 11, maxNodes: 13, maxDepth: 17};
+  const issued = invoke(compiled, definition, {dataPolicyCid: 'policy', source: {
+    captured, sourceEvidence: evidence, authorityScopeCid: 'authority', captureStartedAt: 'start', captureCompletedAt: 'end',
+  }}, bounds, owner, prepared);
+  assert.equal(issued.invocation, invocation);
+  assert.deepEqual(calls, [[owner, prepared, original, contract, [capture], [identity], [requirement],
+    [evidenceOriginal], [logicalInput], undefined, 'authority', 'policy', 'start', 'end', 11, 13, 17]]);
+});
+
+
+test('all original Source publication callers retain one owner and admit each external evidence once', () => {
+  for (const kind of ['single', 'multi', 'keyed']) {
+    const owner = {}, prepared = {}, compiled = {}, definition = {}, rightOriginal = {}, right = {}, observations = [];
+    const captures = [0, 1].map(index => ({logicalInput: {}, identity: {}, requirement: {},
+      checkedSource: {}, capture: {source: () => `source-${index}`}}));
+    const admitted = [], issued = [];
+    const control = {
+      checkClientCompiledRunOwner: (run, program) => {assert.equal(run, compiled); assert.equal(program, prepared);},
+      admitRunEvidence: (name, wire) => {assert.equal(name, 'source_evidence'); const value = {wire}; admitted.push(value); return value;},
+      issueCheckedClientCompiledInvocation: (...args) => {issued.push(args); return {observation: observations, invocation: {}};},
+      keyedLookupPublicationEvidence: value => {assert.equal(value, rightOriginal); return {source: right, logicalRelationCid: 'right-logical'};},
+    };
+    const moon = {clientProgramCapturedSourceMatches: () => true, clientProgramCapturedTaskSourceMatches: () => true,
+      clientProgramPublicationDataPolicyCid: () => 'policy', clientProgramDefinitionCid: () => 'program',
+      clientProgramCapturedSourceLogicalCid: identity => `logical-${captures.findIndex(x => x.identity === identity)}`,
+      clientProgramResultCount: () => 1, strategyRunEvidenceJson: () => assert.fail('retained input serialized again')};
+    const name = kind === 'single' ? 'acquiredTaskPublicationPlan' : kind === 'multi'
+      ? 'acquiredMultiTaskPublicationPlan' : 'acquiredKeyedTaskPublicationPlan';
+    const invoke = get('./local-values-plan.mjs', name, {limits: {}, localPublicationPlan: value => value,
+      JSON: {parse: () => assert.fail('retained keyed input parsed again')}});
+    const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'plan'}, publicationPreparation: owner};
+    const input = {moon, control, acquired, preparedProgram: prepared, captured: captures[0], sourceEvidenceWire: 'source-wire',
+      sources: captures.map((captured, i) => ({captured, sourceEvidenceWire: `source-${i}`})),
+      keyedObservation: {observation: rightOriginal}, effectiveDataPolicyCid: 'policy', authorityScopeCid: 'authority',
+      captureStartedAt: 'start', captureCompletedAt: 'end'};
+    const plan = invoke(input);
+    assert.equal(issued.length, 1); assert.equal(issued[0][4], owner); assert.equal(issued[0][5], prepared);
+    assert.equal(admitted.length, kind === 'multi' ? 2 : 1);
+    assert.deepEqual(plan.sourceEvidence, kind === 'keyed' ? [admitted[0], right] : admitted);
+    assert.equal(plan.observation, observations);
+  }
+});
+
+test('captured invocation refuses missing owner and copied evidence before portable issuance', () => {
+  const owner = {}, prepared = {}, compiled = {kind: 'tasks'}, source = {}, evidence = {}, calls = [];
+  const context = {compiledRunTokens: new WeakMap([[compiled, {}]]), token: value => value,
+    evidenceToken: value => {if (value !== evidence) throw new TypeError('Foreign Run evidence'); return source;},
+    captureContractLimits: value => value, compiledRunResult: value => value, inspectEvidence: value => value,
+    inspect: value => value, runtimeField: (value, index) => value[`_${index}`],
+    moon: {clientProgramIssueCapturedPublicationInvocation(...args) {calls.push(args); return {_0: {}, _1: {}};}}};
+  const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', context, true);
+  const captured = {logicalInput: {}, identity: {}, requirement: {}, capture: {source: () => ({})}};
+  const input = {dataPolicyCid: 'policy', source: {sources: [{captured, sourceEvidence: evidence}, {captured, sourceEvidence: {}}]}};
+  assert.throws(() => invoke(compiled, {}, input, {}, undefined, prepared), /Invalid original publication invocation profile/);
+  assert.throws(() => invoke(compiled, {}, input, {}, owner, prepared), /Foreign Run evidence/);
+  assert.equal(calls.length, 0);
+});

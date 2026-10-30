@@ -5,6 +5,7 @@ struct ClientKeyedLookupObservation {
   lookup : ClientKeyedLookupInput
   input : @publication.RunEvidenceValue
   source : @publication.RunEvidenceValue
+  logical_relation_cid : String
 }
 
 ///|
@@ -88,7 +89,12 @@ pub fn issue_client_keyed_lookup_observation(
     Ok(value) => value
     Err(_) => return Err(Assembly("source_evidence"))
   }
-  Ok({ lookup, input, source: evidence, })
+  Ok({
+    lookup,
+    input,
+    source: evidence,
+    logical_relation_cid: @execution.logical_relation_cid(logical),
+  })
 }
 
 ///|
@@ -104,4 +110,16 @@ pub fn client_keyed_lookup_observation_wires(
       @publication.run_evidence_value_json(value.source),
     ),
   )
+}
+
+///|
+/// Read the original immutable evidence and computed identity while its lookup
+/// is live. No serialization, JSON admission or replacement Source is issued.
+pub fn client_keyed_lookup_observation_originals(
+  value : ClientKeyedLookupObservation,
+) -> (@publication.RunEvidenceValue, @publication.RunEvidenceValue, String)? {
+  if client_keyed_lookup_input_identity(value.lookup) is None {
+    return None
+  }
+  Some((value.input, value.source, value.logical_relation_cid))
 }
