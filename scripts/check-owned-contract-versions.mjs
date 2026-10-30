@@ -17,11 +17,29 @@ const tokens = new RegExp([
   String.raw`\burn:(?:actql|aoa):[A-Za-z0-9_.:-]+:(${number})`,
 ].join('|'), 'g');
 
+function registryPackageVersion(text, offset) {
+  const start = text.lastIndexOf('https://', offset);
+  if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return false;
+  const raw = /^[^\s"'`<>()]+/u.exec(text.slice(start))?.[0];
+  if (!raw || offset >= start + raw.length) return false;
+  let url;
+  try {url = new URL(raw);} catch {return false;}
+  if (url.href !== raw || url.username || url.password || url.search || url.hash) return false;
+  // Only a literal public package/version route is external version data.
+  // Other URLs and adjacent owned identifiers still pass through the gate.
+  if (url.origin === 'https://registry.npmjs.org')
+    return /^\/(?:@[A-Za-z0-9_.-]+\/)?(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname);
+  return url.origin === 'https://pypi.org' &&
+    (/^\/pypi\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/json$/u.test(url.pathname) ||
+      /^\/project\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname));
+}
+
 export function occurrences(text, path) {
   const result = [];
   for (const match of text.matchAll(tokens)) {
     const version = match[1] ?? match[2] ?? match[3];
     if (version === baseline) continue;
+    if (match[1] && registryPackageVersion(text, match.index)) continue;
     // Freeze local source context, not merely a token or file-wide count:
     // a historical rejection fixture cannot authorize a new product writer.
     const context = text.slice(Math.max(0, match.index - 80),
