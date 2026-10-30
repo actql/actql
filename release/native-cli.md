@@ -71,3 +71,53 @@ version stops publication; choose a reviewed new cohort rather than overwrite.
 No workflow or install hook publishes anything. See the
 [SDK/Node procedure](README.md) for partial publication and erroneous-release
 handling. No unpublish, tag correction or public release is automatic.
+
+## Standalone archive preparation
+
+```sh
+node scripts/native-standalone-release.mjs prepare <request.json> <native-target-id> <verified-native-npm-cohort> <new-directory>
+node scripts/native-standalone-release.mjs verify <directory>
+```
+
+Preparation calls the existing complete Native npm cohort verifier first. It
+uses only the selected original OS-package tarballs, with the same source and
+explicit package version. It does not compile or patch an executable. The
+standalone `actql-<version>-<platform>.tar.gz` contains the original payload at
+unchanged relative paths, bytes and modes, plus `build-info.json`,
+`STANDALONE.md` and `CONTENTS.sha256`. The direct executable is
+`bin/actql-native-client`. The original `package.json` is provenance DATA; it
+is not a Node dependency or an installation lifecycle script.
+
+Build information records the package version, actual binary/source/toolchain
+and ABI identities and original npm cohort/package hashes. It does not put
+the archive's final digest inside its own body. `CONTENTS.sha256` covers the
+other members; the external final `SHA256SUMS` covers all archives. An existing
+destination/archive cannot be overwritten. Verification reopens the archives,
+checks every original member and exact generated metadata/checksum inventory,
+and reuses the original Native artifact/Local metadata readers. Its cold
+packaging/source-byte scope is separate from the full original producer gate.
+
+The request target uses ecosystem `native`, the exact selected platforms and
+requested profiles. Its package identities are `actql-<platform>` in platform
+order followed by `actql-checksums`; these identify GitHub archive assets, not
+new npm names. Feed the result to the upper fixed release set as
+`{targetId, kind: "native-standalone", directory}`. Both archives and
+`SHA256SUMS` are fixed artifacts, while the complete original Native npm
+manifest stays bound as raw provenance in `native-standalone.json`.
+
+Requested profiles are not accepted profiles. A Local request requires the
+original admitted runtime material and the existing darwin-arm64 producer
+route. Linux Remote packaging does not qualify Linux Local. The separate
+Native installation/bootstrap connection, actual CLI/README entry, real
+`--version`, successful Local/Remote behavior, close/failure handling and a
+Node-free environment must be accepted from the actual selected artifacts.
+The current compiled command version is not rewritten to the distribution
+version by packaging. Local asset presence does not supply a new bootstrap or
+fallback engine.
+
+This wrapper does not perform signing, notarization or publication. If signing
+is selected, the final signed input bytes and their verification must precede
+the fixed release set and owner approval. Real GitHub Draft/immutable release,
+asset reobservation, attestation, public download and Latest remain separate
+executor/acceptance duties. Header-only fixtures or an archive check never
+establish those outcomes.

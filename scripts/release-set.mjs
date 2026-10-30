@@ -81,7 +81,15 @@ async function readCohort(descriptor, target, request, python) {
     assert(target.platforms.includes(manifest.platform), 'Python platform differs from selected target');
     records = manifest.wheels.map(item => ({name: item.distribution, version: expected.pythonVersion,
       file: item.file, sourceFile: `wheels/${item.file}`, bytes: item.bytes, sha256: item.sha256}));
-  } else throw new Error('No selected existing verifier for this cohort kind; standalone Native archive assembly remains unconnected');
+  } else if (descriptor.kind === 'native-standalone') {
+    assert.equal(target.ecosystem, 'native'); manifestFile = 'native-standalone.json';
+    manifest = await (await import('./native-standalone-release.mjs')).verifyNativeStandalone(directory);
+    assert.equal(manifest.sourceSha, request.source.commit); assert.equal(manifest.packageVersion, request.version);
+    assert.deepEqual(manifest.platforms, target.platforms); assert.deepEqual(manifest.requestedProfiles, target.profiles);
+    records = [...manifest.archives, manifest.checksums].map(item => ({name: item.name, version: item.version,
+      file: item.file, sourceFile: item.file, bytes: item.bytes, sha256: item.sha256}));
+    qualification = manifest.qualification;
+  } else throw new Error('No selected existing verifier for this cohort kind');
   assert.deepEqual(records.map(item => item.name), target.packages, 'Target package order must equal the existing complete cohort');
   for (const record of records) {
     filename(record.file); assert(Number.isSafeInteger(record.bytes) && record.bytes > 0);
@@ -163,6 +171,12 @@ export async function verifyReleaseSet(directory, {expectedSha256} = {}) {
       identities = child.packages.map(item => ({targetId: target.id, ecosystem: 'npm', name: item.name,
         version: item.version, file: item.file, bytes: item.bytes, sha256: item.sha256, integrity: item.integrity,
         path: `${target.id}/${item.file}`}));
+    } else if (cohort.kind === 'native-standalone') {
+      assert.equal(target.ecosystem, 'native'); assert.equal(child.schemaVersion, 'actql-native-standalone/0.1');
+      assert.equal(child.sourceSha, selected.request.source.commit); assert.equal(child.packageVersion, selected.version.version);
+      assert.deepEqual(child.platforms, target.platforms); assert.deepEqual(child.requestedProfiles, target.profiles);
+      identities = [...child.archives, child.checksums].map(item => ({targetId: target.id, ecosystem: 'native', name: item.name,
+        version: item.version, file: item.file, bytes: item.bytes, sha256: item.sha256, path: `${target.id}/${item.file}`}));
     } else {
       assert.equal(cohort.kind, 'python-wheels'); assert.equal(target.ecosystem, 'pypi');
       assert.equal(child.source_sha, selected.request.source.commit);

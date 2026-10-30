@@ -236,9 +236,14 @@
     {
       "id": "A20",
       "required": "Native standalone works without Node and refuses missing binary",
-      "currentSlice": "Existing native builder/reader inventoried; candidate-specific acceptance pending",
+      "currentSlice": "Standalone archive adapter reuses original verified Native npm payload, byte/mode/ABI/Local metadata readers and exact checksum inventory. Inert packaging controls pass; complete real producer, Node-free CLI/Local bootstrap/version display/public download acceptance remain pending",
       "acceptanceStatus": "pending",
-      "executedEvidence": []
+      "executedEvidence": [
+        {
+          "kind": "Inert archive/header/Local metadata component only; no Native execution or Node-free consumer acceptance",
+          "test": "standalone archive retains every original OS payload byte and mode with noncircular build/checksum metadata"
+        }
+      ]
     },
     {
       "id": "A21",
@@ -253,6 +258,10 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "unsupported Linux Python and standalone Native paths cannot inherit another verifier"
+        },
+        {
+          "kind": "Inert Linux ELF packaging/ABI metadata only, not Linux execution or Local acceptance",
+          "test": "standalone Linux Remote archive keeps original ELF bytes and ABI facts without a Linux Local claim"
         }
       ]
     },
@@ -300,6 +309,10 @@
         {
           "kind": "synthetic archive/frozen DATA component only; full condition acceptance pending",
           "test": "fixed artifact tamper and missing bytes remain failures, never absence or rebuild permission"
+        },
+        {
+          "kind": "Inert archive byte/absence control only; no approval or published recovery",
+          "test": "standalone archive tamper missing bytes and changed checksum inventory remain failures"
         }
       ]
     },

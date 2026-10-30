@@ -261,9 +261,10 @@ execution path is connected and the owner approves a fixed release set.
 `node scripts/release.mjs freeze <request.json> <cohorts.json> <new-directory>`
 connects existing ecosystem outputs without building or publishing. The cohort
 file is an explicit array of `{targetId, kind, directory}` records. Supported
-kinds are `node-npm`, `native-npm` and `python-wheels`. Native npm launcher
-packages are not standalone Native archives; no standalone adapter is connected
-at this layer yet. The existing Python wheel verifier currently selects only
+kinds are `node-npm`, `native-npm`, `python-wheels` and `native-standalone`.
+Native npm launcher packages and standalone archives retain separate manifests
+and acceptance. The standalone connection reuses an existing Native npm OS
+payload and does not compile another binary. The existing Python wheel verifier currently selects only
 its actual macOS-arm64 layout and refuses other platforms.
 
 Each selected target must retain its complete, dependency-ordered child cohort,
@@ -330,8 +331,8 @@ bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
 followed, and artifact downloads stay on the selected public registry origins.
 
 These checks are not a public fresh-install or runtime acceptance. Native npm
-launcher artifacts use the same npm route; standalone GitHub archives still
-require their actual assembly/observation connection. No observer grants
+launcher artifacts use the same npm route; standalone GitHub archives have a
+separate assembly connection but still need actual remote observation. No observer grants
 publication authority or substitutes for the separate approved executor.
 
 ## Channel transition review
