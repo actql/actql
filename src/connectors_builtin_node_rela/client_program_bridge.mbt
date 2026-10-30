@@ -8014,6 +8014,22 @@ pub fn client_program_query_time_context(
 }
 
 ///|
+/// Borrow the first bound invocation before module construction. Forward this
+/// opaque original Option unchanged; it neither issues nor binds another Run.
+#export_name("clientProgramQueryTimeInvocationOriginal")
+pub fn client_program_query_time_invocation_original(
+  preparation : @publication_host.ClientQueryTimePreparation,
+  owner : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  @publication_host.client_query_time_preparation_invocation(preparation, owner)
+}
+
+///|
 #export_name("clientProgramBindQueryTime")
 pub fn client_program_bind_query_time(
   preparation : @publication_host.ClientQueryTimePreparation,

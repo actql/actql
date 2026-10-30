@@ -3745,6 +3745,14 @@ same QueryTime preparation and Request. Untimed module construction remains a
 separate existing path; an already timed captured Plan cannot omit its original
 handoff. This does not widen the ordinary Model or serialization purpose guards.
 
+The Node and RelA pre-module projection returns the existing QueryTime getter's
+original Option directly. The caller retains that same QueryTime and Prepared
+under its original input borrower and passes the Option unchanged into the
+module constructor. It does not reconstruct an Option or tuple from JavaScript
+fields. An unbound preparation or another Prepared yields no invocation. This
+projection precedes module completion and Run adoption; the installed Run getter
+continues to serve the separate post-adoption publication boundary.
+
 Run adoption retains the same module, compiler and invocation. The immutable
 Run getter returns the original four objects so that later publication need
 not issue another compiled Run from the artifact. It observes the existing
