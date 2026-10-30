@@ -221,7 +221,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   }
   let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
   let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
-  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,closeFlight;
+  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,closeFlight,physicalFlight;
   const retainFence=value=>{
     const then=value!==null&&(typeof value==='object'||typeof value==='function')?value.then:undefined;
     if(typeof then==='function')pendingFence=new Promise((yes,no)=>Reflect.apply(then,value,[yes,no])).then(()=>undefined,()=>undefined);
@@ -264,8 +264,13 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     chargeBytes(BigInt(bytes));
     // Preserve exact original method/path/headers/body/CID semantics. The
     // existing Resource still performs its own current/transport validation.
-    return Reflect.apply(physical,site,[{...options,operations:new Map([[operation,selected]]),
+    const result=Reflect.apply(physical,site,[{...options,operations:new Map([[operation,selected]]),
       observeResponseBytes:bytes=>{chargeBytes(BigInt(bytes));}}]);
+    // Join the SAME call even if a provider omits its await or throws after
+    // starting it. The envelope keeps rejection handled without discarding it;
+    // prepare below still reports it when no earlier failure was thrown.
+    physicalFlight=Promise.resolve(result).then(value=>({ok:true,value}),error=>({ok:false,error}));
+    return result;
   };
   const drain=()=>{
     if(state==='retired')return true;
@@ -285,7 +290,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
-    invoke=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=undefined;
+    invoke=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=physicalFlight=undefined;
     if(checked(Reflect.apply(retire,runtime,[token,true]))!==true)return false;
     token=undefined;state='retired';return true;
   };
@@ -293,6 +298,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     async prepare(){
       if(state!=='fresh'||closing)fail('InstalledEffectOperationAlreadyPrepared');
       state='preparing';preparing=true;
+      let primaryFailed=false;
       try{
         check();
         const originalPurpose=Reflect.apply(readPurpose,site,[authorization]),scope=authorization?.scope;
@@ -312,8 +318,13 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
         const result=await invoke({authorization:Object.freeze({...authorization,useId}),credential:boundCredential,callResource});
         if(!callStarted)fail('InstalledEffectPhysicalOperationUnavailable');
         check();state='prepared';return result;
-      }catch(error){state='failed';throw error;}
-      finally{if(pendingFence!==undefined){await pendingFence;pendingFence=undefined;}preparing=false;}
+      }catch(error){primaryFailed=true;state='failed';throw error;}
+      finally{
+        const observed=physicalFlight===undefined?undefined:await physicalFlight;
+        if(pendingFence!==undefined){await pendingFence;pendingFence=undefined;}
+        preparing=false;
+        if(!primaryFailed&&observed?.ok===false){state='failed';throw observed.error;}
+      }
     },
     release:drain,retry:drain,status:()=>Object.freeze({pending:state!=='retired'}),
   });

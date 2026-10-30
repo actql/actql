@@ -1530,7 +1530,11 @@ pub fn client_program_installed_effect_operation_demand_prepare(@run_publication
 
 pub fn client_program_installed_effect_operation_extent_from_capacity(String, @execution_relation.ExecutionCapacity, Int64, Bool) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_extent_physical(@client_local_host.ClientInstalledEffectOperationExtent) -> Bool
+
 pub fn client_program_installed_effect_operation_extent_prepare(String, Int64, Int64, Int64, Bool) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_operation_extent_transfer(@client_local_host.ClientInstalledEffectOperationExtent) -> Int64
 
 pub fn client_program_installed_effect_operation_retire(@client_local_host.ClientInstalledEffectOperationBorrow, Bool) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
