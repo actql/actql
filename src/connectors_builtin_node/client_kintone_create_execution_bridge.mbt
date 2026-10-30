@@ -215,3 +215,46 @@ pub fn client_program_kintone_create_response_construction_capacity(
     mapping, limits,
   )
 }
+
+///|
+#export_name("clientProgramKintoneCreateMappingResource")
+pub fn client_program_kintone_create_mapping_resource(
+  mapping : @kintone_host.RecordCreateMapping,
+) -> Result[String, @kintone_host.RecordCreateExecutionIssue] {
+  @kintone_host.record_create_mapping_resource(mapping)
+}
+
+///|
+#export_name("clientProgramKintonePrepareCreateExecutionProposal")
+pub fn client_program_kintone_prepare_create_execution_proposal(
+  mapping : @kintone_host.RecordCreateMapping,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  request_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateRequest,
+  @kintone_host.RecordCreateExecutionIssue,
+] {
+  @kintone_host.prepare_record_create_execution_proposal(
+    mapping, bytes, max_input_bytes, write_limits, request_limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneRestoreCreateExecutionProposal")
+pub fn client_program_kintone_restore_create_execution_proposal(
+  mapping : @kintone_host.RecordCreateMapping,
+  bytes : Bytes,
+  original_body : String,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  request_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateRequest,
+  @kintone_host.RecordCreateExecutionIssue,
+] {
+  @kintone_host.restore_record_create_execution_proposal(
+    mapping, bytes, original_body, max_input_bytes, write_limits, request_limits,
+  )
+}

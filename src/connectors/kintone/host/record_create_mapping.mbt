@@ -119,3 +119,14 @@ pub fn record_create_mapping_matches_request(
     value.required_fields.all(name => written.contains(name))
   })
 }
+
+///|
+/// Logical resource from this same original Mapping, not a resource grant.
+pub fn record_create_mapping_resource(
+  mapping : RecordCreateMapping,
+) -> Result[String, RecordCreateExecutionIssue] {
+  if !record_create_mapping_is_original(mapping) {
+    return Err(MappingMismatch)
+  }
+  Ok(mapping.mapping.resource)
+}
