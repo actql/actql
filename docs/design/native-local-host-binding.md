@@ -2490,9 +2490,17 @@ Lost COMMIT, changed current authority and failed cleanup never issue another
 reference, request, attempt or automatic cancellation.
 
 Retained-Run output selects the existing Saved Result policy and original
-Store/read routing, without constructing a new computation. Receipt export
-requires the original accepted publication observation; a saved State or Result
-selection cannot manufacture a publisher or substitute another receipt kind.
+Store/read routing, without constructing a new computation. Receipt-only export
+requires independent current RunRead, not a Result delivery grant. Its original
+Read and Journal authenticate the retained Submission/Run/Manifest and compare
+the Run's installed physical Store binding before loading the exact committed
+receipt. The publication Owner checks the same immutable reference laws used by
+fresh computation validation. This metadata observation neither revalidates a
+new execution nor manufactures a Publisher, receipt, Run or successful outcome.
+The original export path excludes state and managed storage both before writing
+and at the final current boundary. Existing child-first command retirement drops
+the retained observation before closing its same Store. Fresh publication keeps
+its original Publisher observation and unchanged independent RunRead checks.
 
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The

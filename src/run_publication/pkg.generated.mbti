@@ -238,6 +238,8 @@ pub fn check_model_replayed_observation(RunEvidenceValue, RunEvidenceValue) -> R
 
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
+pub fn check_original_stored_run_receipt_references(PublicationContract, PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, DeliveryIssuanceIssue]
+
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
 pub fn check_saved_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]

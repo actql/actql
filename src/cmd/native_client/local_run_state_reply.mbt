@@ -14,6 +14,21 @@ fn local_public_run_state_reply(
   if !public_run {
     return legacy_reply
   }
+  local_public_run_state_selection(host, settings, crypto, reference, capture~)
+  .state()
+  .wire()
+}
+
+///|
+// Retain the actual selected original along with its State for same-call
+// receipt/Result observation. This is not another Run lookup or issuer.
+fn local_public_run_state_selection(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  reference : @local_host.NativeClientSubmissionReference,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
+) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
   let result = match capture {
     Some(original) =>
       local_host_result(
@@ -43,5 +58,5 @@ fn local_public_run_state_reply(
   }
   // No callback follows the existing terminal current fence. The observed
   // revision is the saved State owner's value, never SQL/control metadata.
-  selected.state().wire()
+  selected
 }

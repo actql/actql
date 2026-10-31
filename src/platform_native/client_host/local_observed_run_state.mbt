@@ -193,8 +193,12 @@ pub fn NativeLocalObservedRunState::original_run_receipt_for_export(
   parent : String,
   name : String,
 ) -> Result[@publication.PublicationContract, NativeLocalObservedRunStateIssue] {
-  if !local_read_file_location(path, parent, name) ||
-    local_read_file_inside(path, self.host.session.state_path) {
+  if !native_local_receipt_export_path(
+      self.host.session.state_path,
+      path,
+      parent,
+      name,
+    ) {
     return Err(ForeignOriginal)
   }
   if !self.require_current_for(self.host, self.request) {
@@ -204,11 +208,9 @@ pub fn NativeLocalObservedRunState::original_run_receipt_for_export(
     Some(value) => value
     None => return Err(OriginalUnavailable)
   }
-  match capture.managed_root_path_in_original_read() {
-    Ok(Some(directory)) if local_read_file_inside(path, directory) =>
-      return Err(ForeignOriginal)
+  match native_local_receipt_export_managed_path(capture, path) {
     Ok(_) => ()
-    Err(_) => return Err(OriginalUnavailable)
+    Err(issue) => return Err(issue)
   }
   if !self.require_current_for(self.host, self.request) {
     return Err(AuthorizationDenied)

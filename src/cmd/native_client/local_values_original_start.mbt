@@ -185,7 +185,7 @@ fn local_execute_original_publish_values(
       Ok(observed) => {
         // Retain the same accepted receipt before the following Journal action.
         // The command cuts this alias only in existing publication-child cleanup.
-        business.run_receipt_original = Some(observed)
+        business.run_receipt_original = Some(FreshRunReceipt(observed))
         selection.capture
         .retain_observed_run_state_in_original_read(
           settings.principal,

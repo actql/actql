@@ -104,7 +104,7 @@ fn LocalCommandPreparationOriginal::execute_original_run_presentation(
   try {
     if delivery.receipt is Some(path) {
       guard self.business is Some(business) &&
-        business.run_receipt_original is Some(observed) else {
+        business.run_receipt_original is Some(FreshRunReceipt(observed)) else {
         stop("LocalRunReceiptOriginalUnavailable")
       }
       let location = local_result_file_location(path)
@@ -177,8 +177,9 @@ fn LocalCommandPreparationOriginal::present_retained_run(
   runtime : LocalPackagedRuntime,
   crypto : @local_crypto.Library,
   child : @argparse.Matches,
-  original : String,
+  retained : @local_host.NativeClientSavedRunStateSelection,
 ) -> String raise ClientStop {
+  let original = retained.state().wire()
   if !local_run_presentation_requested(child) {
     return original
   }
@@ -190,14 +191,12 @@ fn LocalCommandPreparationOriginal::present_retained_run(
     directory,
     run_presentation=true,
   )
-  // Receipt export requires its original publication observation. A saved
-  // state/Result selection must not manufacture that publisher or receipt.
-  if delivery.receipt is Some(_) {
-    stop("LocalRunReceiptOriginalUnavailable")
-  }
-  let (result, correlation) = local_run_presentation_result(
-    child, delivery, original,
-  )
+  let root = @decode.open_object(local_input_cursor(original)).unwrap_or_else(() => {
+    stop("LocalOriginalRunStateUnavailable")
+  })
+  let correlation = " originalRunId=" +
+    encode_request_json(Json::string(run_text(root, "run_id")), 8192) +
+    " (observe this Run; do not repeat the Program submission)"
   try {
     command_preparation_result(self.prepare_saved_result_operation(capture))
     let physical = self.host.unwrap_or_else(() => {
@@ -209,6 +208,15 @@ fn LocalCommandPreparationOriginal::present_retained_run(
     let sqlite = physical
       .borrow_local_host_sqlite(pair)
       .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+    if delivery.receipt is Some(path) {
+      self.export_retained_run_receipt(
+        host, capture, configuration, runtime, sqlite, crypto, retained, path,
+      )
+    }
+    if delivery.files.is_empty() {
+      return original
+    }
+    let (result, _) = local_run_presentation_result(child, delivery, original)
     let selected = self.prepare_original_result(
       host,
       capture,
@@ -218,6 +226,7 @@ fn LocalCommandPreparationOriginal::present_retained_run(
       sqlite,
       result,
       configuration=Some(configuration),
+      retained=Some(retained),
     )
     let delivered = local_public_result(
       host,

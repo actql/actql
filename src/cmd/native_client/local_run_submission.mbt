@@ -248,7 +248,7 @@ fn local_run_submission_failure(
 priv enum LocalRunSubmissionPreflight {
   FreshSubmissionInput
   ExplicitSubmissionInput(LocalRunSubmission, @run_host.ClientSubmittedIntent)
-  RetainedSubmissionRun(String)
+  RetainedSubmissionRun(@local_host.NativeClientSavedRunStateSelection)
 }
 
 ///|
@@ -323,28 +323,16 @@ fn local_explicit_submission_preflight(
       }
       match @local_host.native_client_submitted_run_admission(record) {
         None => ExplicitSubmissionInput(selection, original_intent)
-        Some(_) => {
-          let reply = local_submission_lookup_reply(
-            host,
-            settings,
-            crypto,
-            selection.reference,
-            scope,
-            observed,
-            capture=Some(capture),
-          )
+        Some(_) =>
           RetainedSubmissionRun(
-            local_public_run_state_reply(
+            local_public_run_state_selection(
               host,
               settings,
               crypto,
               selection.reference,
-              true,
-              reply,
               capture=Some(capture),
             ),
           )
-        }
       }
     }
   }

@@ -53,6 +53,128 @@ test "stored commit references reject wrong roles and exact provenance boundarie
 }
 
 ///|
+test "retained Run receipt selects only the original index definition and Manifest" {
+  let fixture = commit_read_fixture()
+  let originals = fixture.originals
+  check_original_stored_run_receipt_references(
+    originals[7],
+    originals[0],
+    originals[2],
+    originals[3],
+  ).unwrap()
+  // This projection observes references only. It neither completes the stored
+  // validation cursor nor manufactures a Publisher or execution evidence.
+  assert_true(fixture.preparation.finish_view() is Err(_))
+  for role in 0..<4 {
+    let selected = [originals[7], originals[0], originals[2], originals[3]]
+    selected[role] = originals[1]
+    assert_true(
+      check_original_stored_run_receipt_references(
+        selected[0],
+        selected[1],
+        selected[2],
+        selected[3],
+      )
+      is Err(DeliveryIssuanceWrongContract("retained_run_receipt")),
+    )
+  }
+  fixture.preparation.cancel()
+}
+
+///|
+test "retained Run receipt refuses a changed original reference without a replacement receipt" {
+  let fixture = commit_read_fixture()
+  let original = fixture.originals
+  let receipt = original[3]
+  let body = @json.object_without_field(
+    captured_test_value(publication_contract_json(receipt)),
+    "receipt_identity_cid",
+  ).unwrap()
+  // The admitted but different receipt cannot stand in for the exact original
+  // selected by this committed index, even if its own canonical hash is valid.
+  let changed = seal_publication_contract(
+    "run_receipt",
+    captured_test_wire(body).replace(
+      old="\"result_manifest_cid\":\"" +
+        publication_contract_identity(original[2]) +
+        "\"",
+      new="\"result_manifest_cid\":\"" + ordering_test_cid("f") + "\"",
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    check_original_stored_run_receipt_references(
+      original[7],
+      original[0],
+      original[2],
+      changed,
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("retained_run_receipt.index")),
+  )
+  fixture.preparation.cancel()
+}
+
+///|
+test "retained Run receipt rejects foreign roots even when the index names that receipt" {
+  let fixture = commit_read_fixture()
+  let original = fixture.originals
+  let receipt = original[3]
+  let receipt_body = @json.object_without_field(
+    captured_test_value(publication_contract_json(receipt)),
+    "receipt_identity_cid",
+  ).unwrap()
+  let index_body = @json.object_without_field(
+    captured_test_value(publication_contract_json(original[7])),
+    "public_index_entry_cid",
+  ).unwrap()
+  for
+    (field, issue) in [
+      ("invocation_cid", "invocation"),
+      ("compiled_plan_cid", "compiled_plan"),
+      ("result_manifest_cid", "manifest"),
+    ] {
+    let changed_receipt = seal_publication_contract(
+      "run_receipt",
+      captured_test_wire(
+        @json.object_with_string_field(
+          @json.object_without_field(receipt_body, field).unwrap(),
+          field,
+          ordering_test_cid("f"),
+        ).unwrap(),
+      ),
+      65536,
+      4096,
+      32,
+    ).unwrap()
+    let changed_index = seal_publication_contract(
+      "public_index_entry",
+      captured_test_wire(
+        @json.object_with_string_field(
+          @json.object_without_field(index_body, "run_receipt_cid").unwrap(),
+          "run_receipt_cid",
+          publication_contract_identity(changed_receipt),
+        ).unwrap(),
+      ),
+      65536,
+      4096,
+      32,
+    ).unwrap()
+    assert_eq(
+      check_original_stored_run_receipt_references(
+        changed_index,
+        original[0],
+        original[2],
+        changed_receipt,
+      ),
+      Err(DeliveryIssuanceReferenceMismatch("retained_run_receipt." + issue)),
+    )
+  }
+  fixture.preparation.cancel()
+}
+
+///|
 fn stored_reference_artifact(provenance : String) -> PublicationContract {
   let cid = ordering_test_cid
   seal_publication_contract(

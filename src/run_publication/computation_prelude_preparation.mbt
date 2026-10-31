@@ -307,13 +307,15 @@ fn ComputationPreludePreparation::step(
           Some(_) => Err(EvidenceReferenceMismatch("computation_receipt"))
         }
       }
-      if evidence_string(receipt, "invocation_cid") !=
-        Some(inputs.invocation.identity) {
-        return Err(EvidenceReferenceMismatch("invocation_cid"))
+      match
+        check_receipt_invocation_reference(receipt, inputs.invocation.identity) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-      if evidence_string(receipt, "compiled_plan_cid") !=
-        contract_string(inputs.run_definition, "compiled_plan_cid") {
-        return Err(EvidenceReferenceMismatch("compiled_plan_cid"))
+      match
+        check_receipt_compiled_plan_reference(receipt, inputs.run_definition) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
       if inputs.preview is Some(preview) {
         for
@@ -332,9 +334,9 @@ fn ComputationPreludePreparation::step(
           return Err(EvidenceReferenceMismatch("preview.run_identity_cid"))
         }
       }
-      if evidence_string(receipt, "result_manifest_cid") !=
-        Some(inputs.manifest.identity) {
-        return Err(EvidenceReferenceMismatch("result_manifest_cid"))
+      match check_receipt_manifest_reference(receipt, inputs.manifest) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
       self.program = computation_prelude_program_identity(
         inputs.definitions,

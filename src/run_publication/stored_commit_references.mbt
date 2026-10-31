@@ -63,3 +63,55 @@ pub fn result_artifact_provenance_at(
   }
   Ok(cid)
 }
+
+///|
+/// Check only the exact retained receipt/Run/Manifest references selected by
+/// an admitted committed index. This reads no Store, issues no receipt and
+/// verifies no new execution or current authority. The trusted Store/Host
+/// retains its actual original snapshot and independent read permission.
+pub fn check_original_stored_run_receipt_references(
+  index : PublicationContract,
+  definition : PublicationContract,
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+) -> Result[Unit, DeliveryIssuanceIssue] {
+  if index.name != "public_index_entry" ||
+    definition.name != "run_definition" ||
+    manifest.name != "result_manifest" ||
+    receipt.name != "run_receipt" {
+    return Err(DeliveryIssuanceWrongContract("retained_run_receipt"))
+  }
+  let projected = match project_public_index_read(index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (receipt_cid, _) = match public_index_run_observation_cids(index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if projected.run_definition_cid != definition.identity ||
+    projected.result_manifest_cid != manifest.identity ||
+    receipt_cid != receipt.identity {
+    return Err(DeliveryIssuanceReferenceMismatch("retained_run_receipt.index"))
+  }
+  match
+    check_receipt_invocation_reference(receipt.value, projected.invocation_cid) {
+    Ok(_) => ()
+    Err(_) =>
+      return Err(
+        DeliveryIssuanceReferenceMismatch("retained_run_receipt.invocation"),
+      )
+  }
+  match check_receipt_compiled_plan_reference(receipt.value, definition) {
+    Ok(_) => ()
+    Err(_) =>
+      return Err(
+        DeliveryIssuanceReferenceMismatch("retained_run_receipt.compiled_plan"),
+      )
+  }
+  match check_receipt_manifest_reference(receipt.value, manifest) {
+    Ok(_) => Ok(())
+    Err(_) =>
+      Err(DeliveryIssuanceReferenceMismatch("retained_run_receipt.manifest"))
+  }
+}
