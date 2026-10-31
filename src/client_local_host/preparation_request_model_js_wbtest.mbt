@@ -218,13 +218,8 @@ fn request_model_fixture(
     ).unwrap()
   }
   assert_eq(factory_calls.val, 1)
-  let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  @resources.reserve_working_preparation_phase(
-    capacity,
-    input,
-    r + plan.limits.retained_bytes,
-    e + plan.limits.execution_bytes,
-  ).unwrap()
+  // Runtime bodies use their own reservations after adoption. This fixture
+  // supplies no whole-Plan prepayment or spare Scope/census backing.
   (parent, input, plan, construction)
 }
 

@@ -82,15 +82,8 @@ fn request_effect_model_plan_fixture(
     prepared, request, contracts, model, calls,
   )
   assert_eq(calls.val, 1)
-  let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  // This component supplies its selected Plan's logical Model/read overlap.
-  // Production must include the independently owned physical frames/material.
-  @resources.reserve_working_preparation_phase(
-    capacity,
-    input,
-    r + plan.limits.retained_bytes,
-    e + plan.limits.execution_bytes,
-  ).unwrap()
+  // Runtime children reserve their own bodies on this SAME Ledger later.
+  // They cannot prepay the Scope/census constructor or provide spare credit.
   (parent, input, plan, request, construction)
 }
 
