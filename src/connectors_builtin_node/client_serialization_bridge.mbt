@@ -364,6 +364,76 @@ fn serialization_prefix_limits(
 }
 
 ///|
+/// Same Request compiler and Content constructor; the seven existing prefix
+/// configuration fields keep their original conversion. No bare Ledger or
+/// reconstructed graph crosses this entry.
+#export_name("clientProgramPrepareRequestSerializationPlan")
+pub fn client_program_prepare_request_serialization_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  max_rows : Int,
+  max_work : Int,
+  max_entries : Int,
+  max_value_bytes : Int,
+  max_value_nodes : Int,
+  max_value_depth : Int,
+  max_frames : Int,
+  workspace : @execution.ExecutionCapacity?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSerializationPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let (execution, measurement) = serialization_prefix_limits(
+    max_rows, max_work, max_entries, max_value_bytes, max_value_nodes, max_value_depth,
+    max_frames,
+  )
+  @client_local_host.prepare_request_serialization_plan(
+    parent, input, request, compiled, definition, execution, measurement, workspace,
+  )
+}
+
+///|
+#export_name("clientProgramPreparedInstalledSerializationPrefixRequirements")
+pub fn client_program_prepared_installed_serialization_prefix_requirements(
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+) -> Array[Int64] {
+  @client_local_host.prepared_installed_managed_serialization_prefix_requirements(
+    selected,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedSerializationPrefixStart")
+pub fn client_program_installed_managed_serialization_prefix_start(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+) -> Result[
+  @client_local_host.ClientSerializationPrefix,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.start_installed_managed_serialization_prefix(
+    run, prepared, selected,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedSerializationPrefixCleanup")
+pub fn client_program_installed_managed_serialization_prefix_cleanup(
+  run : @client_local_host.ClientInstalledManagedRun,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.cleanup_installed_managed_serialization_prefix(
+    run, selected,
+  )
+}
+
+///|
 #export_name("clientProgramSerializationPrefixCapacity")
 pub fn client_program_serialization_prefix_capacity(
   program : @publication_host.PreparedClientProgram,

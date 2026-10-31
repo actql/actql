@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "573fd43987bf48ca37ce895866c614e1e8e72c83337b6ae39d833a63921a9258",
+      "sha256": "24de7f160ee7c795dc204e718cc107bb397763ab7793c1117ad92ba72e396c89",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -755,14 +755,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/prepareEffectRun",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/prepareRun",
           "parameters": [
             "prepared",
@@ -1042,7 +1034,6 @@
             "installPreparedProjectLocalFiles/adapter/adapter",
             "installPreparedProjectLocalFiles/adapter/init:close/init:close",
             "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
-            "installPreparedProjectLocalFiles/adapter/init:closeSourceRead/init:closeSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
             "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
@@ -1050,24 +1041,18 @@
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
-            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
-            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages#2",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
             "installPreparedProjectLocalFiles/captureClose",
             "installPreparedProjectLocalFiles/close",
             "installPreparedProjectLocalFiles/close/close",
             "installPreparedProjectLocalFiles/closeRead",
-            "installPreparedProjectLocalFiles/closeSharedReadExternal",
-            "installPreparedProjectLocalFiles/closeSharedReadExternal/work/work",
-            "installPreparedProjectLocalFiles/closeSourceRead",
             "installPreparedProjectLocalFiles/contentLedger",
             "installPreparedProjectLocalFiles/current/current",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
-            "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
@@ -1082,11 +1067,9 @@
             "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
             "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
             "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
-            "installPreparedProjectLocalFiles/prepareEffectRun",
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
-            "installPreparedProjectLocalFiles/releaseSharedRead",
             "installPreparedProjectLocalFiles/resourceFor/resourceFor",
             "installPreparedProjectLocalFiles/sameRun/sameRun",
             "ownLimits",
@@ -1123,6 +1106,261 @@
             "installPreparedProjectLocalFiles",
             "prepareInstalledProjectLocalFiles"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Sources"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "export async function installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareInstalledProjectLocalFiles"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "export function defaultFileMediaType"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun,originalRead"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "originalEntryWire"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ForeignLocalFilesPreparation"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentResourceMismatch"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "managedRun!==run.value||originalRead===undefined"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "physicalReadChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareManagedContentRun:prepareContentRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "The Core session still owns its original read and RowRun retirement."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sameRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "consumePage"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "read.externalClosing=work;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentReadUnavailable"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "new AcquisitionOpenError(cause"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFileCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Do not close"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "stopping=true"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const childrenPending = () =>"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ledgerCapacity"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const keyedTransports="
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sharedReads.delete(read);read.closed=true;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "restoreDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              },
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "actual Local listing and Content defaults"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "Local concurrent closes await the same original external cleanup without releasing twice"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local Source typed read and parent remain live until the original raw child acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectLocalFiles/adapter/init:closeSourceRead/init:closeSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages#2",
+            "installPreparedProjectLocalFiles/closeSharedReadExternal",
+            "installPreparedProjectLocalFiles/closeSharedReadExternal/work/work",
+            "installPreparedProjectLocalFiles/closeSourceRead",
+            "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity",
+            "installPreparedProjectLocalFiles/releaseSharedRead"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {

@@ -8,17 +8,16 @@ struct ClientInstalledManagedKeyedPreparation {
   keyed : @publication_host.ClientKeyedAcquisition
   declaration : @row_source_host.RowDeclaration
   row_limits : @row_source_host.RowKeyedLimits
-  capacity : @row_source_host.RowKeyedCapacity
   limits : @resources.LedgerLimits
+  direct : ClientInstalledCaptureCapacity
+  installed_contracts : ClientInstalledSequenceContracts
   max_requests : Int
-  max_bytes : Int
-  max_work : Int
-  task : Int
-  step : Int
-  prefix_retained_bytes : Int64
-  prefix_execution_bytes : Int64
-  keyed_transfer_bytes : Int64
-  keyed_execution_bytes : Int64
+  direct_stage : Int
+  direct_input : Int
+  direct_transfer_bytes : Int64
+  direct_execution_bytes : Int64
+  fragment_selected : Bool
+  ordered_selected : Bool
 }
 
 ///|
@@ -64,7 +63,7 @@ pub fn prepare_installed_managed_keyed_content(
     Err(_) => return Err(Unsupported)
     Ok(value) => value
   }
-  guard keyed_captured_local_installed_limits(
+  guard keyed_captured_local_installed_requirements(
       prepared,
       direct,
       keyed,
@@ -82,9 +81,7 @@ pub fn prepare_installed_managed_keyed_content(
       ),
       captured_content=true,
     )
-    is Some(limits) &&
-    @publication_host.client_keyed_lookup_capacity(keyed, max_bytes, max_work)
-    is Some((_, requests, _, _)) &&
+    is Some((limits, direct_stage, direct_input, requests)) &&
     requests >= 0L &&
     requests <= 2147483647L else {
     return Err(Unsupported)
@@ -94,17 +91,16 @@ pub fn prepare_installed_managed_keyed_content(
     keyed,
     declaration,
     row_limits,
-    capacity,
     limits,
+    direct,
+    installed_contracts,
     max_requests: requests.to_int(),
-    max_bytes,
-    max_work,
-    task,
-    step,
-    prefix_retained_bytes,
-    prefix_execution_bytes,
-    keyed_transfer_bytes: transport_bytes[1],
-    keyed_execution_bytes: transport_execution_bytes[1],
+    direct_stage,
+    direct_input,
+    direct_transfer_bytes: transport_bytes[0],
+    direct_execution_bytes: transport_execution_bytes[0],
+    fragment_selected: fragment_body is Some(_),
+    ordered_selected: ordered_body is Some(_),
   })
 }
 
@@ -120,32 +116,28 @@ fn installed_managed_keyed_content_limits(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.LedgerLimits? {
-  if !physical_equal(value.prepared, prepared) {
+  if !physical_equal(value.prepared, prepared) ||
+    !physical_equal(value.direct, direct) ||
+    !physical_equal(value.installed_contracts, installed_contracts) ||
+    value.direct_transfer_bytes != transport_bytes ||
+    value.direct_execution_bytes != execution_bytes ||
+    values_body != installed_contracts.original.values_body ||
+    (
+      value.fragment_selected &&
+      fragment_body != installed_contracts.original.fragment_body
+    ) ||
+    (!value.fragment_selected && fragment_body is Some(_)) ||
+    (
+      value.ordered_selected &&
+      ordered_body != installed_contracts.original.ordered_body
+    ) ||
+    (!value.ordered_selected && ordered_body is Some(_)) {
     return None
   }
-  keyed_captured_local_installed_limits(
-    prepared,
-    direct,
-    value.keyed,
-    value.capacity,
-    [transport_bytes, value.keyed_transfer_bytes],
-    [execution_bytes, value.keyed_execution_bytes],
-    value.max_bytes,
-    value.max_work,
-    installed_contracts,
-    values_body,
-    fragment_body,
-    ordered_body,
-    serialization=Some(
-      (
-        value.task,
-        value.step,
-        value.prefix_retained_bytes,
-        value.prefix_execution_bytes,
-      ),
-    ),
-    captured_content=true,
-  )
+  // This is the exact immutable quote context completed by the constructor.
+  // A foreign/restored/changed context must run that constructor for its own
+  // Plan; it cannot replace a completed Run's selected original requirements.
+  Some(value.limits)
 }
 
 ///|
@@ -219,7 +211,7 @@ pub fn begin_installed_managed_keyed_content_run(
     request,
     ledger,
   )
-  value.keyed = Some(selected)
+  value.content = KeyedContent(selected)
   require_installed_managed_run(value).map(_ => value)
 }
 
@@ -246,7 +238,7 @@ pub fn begin_installed_managed_keyed_source_read(
     Err(issue) => return Err(ManagedRun(issue))
     Ok(_) => ()
   }
-  guard value.keyed is Some(selected) &&
+  guard value.content is KeyedContent(selected) &&
     physical_equal(selected.keyed, keyed) &&
     physical_equal(selected.declaration, declaration) &&
     @publication_host.client_keyed_request_matches_acquisition(request, keyed) else {
@@ -314,7 +306,7 @@ fn require_installed_keyed_source_read(
   }
   guard value.parent is Some(parent) &&
     value.selected is Some(selected) &&
-    parent.keyed is Some(original) &&
+    parent.content is KeyedContent(original) &&
     physical_equal(original, selected) &&
     parent.keyed_reads.any(read => physical_equal(read, value)) else {
     return Err(ForeignOriginal)
@@ -426,4 +418,92 @@ pub fn retire_installed_keyed_source_read(
   // Keep the original request identity in the bounded parent history until
   // parent retirement; a closed child is not a fresh request allowance.
   Ok(())
+}
+
+///|
+pub fn installed_keyed_row_limits(
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  max_work : Int,
+) -> @row_source_host.RowKeyedLimits {
+  {
+    page: {
+      max_bytes: max_page_bytes,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_rows: 100,
+    },
+    retention: { max_nodes: 100000, max_depth: 100, max_work, max_text_bytes, },
+    request: {
+      max_work,
+      max_pairs: 100,
+      values: { max_nodes: 10000, max_depth: 100, max_text_bytes, },
+    },
+    wire: {
+      max_columns: 100,
+      max_order_work: max_work,
+      max_bytes: max_text_bytes,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+  }
+}
+
+///|
+/// Called after the existing Run current/post-callback fence. Only original
+/// references and immutable scalar DATA are read below: no sequence/provider
+/// constructor or external callback can justify another current observation.
+fn prepare_retained_installed_keyed_content_ledger(
+  run : ClientInstalledManagedRun,
+  selected : ClientInstalledManagedKeyedPreparation,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  ledger : @resources.Ledger,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  guard run.content is KeyedContent(original) &&
+    physical_equal(original, selected) &&
+    run.ledger is Some(original_ledger) &&
+    physical_equal(original_ledger, ledger) &&
+    capacities.length() == 1 &&
+    transport_bytes.length() == 1 &&
+    transport_execution_bytes.length() == 1 &&
+    run.reads.length() == 1 else {
+    return Err(ForeignOriginal)
+  }
+  let prepared = match run.preparation {
+    Some(ContentManaged(_, prepared)) => prepared
+    Some(PreparationContentManaged(_, prepared)) => prepared
+    _ => return Err(ForeignOriginal)
+  }
+  guard installed_managed_keyed_content_limits(
+      selected,
+      prepared,
+      capacities[0],
+      transport_bytes[0],
+      transport_execution_bytes[0],
+      contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(required) else {
+    return Err(ForeignOriginal)
+  }
+  if !installed_effect_limits_fit(required, @resources.ledger_limits(ledger)) {
+    return Err(InsufficientCapacity)
+  }
+  guard run.reads.get(selected.direct_stage) is Some(Some(read)) &&
+    read.acquisition is Some(acquisition) &&
+    selected.direct.acquisition is Some(original) &&
+    physical_equal(original, acquisition) &&
+    read.requirement is Some(requirement) &&
+    physical_equal(requirement, selected.direct.requirement) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(ledger)
 }

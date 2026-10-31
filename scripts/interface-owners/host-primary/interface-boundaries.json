@@ -5091,7 +5091,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "1c1b3add6da0bb084dc43844fbd21614a4fbc1b8258898b6aa6f0f43fc57ff5e",
+      "sha256": "197c0f917636d4f7e753b406ef23a3639cfee7b1b5fdd4ea0fb9aa30317c7356",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5302,7 +5302,7 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun",
           "parameters": [
             "runtime",
             "prepared",
@@ -5311,8 +5311,17 @@
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
           "async": false
         },
         {
@@ -10322,6 +10331,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
               }
             ],
             "failure": [
@@ -10886,11 +10899,11 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
-            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current"
           ],
           "exports": [],
           "attributes": {
@@ -11237,6 +11250,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function installedManagedRunContracts(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {"
               }
             ],
             "identity": [
@@ -11633,19 +11650,9 @@
           "operations": [
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3",
-            "readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/asset/asset",
-            "readLocalMockModelRunRequirements/declarations/declarations",
-            "readLocalMockModelRunRequirements/documentBytes/documentBytes",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
-          "exports": [
-            "readLocalMockModelRunRequirements"
-          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -11731,6 +11738,143 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "readLocalMockModelRunRequirements",
+            "readLocalMockModelRunRequirements/asset/asset",
+            "readLocalMockModelRunRequirements/declarations/declarations",
+            "readLocalMockModelRunRequirements/documentBytes/documentBytes",
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
+          ],
+          "exports": [
+            "readLocalMockModelRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
@@ -11746,12 +11890,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -11766,12 +11918,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -11786,12 +11946,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -11806,6 +11974,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "resources": [
@@ -11816,12 +11988,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned captured Source Plan construction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -13666,6 +13846,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -13783,7 +14071,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {

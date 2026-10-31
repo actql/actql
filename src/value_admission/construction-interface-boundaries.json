@@ -1,0 +1,120 @@
+{
+  "qualification": "Original Value-constructor DATA owner; no physical funding, provider recipe, normal runtime or authority acceptance",
+  "declarations": [
+    {
+      "module": "src/value_admission/parameter_body_construction.mbt",
+      "sha256": "da050e98ce34110af352c8b010173fbcfab1fba16e5f9e7a640f44f6abb88105",
+      "operations": [
+        {
+          "name": "contract_value_body_construction_inventory",
+          "declaration": "contract_value_body_construction_inventory ( original : @ contract . Contract , geometry : @ decode . SubtreeConstructionGeometry , ) - > ParameterValueBodyConstructionInventory ?"
+        },
+        {
+          "name": "parameter_syntax_value_body_construction_inventory",
+          "declaration": "parameter_syntax_value_body_construction_inventory ( original : @ contract . ParameterSyntax , geometry : @ decode . SubtreeConstructionGeometry , ) - > ParameterValueBodyConstructionInventory ?"
+        },
+        {
+          "name": "parameter_value_body_construction_inventory",
+          "declaration": "parameter_value_body_construction_inventory ( parameter : @ contract . ParameterType , geometry : @ decode . SubtreeConstructionGeometry , ) - > ParameterValueBodyConstructionInventory ?"
+        },
+        {
+          "name": "parameter_value_body_construction_inventory_owned",
+          "declaration": "parameter_value_body_construction_inventory_owned ( precision : Int , geometry : @ decode . SubtreeConstructionGeometry , ) - > ParameterValueBodyConstructionInventory ?"
+        },
+        {
+          "name": "parameter_value_body_geometry_valid",
+          "declaration": "parameter_value_body_geometry_valid ( g : @ decode . SubtreeConstructionGeometry , ) - > Bool"
+        },
+        {
+          "name": "value_body_contract_precision",
+          "declaration": "value_body_contract_precision ( original : @ contract . Contract ) - > Int ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "value_admission existing typed Value constructor inventory",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "contract_value_body_construction_inventory",
+            "parameter_syntax_value_body_construction_inventory",
+            "parameter_value_body_construction_inventory",
+            "parameter_value_body_construction_inventory_owned",
+            "parameter_value_body_geometry_valid",
+            "value_body_contract_precision"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/value_admission/parameter_body_construction.mbt",
+                "anchor": "pub fn contract_value_body_construction_inventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Contract Value body construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/value_admission/parameter_body_construction.mbt",
+                "anchor": "original : @contract.Contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Contract Value body construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/value_admission/parameter_body_construction.mbt",
+                "anchor": "The caller backs this bounded metadata stack before requesting the inventory."
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/value_admission/parameter_body_construction.mbt",
+                "anchor": "Json, Vector and reference constructors have different inventories."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure constructor DATA projection. Actual admission and its caller retain cancellation, limits and cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/value_admission/parameter_body_construction.mbt",
+                "anchor": "fn parameter_value_body_construction_inventory_owned("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Contract Value body construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Contract Value body construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/value_admission/contract_body_construction_wbtest.mbt",
+                "anchor": "original Contract body inventory retains native text date timestamp and array admission"
+              },
+              {
+                "path": "src/value_admission/parameter_body_construction_wbtest.mbt",
+                "anchor": "Parameter default body inventories original nested builders and Decimal backing"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -31,6 +31,12 @@ pub fn client_program_prepare_request_capture_module_body(
   ],
   input : ClientLocalPreparationInputOriginal,
   plan : @client_local_host.ClientInstalledManagedCapturePlan,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
@@ -43,5 +49,6 @@ pub fn client_program_prepare_request_capture_module_body(
     manifests~,
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     provider_factory=installed_client_family_providers,
+    invocation~,
   ).map_err(issue => Preparation(issue))
 }

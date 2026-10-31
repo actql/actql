@@ -8,7 +8,49 @@ pub fn client_program_original_composed_infer_bounds(
   occurrence : @publication_host.ClientInferOccurrence,
   graph : @publication_host.ClientInferPlanGraph,
 ) -> Result[@infer_host.Limits, @infer_host.Issue] {
-  @infer_host.original_composed_bounds(compiled, definition, occurrence, graph)
+  original_composed_model_limits(compiled, definition, occurrence, graph)
+}
+
+///|
+// The existing late consumers retain their exact refusal order and one
+// selection. New prepared callers retain bounds before Run construction and
+// invoke only the separate original binding port at the later boundary.
+fn original_composed_model_limits(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[@infer_host.Limits, @infer_host.Issue] {
+  match
+    @infer_host.check_original_composed_preparation(
+      compiled, definition, occurrence, graph,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  @infer_host.prepared_composed_bounds(occurrence, graph)
+}
+
+///|
+#export_name("clientProgramPreparedComposedInferBounds")
+pub fn client_program_prepared_composed_infer_bounds(
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[@infer_host.Limits, @infer_host.Issue] {
+  @infer_host.prepared_composed_bounds(occurrence, graph)
+}
+
+///|
+#export_name("clientProgramCheckOriginalComposedInferPreparation")
+pub fn client_program_check_original_composed_infer_preparation(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.check_original_composed_preparation(
+    compiled, definition, occurrence, graph,
+  )
 }
 
 ///|

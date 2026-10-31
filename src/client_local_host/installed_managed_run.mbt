@@ -20,6 +20,10 @@ priv enum ClientInstalledManagedRunOriginal {
     @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
+  PreparationContentManaged(
+    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @publication_host.PreparedClientProgram
+  )
 }
 
 ///|
@@ -29,8 +33,13 @@ struct ClientInstalledManagedRun {
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
-  mut keyed : ClientInstalledManagedKeyedPreparation?
+  mut content : ClientInstalledContentPreparation
+  mut serialization_prefix : ClientSerializationPrefix?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
+  effect_operations : Array[ClientInstalledEffectOperationBorrow]
+  mut effect_operation_opening : Bool
+  mut effect_operation_closing : Bool
+  mut effect_operation_controls : @resources.CapacityReservation?
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -48,6 +57,11 @@ struct ClientInstalledManagedRun {
 /// Run. The generated originals serve both the quote and actual Host setup.
 struct ClientInstalledManagedSourceFreePreparation {
   owner : ClientLocalSequenceOwner
+  // Retain the already-bound invocation, not another sample or Run issuer.
+  _observed_query_time : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )?
   installed_contracts : ClientInstalledSequenceContracts
   values_body : String
   fragment_body : String?
@@ -93,6 +107,44 @@ pub fn installed_managed_run_compilation_original(
 }
 
 ///|
+/// Same payload-retirement fence as the original compilation getter. A timed
+/// module keeps the original issued Run/Definition through its invocation;
+/// later publication must consume those originals rather than issue again.
+pub fn installed_managed_run_invocation_original(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientRequestIdentity,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+)? {
+  guard installed_managed_run_compilation_original(run, prepared)
+    is Some(artifact) else {
+    return None
+  }
+  let time = match run.captured_preparation {
+    Some(plan) => plan._observed_query_time
+    None =>
+      run.source_free_preparation.bind(plan => {
+        plan._observed_query_time.map(original => original.0)
+      })
+  }
+  guard time is Some(time) else { return None }
+  let invocation = @publication_host.client_query_time_preparation_invocation(
+    time, prepared,
+  )
+  guard invocation is Some((_, request, compiled, _)) &&
+    physical_equal(request, run.request) &&
+    @publication_host.client_compiled_run_matches_pure_compilation(
+      compiled, prepared, artifact,
+    ) else {
+    return None
+  }
+  invocation
+}
+
+///|
 pub(all) enum ClientInstalledManagedRunIssue {
   SourceAcquisition(@publication_host.ClientSourceAcquisitionIssue)
   SourceRoute(@sourceviews.SourceAcquisitionRouteIssue)
@@ -103,9 +155,11 @@ pub(all) enum ClientInstalledManagedRunIssue {
   CleanupPending
   InsufficientCapacity
   Resource(@resources.ImportedChildLedgerIssue)
+  Preparation(@resources.PreparationCapacityIssue)
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
   Sequence(@lower.SequenceIssue)
+  SerializationPrefix(ClientSerializationPrefixIssue)
 }
 
 ///|
@@ -252,6 +306,7 @@ fn source_free_installed_managed_preparation_owned(
     capacity_plan,
     configuration: None,
     compilation: None,
+    _observed_query_time: query_time,
     limits,
     provider_retained_bytes,
     provider_execution_bytes,
@@ -272,6 +327,10 @@ pub fn prepare_installed_managed_source_free_with_contracts(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -284,10 +343,30 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       fragment_body,
       ordered_body,
       false,
+      query_time~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  configure_installed_source_free_preparation(
+    prepared, original, retained_output, provider_factory,
+  )
+}
+
+///|
+// Both fixed purposes configure their same original sequences once. This
+// neither selects a purpose nor constructs a second Plan/Resource owner.
+fn configure_installed_source_free_preparation(
+  prepared : @publication_host.PreparedClientProgram,
+  original : ClientInstalledManagedSourceFreePreparation,
+  retained_output : Bool,
+  provider_factory : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[
+  ClientInstalledManagedSourceFreePreparation,
+  ClientInstalledManagedRunIssue,
+] {
   let configuration = match
     prepare_client_local_configuration(
       @publication_host.prepared_client_graph(prepared),
@@ -363,6 +442,10 @@ pub fn begin_prepared_installed_managed_source_free_run(
   guard original.owner is Pure(owner) &&
     physical_equal(owner, prepared) &&
     original.configuration is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  if original._observed_query_time is Some((_, bound_request)) &&
+    !physical_equal(bound_request, request) {
     return Err(ForeignOriginal)
   }
   let value = match begin_installed_managed_run(admission, prepared, request) {
@@ -656,6 +739,7 @@ fn installed_managed_run_owner(
     Some(EffectManaged(_, prepared)) => Ok(Effect(prepared))
     Some(PlannedEffectManaged(_, plan)) => Ok(Effect(plan.prepared))
     Some(ContentManaged(_, prepared)) => Ok(Pure(prepared))
+    Some(PreparationContentManaged(_, prepared)) => Ok(Pure(prepared))
     None => Err(Retired)
   }
 }
@@ -692,13 +776,19 @@ fn new_installed_managed_run_owned(
             EffectManaged(_, prepared) => Effect(prepared)
             PlannedEffectManaged(_, plan) => Effect(plan.prepared)
             ContentManaged(_, prepared) => Pure(prepared)
+            PreparationContentManaged(_, prepared) => Pure(prepared)
           },
         ),
       ),
       None,
     ),
-    keyed: None,
+    content: NoContent,
+    serialization_prefix: None,
     keyed_reads: [],
+    effect_operations: [],
+    effect_operation_opening: false,
+    effect_operation_closing: false,
+    effect_operation_controls: None,
     source_free_preparation: None,
     captured_preparation: None,
     preparation_retirement: None,
@@ -730,6 +820,8 @@ fn require_installed_managed_run(
       check_installed_managed_run_admission(admission, prepared, ledger)
     PlannedEffectManaged(admission, plan) =>
       check_installed_managed_run_admission(admission, plan, ledger)
+    PreparationContentManaged(admission, prepared) =>
+      check_installed_managed_run_admission(admission, prepared, ledger)
     ContentManaged(admission, prepared) =>
       match
         @resources.check_node_local_content_run_preparation(admission, prepared) {
@@ -745,6 +837,18 @@ fn require_installed_managed_run(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  check_installed_managed_run_original(value, ledger, preparation)
+}
+
+///|
+// Callback-free fence after the original current observation or a closed
+// constructor. This checks the same lifetime and bindings without observing
+// the external Resource again at the same synchronous boundary.
+fn check_installed_managed_run_original(
+  value : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) &&
     physical_equal(value, original) &&
     value.ledger is Some(current_ledger) &&
@@ -760,6 +864,8 @@ fn require_installed_managed_run(
     (PlannedEffectManaged(a, p), PlannedEffectManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
     (ContentManaged(a, p), ContentManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    (PreparationContentManaged(a, p), PreparationContentManaged(b, q)) =>
       physical_equal(a, b) && physical_equal(p, q)
     _ => false
   }
@@ -833,6 +939,7 @@ fn check_installed_managed_run_binding(
   let selected = match preparation {
     PureManaged(_, prepared) => Some(prepared)
     ContentManaged(_, prepared) => Some(prepared)
+    PreparationContentManaged(_, prepared) => Some(prepared)
     EffectManaged(_, _) => None
     PlannedEffectManaged(_, _) => None
   }
@@ -927,6 +1034,15 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
+  if value.content is KeyedContent(selected) {
+    return prepare_retained_installed_keyed_content_ledger(
+      value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body, ledger,
+    )
+  }
+  if value.content is SerializationContent(_) {
+    return Err(Unsupported)
+  }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
     Ok(owner) => owner
@@ -948,21 +1064,7 @@ fn prepare_installed_managed_run_ledger_owned(
       values_body, fragment_body, ordered_body,
     )
   }
-  let required = if value.keyed is Some(keyed) {
-    guard capacities.length() == 1 else { return Err(Unsupported) }
-    guard owner is Pure(prepared) else { return Err(Unsupported) }
-    installed_managed_keyed_content_limits(
-      keyed,
-      prepared,
-      capacities[0],
-      transport_bytes[0],
-      transport_execution_bytes[0],
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-    )
-  } else if value.reads.is_empty() {
+  let required = if value.reads.is_empty() {
     if !capacities.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {
@@ -1197,11 +1299,14 @@ pub fn retire_installed_managed_run(
   guard value.original is Some(original) && physical_equal(value, original) else {
     return Err(ForeignOriginal)
   }
-  if value.source_free_opening {
+  if value.source_free_opening || value.effect_operation_opening {
     return Err(CleanupPending)
   }
   if value.ledger is None {
     return Ok(())
+  }
+  if value.serialization_prefix is Some(prefix) && !prefix.released {
+    return Err(CleanupPending)
   }
   for read in value.reads {
     if read is Some(read) && read.ledger is Some(_) {
@@ -1212,6 +1317,25 @@ pub fn retire_installed_managed_run(
     if !read.retired {
       return Err(CleanupPending)
     }
+  }
+  for operation in value.effect_operations {
+    if !operation.retired {
+      return Err(CleanupPending)
+    }
+  }
+  // Every original child ACK precedes control retirement. Keep the spent
+  // occurrence fence closed even if later Root retirement remains pending.
+  if !value.effect_operations.is_empty() ||
+    value.effect_operation_controls is Some(_) {
+    value.effect_operation_closing = true
+    if value.effect_operation_controls is Some(control) &&
+      value.ledger is Some(ledger) {
+      match @resources.settle_capacity(ledger, control) {
+        Ok(_) => value.effect_operation_controls = None
+        Err(issue) => return Err(Ledger(issue))
+      }
+    }
+    value.effect_operations.clear()
   }
   if value.preparation_retirement is Some(original) {
     return match original {
@@ -1234,6 +1358,8 @@ pub fn retire_installed_managed_run(
       @resources.cleanup_node_managed_run_admission(admission)
     ContentManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
+    PreparationContentManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
   }
   match cleaned {
     Err(issue) => return Err(Resource(issue))
@@ -1245,7 +1371,8 @@ pub fn retire_installed_managed_run(
   value.preparation = None
   value.reads.clear()
   value.keyed_reads.clear()
-  value.keyed = None
+  value.content = NoContent
+  value.serialization_prefix = None
   value.source_free_preparation = None
   value.captured_preparation = None
   value.source_free_captured = None

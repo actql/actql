@@ -1,12 +1,19 @@
 ///|
+// Original selected installation DATA shared by the initial quote and the
+// later checked Model demand. This is not a physical Model profile or Allow.
+let effect_model_plan_limits : @resources.LedgerLimits = {
+  planning_work: 17,
+  attempts: 4,
+  holdings: 3,
+  transfer_bytes: 2048L,
+  retained_bytes: 1000L,
+  execution_bytes: 2000L,
+}
+
+///|
 // Real checked Model/Effect/Run originals with independently selected finite
 // test bounds. These component ports perform no Source/Model IO or permission.
-fn effect_model_plan_inputs() -> (
-  @publication_host.PreparedClientEffectComputation,
-  @publication_host.ClientRequestIdentity,
-  ClientInstalledSequenceContracts,
-  ClientInstalledEffectModelDemand,
-) raise {
+fn effect_model_plan_source() -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
   let parsed = @json.parse(source_query_original_environment)
@@ -35,6 +42,17 @@ fn effect_model_plan_inputs() -> (
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"model-effect-plan","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]},"as":"joined"},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"inferred"},{"join":{"with":"joined","kind":"inner","cardinality":"one_to_one","on":[{"left":"id","right":"id"}],"select":{"id":"right.id"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  (environment, document)
+}
+
+///|
+fn effect_model_plan_inputs() -> (
+  @publication_host.PreparedClientEffectComputation,
+  @publication_host.ClientRequestIdentity,
+  ClientInstalledSequenceContracts,
+  ClientInstalledEffectModelDemand,
+) raise {
+  let (environment, document) = effect_model_plan_source()
   let prepared = @publication_host.prepare_client_effect_computation(
     document,
     Json,
@@ -43,6 +61,18 @@ fn effect_model_plan_inputs() -> (
     [],
     @publication_host.client_standard_effect_computation_limits(),
   ).unwrap()
+  effect_model_plan_for_prepared(prepared)
+}
+
+///|
+fn effect_model_plan_for_prepared(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> (
+  @publication_host.PreparedClientEffectComputation,
+  @publication_host.ClientRequestIdentity,
+  ClientInstalledSequenceContracts,
+  ClientInstalledEffectModelDemand,
+) {
   let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
     prepared,
   ).unwrap()
@@ -103,25 +133,8 @@ fn effect_model_plan_inputs() -> (
     20,
   ).unwrap()
   let model = prepare_installed_effect_model_demand(
-    prepared,
-    compiled,
-    compilation,
-    definition,
-    occurrence,
-    graph,
-    {
-      planning_work: 17,
-      attempts: 4,
-      holdings: 3,
-      transfer_bytes: 2048L,
-      retained_bytes: 1000L,
-      execution_bytes: 2000L,
-    },
-    500L,
-    700L,
-    20,
-    20,
-    20,
+    prepared, compiled, compilation, definition, occurrence, graph, effect_model_plan_limits,
+    500L, 700L, 20, 20, 20,
   ).unwrap()
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
@@ -248,4 +261,23 @@ test "Model Effect plan retains exact checked binding and one provider selection
     is Err(InsufficientCapacity),
   )
   assert_eq(calls.val, 1)
+}
+
+///|
+test "Model Effect Plan projection refuses a copied or foreign selected demand" {
+  let (prepared, request, contracts, model) = effect_model_plan_inputs()
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    model,
+    Ref(0),
+  )
+  assert_true(installed_effect_plan_matches_model_demand(plan, model))
+  let copied = { ..model, }
+  assert_false(installed_effect_plan_matches_model_demand(plan, copied))
+  let (_, _, _, foreign) = effect_model_plan_inputs()
+  assert_false(installed_effect_plan_matches_model_demand(plan, foreign))
+  let without_model = { ..plan, model: None, }
+  assert_false(installed_effect_plan_matches_model_demand(without_model, model))
 }

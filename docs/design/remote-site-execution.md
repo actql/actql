@@ -442,6 +442,13 @@ be settled while its evidence is not durable. Durable evidence does not release
 an output used by another consumer. Cleanup may remain unknown after either a
 successful or failed execution.
 
+The Coordinator's checked task observation also retains an admitted final
+evidence rejection. The Run projection treats that rejection as task failure
+and stops selecting new tasks; it does not rewrite `NativeSettled` into a
+physical execution failure. Settled execution with evidence still pending
+remains unpublished and unresolved. Physical release is projected only from
+the independent cleanup observation, including after evidence rejection.
+
 Execution evidence is a typed canonical record issued only through a
 Host-registered capability. The capability is scoped to the exact Site
 generation, runtime bundle, Connector registration and revision, and evidence

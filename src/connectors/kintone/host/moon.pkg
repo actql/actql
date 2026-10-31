@@ -9,9 +9,19 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/execution_relation" @execution,
   "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "moonbitlang/core/debug",
 } for "wbtest"
+
+options(
+  targets: {
+    "record_create_standard_js_wbtest.mbt": [ "js" ],
+  },
+)

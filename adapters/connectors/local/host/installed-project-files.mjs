@@ -230,8 +230,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     current();const run=sharedRuns.get(prepared)??runs.get(prepared);
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
-    checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-      (run.value,prepared,run.request));return run;
+    checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,run.request));return run;
   };
   function prepareRun(prepared,request,prepareInvocation){
     current();
@@ -244,26 +243,6 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior!==undefined&&(prior.value!==value||prior.request!==request))fail('ForeignLocalFilesPreparation');
     if(prior===undefined)sharedRuns.set(prepared,{prepared,request,value,effectful:false,reads:new Map()});
     current();
-  }
-  function prepareEffectRun(prepared,request){
-    const effectful=true;
-    current();let run=runs.get(prepared);
-    if(sharedRuns.has(prepared))fail('ForeignLocalFilesPreparation');
-    if(run!==undefined){if(run.effectful!==effectful)fail('ForeignLocalFilesPreparation');sameRun(prepared);
-      checked((effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
-        (run.value,prepared,request));return;}
-    if(runs.size===4096)fail('LocalFilesRunLimit');
-    run={prepared,request,effectful,original:undefined,admission:undefined,value:undefined,reads:new Map(),retired:false,
-      failed:false,failure:undefined};
-    runs.set(prepared,run);
-    try{
-      run.original=sourceManaged.prepareEffectRun(prepared);
-      current();
-      run.admission=checked((effectful?moon.clientProgramNodeEffectManagedRunPrepare:moon.clientProgramNodeManagedRunPrepare)
-        (run.original,prepared));
-      run.value=checked((effectful?moon.clientProgramInstalledEffectManagedRunBegin:moon.clientProgramInstalledManagedRunBegin)
-        (run.admission,prepared,request));sameRun(prepared);
-    }catch(cause){run.failed=true;run.failure=cause;throw cause;}
   }
   function prepareContentRun(prepared,request,recipe){
     current();
@@ -370,11 +349,14 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       if(read.value!==undefined)checked(moon.clientProgramInstalledSourceReadRetire(read.value));
       releaseSharedRead(read);return;
     }else{
-      if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
-      if(read.value!==undefined)checked((read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:
-        moon.clientProgramInstalledSourceReadRetire)(read.value));
-      captureClose(read);
-      if(!acknowledged(await Reflect.apply(read.close,read.raw,[])))fail('LocalFileCleanupPending');
+    if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
+    captureClose(read);
+    if(!acknowledged(await Reflect.apply(read.close,read.raw,[])))fail('LocalFileCleanupPending');
+    if(read.value!==undefined){
+      const retire=read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:
+        moon.clientProgramInstalledSourceReadRetire;
+      checked(Reflect.apply(retire,moon,[read.value]));
+    }
     }
     read.closed=true;sharedReads.delete(read);
   }
@@ -386,8 +368,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       if([...run.reads.values()].some(read=>!read.closed)||run.retired)continue;
       try{
         if(run.value!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-        else if(run.admission!==undefined)checked((run.effectful?moon.clientProgramNodeEffectManagedRunCleanup:
-          moon.clientProgramNodeManagedRunCleanup)(run.admission));
+        else if(run.admission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(run.admission));
         run.retired=true;
       }catch(cause){errors.push(cause);}
     }
@@ -441,6 +422,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         originalKeyedTransport:keyedTransports.get(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence,managedRun,originalRead}){
+          if(effectful!==false)fail('InstalledEffectPlanUnavailable');
           const run=sameRun(checkedOwner),index=occurrence.stage;
           const shared=sharedRuns.get(checkedOwner)===run;
           if(effectful!==run.effectful||declaration!==entry.declaration||occurrence.input!==0||
@@ -634,7 +616,6 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:ref=>sources.some(source=>source.admitsSource(ref)),
       prepareManagedRun:prepareRun,
-      prepareManagedEffectRun:prepareEffectRun,
       prepareManagedContentRun:prepareContentRun,managedContentLedger:contentLedger,close});
     return profile;
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:{close}});}

@@ -20,12 +20,33 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
+  ModelPlanReserved
+  ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
   Selected
   Retiring
   Closed
 } derive(Eq)
+
+///|
+// Replace the former four-field Model input tuple in its existing resident
+// slot. Both selected compiler inputs have the same four original fields;
+// no additional parent, phase, retained controller or parameter cache exists.
+priv enum ClientRequestDomainCompilationInputs {
+  RequestModelCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+}
 
 ///|
 /// Request bootstrap on the original Node preparation child, before an output
@@ -85,11 +106,28 @@ struct ClientRequestPreparation[I] {
     Bool,
     (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
   )?
+  mut program_domain_compilation_inputs : ClientRequestDomainCompilationInputs?
+  // One existing resident output slot for either ordinary or Model emission.
+  // Its original sum is moved to the selected Plan, never a parallel cache.
+  mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model : ClientInstalledManagedModelPlan?
+  mut program_content : ClientInstalledContentPreparation
+  mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
+
+///|
+let request_preparation_borrow_limit : Int = 6
+
+///|
+// Fixed Resource-owned census layout, priced by the existing common tariff.
+// This is retained installed DATA, not another per-Request owner or budget.
+let request_preparation_inventory_slots : (Int64, Int64, Int64) = @resources.preparation_inventory_initial_control_slots(
+  request_preparation_borrow_limit, 0, 0,
+).unwrap()
 
 ///|
 pub(all) enum ClientRequestPreparationIssue {
@@ -120,6 +158,7 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 /// parsed tree or provider inventory is included here. Each selected next
 /// phase must reserve its own complete representation before constructing it.
 fn request_preparation_control_units() -> @execution.PreparationRepresentationUnits {
+  let (inventory_headers, inventory_refs, inventory_words) = request_preparation_inventory_slots
   // JS producer/empty receipt/preparation state; original Resource record and
   // state; fixed quota6 and weak identity membership; ports and six closures.
   // The original runtime's fixed validation arrays have lengths4,6,3,7,5,5;
@@ -183,7 +222,15 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
     // or B initial recipe is represented by these caller-only controls.
-    record_headers: js_headers +
+    // Shared compiler caller controls: original input tuple/Some, selected
+    // argument/artifact carriers, component Array/backing and closures.
+    // The closed domain variant replaces its former four-field tuple, adding
+    // one scalar tag. Keep it in this existing common fixed caller allowance,
+    // rather than introduce a per-domain control reservation.
+    // This is 11H21R10W, not recursive measurement or provider backing.
+    record_headers: 11L +
+    inventory_headers +
+    js_headers +
     import_headers +
     ledger_headers +
     2L +
@@ -192,7 +239,12 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     4L +
     10L +
     9L,
-    reference_slots: js_refs +
+    // Resident Model Plan and Content Plan/Request links. Selected Some and
+    // domain construction are separately funded before their allocation.
+    reference_slots: 21L +
+    inventory_refs +
+    3L +
+    js_refs +
     import_refs +
     ledger_refs +
     12L +
@@ -201,7 +253,9 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: js_words +
+    scalar_words: 10L +
+    inventory_words +
+    js_words +
     import_words +
     ledger_words +
     5L +
@@ -253,16 +307,18 @@ pub fn[I] begin_request_preparation(
     Err(issue) => return Err(Initial(issue))
     Ok(value) => value
   }
-  if @resources.ledger_limits(ledger) != expected {
+  // Actual sealed initial envelope may cover additional installed domains.
+  // It must contain the Local baseline; no caller-supplied limit is admitted.
+  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match
-    @resources.reserve_preparation_capacity(
+    @resources.reserve_preparation_capacity_inventory(
       ledger,
       input,
       retained,
       execution,
-      max_borrowers=6,
+      max_borrowers=request_preparation_borrow_limit,
     ) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
@@ -307,8 +363,13 @@ pub fn[I] begin_request_preparation(
     program_artifact_plan_encoding_nodes: Ref(0L),
     program_artifact_work_issue: None,
     program_artifact_inputs: None,
+    program_domain_compilation_inputs: None,
+    program_compilation: None,
     program_source_free: None,
     program_captured: None,
+    program_model: None,
+    program_content: NoContent,
+    program_content_request: None,
     program_body_attempted: false,
     phase: Open,
   })
@@ -611,8 +672,14 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_artifact_inputs = None
+  owner.program_compilation = None
+  owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model = None
+  owner.program_content = NoContent
+  owner.program_content_request = None
+
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if owner.effect_capacity is Some(capacity) {

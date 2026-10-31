@@ -93,6 +93,8 @@ pub fn cancel_result_publication(ResultPublication) -> Bool
 
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
 
+pub fn check_original_composed_preparation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, Issue]
+
 pub fn check_original_model_current_configuration(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @physical_resources.OriginalCurrentStateDocument, @model_execution.ModelExecutionLimits, @model_execution.ModelQuantityCapacity?) -> Result[Unit, @physical_resources.OriginalCurrentStateReadIssue]
 
 pub fn cleanup(Execution) -> Result[Bool, Issue]
@@ -143,8 +145,6 @@ pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
-pub fn original_composed_bounds(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Limits, Issue]
-
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
@@ -170,6 +170,8 @@ pub fn poll_kind(Poll) -> String
 pub fn prepare_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
 pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
+
+pub fn prepared_composed_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Limits, Issue]
 
 pub fn prepared_input_export_matches(Execution, @model_execution.ModelPreparedCallSet, @client_local_host.ClientInferRetainedInputExport) -> Bool
 

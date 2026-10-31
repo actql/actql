@@ -44,11 +44,11 @@ pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C,
 
 pub fn[P, C, R] backed_execution_live_state(BackedExecutionLiveProjection[P, C, R], R) -> Result[BackedExecutionLiveState, BackedExecutionIssue]
 
-pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
-
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
+
+pub fn[I, P] begin_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[I, P] begin_preparation_capacity_phase(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
@@ -166,6 +166,8 @@ pub fn[I, P, Q] continue_preparation_capacity(PreparationCapacity[I, P], I) -> R
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
+pub fn[I, P] discard_unbound_preparation_capacity_inventory(PreparationCapacity[I, P], I) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn[T] enter_funded_read_consumer(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
 
 pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits
@@ -195,6 +197,8 @@ pub fn[T] funded_read_consumer_handed_off_origin(FundedReadConsumer[T]) -> T?
 pub fn[T] funded_read_consumer_origin(FundedReadConsumer[T]) -> T?
 
 pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retained_bytes? : Int64) -> Bool
+
+pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
@@ -324,9 +328,13 @@ pub fn[I, P] preparation_capacity_available(PreparationCapacity[I, P], I) -> Res
 
 pub fn[I, P] preparation_capacity_borrow_value(PreparationCapacityBorrow[I, P]) -> P?
 
+pub fn[I, P] preparation_capacity_inventory_original(PreparationCapacity[I, P], I) -> Result[OriginalLedgerIdentity, PreparationCapacityIssue]
+
 pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
+pub fn preparation_inventory_initial_control_slots(Int, Int, Int) -> (Int64, Int64, Int64)?
 
 pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstructionInventory
 
@@ -351,6 +359,8 @@ pub fn prepare_node_original_source_child(OriginalNodeSourceReference) -> Result
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
 pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
+
+pub fn quantity_neutral_amounts(Ledger) -> QuantityAmounts?
 
 pub fn quantity_usage(Ledger) -> QuantityUsage
 
@@ -394,9 +404,13 @@ pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, Led
 
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
 
+pub fn[P] reserve_node_managed_run_attempt(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64, Int64) -> Result[Reservation, ImportedChildLedgerIssue]
+
 pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64) -> Result[CapacityReservation, ImportedChildLedgerIssue]
 
 pub fn[I, P] reserve_preparation_capacity(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
+
+pub fn[I, P] reserve_preparation_capacity_inventory(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
 
 pub fn[I, P, D] reserve_preparation_construction_input(PreparationCapacity[I, P], I, D, Int64, Int64) -> Result[PreparationBodyBorrow[D], PreparationCapacityIssue]
 

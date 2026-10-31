@@ -817,20 +817,19 @@ export function readLocalContentRunRequirements(originals, prepared, selected) {
 
 // Mock preparation remains a distinct operational purpose on the same Host.
 export function readLocalMockModelRunRequirements(originals, prepared, model) {
+  if (model?.compilation !== undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const contracts = installedManagedRunContracts(originals);
-  const declarations = (model.compilation === undefined ? moon.clientProgramAcquisitionCount(prepared)
-    : moon.clientProgramEffectAcquisitionCount(prepared)) === 0 ? []
+  const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
   const documentBytes = declarations.map(() => 1048576n);
   const control = runtimeCore(moon).publicationControl;
-  const limits = (model.compilation === undefined
-    ? control.checkedClientMockModelRunRequirements
-    : control.checkedClientEffectMockModelRunRequirements)(
-    prepared, model.compiled, ...(model.compilation === undefined ? [] : [model.compilation]),
+  // Preserve the original extracted method's undefined receiver.
+  const limits = (0, control.checkedClientMockModelRunRequirements)(
+    prepared, model.compiled,
     model.runDefinition, model.occurrence, model.graph,
     declarations, asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
@@ -3462,7 +3461,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     return dispatchOwner.track(facts.ref, {
         run: async ({signal, retainExecution, beginPhysicalWork,
           observePreEffectFailure}) => {
-          const managedRun = preparation.effectManagedRun(moon, facts.prepared, facts.identity);
+          const managedEffect = preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity);
+          const managedRun = managedEffect.value;
           let targetReads;
           try {
             targetReads = await openEffectTargetReads(facts, {signal,
@@ -3471,7 +3471,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               observeCancellation});
           } catch (error) { observePreEffectFailure(); throw error; }
           return effectInstallation.execute(
-          Object.freeze({...facts, signal, retainExecution, targetReads, observation,
+          Object.freeze({...facts, signal, retainExecution, targetReads, observation, managedEffect,
             beginPhysicalWork, observePreEffectFailure, moon, control,
             assertContinuationCurrent: activeResume?.assertCurrent,
             publicationPlan: facts.preparedExecution,
@@ -5416,7 +5416,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
       if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
-          run.preparationKind === 'effect-plan' && run.preparationFunded) {
+          run.preparationKind === 'effect-plan' && (run.preparationFunded || run.requestInput !== undefined)) {
         const finish = preparation.retireManagedComputeRun(run.prepared);
         finish?.();
         continue;
@@ -5817,17 +5817,22 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       originalInstallation.computeRuns = runs;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
-        requestInput: model === undefined ? originalSourceManagedHostRequest(originals, facts.prepared) : undefined,
-        selection, facts, inputs, sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
+        requestInput: originalSourceManagedHostRequest(originals, facts.prepared),
+        selection, facts, inputs: Object.freeze({...inputs,
+          installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
+        sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
+      return preparation.effectManagedPlanRun(runtime, prepared, request).value;
+    },
+    effectManagedPlanRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
       const manager = computeManaged ?? sourceManaged;
       if (manager === undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
       const current = () => (computeManaged === undefined
         ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent)(manager, originals);
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
-        runtime, prepared, request, assertCurrent: current, checked}).value;
+        runtime, prepared, request, assertCurrent: current, checked});
     },
     prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace) {
       const manager = sourceManaged ?? computeManaged;
@@ -6044,6 +6049,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.closed = true;
         return;
       }
+      finishInstalledEffectModelScope(run, true, checked);
       if (run.preparationFunded) {
         if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
           if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
@@ -6057,6 +6063,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         catch (cause) {
           if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
         }
+        // The Scope's census has acknowledged physical retirement. Cut its
+        // raw compiler/definition/graph aliases before returning the original
+        // typed preparation borrower and completing that same parent debit.
+        run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+        run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
         run.manager.severPreparation(prepared,run.original);
         if (run.preparationKind === 'model-plan') Reflect.apply(run.releaseModelAliases, run.model, []);
         run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
@@ -6070,7 +6081,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       finishInstalledEffectModelScope(run, true, checked);
       if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
       else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
-      if (run.original !== undefined) run.manager.retireRun(prepared, run.original);
+      // A failed same-Request Model constructor has no adopted manager Run.
+      // Its existing producer/input cleanup owns that original initial parent.
+      if (run.original !== undefined && !(run.preparationKind === 'effect-plan' &&
+          run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun(prepared, run.original);
       run.closed = true;
       record.computeRuns.delete(prepared);
       record.computeLiveRuns.delete(run);

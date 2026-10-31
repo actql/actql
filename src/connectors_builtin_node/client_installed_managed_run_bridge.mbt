@@ -207,9 +207,7 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
     return Err(ForeignOriginal)
   }
   let selected = match
-    @infer_host.original_composed_bounds(
-      compiled, definition, occurrence, graph,
-    ) {
+    original_composed_model_limits(compiled, definition, occurrence, graph) {
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
@@ -283,21 +281,35 @@ fn combine_installed_mock_model_run_requirements(
   // The private tuple also carries the selected reservation/census bounds;
   // JS never reaches into compiler-owned Limits fields or invents a second
   // numeric profile. Bootstrap, read and Model remain separate same-Run tokens.
-  for
-    value in [
-      read_retained,
-      read_execution,
-      read_retained,
-      read_execution,
-      read_retained,
-      read_execution,
-      selected.input.rows.operation_entries.to_int64(),
-      selected.input.rows.retained_entries.to_int64(),
-      selected.input.rows.metadata_entries.to_int64(),
-    ] {
+  for value in client_program_composed_infer_retained_limits(selected) {
     base.push(value)
   }
   Ok(base)
+}
+
+///|
+/// Project only the already selected Limits retained by the same preparation.
+/// This is the existing private requirement suffix, without recomputing the
+/// Model/Source quote or consulting a Run. Bootstrap/read/Model byte pairs and
+/// the three live inventory bounds keep their existing order and meaning.
+/// These DATA neither reserve resources nor establish current authority.
+#export_name("clientProgramComposedInferRetainedLimits")
+pub fn client_program_composed_infer_retained_limits(
+  selected : @infer_host.Limits,
+) -> Array[Int64] {
+  let retained = selected.mapping.logical.max_live_value_bytes
+  let execution = selected.identity.wire.max_bytes.to_int64()
+  [
+    retained,
+    execution,
+    retained,
+    execution,
+    retained,
+    execution,
+    selected.input.rows.operation_entries.to_int64(),
+    selected.input.rows.retained_entries.to_int64(),
+    selected.input.rows.metadata_entries.to_int64(),
+  ]
 }
 
 ///|
@@ -362,53 +374,6 @@ pub fn client_program_node_local_content_run_prepare(
   @resources.ImportedChildLedgerIssue,
 ] {
   @resources.prepare_node_local_content_run_admission(original, prepared)
-}
-
-///|
-#export_name("clientProgramInstalledManagedKeyedContentPrepare")
-pub fn client_program_installed_managed_keyed_content_prepare(
-  prepared : @publication_host.PreparedClientProgram,
-  direct : @client_local_host.ClientInstalledCaptureCapacity,
-  keyed : @publication_host.ClientKeyedAcquisition,
-  declaration : @client_row_source_host.RowDeclaration,
-  max_page_bytes : Int,
-  max_text_bytes : Int,
-  row_work : Int,
-  transport_bytes : Array[Int64],
-  transport_execution_bytes : Array[Int64],
-  max_bytes : Int,
-  max_work : Int,
-  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-  task : Int,
-  step : Int,
-  prefix_retained_bytes : Int64,
-  prefix_execution_bytes : Int64,
-) -> Result[
-  @client_local_host.ClientInstalledManagedKeyedPreparation,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.prepare_installed_managed_keyed_content(
-    prepared,
-    direct,
-    keyed,
-    declaration,
-    client_keyed_row_limits(max_page_bytes, max_text_bytes, row_work),
-    transport_bytes,
-    transport_execution_bytes,
-    max_bytes,
-    max_work,
-    installed_contracts,
-    values_body,
-    fragment_body,
-    ordered_body,
-    task,
-    step,
-    prefix_retained_bytes,
-    prefix_execution_bytes,
-  )
 }
 
 ///|

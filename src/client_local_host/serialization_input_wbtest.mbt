@@ -1,4 +1,19 @@
 ///|
+fn bind_serialization_prefix_reservation(
+  child : @local.ManagedProviderExecution,
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+) -> ClientSerializationPrefix {
+  {
+    child: Some(child),
+    ledger,
+    reservation,
+    child_cleaned: false,
+    released: false,
+  }
+}
+
+///|
 fn serialization_test_ledger(
   retained : Int64,
   execution : Int64,

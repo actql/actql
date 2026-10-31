@@ -880,6 +880,7 @@ type CoordinatorDispatchTransition
 pub(all) struct CoordinatorExecutionObservation {
   execution : RemoteExecutionState?
   cleanup : RemoteCleanupState?
+  evidence_rejected : Bool
   revision : Int
   execution_terminal : Bool
   cleanup_complete : Bool

@@ -52,7 +52,10 @@ pub fn original_keyed_child_preparation_available(
     inventory.holdings.length() == accepted_children + 1 &&
     inventory.delegations.is_empty() &&
     ledger.next_capacity_serial == Some(-2) &&
-    ledger.next_attempt_serial == Some(accepted_children + assembly_index + 1) &&
+    original_prefix_attempt_count_is(
+      inventory,
+      accepted_children + assembly_index + 1,
+    ) &&
     physical_equal(inventory.reservations[assembly_index], assembly) &&
     physical_equal(assembly.owner, ledger) &&
     assembly.open &&

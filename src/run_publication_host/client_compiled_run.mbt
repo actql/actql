@@ -63,6 +63,44 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// Bind the actual Task compiler retained by this Run, including its Model
+/// graph and manifests. Equal Plan bytes or another compiler invocation do
+/// not supply this immutable original; no current callback is involved.
+pub fn client_compiled_run_matches_tasks(
+  value : ClientCompiledRun,
+  owner : PreparedClientProgram,
+  compilation : ClientTaskCompilation,
+) -> Bool {
+  match value.compilation {
+    Tasks(original) =>
+      physical_equal(value.owner, owner) &&
+      physical_equal(original, compilation)
+    Values(_) | Effects(_) => false
+  }
+}
+
+///|
+/// Match the original Pure artifact retained by a Request. The existing Task
+/// predicate remains its owner; Values compares its own compiler original.
+/// Equal Plan bytes and Effect artifacts cannot substitute for either one.
+pub fn client_compiled_run_matches_pure_compilation(
+  value : ClientCompiledRun,
+  owner : PreparedClientProgram,
+  compilation : ClientRunCompilation,
+) -> Bool {
+  match compilation {
+    Tasks(original) => client_compiled_run_matches_tasks(value, owner, original)
+    Values(original) =>
+      match value.compilation {
+        Values(actual) =>
+          physical_equal(value.owner, owner) && physical_equal(actual, original)
+        Tasks(_) | Effects(_) => false
+      }
+    Effects(_) => false
+  }
+}
+
+///|
 /// Borrow the compiler's original checked view only for its exact Effect owner.
 /// Never reparse or issue a substitute Effect-free Program for recovery.
 pub fn client_compiled_effect_program(

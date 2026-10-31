@@ -9,7 +9,7 @@ const source=readFileSync(new URL('../local-node/installed-project-mock.mjs',imp
 const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
-const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','prepareManagedEffectMockModelRun','modelPreparation','retireModelRead',
+const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead',
   'closeSource','closeRead','close','retireRunRecord'];
 const slices=outer.body.body.flatMap(node=>{
   if(node.type==='FunctionDeclaration'&&functions.includes(node.id.name))return[source.slice(node.start,node.end)];
@@ -18,7 +18,7 @@ const slices=outer.body.body.flatMap(node=>{
 }).join('\n');
 assert.equal(slices.match(/(?:function |const )(?:sameRun|prepareManagedRun|prepareManagedMockModelRun|modelPreparation|retireModelRead)\b/gu).length,5);
 
-function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,acquisitionCount=2}={}){
+function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount=2}={}){
   const calls=[],prepared={},request={},compiled={},compilation={},runDefinition={},graph={},occurrence={};
   const records=new Map(),original={},admission={},value={},scope={},read={};
   const sources=[],closedSources=new Set(),sourceReady=[true,true],sourceCloseCalls=[0,0];
@@ -67,19 +67,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,
     settledReads.add(read);
   },
   finishCheckedClientInferOriginalReadScope(){calls.push('finish-scope');return !readIssued||settledReads.has(read);}};
-  if(effectful){
-    sourceManaged.prepareEffectLocalMockModelRun=sourceManaged.prepareLocalMockModelRun;
-    sourceManaged.prepareLocalMockModelRun=()=>assert.fail('Effect cannot use the Pure entry');
-    moon.clientProgramNodeEffectLocalMockModelRunPrepare=moon.clientProgramNodeLocalMockModelRunPrepare;
-    moon.clientProgramNodeLocalMockModelRunPrepare=()=>assert.fail('Effect cannot use the Pure admission');
-    moon.clientProgramInstalledEffectManagedRunCheck=moon.clientProgramInstalledManagedRunCheck;
-    moon.clientProgramInstalledManagedRunCheck=()=>assert.fail('Effect cannot use the Pure check');
-    const begin=control.beginCheckedClientMockModelManagedRun;
-    control.beginCheckedClientEffectMockModelManagedRun=(a,p,r,c,original,d,g)=>{
-      assert.strictEqual(original,compilation);return begin(a,p,r,c,d,g);
-    };
-    control.beginCheckedClientMockModelManagedRun=()=>assert.fail('Effect cannot use the Pure scope');
-  }
+
   let releaseRequestAliases;
   const prepareRequestModel=(p,r,model)=>{
     assert.strictEqual(p,prepared);assert.strictEqual(r,request);
@@ -91,7 +79,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,
     return{original,value};
   };
   const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','inferOriginalReadCleanupComplete','prepareRequestModel',
-    'let closing=false;'+slices+';return {prepareManagedMockModelRun,prepareManagedEffectMockModelRun,modelPreparation,close,closeSource};')(
+    'let closing=false;'+slices+';return {prepareManagedRun,prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
       current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources,
       value=>cleanedModelReads.has(value),prepareRequestModel);
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
@@ -100,8 +88,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,
     sourceReady,sourceCloseCalls,cleanup,setup,providers,
     releaseRequestAliases:()=>releaseRequestAliases(),
     loseCurrent(error){afterFactoryFailure=error;},originalModelCleaned:()=>cleanedModelReads.add(read),
-    begin(){effectful?api.prepareManagedEffectMockModelRun(prepared,request,control,plan,selection,undefined,compilation)
-      :api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
+    begin(){api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
     attachSources(){
       records.get(prepared).reads=[0,1].map(index=>({source:index,raw:{index},value:{index},closed:false,
         close(){sourceCloseCalls[index]++;return{pending:!sourceReady[index]};}}));
@@ -123,8 +110,9 @@ test('source-free Mock opens its Local driver on the same original Run and Scope
 });
 
 test('source-free Mock driver entry does not replace a captured or Effect Run',()=>{
-  for(const options of [{acquisitionCount:2},{acquisitionCount:0,effectful:true}]){
-    const f=fixture(options);f.begin();const preparation=f.modelPreparation(f.prepared,f.plan);
+  for(const acquisitionCount of [2,0]){
+    const f=fixture({acquisitionCount});f.begin();if(acquisitionCount===0)f.records.get(f.prepared).effectful=true;
+    const preparation=f.modelPreparation(f.prepared,f.plan);
     preparation.retain();
     assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),
       {code:'ForeignInstalledModelPreparation'});
@@ -159,27 +147,20 @@ test('Mock installs its same original Run Scope before returning any Source prep
     {...f.plan,compiled:{}},f.selection),{code:'ForeignInstalledModelPreparation'});
 });
 
-test('Effect Mock retains the exact Effect compilation and uses no Pure admission or scope',()=>{
-  const f=fixture({effectful:true});f.begin();
-  const held=f.records.get(f.prepared);
-  assert.equal(held.effectful,true);assert.strictEqual(held.model.compilation,f.compilation);
-  assert.strictEqual(held.model.scope,f.scope);
-  assert(f.calls.indexOf('admission')<f.calls.indexOf('scope'));
-  f.begin();assert.equal(f.calls.filter(call=>call==='scope').length,1);
-  assert.throws(()=>f.prepareManagedMockModelRun(f.prepared,f.request,f.control,f.plan,f.selection),
-    {code:'ForeignInstalledModelPreparation'});
-  assert.throws(()=>f.prepareManagedEffectMockModelRun(f.prepared,f.request,f.control,f.plan,f.selection,undefined,{}),
-    {code:'ForeignInstalledModelPreparation'});
+test('legacy Effect Mock refuses before any independent admission or Scope',()=>{
+ const f=fixture();
+ assert.throws(()=>f.prepareManagedRun(f.prepared,f.request,undefined,true),{code:'InstalledEffectPlanUnavailable'});
+ assert.equal(f.records.size,0);assert.equal(f.calls.includes('original'),false);assert.equal(f.calls.includes('scope'),false);
 });
 
-test('Effect Mock current failure retains the returned original and never reissues it',()=>{
-  const failure=new Error('post-factory-current'),f=fixture({afterFactoryFailure:failure,effectful:true});
+test('Request Mock current failure retains the adopted original and Scope without reissuing',()=>{
+  const failure=new Error('post-factory-current'),f=fixture({afterFactoryFailure:failure});
   assert.throws(()=>f.begin(),error=>error===failure);
   assert.strictEqual(f.records.get(f.prepared).original,f.original);
   assert.strictEqual(f.records.get(f.prepared).failure,failure);
   assert.throws(()=>f.begin(),error=>error===failure);
   assert.equal(f.calls.filter(call=>call==='original').length,1);
-  assert.equal(f.calls.includes('scope'),false);
+  assert.equal(f.calls.filter(x=>x==='scope').length,1);
 });
 
 test('Mock read refusal retains the already issued Scope and its original admission',()=>{

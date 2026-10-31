@@ -178,7 +178,9 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(MissingResult)
   }
   let port = @execution.managed_result_occurrence_port(occurrence)
-  guard client_publication_task_target(value, task) is Some(target) &&
+  // Use the exact checked output emitted by the original fragment. Rebuilding
+  // an untimed acquisition can select an earlier capture before its suffix.
+  guard client_task_output_target(graph, task) is Some(target) &&
     @results.port_target(port) == target else {
     return Err(RequiresResultTransformation)
   }
@@ -191,8 +193,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard client_task_output_target(graph, task) is Some(output_target) &&
-    @lower.preparation_schema_at(prepared, output_target) is Some(task_schema) else {
+  guard @lower.preparation_schema_at(prepared, target) is Some(task_schema) else {
     return Err(RequiresResultTransformation)
   }
   let names = @results.fields(@results.port_result(port))
