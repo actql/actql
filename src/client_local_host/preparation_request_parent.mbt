@@ -113,7 +113,7 @@ struct ClientRequestPreparation[I] {
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model : ClientInstalledManagedModelPlan?
-  mut program_keyed : ClientInstalledManagedKeyedPreparation?
+  mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
@@ -368,7 +368,7 @@ pub fn[I] begin_request_preparation(
     program_source_free: None,
     program_captured: None,
     program_model: None,
-    program_keyed: None,
+    program_content: NoContent,
     program_content_request: None,
     program_body_attempted: false,
     phase: Open,
@@ -677,7 +677,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model = None
-  owner.program_keyed = None
+  owner.program_content = NoContent
   owner.program_content_request = None
 
   let retiring = owner.phase == Retiring

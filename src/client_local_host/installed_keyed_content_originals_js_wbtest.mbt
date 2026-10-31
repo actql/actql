@@ -293,7 +293,7 @@ test "keyed Content Source tuple does not escape after current retires its selec
     is Err(_),
   )
   assert_true(retired.val)
-  assert_true(run.ledger is None && run.keyed is None)
+  assert_true(run.ledger is None && run.content is NoContent)
   assert_true(run.reads.is_empty())
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
 }

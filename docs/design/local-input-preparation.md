@@ -3829,3 +3829,20 @@ writer facts; measurement borrows them without reparsing Graph wire or
 fabricating an Infer/keyed component. Their actual retained data and complete
 constructor/output coexistence must be backed before construction. These
 immutable facts do not provide current authority or physical cleanup.
+
+The terminal source-free Content constructor retains the original Task
+compilation through its compiled Run and Definition, plus the selected Local
+prefix sequence, provider and capacity. Start consumes those retained originals
+without selecting a provider or quoting its capacity again. The existing
+Content slot is a closed keyed-or-serialization choice; it is not a cast to an
+ordinary Pure module or a new keyed acquisition. Completion and adoption use the
+same Request capacity and original retirement holders without a second Ledger.
+
+The Run holds its original prefix reservation before the fallible provider
+constructor. An unreturned child remains pending; a known no-child refusal may
+settle only that original reservation. Run retirement requires the actual child
+cleanup and settlement acknowledgment. One original Resource current observation
+precedes start; the post-constructor fence checks local original/lifetime
+bindings without calling external current again. Constructor/output backing,
+including the retained prefix slot and full Content/Store overlap, is still
+required before entry and is not supplied by the prefix-only requirement view.

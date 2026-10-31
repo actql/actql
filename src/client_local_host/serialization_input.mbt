@@ -4,7 +4,7 @@
 /// is created. The original Run ledger owns its reservation until the same
 /// provider confirms cleanup, including after completed input is borrowed.
 struct ClientSerializationPrefix {
-  child : @local.ManagedProviderExecution
+  mut child : @local.ManagedProviderExecution?
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   mut child_cleaned : Bool
@@ -325,6 +325,7 @@ fn start_serialization_prefix_provider(
   measurement : @execution.FixedInputGuardMeasureLimits,
   ledger : @resources.Ledger,
   workspace : @execution.ExecutionCapacity?,
+  retain? : ((ClientSerializationPrefix) -> Unit)? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   let capacity = match workspace {
     None => capacity
@@ -344,6 +345,19 @@ fn start_serialization_prefix_provider(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  // Retain the original reservation BEFORE the fallible provider constructor.
+  // None with child_cleaned=false remains pending if foreign code unwinds
+  // without a returned child or a known no-child refusal. It is never an ACK.
+  let prefix : ClientSerializationPrefix = {
+    child: None,
+    ledger,
+    reservation,
+    child_cleaned: false,
+    released: false,
+  }
+  if retain is Some(retain) {
+    retain(prefix)
+  }
   match
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -353,14 +367,19 @@ fn start_serialization_prefix_provider(
       measurement.max_bytes,
       execution,
     ) {
-    Ok(child) =>
-      Ok(bind_serialization_prefix_reservation(child, ledger, reservation))
-    Err(issue) =>
+    Ok(child) => {
+      prefix.child = Some(child)
+      Ok(prefix)
+    }
+    Err(issue) => {
       // A rejected provider start supplies no allocated execution handle.
-      match @resources.settle_reservation(ledger, reservation) {
-        Ok(_) => Err(Provider(issue))
-        Err(issue) => Err(Physical(issue))
+      prefix.child_cleaned = true
+      match cleanup_client_serialization_prefix(prefix) {
+        Ok(true) => Err(Provider(issue))
+        Ok(false) => Err(Unavailable)
+        Err(issue) => Err(issue)
       }
+    }
   }
 }
 
@@ -370,7 +389,13 @@ fn bind_serialization_prefix_reservation(
   ledger : @resources.Ledger,
   reservation : @resources.Reservation,
 ) -> ClientSerializationPrefix {
-  { child, ledger, reservation, child_cleaned: false, released: false, }
+  {
+    child: Some(child),
+    ledger,
+    reservation,
+    child_cleaned: false,
+    released: false,
+  }
 }
 
 ///|
@@ -381,7 +406,10 @@ pub fn advance_client_serialization_prefix(
   if value.child_cleaned {
     return Ok(@local.managed_provider_stopped_poll(0L, 0L))
   }
-  @local.advance_managed_provider(value.child, quantum)
+  match value.child {
+    Some(child) => @local.advance_managed_provider(child, quantum)
+    None => Err(@connector.Execution(@execution.InputSet))
+  }
 }
 
 ///|
@@ -390,14 +418,21 @@ pub fn advance_client_serialization_prefix(
 pub fn client_serialization_prefix_work(
   value : ClientSerializationPrefix,
 ) -> Result[Int64, @local.ManagedProviderWorkIssue] {
-  @local.managed_provider_cumulative_work(value.child)
+  match value.child {
+    Some(child) => @local.managed_provider_cumulative_work(child)
+    // No execution handle has returned. This is observed work only, not
+    // proof of physical stop or of how much constructor CPU was consumed.
+    None => Ok(0L)
+  }
 }
 
 ///|
 pub fn cancel_client_serialization_prefix(
   value : ClientSerializationPrefix,
 ) -> Bool {
-  !value.child_cleaned && @local.cancel_managed_provider(value.child)
+  !value.child_cleaned &&
+  value.child is Some(child) &&
+  @local.cancel_managed_provider(child)
 }
 
 ///|
@@ -408,7 +443,8 @@ pub fn cleanup_client_serialization_prefix(
     return Ok(true)
   }
   if !value.child_cleaned {
-    match @local.cleanup_managed_provider(value.child) {
+    guard value.child is Some(child) else { return Ok(false) }
+    match @local.cleanup_managed_provider(child) {
       Ok(true) => value.child_cleaned = true
       Ok(false) => return Ok(false)
       Err(issue) => return Err(Provider(issue))

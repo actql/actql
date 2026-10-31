@@ -1203,6 +1203,20 @@ pub fn client_program_complete_request_content_preparation(
 }
 
 ///|
+#export_name("clientProgramCompleteRequestSerializationPreparation")
+pub fn client_program_complete_request_serialization_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.complete_request_serialization_preparation(
+    parent, input, selected,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareRequestSerializationCompilation")
 pub fn client_program_prepare_request_serialization_compilation(
   parent : @client_local_host.ClientRequestPreparation[

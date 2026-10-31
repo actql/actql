@@ -290,7 +290,8 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   assert_eq(calls.val, before_complete + 1)
   assert_true(physical_equal(parent.program_capacity.unwrap(), original))
   assert_true(
-    parent.program_keyed is Some(plan) && physical_equal(plan, selected),
+    parent.program_content is KeyedContent(plan) &&
+    physical_equal(plan, selected),
   )
   assert_true(
     parent.program_source_free is None && parent.program_captured is None,
@@ -311,7 +312,9 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   let run = begin_request_content_managed_run(parent, request).unwrap()
   assert_eq(calls.val, before_adoption + 1)
   assert_true(parent.phase == Selected && parent.input is None)
-  assert_true(run.keyed is Some(plan) && physical_equal(plan, selected))
+  assert_true(
+    run.content is KeyedContent(plan) && physical_equal(plan, selected),
+  )
   assert_true(
     run.preparation is Some(PreparationContentManaged(_, original)) &&
     physical_equal(original, prepared),
@@ -325,7 +328,7 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
     @resources.preparation_body_borrow_value(holder) is Some(original) &&
     physical_equal(original, prepared),
   )
-  assert_true(run.keyed is None)
+  assert_true(run.content is NoContent)
   assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
@@ -347,7 +350,7 @@ test "keyed Content refuses foreign prepared Plan without consuming the original
   )
   assert_eq(request_preparation_accounting(parent), before)
   assert_true(
-    parent.phase == ContentPlanReserved && parent.program_keyed is None,
+    parent.phase == ContentPlanReserved && parent.program_content is NoContent,
   )
   complete_request_content_preparation(parent, input, request, selected).unwrap()
   assert_true(
@@ -380,7 +383,9 @@ test "keyed Content constructor borrows preserve its quoted link and keep cancel
     abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
   )
   assert_true(parent.phase == Retiring && parent.input is Some(_))
-  assert_true(parent.compiled_program is None && parent.program_keyed is None)
+  assert_true(
+    parent.compiled_program is None && parent.program_content is NoContent,
+  )
   assert_true(
     @resources.preparation_body_borrow_value(held) is Some(original) &&
     physical_equal(original, prepared),
@@ -424,7 +429,9 @@ test "keyed Content adoption fences current reentry once without selecting anoth
   action.val = None
   assert_eq(calls.val, before + 1)
   assert_eq(flags.val, 7)
-  assert_true(run.keyed is Some(original) && physical_equal(original, selected))
+  assert_true(
+    run.content is KeyedContent(original) && physical_equal(original, selected),
+  )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
 }

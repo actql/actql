@@ -33,7 +33,8 @@ struct ClientInstalledManagedRun {
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
-  mut keyed : ClientInstalledManagedKeyedPreparation?
+  mut content : ClientInstalledContentPreparation
+  mut serialization_prefix : ClientSerializationPrefix?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   effect_operations : Array[ClientInstalledEffectOperationBorrow]
   mut effect_operation_opening : Bool
@@ -156,6 +157,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Ledger(@resources.LedgerIssue)
   ModelRead(@publication_host.ClientModelReadPreparationIssue)
   Sequence(@lower.SequenceIssue)
+  SerializationPrefix(ClientSerializationPrefixIssue)
 }
 
 ///|
@@ -778,7 +780,8 @@ fn new_installed_managed_run_owned(
       ),
       None,
     ),
-    keyed: None,
+    content: NoContent,
+    serialization_prefix: None,
     keyed_reads: [],
     effect_operations: [],
     effect_operation_opening: false,
@@ -832,6 +835,18 @@ fn require_installed_managed_run(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  check_installed_managed_run_original(value, ledger, preparation)
+}
+
+///|
+// Callback-free fence after the original current observation or a closed
+// constructor. This checks the same lifetime and bindings without observing
+// the external Resource again at the same synchronous boundary.
+fn check_installed_managed_run_original(
+  value : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) &&
     physical_equal(value, original) &&
     value.ledger is Some(current_ledger) &&
@@ -1016,11 +1031,14 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  if value.keyed is Some(selected) {
+  if value.content is KeyedContent(selected) {
     return prepare_retained_installed_keyed_content_ledger(
       value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body, ledger,
     )
+  }
+  if value.content is SerializationContent(_) {
+    return Err(Unsupported)
   }
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
@@ -1284,6 +1302,9 @@ pub fn retire_installed_managed_run(
   if value.ledger is None {
     return Ok(())
   }
+  if value.serialization_prefix is Some(prefix) && !prefix.released {
+    return Err(CleanupPending)
+  }
   for read in value.reads {
     if read is Some(read) && read.ledger is Some(_) {
       return Err(CleanupPending)
@@ -1347,7 +1368,8 @@ pub fn retire_installed_managed_run(
   value.preparation = None
   value.reads.clear()
   value.keyed_reads.clear()
-  value.keyed = None
+  value.content = NoContent
+  value.serialization_prefix = None
   value.source_free_preparation = None
   value.captured_preparation = None
   value.source_free_captured = None

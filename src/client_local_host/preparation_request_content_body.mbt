@@ -90,7 +90,7 @@ pub fn[I] prepare_request_serialization_compilation(
     owner.compiled_program is Some(prepared) &&
     physical_equal(component.owner, prepared) &&
     owner.program_compilation is None &&
-    owner.program_keyed is None &&
+    owner.program_content is NoContent &&
     !owner.program_body_attempted &&
     owner.program_artifact_work is None &&
     owner.program_artifact_work_issue is None else {
@@ -176,7 +176,7 @@ pub fn[I] complete_request_content_preparation(
     owner.compiled_program is Some(prepared) &&
     owner.program_source_free is None &&
     owner.program_captured is None &&
-    owner.program_keyed is None else {
+    owner.program_content is NoContent else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) &&
@@ -197,8 +197,90 @@ pub fn[I] complete_request_content_preparation(
     Ok(value) => value
   }
   owner.phase = Selecting
-  owner.program_keyed = Some(selected)
+  owner.program_content = KeyedContent(selected)
   owner.program_content_request = Some(request)
+  owner.program_body_attempted = true
+  let result = @resources.complete_preparation_capacity(
+    capacity, input, prepared, r, e,
+  )
+  owner.phase = if result is Ok(_) {
+    ProgramBodyReady
+  } else {
+    ProgramBodyFailed
+  }
+  result.map_err(issue => Capacity(issue))
+}
+
+///|
+/// Retain the actual prefix provider and its original Task compilation before
+/// completing this Content body. No second compilation or capacity selection
+/// occurs at execution. Full constructor and output backing is caller-owned.
+pub fn[I] prepare_request_serialization_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  workspace : @execution.ExecutionCapacity?,
+) -> Result[
+  ClientInstalledManagedSerializationPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.phase == ContentPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_content is NoContent &&
+    owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestSerializationCompilation(_, _, contracts, component)) &&
+    !owner.program_body_attempted else {
+    return Err(ForeignOriginal)
+  }
+  let selected = match
+    prepare_installed_managed_serialization(
+      prepared, request, compiled, definition, component, compilation, contracts,
+      execution, measurement, workspace,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(selected) => selected
+  }
+  // This constructor is closed Local DATA and invokes no current/I/O port.
+  // Retain its original before any later completion callback can fail.
+  owner.program_content = SerializationContent(selected)
+  owner.program_content_request = Some(request)
+  Ok(selected)
+}
+
+///|
+/// Complete only the source-free preparation selected by this SAME Request.
+/// Keyed Content keeps its own typed entry, with neither purpose cast to Pure.
+pub fn[I] complete_request_serialization_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  selected : ClientInstalledManagedSerializationPreparation,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == ContentPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(prepared, selected.prepared) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_content is SerializationContent(plan) &&
+    physical_equal(plan, selected) &&
+    owner.program_content_request is Some(request) &&
+    physical_equal(request, selected.request) &&
+    !owner.program_body_attempted else {
+    return Err(ForeignOriginal)
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  owner.phase = Selecting
   owner.program_body_attempted = true
   let result = @resources.complete_preparation_capacity(
     capacity, input, prepared, r, e,
@@ -223,20 +305,33 @@ pub fn[I] begin_request_content_managed_run(
     owner.input is Some(input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
-    owner.program_keyed is Some(selected) &&
+    !(owner.program_content is NoContent) &&
     owner.program_content_request is Some(original_request) &&
     physical_equal(original_request, request) else {
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_content_run(
-    owner.initial,
-    input,
-    capacity,
-    prepared,
-    request,
-    selected,
-  )
+  let result = match owner.program_content {
+    KeyedContent(selected) =>
+      begin_preparation_owned_installed_content_run(
+        owner.initial,
+        input,
+        capacity,
+        prepared,
+        request,
+        selected,
+      )
+    SerializationContent(selected) =>
+      begin_preparation_owned_installed_serialization_run(
+        owner.initial,
+        input,
+        capacity,
+        prepared,
+        request,
+        selected,
+      )
+    NoContent => Err(ForeignOriginal)
+  }
   match result {
     Err(issue) => {
       owner.phase = ProgramBodyReady
@@ -247,8 +342,13 @@ pub fn[I] begin_request_content_managed_run(
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None
-      owner.program_keyed = None
+      owner.program_content = NoContent
       owner.program_content_request = None
+      owner.program_compilation = None
+      owner.program_domain_compilation_inputs = None
+      owner.program_artifact_geometry = None
+      owner.program_artifact_quote = None
+      owner.program_measurement_quote = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false

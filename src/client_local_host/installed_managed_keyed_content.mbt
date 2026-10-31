@@ -211,7 +211,7 @@ pub fn begin_installed_managed_keyed_content_run(
     request,
     ledger,
   )
-  value.keyed = Some(selected)
+  value.content = KeyedContent(selected)
   require_installed_managed_run(value).map(_ => value)
 }
 
@@ -238,7 +238,7 @@ pub fn begin_installed_managed_keyed_source_read(
     Err(issue) => return Err(ManagedRun(issue))
     Ok(_) => ()
   }
-  guard value.keyed is Some(selected) &&
+  guard value.content is KeyedContent(selected) &&
     physical_equal(selected.keyed, keyed) &&
     physical_equal(selected.declaration, declaration) &&
     @publication_host.client_keyed_request_matches_acquisition(request, keyed) else {
@@ -306,7 +306,7 @@ fn require_installed_keyed_source_read(
   }
   guard value.parent is Some(parent) &&
     value.selected is Some(selected) &&
-    parent.keyed is Some(original) &&
+    parent.content is KeyedContent(original) &&
     physical_equal(original, selected) &&
     parent.keyed_reads.any(read => physical_equal(read, value)) else {
     return Err(ForeignOriginal)
@@ -465,7 +465,7 @@ fn prepare_retained_installed_keyed_content_ledger(
   ordered_body : String?,
   ledger : @resources.Ledger,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
-  guard run.keyed is Some(original) &&
+  guard run.content is KeyedContent(original) &&
     physical_equal(original, selected) &&
     run.ledger is Some(original_ledger) &&
     physical_equal(original_ledger, ledger) &&
