@@ -4202,3 +4202,22 @@ and post-callback preparation/lifetime fences precede the existing reservation
 mutation. No checked token or reusable current permission is returned. A stop,
 foreign preparation or changed original observed there refuses before a new
 reservation commits; all ordinary quota and original-inventory checks remain.
+
+
+The acquired keyed Serialization purpose uses a separate typed Request compiler
+entrance. Its original selected keyed Plan retains the actual serialization
+task and step (two scalar words); its installed contracts and checked owner
+supply the compiler inputs. The source-free entrance keeps its zero-acquisition
+guard. Both use the existing measurement, absolute growth and observed compiler
+work receipt; no legacy Node admission, copied graph or second compiler is used.
+A declined grow retains the same selected Plan and component; changing either
+requires its own preparation.
+
+The existing keyed Content slot retains the resulting Task compilation across
+completion and adoption, and severs it with the same Run payload before its
+original borrower retirement. Its Plan/Request/optional compiler links occupy
+3 headers, 4 references and 3 scalar words in the selected Content link envelope.
+The actual keyed Plan adds its two scalar coordinates to constructor backing;
+full Graph/provider/output/failed-child overlap still belongs to the caller's
+same-parent construction backing before allocation. These link and coordinate
+facts do not establish that physical backing or normal Host acceptance.

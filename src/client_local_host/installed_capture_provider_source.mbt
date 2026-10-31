@@ -98,7 +98,7 @@ fn begin_installed_content_original_source_read(
     owner.preparation is Some(PreparationContentManaged(_, actual)) &&
     physical_equal(actual, prepared) &&
     physical_equal(owner.request, request) &&
-    owner.content is KeyedContent(selected) &&
+    owner.content is KeyedContent(selected, _) &&
     physical_equal(selected.prepared, prepared) &&
     occurrence == selected.direct_stage &&
     selected.direct_input == 0 &&
@@ -125,7 +125,7 @@ fn begin_installed_content_original_source_read(
   guard owner.preparation is Some(PreparationContentManaged(_, actual)) &&
     physical_equal(actual, prepared) &&
     physical_equal(owner.request, request) &&
-    owner.content is KeyedContent(original) &&
+    owner.content is KeyedContent(original, _) &&
     physical_equal(original, selected) &&
     owner.reads.get(occurrence) is Some(Some(original_read)) &&
     physical_equal(original_read, read) else {

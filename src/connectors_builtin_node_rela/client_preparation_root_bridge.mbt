@@ -1310,6 +1310,33 @@ pub fn client_program_prepare_request_serialization_compilation(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestKeyedSerializationCompilation")
+pub fn client_program_prepare_request_keyed_serialization_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_keyed_serialization_compilation(
+    parent,
+    input,
+    selected,
+    component,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramAdoptRequestContentPreparation")
 pub fn client_program_adopt_request_content_preparation(
   parent : @client_local_host.ClientRequestPreparation[

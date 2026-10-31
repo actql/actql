@@ -4,7 +4,10 @@
 // another cleanup owner. Each live case retains one original preparation.
 priv enum ClientInstalledContentPreparation {
   NoContent
-  KeyedContent(ClientInstalledManagedKeyedPreparation)
+  KeyedContent(
+    ClientInstalledManagedKeyedPreparation,
+    @publication_host.ClientRunCompilation?
+  )
   SerializationContent(ClientInstalledManagedSerializationPreparation)
 }
 

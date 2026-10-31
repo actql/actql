@@ -45,12 +45,12 @@ fn request_content_fixture(
     current~,
   )
   let borrowed = borrow_request_content_plan_input(parent, input).unwrap()
-  // Independent two-Some inventory under the pinned logical tariff: two
-  // headers16, two references8, two scalar tags8 =64 bytes in both extents.
+  // Independent Plan/Request/optional compiler link inventory under the
+  // pinned logical tariff: 3 headers16 + 4 references8 + 3 words8 =104 bytes.
   let quote = parent.program_plan_quote.unwrap()
   let funded = request_preparation_accounting(parent)
-  assert_eq(funded.4, quote.0 + 64L)
-  assert_eq(funded.5, quote.1 + 64L)
+  assert_eq(funded.4, quote.0 + 104L)
+  assert_eq(funded.5, quote.1 + 104L)
   let contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
@@ -290,7 +290,7 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   assert_eq(calls.val, before_complete + 1)
   assert_true(physical_equal(parent.program_capacity.unwrap(), original))
   assert_true(
-    parent.program_content is KeyedContent(plan) &&
+    parent.program_content is KeyedContent(plan, _) &&
     physical_equal(plan, selected),
   )
   assert_true(
@@ -313,7 +313,7 @@ test "keyed Content keeps its actual checked Plan on the same Request through ad
   assert_eq(calls.val, before_adoption + 1)
   assert_true(parent.phase == Selected && parent.input is None)
   assert_true(
-    run.content is KeyedContent(plan) && physical_equal(plan, selected),
+    run.content is KeyedContent(plan, _) && physical_equal(plan, selected),
   )
   assert_true(
     run.preparation is Some(PreparationContentManaged(_, original)) &&
@@ -430,7 +430,8 @@ test "keyed Content adoption fences current reentry once without selecting anoth
   assert_eq(calls.val, before + 1)
   assert_eq(flags.val, 7)
   assert_true(
-    run.content is KeyedContent(original) && physical_equal(original, selected),
+    run.content is KeyedContent(original, _) &&
+    physical_equal(original, selected),
   )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)

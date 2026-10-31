@@ -87,8 +87,18 @@ pub fn installed_managed_run_compilation_original(
 ) -> @publication_host.ClientRunCompilation? {
   guard run.original is Some(original) &&
     physical_equal(original, run) &&
-    run.ledger is Some(_) &&
-    run.preparation is Some(PureManaged(_, admitted)) &&
+    run.ledger is Some(_) else {
+    return None
+  }
+  if run.preparation is Some(PreparationContentManaged(_, admitted)) &&
+    physical_equal(admitted, prepared) {
+    guard run.content is KeyedContent(selected, compilation) &&
+      physical_equal(selected.prepared, prepared) else {
+      return None
+    }
+    return compilation
+  }
+  guard run.preparation is Some(PureManaged(_, admitted)) &&
     physical_equal(admitted, prepared) else {
     return None
   }
@@ -1034,7 +1044,7 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  if value.content is KeyedContent(selected) {
+  if value.content is KeyedContent(selected, _) {
     return prepare_retained_installed_keyed_content_ledger(
       value, selected, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body, ledger,

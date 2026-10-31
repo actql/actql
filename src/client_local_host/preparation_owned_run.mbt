@@ -404,7 +404,7 @@ pub fn[I] begin_preparation_owned_installed_content_run(
     capacity,
     prepared,
     request,
-    KeyedContent(selected),
+    KeyedContent(selected, None),
     selected.limits,
   )
 }
