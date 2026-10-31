@@ -8867,7 +8867,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9761,7 +9761,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -11851,7 +11851,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -40940,7 +40940,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "8d47030f65b0b5b7358040afe854a9cdd74db3af596fe249a579838337fd686d",
+      "sha256": "35a4925991d4eb0ce4cbafeb1ee056b23343f39087d9a238de677e8d9e68eb90",
       "exports": [],
       "operations": [
         {
@@ -40978,6 +40978,10 @@
         {
           "name": "prepare_installed_effect_operation_demand",
           "declaration": "prepare_installed_effect_operation_demand ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ ClientInstalledEffectOperationExtent ] , row_extents : Array [ ClientInstalledEffectOperationExtent ] , ) - > Result [ ClientInstalledEffectOperationDemand , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_operation_demand_with_controls",
+          "declaration": "prepare_installed_effect_operation_demand_with_controls ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ ClientInstalledEffectOperationExtent ] , row_extents : Array [ ClientInstalledEffectOperationExtent ] , controls_per_row : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationDemand , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepare_installed_effect_operation_extent",
@@ -41025,6 +41029,7 @@
             "prepare_installed_effect_capture_extent",
             "prepare_installed_effect_managed_plan",
             "prepare_installed_effect_operation_demand",
+            "prepare_installed_effect_operation_demand_with_controls",
             "prepare_installed_effect_operation_extent",
             "prepared_installed_effect_managed_capture_children",
             "prepared_installed_effect_managed_operation",
@@ -44994,7 +44999,7 @@
       "sha256": "abab58078205674fc3b0ae05727c0e639833ba55d7ae98ccf946614c72cc3e0d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -45103,7 +45108,7 @@
       "sha256": "7424ce8052dd2d7fa203a7979c5f086ed729a6ca370dfe2b731f5475b16038ab",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -45287,7 +45292,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -45398,7 +45403,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -45766,7 +45771,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -46024,7 +46029,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -46198,7 +46203,7 @@
       "sha256": "521af46fa44474c7dd83ca6a0fbd1c350cb0c637dbf2986105c330e05aa2b142",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -46332,7 +46337,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -46429,7 +46434,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -46541,7 +46546,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -46801,7 +46806,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -47061,7 +47066,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -47183,7 +47188,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -47364,7 +47369,7 @@
       "sha256": "abf0a20f3984a4ca40af6ca5f6d02520e3538b6554aebda51b7c3f2e4ff46902",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -47539,7 +47544,7 @@
       "sha256": "1c25b30a97a3975769a3ef19dc2850fb19dc04cc66751d102c7901c8d6b2d566",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -53847,7 +53852,7 @@
       "sha256": "21c5ef178a04e1064282122eaf9b533affc4d2efd51fdd969bf3f92284099079",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -54148,7 +54153,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "7dc2c1cfc0f7ee1c28a2428a3adeed3685135d317449456717e1bf0bfa67bc0d",
+      "sha256": "173f38d26bb6f51ac15e0eec07b2b3ea6a94672958b4337349abbf7a5f78ae1c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -54212,6 +54217,10 @@
           "declaration": "client_program_installed_effect_operation_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent , ] , row_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent ] , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_effect_operation_demand_with_controls_prepare",
+          "declaration": "client_program_installed_effect_operation_demand_with_controls_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent , ] , row_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent ] , controls_per_row : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_extent_prepare",
           "declaration": "client_program_installed_effect_operation_extent_prepare ( operation : String , retained_bytes : Int64 , execution_bytes : Int64 , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -54238,6 +54247,7 @@
             "client_program_installed_effect_managed_provider_plan_prepare_at_query_time",
             "client_program_installed_effect_managed_source_read",
             "client_program_installed_effect_operation_demand_prepare",
+            "client_program_installed_effect_operation_demand_with_controls_prepare",
             "client_program_installed_effect_operation_extent_prepare",
             "client_program_node_effect_managed_plan_cleanup"
           ],

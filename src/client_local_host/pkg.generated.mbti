@@ -571,6 +571,8 @@ pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClien
 
 pub fn prepare_installed_effect_operation_demand(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent]) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_operation_demand_with_controls(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent], @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_effect_operation_extent(String, @execution_relation.ExecutionCapacity, Int64, Bool) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_managed_capture_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]

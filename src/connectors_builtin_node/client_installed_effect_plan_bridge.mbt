@@ -80,6 +80,26 @@ pub fn client_program_installed_effect_operation_demand_prepare(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationDemandWithControlsPrepare")
+pub fn client_program_installed_effect_operation_demand_with_controls_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage_index : Int,
+  effect_id : String,
+  member_extents : Array[
+    @client_local_host.ClientInstalledEffectOperationExtent,
+  ],
+  row_extents : Array[@client_local_host.ClientInstalledEffectOperationExtent],
+  controls_per_row : @execution.ExecutionCapacity,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_operation_demand_with_controls(
+    prepared, stage_index, effect_id, member_extents, row_extents, controls_per_row,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectManagedPlanPrepare")
 pub fn client_program_installed_effect_managed_plan_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,

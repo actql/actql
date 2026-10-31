@@ -92,6 +92,52 @@ async function operationFixture(t,{reply=()=>({body:'{}'})}={}){
   return {server,run,raw,runtime,controls,create,send};
 }
 
+test('physical atomic borrow owns current without a preceding callbackful Plan getter', async t => {
+  const f = await operationFixture(t);
+  let reads = 0;
+  const original = f.run.readPlan;
+  f.run.readPlan = function (...args) {reads++; return Reflect.apply(original, this, args);};
+  const child = f.create();
+  try {
+    assert.equal(reads, 0);
+    assert.equal(f.controls.borrows, 1);
+    assert.equal(f.controls.bindings, 0);
+    assert.equal(f.controls.starts, 0);
+    assert.equal(f.server.seen().length, 0);
+  } finally {
+    f.controls.retiredAliases = true;
+    assert.equal(await child.release(), true);
+  }
+});
+
+test('refused physical metadata retains current failure precedence without borrowing or binding', async t => {
+  for (const mode of ['current', 'foreign', 'undefined', 'extent']) {
+    const f = await operationFixture(t), cause = new Error('original current refused');
+    let reads = 0;
+    f.controls.responseBacking = false;
+    f.run.readPlan = () => {
+      reads++;
+      if (mode === 'current') return {$tag: 0, _0: cause};
+      if (mode === 'undefined') {f.run.failure = undefined; return {$tag: 1, _0: f.run.operationPlan};}
+      return {$tag: 1, _0: mode === 'foreign' ? {} : f.run.operationPlan};
+    };
+    let caught = false;
+    try {f.create();} catch (error) {
+      caught = true;
+      if (mode === 'current') assert.strictEqual(error.cause, cause);
+      else if (mode === 'undefined') assert.strictEqual(error, undefined);
+      else assert.equal(error.code, mode === 'foreign'
+        ? 'ForeignInstalledEffectManagedRun' : 'InsufficientInstalledEffectResponseBacking');
+    }
+    assert(caught);
+    assert.equal(reads, 1);
+    assert.equal(f.controls.borrows, 0);
+    assert.equal(f.controls.bindings, 0);
+    assert.equal(f.controls.starts, 0);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
 test('a provider that omits its physical await cannot detach the same operation from capture',async t=>{
   let entered,finish;
   const observed=new Promise(yes=>{entered=yes;}),gate=new Promise(yes=>{finish=yes;});

@@ -22,6 +22,62 @@ fn effect_operation_borrow_fixture() -> (
 }
 
 ///|
+test "original implementation control material is debited before any grant or body constructor" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared,
+    request,
+    contracts,
+    baseline,
+    @execution.execution_capacity(7L, 11L).unwrap(),
+  ).unwrap()
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  ignore(
+    begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+  )
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(
+    held.reserved_retention_bytes - before.reserved_retention_bytes,
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_eq(
+    held.reserved_execution_bytes - before.reserved_execution_bytes,
+    @execution.execution_capacity_execution_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_eq(held.attempts, before.attempts)
+  assert_eq(held.reserved_attempts, before.reserved_attempts)
+  assert_eq(held.transferred_bytes, before.transferred_bytes)
+  assert_eq(held.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  ignore(
+    begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    held.reserved_retention_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(owner.effect_operation_controls is None)
+}
+
+///|
 test "Effect operation reserves original occurrence before construction and retains failed cleanup" {
   let (prepared, request, plan, owner, ledger) = effect_operation_borrow_fixture()
   let before = @resources.ledger_usage(ledger)

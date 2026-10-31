@@ -66480,7 +66480,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3fa8bdab3119f4ae56c4c832eb1949fdcd3faa702947c957371ab0d59f825515",
+      "sha256": "9a9ba8499f28cc82c7f882c3f43d154c6209b52b5c051f19492630de9c6eece1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67040,34 +67040,6 @@
           "parameters": [
             "facts",
             "members"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/canonicalRows/canonicalRows",
-          "parameters": [
-            "rows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/canonicalRows/canonicalRows/canonicalRows",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/canonicalRows/canonicalRows/canonicalRows#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/canonicalRows/canonicalRows/inventory/inventory",
-          "parameters": [
-            "entry"
           ],
           "async": false
         },
@@ -68377,21 +68349,97 @@
           "async": false
         },
         {
-          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+          "name": "deriveInstalledRowWrite/driver/driver",
           "parameters": [],
           "async": false
         },
         {
-          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "name": "deriveInstalledRowWrite/driver/driver#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
+          "name": "deriveInstalledRowWrite/driver/driver#3",
           "parameters": [
             "request"
           ],
           "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:project/init:project",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoverMemberRequests/init:recoverMemberRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry/rows/rows",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:send/init:send",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "deriveInstalledRowWrite/fail/fail",
@@ -68424,82 +68472,6 @@
         },
         {
           "name": "deriveInstalledRowWrite/init:checkRequest/init:checkRequest",
-          "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:project/init:project",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
-          "parameters": [
-            "member",
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/init:send/init:send",
           "parameters": [
             "request",
             "authorization",
@@ -68664,6 +68636,43 @@
           "async": false
         },
         {
+          "name": "prepareInstalledCreateRows",
+          "parameters": [
+            "moon",
+            "proposals",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledCreateRows/createRows/createRows",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledCreateRows/prepareInstalledCreateRows",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledCreateRows/wires/wires",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        },
+        {
           "name": "profileOf",
           "parameters": [
             "installation"
@@ -68785,7 +68794,12 @@
       "contracts": [
         {
           "operations": [
-            "approvalOf/approvalOf"
+            "approvalOf/approvalOf",
+            "prepareInstalledCreateRows",
+            "prepareInstalledCreateRows/createRows/createRows",
+            "prepareInstalledCreateRows/prepareInstalledCreateRows",
+            "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
+            "prepareInstalledCreateRows/wires/wires"
           ],
           "exports": [],
           "attributes": {
@@ -69611,10 +69625,6 @@
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#2",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#3",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
-            "createRowEffectStage/canonicalRows/canonicalRows",
-            "createRowEffectStage/canonicalRows/canonicalRows/canonicalRows",
-            "createRowEffectStage/canonicalRows/canonicalRows/canonicalRows#2",
-            "createRowEffectStage/canonicalRows/canonicalRows/inventory/inventory",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage#10",
@@ -72555,22 +72565,23 @@
             "deriveInstalledRowWrite/deriveInstalledRowWrite",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
-            "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
-            "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+            "deriveInstalledRowWrite/driver/driver",
+            "deriveInstalledRowWrite/driver/driver#2",
+            "deriveInstalledRowWrite/driver/driver#3",
+            "deriveInstalledRowWrite/driver/init:prepareRequest/init:prepareRequest",
+            "deriveInstalledRowWrite/driver/init:project/init:project",
+            "deriveInstalledRowWrite/driver/init:recoverMemberRequests/init:recoverMemberRequests",
+            "deriveInstalledRowWrite/driver/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/driver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry",
+            "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry/rows/rows",
+            "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
+            "deriveInstalledRowWrite/driver/init:requestFacts/init:requestFacts",
+            "deriveInstalledRowWrite/driver/init:send/init:send",
             "deriveInstalledRowWrite/fail/fail",
             "deriveInstalledRowWrite/freezeInput",
             "deriveInstalledRowWrite/freezeRequestData",
             "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
-            "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
-            "deriveInstalledRowWrite/init:project/init:project",
-            "deriveInstalledRowWrite/init:recoverMemberRequests/init:recoverMemberRequests",
-            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests",
-            "deriveInstalledRowWrite/init:recoverRequests/init:recoverRequests/init:recoverRequests",
-            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry",
-            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/rows/rows",
-            "deriveInstalledRowWrite/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
-            "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
-            "deriveInstalledRowWrite/init:send/init:send",
             "deriveInstalledRowWrite/original/original",
             "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
             "deriveInstalledRowWrite/restoreMembers",
@@ -72731,7 +72742,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
-            "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
           "exports": [],

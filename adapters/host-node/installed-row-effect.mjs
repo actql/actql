@@ -432,8 +432,16 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       nodeTypes.isAsyncFunction(map) || nodeTypes.isAsyncFunction(classify)) fail();
   const headers = ownRequestHeaders(data(http, 'headers', true));
   const responseHeaders = ownResponseHeaderNames(data(http, 'responseHeaders', true));
+  const requestDomain = 'actql-installed-row-write-request/0.1';
+  const recoveryKind = 'standard_row_write';
+  // This is one immutable metadata input, not a byte tariff or a Run bound.
+  // The same selected recipe later counts its actual serialization roles.
+  let metadataTextUnits = connectorRegistration.length + resourceKind.length + boundaryCid.length +
+    operation.length + origin.length + method.length + path.length + requestDomain.length + recoveryKind.length;
+  for (const [name, value] of headers) metadataTextUnits += name.length + value.length;
+  for (const name of responseHeaders) metadataTextUnits += name.length;
   const check = data(write, 'check', true);
-  let checkOptions;
+  let checkOptions, constructionCheck = check === undefined ? undefined : null;
   if (check !== undefined) {
     const resource = data(check, 'resource'), operation = data(check, 'operation');
     const beforeSend = data(check, 'beforeSend', true);
@@ -457,6 +465,11 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       const readResponseHeaders = ownResponseHeaderNames(data(checkHttp, 'responseHeaders', true));
       const template = ownHttpRequest({method: checkMethod, path: checkPath,
         query: data(checkHttp, 'query', true), headers: readHeaders});
+      constructionCheck = Object.freeze({resource, operation, beforeSend: beforeSend === true,
+        maxRequestBytes: requestBytes, maxResponseBytes: responseBytes});
+      metadataTextUnits += resource.length + operation.length + checkOrigin.length + checkMethod.length + template.target.length;
+      for (const [name, value] of readHeaders) metadataTextUnits += name.length + value.length;
+      for (const name of readResponseHeaders) metadataTextUnits += name.length;
       checkOptions = {check: description,
         async checkRequest({request, authorization, credential, callResource, signal}) {
           const {value: mappedValue} = original(request);
@@ -536,7 +549,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     // Existing typed providers keep their original request identity. Plain
     // standard HTTP mappings need no separate identity callback.
     const requestCid = providerCid ?? `sha256:${createHash('sha256').update(JSON.stringify([
-      'actql-installed-row-write-request/0.1', connectorRegistration,
+      requestDomain, connectorRegistration,
       resourceKind, boundaryCid, operation, origin, method, exact.target,
       exact.headers, exact.body])).digest('hex')}`;
     if (expectedCid !== undefined && expectedCid !== requestCid) fail();
@@ -544,7 +557,6 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     originals.set(request, Object.freeze({resource, value, exact, requestCid}));
     return Object.freeze({request, requestCid});
   }
-  const recoveryKind = 'standard_row_write';
   const recoveryBinding = resource => [connectorRegistration, resourceKind,
     boundaryCid, operation, origin, method, path, headers, responseHeaders,
     maxRequestBytes, maxResponseBytes, resource];
@@ -571,7 +583,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       });
     })};
   }
-  return Object.freeze({
+  const driver = Object.freeze({
     kinds: Object.freeze(['create']),
     writeOperation: () => operation,
     footprint: () => ({providerNamespace: connectorRegistration, resourceKind, boundaryCid}),
@@ -634,6 +646,33 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         ...(Object.hasOwn(context, 'headers') ? {headers: context.headers} : {})})]);
     },
   });
+  return Object.freeze({driver, construction: Object.freeze({
+    write: Object.freeze({operation, maxRequestBytes, maxResponseBytes}),
+    check: constructionCheck, metadataTextUnits})});
+}
+
+// One member's original CREATE values and canonical row identities. The
+// Common inventory owns ordering; the Host never derives identities itself.
+function prepareInstalledCreateRows(moon, proposals, limits) {
+  // Capture each immutable original String once. Common already checks the
+  // member's total wire/node/depth limits as part of this SAME canonical
+  // inventory; do that before materializing the Host value tree. A mutable
+  // proposal wrapper cannot substitute a different wire after that call.
+  const wires = proposals.map(proposal => proposal.changesWire);
+  const {maxWireBytes, maxNodes, maxDepth} = limits;
+  const inventory = checked(moon.clientProgramEffectCreateRowInventory(
+    wires, wires.length, maxWireBytes, maxNodes, maxDepth));
+  if (inventory.length !== wires.length ||
+      new Set(inventory.map(item => runtimeField(item, 0))).size !== wires.length) {
+    fail('InvalidInstalledRowEffectInventory');
+  }
+  const createRows = inventory.map(item => {
+    const wire = wires[runtimeField(item, 0)];
+    const changes = JSON.parse(wire);
+    return {entry: {value: changes.value, proposalWire: wire, selector: undefined},
+      identity: Object.freeze(parseExactJson(runtimeField(item, 1)))};
+  });
+  return {rows: createRows.map(item => item.entry), createRows};
 }
 
 function checkDriver(driver) {
@@ -780,8 +819,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
-  const owned = checkDriver(write === undefined ? driver
-    : deriveInstalledRowWrite(write, connectorRegistration));
+  const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
+  const owned = checkDriver(standard === undefined ? driver : standard.driver);
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const planRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
   const beforeSendCheck = captureBeforeSendCheck(owned, planRecipe);
@@ -1673,26 +1712,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         ? {installation: installationFacts(ownerOf(member))} : {}),
     }))});
 
-  // A member's create rows in the common canonical create order, each with
-  // its target row identity. This order is settled once, before any identity
-  // is derived from the rows: the capability, the Preview, the claims, apply
-  // and recovery all use the same ordered requests.
-  const canonicalRows = rows => {
-    const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
-    const inventory = checked(moon.clientProgramEffectCreateRowInventory(
-      rows.map(entry => entry.proposalWire ?? JSON.stringify({state: 'present',
-        value: entry.value})), rows.length, maxWireBytes, maxNodes,
-      maxDepth));
-    if (inventory.length !== rows.length ||
-        new Set(inventory.map(item => runtimeField(item, 0))).size !== rows.length) {
-      fail('InvalidInstalledRowEffectInventory');
-    }
-    // The identity is immutable before a provider callback. Complete this
-    // private frame with its original request once; do not issue it again.
-    return inventory.map(item => ({entry: rows[runtimeField(item, 0)],
-      identity: Object.freeze(parseExactJson(runtimeField(item, 1)))}));
-  };
-
   // A member's write footprint: the provider's complete footprint, or the
   // opaque footprint of its boundary.
   const footprintOf = (member, entries) => {
@@ -2072,17 +2091,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         artifact: sourceSet.members[index].payload.localResultArtifact,
         limits, assertCurrent});
       if (contentOf !== undefined) contentBorrowers.push(contentOf);
-      const rows = proposals[index].map(proposal => {
+      const selectedCreate = member.kind === 'create'
+        ? prepareInstalledCreateRows(moon, proposals[index], limits.preview) : undefined;
+      const rows = selectedCreate?.rows ?? proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
-        return {value: changes.value,
-          ...(member.kind === 'create' ? {proposalWire: proposal.changesWire} : {}),
-          selector: targeted(member.kind)
-            ? JSON.parse(proposal.selectorWire) : undefined};
+        return {value: changes.value, selector: targeted(member.kind)
+          ? JSON.parse(proposal.selectorWire) : undefined};
       });
-      const createRows = member.kind === 'create' ? canonicalRows(rows) : undefined;
-      if (createRows !== undefined) {
-        for (let row = 0; row < rows.length; row++) rows[row] = createRows[row].entry;
-      }
+      const createRows = selectedCreate?.createRows;
       let entries;
       const recipe = ownerOf(member).managedPlanRecipe;
       const constructor = recipe?.requestConstruction;

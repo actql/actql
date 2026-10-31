@@ -139,6 +139,100 @@ fn effect_operation_plan_fixture(
 }
 
 ///|
+fn effect_operation_plan_with_control_fixture(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  original : ClientInstalledEffectManagedPlan,
+  controls_per_row : @execution.ExecutionCapacity,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  let before = original.operations[0]
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    before.member_extents,
+    before.row_extents,
+    controls_per_row,
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  )
+}
+
+///|
+test "original implementation control material shares the checked row inventory without a new occurrence" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let controls = @execution.execution_capacity(7L, 11L).unwrap()
+  let selected = effect_operation_plan_with_control_fixture(
+    prepared, request, contracts, baseline, controls,
+  ).unwrap()
+  assert_eq(selected.rows, baseline.rows)
+  assert_true(selected.rows > 0)
+  assert_eq(selected.held_children, baseline.held_children)
+  assert_eq(selected.limits.attempts, baseline.limits.attempts)
+  assert_eq(selected.limits.transfer_bytes, baseline.limits.transfer_bytes)
+  let rows = selected.rows.to_int64()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(
+      selected.operation_control_capacity,
+    ) -
+    @execution.execution_capacity_retained_bytes(
+      baseline.operation_control_capacity,
+    ),
+    rows * 7L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(
+      selected.operation_control_capacity,
+    ) -
+    @execution.execution_capacity_execution_bytes(
+      baseline.operation_control_capacity,
+    ),
+    rows * 11L,
+  )
+  // The typed Some carrier is separate storage; the original implementation
+  // capacity itself stays borrowed, not serialized or copied into a new Root.
+  let carrier = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 1L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(
+    selected.limits.retained_bytes - baseline.limits.retained_bytes,
+    rows * 7L + carrier,
+  )
+  assert_eq(
+    selected.limits.execution_bytes - baseline.limits.execution_bytes,
+    rows * 11L + carrier,
+  )
+  let huge = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  assert_true(
+    effect_operation_plan_with_control_fixture(
+      prepared, request, contracts, baseline, huge,
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
 // Authored primitive Source and checked Effect closure. Declaration/Environment
 // generation supplies only fixture inputs; no Source/physical observation is
 // generated, and expected identities/rows are not taken from execution output.

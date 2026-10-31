@@ -275,6 +275,30 @@ before-use debit remain separate. A row position or a copied grant/use CID is
 not new authority. The same child retains its response and retirement duties.
 Retirement returns live occupation; it never refunds consumed work or attempts.
 
+Implementation material that must exist before an individual operation body
+(such as the original signed grant) belongs to the same Run's control
+reservation. A member may retain its original per-row control capacity; the
+completed Plan multiplies it by the same checked row inventory while folding
+its operation extents. This adds no occurrence, physical attempt or transfer.
+The control reservation stays live after individual bodies retire and retires
+with the same managed Run. A constructor quantity is not a permission or a
+physical cleanup acknowledgement.
+
+The Node request and physical children perform local original-record fences
+before the atomic Core borrow. That borrow already owns the same Plan/current
+check and reservation; a preceding callbackful Plan getter would repeat this
+boundary. Metadata refusals that do not reach the borrow still preserve the
+original current/Unknown precedence. Checks across external callbacks,
+construction, awaits and actual I/O remain separate reentry boundaries.
+
+CREATE materialization first supplies the original captured export Strings to
+the existing Common row inventory. Only after its wire/node/depth admission
+does the Host parse those same Strings, in the returned canonical source order.
+The Host does not reread proposal wrappers or invoke a second inventory check.
+The standard declaration retains its immutable constructor facts beside the
+original driver; those facts alone do not supply a complete implementation
+recipe or admit the Run.
+
 The operation envelope conservatively includes every still-retained declared
 child. A smaller overlap needs actual retirement of its original references.
 Scratch quoting observes peak owner/row/input-row arrays in the existing schema

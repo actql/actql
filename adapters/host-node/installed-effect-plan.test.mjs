@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits}
+  captureInstalledStandardCreateLimits, prepareInstalledEffectRequestChild}
   from './installed-effect-plan.mjs';
 
 // These are the actual installed Plan selector's ports. No native capacity,
@@ -321,4 +321,84 @@ test('standard CREATE refuses missing async inherited or accessor native metadat
   assert.throws(() => captureInstalledStandardCreateLimits({installedStandardCreateHttpLimits: () => values}),
     {code: 'InvalidInstalledStandardCreateLimits'});
   assert.equal(observed, 0);
+});
+
+test('Effect Plan forwards original per-row control material through the one selected typed demand constructor', () => {
+  const prepared = {}, identity = {}, extent = {}, controls = {}, installedContracts = {}, demand = {}, plan = {};
+  const recipe = captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([]),
+    rowOperations: Object.freeze([Object.freeze({operation: 'write', extent})]), controlsPerRow: controls}), 1);
+  assert.strictEqual(recipe.controlsPerRow, controls);
+  let called = 0;
+  const moon = {clientProgramEffectAcquisitionCount: value => {assert.strictEqual(value, prepared); return 0;},
+    clientProgramInstalledEffectOperationDemandWithControlsPrepare(p, stage, member, fixed, rows, original) {
+      assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.deepEqual([stage, member, fixed], [2, 'save', []]);
+      assert.strictEqual(rows[0], extent); assert.strictEqual(original, controls); called++;
+      return {$tag: 1, _0: demand};
+    },
+    clientProgramInstalledEffectManagedPlanPrepare(...args) {
+      assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], identity);
+      assert.strictEqual(args[7], installedContracts); assert.deepEqual(args.at(-1), [demand]);
+      return {$tag: 1, _0: plan};
+    }};
+  const inputs = {installedContracts, values: 'values', fragment: undefined, ordered: undefined};
+  assert.strictEqual(prepareInstalledEffectManagedPlan({moon, facts: {prepared, identity}, inputs,
+    unit: {stageIndex: 2}, members: [{effectId: 'save'}], recipeFor: () => recipe}), plan);
+  assert.equal(called, 1);
+  // Missing new support cannot select a legacy demand and discard the material.
+  delete moon.clientProgramInstalledEffectOperationDemandWithControlsPrepare;
+  moon.clientProgramInstalledEffectOperationDemandPrepare = () => assert.fail('No unfunded fallback');
+  assert.throws(() => prepareInstalledEffectManagedPlan({moon, facts: {prepared, identity}, inputs,
+    unit: {stageIndex: 2}, members: [{effectId: 'save'}], recipeFor: () => recipe}),
+  {code: 'InstalledEffectOperationDemandUnavailable'});
+});
+
+test('constructor atomic borrow owns its current boundary without a preceding callbackful Plan getter', () => {
+  const parent = {}, prepared = {}, request = {}, plan = {}, token = {};
+  let reads = 0, borrows = 0, retired = false;
+  const runtime = {
+    clientProgramInstalledEffectManagedOperationPlan(p, source, intent) {
+      assert.strictEqual(p, parent); assert.strictEqual(source, prepared); assert.strictEqual(intent, request);
+      reads++; return {$tag: 1, _0: plan};
+    },
+    clientProgramInstalledEffectOperationBorrow(p, source, intent, selected) {
+      assert.deepEqual([p, source, intent, selected], [parent, prepared, request, plan]);
+      borrows++; return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationRetire(original, done) {
+      assert.strictEqual(original, token); assert.equal(done, true); retired = true; return {$tag: 1, _0: true};
+    }};
+  const run = {runtime, value: parent, prepared, request, operationPlan: plan,
+    readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
+  const child = prepareInstalledEffectRequestChild({run, memberIndex: 0, rowIndex: 0,
+    operationIndex: 0, operation: 'construct', construct: () => assert.fail('No constructor selected'), requestsRetired: () => true});
+  assert.equal(reads, 0); assert.equal(borrows, 1);
+  assert.equal(child.release(), true); assert.equal(retired, true);
+});
+
+test('atomic borrow reentry keeps the returned original child before the constructor current fence', async () => {
+  const {prepareInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  for (const failure of ['changed Plan', 'thrown undefined']) {
+    const f = constructorControlFixture(() => assert.fail('Reentry cannot reach the constructor'));
+    const borrow = f.run.runtime.clientProgramInstalledEffectOperationBorrow;
+    f.run.runtime.clientProgramInstalledEffectOperationBorrow = function(...args) {
+      const result = Reflect.apply(borrow, this, args);
+      if (failure === 'changed Plan') f.run.operationPlan = {};
+      else f.run.failure = undefined;
+      return result;
+    };
+    const children = [];
+    let caught = false;
+    try {await prepareInstalledRowCaptureChild({children, create: () => prepareInstalledEffectRequestChild(f)});}
+    catch (cause) {
+      caught = true;
+      if (failure === 'changed Plan') assert.equal(cause.code, 'ForeignInstalledEffectManagedRun');
+      else assert.strictEqual(cause, undefined);
+    }
+    assert.equal(caught, true); assert.equal(children.length, 1);
+    assert.equal(children[0].prepared.status().pending, true);
+    assert.equal(f.debits(), 1); assert.equal(f.settlements(), 0);
+    f.retireAliases(); await children[0].prepared.release();
+    assert.equal(children[0].prepared.status().pending, false); assert.equal(f.settlements(), 1);
+  }
 });

@@ -105,6 +105,10 @@ struct ClientInstalledEffectOperationDemand {
   effect_id : String
   member_extents : Array[ClientInstalledEffectOperationExtent]
   row_extents : Array[ClientInstalledEffectOperationExtent]
+  // Implementation material constructed before an individual body borrow
+  // (for example the original grant). The SAME Run's existing control debit
+  // owns it; it is not another occurrence, physical attempt or transfer.
+  controls_per_row : @execution.ExecutionCapacity?
 }
 
 ///|
@@ -143,7 +147,28 @@ pub fn prepare_installed_effect_operation_demand(
     effect_id,
     member_extents: member_extents.copy(),
     row_extents: row_extents.copy(),
+    controls_per_row: None,
   })
+}
+
+///|
+/// Retain original implementation control DATA on the same checked member.
+/// No caller row amount is accepted: the original completed Plan supplies its
+/// row bound. The existing control reservation precedes any Node caller work.
+pub fn prepare_installed_effect_operation_demand_with_controls(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage_index : Int,
+  effect_id : String,
+  member_extents : Array[ClientInstalledEffectOperationExtent],
+  row_extents : Array[ClientInstalledEffectOperationExtent],
+  controls_per_row : @execution.ExecutionCapacity,
+) -> Result[
+  ClientInstalledEffectOperationDemand,
+  ClientInstalledManagedRunIssue,
+] {
+  prepare_installed_effect_operation_demand(
+    prepared, stage_index, effect_id, member_extents, row_extents,
+  ).map(original => { ..original, controls_per_row: Some(controls_per_row), })
 }
 
 ///|
@@ -430,8 +455,32 @@ pub fn prepare_installed_effect_managed_plan(
   let mut retained = compute_limits.retained_bytes
   let mut execution = compute_limits.execution_bytes
   let mut extent_count = 0L
+  let mut controlled_members = 0L
+  let mut implementation_control_retained = 0L
+  let mut implementation_control_execution = 0L
   let mut remaining = @publication_host.client_standard_program_preparation_limits().max_graph_work
   for demand in resolved_operations {
+    if demand.controls_per_row is Some(original) {
+      controlled_members += 1L
+      guard @execution.execution_capacity_inventory_add(
+          implementation_control_retained,
+          QuotedBytes,
+          @execution.execution_capacity_retained_bytes(original),
+          rows,
+        )
+        is Some(next_retained) &&
+        @execution.execution_capacity_inventory_add(
+          implementation_control_execution,
+          QuotedBytes,
+          @execution.execution_capacity_execution_bytes(original),
+          rows,
+        )
+        is Some(next_execution) else {
+        return Err(Unsupported)
+      }
+      implementation_control_retained = next_retained
+      implementation_control_execution = next_execution
+    }
     for
       (extents, multiplicity) in [
         (demand.member_extents, 1),
@@ -505,7 +554,9 @@ pub fn prepare_installed_effect_managed_plan(
   // (12H,6R,6W), two LedgerLimits(2H,0R,12W), source-free Some(1H,1R,1W).
   // Operations/declarations are exact copies; transport arrays own scalar
   // slots; acquisitions are appended with pinned spare capacity. Per selected
-  // member: Demand(1H,4R,2W) and two exact extent-reference copies(4H,2R,2W).
+  // member: Demand(1H,5R,2W) and two exact extent-reference copies(4H,2R,2W).
+  // The added optional control field borrows its original implementation
+  // capacity; a selected Some adds1H1R1W, never another copy of that capacity.
   // The optional query-time holder adds one Some header/payload/tag. Its
   // original caller-owned sample/Run backing is borrowed, not copied here.
   // The Model demand adds its record(1H,7R,5W), limits(1H,0R,6W),
@@ -521,6 +572,7 @@ pub fn prepare_installed_effect_managed_plan(
   let controls = @execution.preparation_representation_cost({
     record_headers: 17L +
     5L * members +
+    controlled_members +
     sources +
     time_holder +
     3L * model_holder +
@@ -530,6 +582,8 @@ pub fn prepare_installed_effect_managed_plan(
     sources +
     2L * acquisition_slots +
     6L * members +
+    members +
+    controlled_members +
     extent_count +
     2L * sources +
     time_holder +
@@ -537,6 +591,7 @@ pub fn prepare_installed_effect_managed_plan(
     7L * provider_sources.to_int64(),
     scalar_words: 26L -
     model_holder +
+    controlled_members +
     5L * sources +
     4L * members +
     time_holder +
@@ -560,6 +615,7 @@ pub fn prepare_installed_effect_managed_plan(
   let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
   let temporary = @execution.preparation_representation_cost({
     record_headers: 21L +
+    2L +
     workspace.row_bounds.to_int64() +
     2L * time_holder +
     3L * provider_scratch +
@@ -570,7 +626,10 @@ pub fn prepare_installed_effect_managed_plan(
     3L * time_holder +
     2L * provider_scratch +
     model_holder,
+    // Empty/selected implementation control accumulator and the original
+    // base capacity coexist with their combined result during this quote.
     scalar_words: 40L +
+    6L +
     input_slots +
     2L * workspace.row_bounds.to_int64() +
     time_holder +
@@ -587,6 +646,16 @@ pub fn prepare_installed_effect_managed_plan(
     installed_effect_operation_control_capacity(held_children.to_int()) {
     Some(value) => value
     None => return Err(Unsupported)
+  }
+  guard @execution.execution_capacity(
+      implementation_control_retained, implementation_control_execution,
+    )
+    is Some(implementation_control_capacity) &&
+    @execution.add_execution_capacity(
+      operation_control_capacity, implementation_control_capacity,
+    )
+    is Some(operation_control_capacity) else {
+    return Err(Unsupported)
   }
   let control_retained = @execution.execution_capacity_retained_bytes(
     operation_control_capacity,
