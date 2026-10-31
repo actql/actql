@@ -539,6 +539,7 @@ pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffec
 pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy_host.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_borrow_installed_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)]) -> Result[@physical_resources.PreparationBodyBorrow[(ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_borrow_request_content_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
@@ -1648,7 +1649,9 @@ pub fn client_program_installed_managed_source_input_kind(@client_local_host.Cli
 pub fn client_program_installed_managed_whole_source_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_mock_model_capture_plan_bind(@client_local_host.ClientInstalledManagedCapturePlan, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits) -> Result[@client_local_host.ClientInstalledManagedModelPlan, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_mock_model_capture_plan_prepare(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientTaskCompilation, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_mock_model_managed_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64, Int, Int, Int) -> Result[(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), @client_local_host.ClientInstalledManagedRunIssue]
@@ -2588,6 +2591,9 @@ pub fn client_program_prepare_infer_response_reconciliation(@model_execution.Mod
 pub fn client_program_prepare_installed_managed_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_installed_managed_whole_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_installed_managed_whole_source_plan_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_keyed_acquisition(@run_publication_host.PreparedClientProgram, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
@@ -2662,7 +2668,7 @@ pub fn client_program_prepare_request_model_compilation(@client_local_host.Clien
 
 pub fn client_program_prepare_request_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
 
-pub fn client_program_prepare_request_native_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
+pub fn client_program_prepare_request_native_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
 
 pub fn client_program_prepare_request_native_program_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @stage_syntax.Limits) -> Result[@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
@@ -2701,6 +2707,7 @@ pub fn client_program_prepare_source_computation_with_parameters(String, String,
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
 pub fn client_program_prepare_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSequenceContracts, @execution_relation.ExecutionCapacity?, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepared_installed_managed_model_requirements(@client_local_host.ClientInstalledManagedModelPlan) -> Array[Int64]
 
 pub fn client_program_prepared_installed_managed_source_free_requirements(@client_local_host.ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
