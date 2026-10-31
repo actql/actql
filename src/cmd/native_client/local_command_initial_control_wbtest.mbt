@@ -166,7 +166,20 @@ test "Selected command preparation frontend does not acquire before covered oper
       ["original", "--mode", "remote", "check", "SELECT 1"],
       ["original", "--mode", "local", "connect"],
       [
-        "original", "--mode", "local", "lookup-request", "--request-id", "unbound",
+        "original",
+        "--mode",
+        "local",
+        "lookup-preparation-raw",
+        "--submission-ref-file",
+        "unbound-submission.json",
+        "--ref-file",
+        "unbound-run.json",
+        "--grant-ref-file",
+        "unbound-grant.json",
+        "--operation-cid",
+        "sha256:" + "a".repeat(64),
+        "--use-id",
+        "unbound-use",
       ],
     ] {
     let control = parse_native_initial_arguments(arguments, false)

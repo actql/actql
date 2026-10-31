@@ -2466,6 +2466,34 @@ not nonacceptance proof or permission to submit again. Original Read, current,
 transaction uncertainty and cleanup failures cannot select a compatibility
 Library or another original.
 
+An explicit original-reference `run` reads its signed Submission and invocation
+attempt once under that same Read before business construction. An already
+admitted Run selects its saved original state; it does not prepare or compile
+the current Program again. A still-preparing intent retains its exact admitted
+input for the existing first-completion transaction. New input must match that
+retained input. Unresolved history grants neither nonacceptance proof nor a new
+identity; the existing Submission/Run admission and physical-start CAS remain
+the only route to work. A fresh explicit input carries the same reference,
+intent and checked preparation through its original Request and Plan binding.
+
+`cancel` and `lookup-cancellation` authenticate the original signed Submission,
+retained Run and complete supplied Run reference under independent current
+Cancel authority. Cancellation uses the existing Journal operation and actual
+Store publication observer. Its immutable operation record and original witness
+share the original transaction; a recorded request is not a physical stop ACK.
+The Store's Read/SQLite routing and all partial receivers stay with the existing
+command until their own cleanup outside the borrowed Read callback. Before the
+transaction, only the bounded public cancellation-reference DATA is copied to
+the existing initial-control context after suspending that same Read. A failed
+return or later cleanup therefore retains its original recovery correlation.
+Lost COMMIT, changed current authority and failed cleanup never issue another
+reference, request, attempt or automatic cancellation.
+
+Retained-Run output selects the existing Saved Result policy and original
+Store/read routing, without constructing a new computation. Receipt export
+requires the original accepted publication observation; a saved State or Result
+selection cannot manufacture a publisher or substitute another receipt kind.
+
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The
 command-owned mappings and trusted runtime lifetime remain separate. Help,

@@ -1577,13 +1577,15 @@ fn main {
       _ => ""
     }
     fail_cleanup_command(
-      "LocalCommandPreparationCleanupPending: " +
-      stage +
-      ": " +
-      command_preparation_cleanup_kind(issue) +
-      observed +
-      " cause=" +
-      command_preparation_cleanup_cause(issue),
+      local_command_recovery_failure(
+        "LocalCommandPreparationCleanupPending: " +
+        stage +
+        ": " +
+        command_preparation_cleanup_kind(issue) +
+        observed +
+        " cause=" +
+        command_preparation_cleanup_cause(issue),
+      ),
     )
   }
   if !crypto_closed {

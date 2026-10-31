@@ -218,3 +218,62 @@ test "Public Result refuses explicit unsupplied configuration before original ac
   assert_eq(issue, "ExplicitLocalConfigurationRequiresOriginalSupplier")
   assert_true(command_preparation_invocation.val is None)
 }
+
+///|
+test "Original cancellation selects the same command Read without a business execution" {
+  for operation in ["cancel", "lookup-cancellation"] {
+    let args = [
+      "--mode", "local", operation, "--submission-ref-file", "original-submission.json",
+      "--ref-file", "original-run.json", "--cancel-id", "original-cancel", "--expected-revision",
+      "1",
+    ]
+    if operation == "cancel" {
+      args.push("--operation-attempt-id")
+      args.push("original-cancel-attempt")
+    }
+    let parsed = command().parse(argv=args[:], env=Map([]))
+    assert_true(local_command_preparation_selected(parsed))
+    assert_true(
+      local_command_preparation_operation_selected(parsed, operation, false),
+    )
+    assert_false(
+      local_command_preparation_operation_selected(
+        parsed, "new-submission", true,
+      ),
+    )
+    let original = native_storage_finite_arithmetic_profile()
+    let (selected, business) = local_command_profile_selection(original, parsed)
+    assert_true(business is None)
+    assert_eq(selected.control_bytes, original.control_bytes)
+    assert_eq(selected.read_domain_bytes, original.read_domain_bytes)
+    assert_eq(selected.sqlite_domain_bytes, original.sqlite_domain_bytes)
+    args[1] = "remote"
+    assert_false(
+      local_command_preparation_selected(
+        command().parse(argv=args[:], env=Map([])),
+      ),
+    )
+  }
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
+test "Original cancellation recovery keeps Unknown and never fabricates a reference" {
+  let original = "original-public-cancel-reference"
+  for
+    failure in [
+      "LocalCancellationRecordUnconfirmed", "LocalCommandPreparationCleanupPending",
+      "OriginalReadReturnPending",
+    ] {
+    let retained = local_cancellation_recovery_failure(Some(original), failure)
+    assert_eq(
+      retained,
+      local_cancellation_unknown(original) + " reason=" + failure,
+    )
+    assert_true(retained.contains("lookup=lookup-cancellation"))
+    assert_false(retained.contains("succeeded"))
+    assert_eq(local_cancellation_recovery_failure(None, failure), failure)
+    assert_eq(local_command_recovery_failure(failure), failure)
+  }
+  assert_true(command_preparation_invocation.val is None)
+}

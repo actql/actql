@@ -119,23 +119,14 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_in_original_read(
       Ok(false) => return Err(Journal(AuthorizationDenied))
       Err(issue) => return Err(issue)
     }
-    if @host.client_request_authority_scope_cid(admission.request) !=
-      expected_scope {
-      return Err(Journal(ChangedIntent))
-    }
     let run = match
-      host.journal.lookup_with_reads(
-        admission.request,
-        true,
+      host.journal.lookup_submitted_admission_with_reads(
+        admission,
+        expected_scope,
         reads=Some(operations.reads),
       ) {
-      Ok(Retained(value)) => value
-      Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
+      Ok(value) => value
       Err(issue) => return Err(Journal(issue))
-    }
-    if @publication.publication_contract_identity(run.definition) !=
-      admission.run_definition_cid {
-      return Err(Journal(CustodyLost))
     }
     match
       self.original_submit_allowed(
@@ -146,4 +137,29 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_in_original_read(
       Err(issue) => Err(issue)
     }
   })
+}
+
+///|
+// One original Submission-to-Run join, shared by current Submit and Cancel
+// callers. Permission is checked independently by each captured operation.
+fn NativeClientRunJournal::lookup_submitted_admission_with_reads(
+  self : NativeClientRunJournal,
+  admission : NativeClientSubmittedRunAdmission,
+  expected_scope : String,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if @host.client_request_authority_scope_cid(admission.request) !=
+    expected_scope {
+    return Err(ChangedIntent)
+  }
+  let run = match self.lookup_with_reads(admission.request, true, reads~) {
+    Ok(Retained(value)) => value
+    Ok(UnresolvedHistory) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  if @publication.publication_contract_identity(run.definition) !=
+    admission.run_definition_cid {
+    return Err(CustodyLost)
+  }
+  Ok(run)
 }

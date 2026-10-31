@@ -104,6 +104,17 @@ fn local_select_run_submission(
 ) -> LocalRunSubmission raise ClientStop {
   native_timing_begin(22)
   defer native_timing_end(22)
+  if business is Some(original) && original.submission is Some(selected) {
+    if selected.fresh ||
+      optional(child, "operation-attempt-id") != Some(selected.attempt) ||
+      !local_submission_nonce_matches(
+        selected.reference,
+        optional(child, "request-id"),
+      ) {
+      stop("LocalSubmissionIdentityMismatch")
+    }
+    return selected
+  }
   match
     (
       optional(child, "submission-ref-file"),
@@ -230,4 +241,111 @@ fn local_run_submission_failure(
   " originalOperationAttemptId=" +
   selection.attempt +
   " (reconcile with lookup-request; do not resend this operation)"
+}
+
+///|
+// Caller flow only. These cases grant no acceptance, new identity or attempt.
+priv enum LocalRunSubmissionPreflight {
+  FreshSubmissionInput
+  ExplicitSubmissionInput(LocalRunSubmission, @run_host.ClientSubmittedIntent)
+  RetainedSubmissionRun(String)
+}
+
+///|
+// Read the supplied original once before business preparation. An admitted
+// Run returns its saved state without checking/compiling the current Program.
+// A preparing intent retains its exact original input for the existing first
+// completion/CAS path; unresolved history never proves nonacceptance.
+fn local_explicit_submission_preflight(
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  input_root : String,
+  operation : String,
+  child : @argparse.Matches,
+) -> LocalRunSubmissionPreflight raise ClientStop {
+  match
+    (
+      optional(child, "submission-ref-file"),
+      optional(child, "operation-attempt-id"),
+    ) {
+    (None, None) => return FreshSubmissionInput
+    (Some(_), Some(_)) => ()
+    _ => stop("OriginalSubmissionReferenceRequired")
+  }
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  if !local_run_operation_allowed(
+      host,
+      settings,
+      crypto,
+      scope,
+      "submit",
+      capture=Some(capture),
+    ) {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  // Only the explicit branch is reachable. It reads the original bounded
+  // file and attempt; it cannot enter fresh Epoch/nonce issuance.
+  let selection = local_select_run_submission(
+    host, settings, crypto, scope, input_root, child, true,
+  )
+  if selection.fresh {
+    stop("OriginalSubmissionReferenceRequired")
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_intent_wire(input_root, operation, child),
+    65536,
+    8192,
+    64,
+  ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let observed = local_host_result(
+    capture.lookup_submitted_intent_in_original_read(
+      settings.principal,
+      settings.connection,
+      scope,
+      selection.reference,
+      @env.now().to_double(),
+    ),
+  )
+  match observed {
+    UnresolvedSubmissionHistory => ExplicitSubmissionInput(selection, intent)
+    Submitted(record) => {
+      let original_intent = @local_host.native_client_submitted_intent(record)
+      if @run_host.client_submitted_intent_wire(original_intent) !=
+        @run_host.client_submitted_intent_wire(intent) {
+        stop("LocalSubmissionIntentConflict")
+      }
+      match @local_host.native_client_submitted_run_admission(record) {
+        None => ExplicitSubmissionInput(selection, original_intent)
+        Some(_) => {
+          let reply = local_submission_lookup_reply(
+            host,
+            settings,
+            crypto,
+            selection.reference,
+            scope,
+            observed,
+            capture=Some(capture),
+          )
+          RetainedSubmissionRun(
+            local_public_run_state_reply(
+              host,
+              settings,
+              crypto,
+              selection.reference,
+              true,
+              reply,
+              capture=Some(capture),
+            ),
+          )
+        }
+      }
+    }
+  }
 }

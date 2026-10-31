@@ -165,3 +165,74 @@ fn LocalCommandPreparationOriginal::execute_original_run_presentation(
     ClientStop(issue) => stop(issue + correlation)
   }
 }
+
+///|
+// Deliver only from the retained Run and current independent read originals.
+// This is not another Program preparation, publication or execution attempt.
+fn LocalCommandPreparationOriginal::present_retained_run(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  runtime : LocalPackagedRuntime,
+  crypto : @local_crypto.Library,
+  child : @argparse.Matches,
+  original : String,
+) -> String raise ClientStop {
+  if !local_run_presentation_requested(child) {
+    return original
+  }
+  let directory = @env.current_dir().unwrap_or_else(() => {
+    stop("ProjectConfigurationDirectoryUnavailable")
+  })
+  let delivery = local_result_delivery_selection(
+    child,
+    directory,
+    run_presentation=true,
+  )
+  // Receipt export requires its original publication observation. A saved
+  // state/Result selection must not manufacture that publisher or receipt.
+  if delivery.receipt is Some(_) {
+    stop("LocalRunReceiptOriginalUnavailable")
+  }
+  let (result, correlation) = local_run_presentation_result(
+    child, delivery, original,
+  )
+  try {
+    command_preparation_result(self.prepare_saved_result_operation(capture))
+    let physical = self.host.unwrap_or_else(() => {
+      stop("LocalReadOriginalCustodyUnavailable")
+    })
+    let pair = self.pair.unwrap_or_else(() => {
+      stop("LocalReadOriginalCustodyUnavailable")
+    })
+    let sqlite = physical
+      .borrow_local_host_sqlite(pair)
+      .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+    let selected = self.prepare_original_result(
+      host,
+      capture,
+      configuration.settings,
+      configuration.configuration_name,
+      runtime,
+      sqlite,
+      result,
+      configuration=Some(configuration),
+    )
+    let delivered = local_public_result(
+      host,
+      configuration.settings,
+      crypto,
+      sqlite,
+      result,
+      prepared=Some(selected),
+    )
+    if delivery.json {
+      delivered
+    } else {
+      original
+    }
+  } catch {
+    ClientStop(issue) => stop(issue + correlation)
+  }
+}

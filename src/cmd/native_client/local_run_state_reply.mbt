@@ -9,18 +9,31 @@ fn local_public_run_state_reply(
   reference : @local_host.NativeClientSubmissionReference,
   public_run : Bool,
   legacy_reply : String,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
   if !public_run {
     return legacy_reply
   }
-  let selected = match
-    host.lookup_submitted_run_state_by_id(
-      crypto,
-      settings.principal,
-      settings.connection,
-      @local_host.native_client_submission_request_id(reference),
-      @env.now().to_double(),
-    ) {
+  let result = match capture {
+    Some(original) =>
+      local_host_result(
+        original.lookup_submitted_run_state_by_id_in_original_read(
+          settings.principal,
+          settings.connection,
+          @local_host.native_client_submission_request_id(reference),
+          @env.now().to_double(),
+        ),
+      )
+    None =>
+      host.lookup_submitted_run_state_by_id(
+        crypto,
+        settings.principal,
+        settings.connection,
+        @local_host.native_client_submission_request_id(reference),
+        @env.now().to_double(),
+      )
+  }
+  let selected = match result {
     Ok(value) => value
     Err(issue) => stop(local_saved_state_issue(issue))
   }

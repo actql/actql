@@ -197,6 +197,26 @@ fn NativeLocalJournalCapture::original_submit_allowed(
   connection : String,
   expected_scope : String,
 ) -> Result[Bool, NativeLocalAdoptionIssue] {
+  self.original_run_operation_allowed(
+    host, material, principal, connection, expected_scope, "submit",
+  )
+}
+
+///|
+// The original Account Owner evaluates the selected actual operation. Shared
+// scope/current plumbing does not create a cached Allow or another authority.
+fn NativeLocalJournalCapture::original_run_operation_allowed(
+  self : NativeLocalJournalCapture,
+  host : NativeLocalHostConnection,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+  principal : String,
+  connection : String,
+  expected_scope : String,
+  operation : String,
+) -> Result[Bool, NativeLocalAdoptionIssue] {
   // These immutable originals determine identity, never Allow. The material
   // was joined to this Host immediately before this closed operation. Account
   // evaluation below still observes that same material before and after its
@@ -214,7 +234,7 @@ fn NativeLocalJournalCapture::original_submit_allowed(
       principal,
       connection,
       resource: "run",
-      operation: "submit",
+      operation,
     }) {
     Ok(Allow(_)) => Ok(true)
     Ok(_) => Ok(false)

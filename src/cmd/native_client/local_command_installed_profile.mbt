@@ -131,6 +131,8 @@ fn local_command_preparation_selected(
     matches.subcommand is Some(("new-submission", _)) ||
     matches.subcommand is Some(("lookup-submission", _)) ||
     matches.subcommand is Some(("lookup-request", _)) ||
+    matches.subcommand is Some(("cancel", _)) ||
+    matches.subcommand is Some(("lookup-cancellation", _)) ||
     local_checkpoint_action_selected(matches, "approve") ||
     local_checkpoint_action_selected(matches, "reject") ||
     (
@@ -196,6 +198,8 @@ fn prepare_native_command_invocation(
       matches.subcommand is Some(("new-submission", _)) ||
       matches.subcommand is Some(("lookup-submission", _)) ||
       matches.subcommand is Some(("lookup-request", _)) ||
+      matches.subcommand is Some(("cancel", _)) ||
+      matches.subcommand is Some(("lookup-cancellation", _)) ||
       (
         matches.subcommand is Some(("explain", child)) &&
         optional(child, "run") is Some(_)
