@@ -2930,6 +2930,8 @@ pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_
 
 pub fn client_program_reserve_publication(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@client_local_host.ClientProgramPublication, @client_local_host.ClientClosedValuesPreparationIssue]
 
+pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
 pub fn client_program_reserve_request_snapshot(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int64, Int64) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_resolve_installed_model_defaults(@run_publication_host.ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]

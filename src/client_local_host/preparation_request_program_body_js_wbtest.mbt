@@ -1447,7 +1447,12 @@ test "timed invocation backing fences current reentry and foreign input before t
   assert_true(parent.phase == ProgramPlanReserved)
   assert_true(parent.program_invocation_quote is Some(_))
   allow.val = true
-  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+  // The original Host has latched retirement. Restoring callback DATA cannot
+  // revive it; only the SAME owner's original cleanup may still continue.
+  assert_true(
+    reserve_request_query_time_invocation(parent, input, artifact)
+    is Err(Preparation(Capacity(Resource(ClosedReservation)))),
+  )
   during.val = None
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(parent).unwrap()
