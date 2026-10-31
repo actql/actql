@@ -77,6 +77,7 @@ async function fixture({failurePhase,failure}={}) {
       async options=>{localOptions=options;return{connectorBindings:[],admitsSource:()=>true};},()=>({wire:'{}'}),()=> '{}',
       async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'));
   const entry={connection:'local',rootPath:'/not-opened',declaration,scopeCid:'sha256:'+'a'.repeat(64),
+    queryAliases:[{name:'local',resource:'files'},{name:'local.contents',resource:'contents'}],
     limits:{maxReadBytes:100,maxPages:2,maxPageBytes:8,maxFileBytes:32},wire:JSON.stringify({views:[
       {resource:'files',source_ref:'local:files'},{resource:'contents',source_ref:'local:contents'}]})};
   const bundle={sources:[entry]};profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged:view,
