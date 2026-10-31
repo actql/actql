@@ -101,17 +101,18 @@ test('Effect load refuses a copied Host service before installer or Site acquisi
   assert.equal(f.calls(), 0);
 });
 
-test('Effect load preserves original profile refusal before runtime or service selection', async t => {
+test('Effect load preserves original profile refusal before runtime identity or installer selection', async t => {
   const failure = new Error('OriginalProfileRefusal');
   const f = await serviceFixture(t, {onCheck() {throw failure;}});
   await assert.rejects(loader.loadInstalledEffect(f.profilePath, {...f.options,
-    runtimeUrl: pathToFileURL(join(f.root, 'missing-runtime')), installationServices: {}}), error => error === failure);
+    runtimeUrl: pathToFileURL(join(f.root, 'missing-runtime'))}), error => error === failure);
   assert.equal(f.calls(), 0);
 });
 
 test('Effect load keeps the absent-service installer envelope unchanged', async t => {
   const f = await serviceFixture(t, {onLoad(_profile, options) {
     assert.equal(Object.hasOwn(options, 'installationServices'), false);
+    assert.equal(Object.hasOwn(options, 'configurationReader'), false);
   }});
   const {installationServices: _unused, ...options} = f.options;
   await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), error => error === f.stop);
@@ -195,8 +196,10 @@ test('Effect initial material owns profile runtime and installer metadata reads 
   const f = await initialEffectFixture(t);
   await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.installerFailure);
   assert.deepEqual(f.events.slice(0, 3), ['take', 'continue', 'reserve']);
-  assert.equal(f.events.filter(value => value === 'begin').length, 3);
-  assert.equal(f.events.filter(value => value === 'file-close').length, 3);
+  // Each small original file has one FD lease, one body read and one EOF
+  // read. Read completions do not substitute for the original FD close.
+  assert.equal(f.events.filter(value => value === 'begin').length, 3 * 3);
+  assert.equal(f.events.filter(value => value === 'file-close').length, 3 * 3);
   assert.deepEqual(f.counts(), {loaded: 1, transferred: f.expectedBytes});assert.equal(f.live.size, 0);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
 });

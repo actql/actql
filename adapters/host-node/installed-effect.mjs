@@ -16,11 +16,12 @@ import {createHash} from 'node:crypto';
 import {isAbsolute, join} from 'node:path';
 import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
+import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
-import {retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
+import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
+  reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading} from './installed-host-services.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -42,8 +43,8 @@ const refuse = (code, cause) => {
 
 // Bound profile and identity-part reads before buffering, including files that
 // grow after opening. This limit is distinct from Check Environment admission.
-async function readProfileJson(path, {maxBytes = 8 * 1024 * 1024} = {}) {
-  try { return await readSourceProfileJson(path, {maxBytes}); }
+async function readProfileJson(path, {maxBytes = 8 * 1024 * 1024} = {}, read = readSourceProfileJson) {
+  try { return await read(path, {maxBytes}); }
   catch (cause) {
     if (cause?.cleanupHandle !== undefined) {
       // The same acquired reader supplies its primary; do not infer it from
@@ -60,12 +61,12 @@ async function readProfileJson(path, {maxBytes = 8 * 1024 * 1024} = {}) {
   }
 }
 
-async function readProfile(path) {
+async function readProfile(path, read = readProfileJson) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     refuse('InvalidInstalledEffectProfilePath');
   }
   let profile;
-  try { profile = await readProfileJson(path); }
+  try { profile = await read(path); }
   catch (cause) { refuse('InvalidInstalledEffectProfile', cause); }
   return profile;
 }
@@ -109,11 +110,11 @@ function splitUpdateTargetProfile(profile) {
 // The Site binds its capability attestation and credential grants to the
 // exact standard runtime this Host executes.
 
-async function providerRuntime(entry, runtimeUrl) {
+async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installedRuntimeBundleCid) {
   const bundle = providerBundleUrl(entry);
   return {...(bundle === undefined ? {} : {providerMoon:
     await import(bundle.href)}),
-  runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
+  runtimeBundleCid: await readRuntimeIdentity(runtimeUrl)};
 }
 
 // Only installation references and published, immutable declarations enter
@@ -169,36 +170,47 @@ export async function publishInstalledEffectProfile(path, {root, principalId,
 // lives under the Host's state root.
 async function loadEffect(path, {root, principalId, moon,
   runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}, own) {
-  const profile = await readProfile(path);
-  const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
-  const {entry, module} = await selectInstallation(profile, connectorTable);
-  const checked = module.check(providerProfile);
-  const runtime = await providerRuntime(entry, runtimeUrl);
-  retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
-  const installed = await module.load(checked, {root,
-    principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
-    ledgerRoot: join(root, 'state', 'effects', 'ledger'),
-    ...(installationServices === undefined ? {} : {installationServices}), ...runtime});
-  own(installed);
-  verifyInstalledConnectorRegistration(entry, installed);
-  if (typeof installed?.prepareCaptured !== 'function' ||
-      typeof installed.prepareRecovered !== 'function' ||
-      typeof installed.environmentWire !== 'string' ||
-      typeof installed.close !== 'function') {
-    refuse('InvalidInstalledEffectInstallation');
-  }
-  return retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
-    connectorBindings: installed.connectorBindings,
-    effectSelectors: installed.effectSelectors,
-    queryUpdateTargets: installedUpdateTargets(installed, queryUpdateTargets),
-    queryTableBindings: installed.queryTableBindings,
-    queryTableWriteAccesses: installed.queryTableWriteAccesses,
-    mappings: installed.mappings,
-    targetReadInventory: installed.targetReadInventory,
-    targetReadAuthorization: installed.targetReadAuthorization,
-    prepareCaptured: installed.prepareCaptured,
-    prepareRecovered: installed.prepareRecovered,
-    close: () => installed.close()}));
+  // The SAME initial material owns profile/runtime input and stays pending
+  // through the awaited installer. Plural composition uses this same entry.
+  return withInstalledSourceLoading(installationServices, async () => {
+    const configurationReader = installationServices === undefined ? undefined
+      : installedSourceConfigurationReader(installationServices);
+    const readers = captureConfigurationReaders(configurationReader, undefined,
+      () => refuse('InstalledConfigurationReaderUnavailable'));
+    const profile = await readProfile(path, (path, options) => readProfileJson(path, options, readers.readJson));
+    const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
+    const {entry, module} = await selectInstallation(profile, connectorTable);
+    const checked = module.check(providerProfile);
+    const readRuntimeIdentity = installationServices === undefined ? undefined
+      : reserveInstalledSourceRuntimeIdentity(installationServices);
+    const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
+    retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
+    const installed = await module.load(checked, {root,
+      principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
+      ledgerRoot: join(root, 'state', 'effects', 'ledger'),
+      ...(installationServices === undefined ? {} : {installationServices}),
+      ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
+    own(installed);
+    verifyInstalledConnectorRegistration(entry, installed);
+    if (typeof installed?.prepareCaptured !== 'function' ||
+        typeof installed.prepareRecovered !== 'function' ||
+        typeof installed.environmentWire !== 'string' ||
+        typeof installed.close !== 'function') {
+      refuse('InvalidInstalledEffectInstallation');
+    }
+    return retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
+      connectorBindings: installed.connectorBindings,
+      effectSelectors: installed.effectSelectors,
+      queryUpdateTargets: installedUpdateTargets(installed, queryUpdateTargets),
+      queryTableBindings: installed.queryTableBindings,
+      queryTableWriteAccesses: installed.queryTableWriteAccesses,
+      mappings: installed.mappings,
+      targetReadInventory: installed.targetReadInventory,
+      targetReadAuthorization: installed.targetReadAuthorization,
+      prepareCaptured: installed.prepareCaptured,
+      prepareRecovered: installed.prepareRecovered,
+      close: () => installed.close()}));
+  });
 }
 
 export async function loadInstalledEffect(path, options) {

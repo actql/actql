@@ -69,6 +69,15 @@ flag or detached scalar credit. The Source Owner keeps its material recipe and
 failed-construction/retirement duties; the initial admission and forwarding
 must use the same existing accounting owner without a parallel Source Ledger.
 
+The ordinary Effect loader uses that same initial material before reading its
+profile and runtime identity, and passes its original configuration reader to
+the installer. The awaited installation remains pending after the individual
+file reads have physically closed. A reservation failure precedes opening the
+profile; an installer failure retains the same initial cleanup responsibility.
+This input-reader handoff does not replace the provider's declaration, Mapping,
+Site or operation-construction obligations. Independent profile publication
+and identity inspection retain their separate bounded-reader purpose.
+
 ## Captured Parameter Values on the Request
 
 The Local Parameter input Owner supplies its existing source/tree limits to

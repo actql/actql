@@ -62907,7 +62907,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2e8ced605874de506f17e496ee2a69772bded9f4550e4cc3ce317549de9fe477",
+      "sha256": "6bf7305414333ba760a1811dbb3fb31b0eec8a245264dd4813d3d4d01f2bd956",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -62962,6 +62962,24 @@
         {
           "name": "loadEffect/loadEffect",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadEffect/loadEffect/loadEffect",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadEffect/loadEffect/profile/profile",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadEffect/loadEffect/readers/readers",
+          "parameters": [],
           "async": false
         },
         {
@@ -62991,7 +63009,8 @@
           "name": "providerRuntime",
           "parameters": [
             "entry",
-            "runtimeUrl"
+            "runtimeUrl",
+            "readRuntimeIdentity"
           ],
           "async": true
         },
@@ -63013,7 +63032,8 @@
         {
           "name": "readProfile",
           "parameters": [
-            "path"
+            "path",
+            "read"
           ],
           "async": true
         },
@@ -63021,7 +63041,8 @@
           "name": "readProfileJson",
           "parameters": [
             "path",
-            "maxBytes"
+            "maxBytes",
+            "read"
           ],
           "async": true
         },
@@ -63064,6 +63085,9 @@
             "installedEffectPaths",
             "loadEffect",
             "loadEffect/loadEffect",
+            "loadEffect/loadEffect/loadEffect",
+            "loadEffect/loadEffect/profile/profile",
+            "loadEffect/loadEffect/readers/readers",
             "loadInstalledEffect",
             "loadInstalledEffect/loadInstalledEffect",
             "loadInstalledEffects",
@@ -63158,7 +63182,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -63339,7 +63363,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -63511,7 +63535,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
