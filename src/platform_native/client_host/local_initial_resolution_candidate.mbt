@@ -128,7 +128,7 @@ fn NativeLocalEffectReviewerBinding::read_initial_resolution_candidate_locked(
       grant,
       history.original_use(),
       scope,
-      @env.now().to_int64(),
+      @env.now().reinterpret_as_int64(),
     ) {
     Ok(_) => ()
     Err(_) => return Err(AuthorizationDenied)

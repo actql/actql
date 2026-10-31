@@ -52,7 +52,7 @@ fn initial_candidate_fixture(
   }
   let physical = prepare_local_initial_resolution_physical(key, scope).unwrap()
   guard initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap()
-    is InitialStorageClaim(original, use) else {
+    is InitialStorageClaim(original, signing_use) else {
     fail("fresh claim required")
   }
   let transport = physical.sign_once().unwrap()
@@ -71,7 +71,7 @@ fn initial_candidate_fixture(
   } else {
     @checkpoint.seal_prepared_resolution_proof(proof, scope.key_id, signature).unwrap()
   }
-  (key, original, use, physical, signature, proof, wire)
+  (key, original, signing_use, physical, signature, proof, wire)
 }
 
 ///|
@@ -181,7 +181,7 @@ test "restored original body keeps Core subject self identity and distinct cance
 
 ///|
 test "complete original Resolution shares signature outcome TX and existing grant capacity" {
-  let (key, original, use, physical, signature, proof, wire) = initial_candidate_fixture(
+  let (key, original, signing_use, physical, signature, proof, wire) = initial_candidate_fixture(
     "candidate-confirmed",
   )
   let host = key.original.host
@@ -190,7 +190,7 @@ test "complete original Resolution shares signature outcome TX and existing gran
     store_local_initial_resolution_signature_locked(
       host,
       original,
-      use,
+      signing_use,
       signature,
       prepared=Some(proof),
     )
@@ -199,7 +199,7 @@ test "complete original Resolution shares signature outcome TX and existing gran
   assert_eq(
     host.journal
     .transaction(() => {
-      local_initial_resolution_result_locked(host, original, use)
+      local_initial_resolution_result_locked(host, original, signing_use)
     })
     .unwrap(),
     (signature, Some(wire)),
@@ -229,21 +229,21 @@ test "complete original Resolution shares signature outcome TX and existing gran
   host.close().unwrap()
 
   // Legacy signature-only metadata is still readable, never a full candidate.
-  let (key, original, use, physical, signature) = initial_resolution_physical_fixture(
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
     "candidate-legacy",
   )
   let host = key.original.host
   host.journal
   .transaction(() => {
     store_local_initial_resolution_signature_locked(
-      host, original, use, signature,
+      host, original, signing_use, signature,
     )
   })
   .unwrap()
   assert_eq(
     host.journal
     .transaction(() => {
-      local_initial_resolution_result_locked(host, original, use)
+      local_initial_resolution_result_locked(host, original, signing_use)
     })
     .unwrap(),
     (signature, None),
@@ -261,7 +261,7 @@ test "complete original Resolution shares signature outcome TX and existing gran
 
 ///|
 test "candidate exact bytes missing rows and tighter original limits cannot be repaired" {
-  let (key, original, use, physical, signature, proof, _) = initial_candidate_fixture(
+  let (key, original, signing_use, physical, signature, proof, _) = initial_candidate_fixture(
     "candidate-tamper",
   )
   let host = key.original.host
@@ -270,7 +270,7 @@ test "candidate exact bytes missing rows and tighter original limits cannot be r
     store_local_initial_resolution_signature_locked(
       host,
       original,
-      use,
+      signing_use,
       signature,
       prepared=Some(proof),
     )
@@ -306,7 +306,7 @@ test "candidate exact bytes missing rows and tighter original limits cannot be r
             |> ignore
           }
           refused.val = local_initial_resolution_result_locked(
-              host, original, use,
+              host, original, signing_use,
             )
             is Err(CustodyLost)
         } else {
@@ -332,7 +332,7 @@ test "candidate exact bytes missing rows and tighter original limits cannot be r
   physical.close_checked().unwrap()
   host.close().unwrap()
 
-  let (key, original, use, physical, signature, proof, _) = initial_candidate_fixture(
+  let (key, original, signing_use, physical, signature, proof, _) = initial_candidate_fixture(
     "candidate-tight",
     tight=true,
   )
@@ -342,7 +342,7 @@ test "candidate exact bytes missing rows and tighter original limits cannot be r
       store_local_initial_resolution_signature_locked(
         host,
         original,
-        use,
+        signing_use,
         signature,
         prepared=Some(proof),
       )
@@ -374,7 +374,7 @@ test "candidate exact bytes missing rows and tighter original limits cannot be r
 ///|
 test "lost candidate COMMIT return preserves full original wire without another proof or signing" {
   let name = "candidate-commit-return"
-  let (key, original, use, physical, signature, proof, wire) = initial_candidate_fixture(
+  let (key, original, signing_use, physical, signature, proof, wire) = initial_candidate_fixture(
     name,
   )
   let host = key.original.host
@@ -384,7 +384,7 @@ test "lost candidate COMMIT return preserves full original wire without another 
       store_local_initial_resolution_signature_locked(
         host,
         original,
-        use,
+        signing_use,
         signature,
         prepared=Some(proof),
       )
@@ -414,7 +414,7 @@ test "lost candidate COMMIT return preserves full original wire without another 
   assert_eq(
     reopened.journal
     .transaction(() => {
-      local_initial_resolution_result_locked(reopened, original, use)
+      local_initial_resolution_result_locked(reopened, original, signing_use)
     })
     .unwrap(),
     (signature, Some(wire)),

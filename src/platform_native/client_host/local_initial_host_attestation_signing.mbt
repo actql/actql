@@ -162,7 +162,7 @@ fn NativeLocalInitialHostAttestationSigning::require_use_locked(
     Ok(_) => ()
   }
   let host = preparation.authenticated.binding.host
-  guard self.original_use is Some(use) &&
+  guard self.original_use is Some(signing_use) &&
     preparation.original.grant is SigningGrant(grant) else {
     return Err(CustodyLost)
   }
@@ -170,9 +170,9 @@ fn NativeLocalInitialHostAttestationSigning::require_use_locked(
     @credential_resource.check_native_local_initial_host_signing_use_in_transaction(
       host.database,
       grant,
-      use,
+      signing_use,
       preparation.scope,
-      @env.now().to_int64(),
+      @env.now().reinterpret_as_int64(),
     ) {
     Err(@credential_resource.Journal(issue)) => return Err(Physical(issue))
     Err(_) => return Err(AuthorizationDenied)
@@ -223,20 +223,20 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
       host.database,
       grant,
     )
-    let use = match history {
+    let signing_use = match history {
       Ok(value) if value.observed_outcome() == @credential_resource.Succeeded => {
-        let use = value.original_use()
+        let signing_use = value.original_use()
         match
           local_initial_resolution_result_locked(
             host,
             preparation.original,
-            use,
+            signing_use,
           ) {
           Ok((signature, Some(_))) => retained_signature.val = Some(signature)
           Ok(_) => return Err(CustodyLost)
           Err(issue) => return Err(issue)
         }
-        use
+        signing_use
       }
       Ok(_) => return Err(CustodyLost)
       Err(@credential_resource.Journal(@sqlite.NotFound)) =>
@@ -247,7 +247,7 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
             host.database,
             grant,
             preparation.scope,
-            @env.now().to_int64(),
+            @env.now().reinterpret_as_int64(),
           ) {
           Ok(value) => value
           Err(issue) => {
@@ -260,7 +260,7 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
         return Err(CustodyLost)
       }
     }
-    self.original_use = Some(use)
+    self.original_use = Some(signing_use)
     self.require_use_locked()
   })
   match claimed {
@@ -293,7 +293,7 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      guard self.original_use is Some(use) else {
+      guard self.original_use is Some(signing_use) else {
         return Err(HostAttestationUnavailable)
       }
       match
@@ -306,7 +306,7 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
             store_local_initial_resolution_signature_locked(
               host,
               preparation.original,
-              use,
+              signing_use,
               signature,
               attested=Some(preparation.admitted),
               attested_limits=preparation.authenticated.limits,
@@ -335,7 +335,8 @@ pub fn NativeLocalInitialHostAttestationSigning::original_verified_resolution(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard self.original_use is Some(use) && self.signature is Some(signature) else {
+  guard self.original_use is Some(signing_use) &&
+    self.signature is Some(signature) else {
     return Err(HostAttestationUnavailable)
   }
   let preparation = self.preparation
@@ -352,11 +353,15 @@ pub fn NativeLocalInitialHostAttestationSigning::original_verified_resolution(
       _ => return Err(CustodyLost)
     }
     if @credential.local_signing_credential_use_cid(history.original_use()) !=
-      @credential.local_signing_credential_use_cid(use) {
+      @credential.local_signing_credential_use_cid(signing_use) {
       return Err(CustodyLost)
     }
     match
-      local_initial_resolution_result_locked(host, preparation.original, use) {
+      local_initial_resolution_result_locked(
+        host,
+        preparation.original,
+        signing_use,
+      ) {
       Ok((actual, Some(wire))) if actual == signature => Ok(wire)
       Ok(_) => Err(CustodyLost)
       Err(issue) => Err(issue)
@@ -445,7 +450,9 @@ pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
   // The existing commit owner samples after physical verification. A saved
   // verification instant cannot extend the actual open-Checkpoint deadline.
   let now = () => {
-    @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap_or("")
+    @values.epoch_milliseconds_timestamp(@env.now().reinterpret_as_int64()).unwrap_or(
+      "",
+    )
   }
   host.journal
   .resolve_effect_checkpoint(

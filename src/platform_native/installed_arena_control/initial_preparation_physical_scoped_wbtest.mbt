@@ -80,7 +80,8 @@ test "actual initialization retains its same input and waits for the last physic
     bootstrap_retained: 16384L,
     bootstrap_execution: 8192L,
   }
-  assert_true(host.initialize_preparation({ ..live, }, input, budget) is Err(_))
+  // NativeBackedLiveChild is opaque outside its defining package; the caller
+  // cannot construct a copied carrier. Core copied-admission cases are separate.
   assert_true(host.initialize_preparation(live, Ref(31), budget) is Err(_))
   let foreign = { ..host, }
   assert_true(foreign.initialize_preparation(live, input, budget) is Err(_))
@@ -110,7 +111,6 @@ test "actual initialization retains its same input and waits for the last physic
   )
   assert_true(host.close_domain_after_owner_ack(domain) is Err(_))
   assert_true(foreign.close_preparation(live) is Err(_))
-  assert_true(host.close_preparation({ ..live, }) is Err(_))
   assert_eq(held.val.unwrap()[0], 31)
   held.val = None
   assert_true(

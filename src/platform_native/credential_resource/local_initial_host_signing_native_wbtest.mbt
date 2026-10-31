@@ -32,7 +32,7 @@ test "initial Host use keeps Reviewer entries closed and claims only its one exa
     )
     is Err(Credential(_)),
   )
-  let use = claim_native_local_initial_host_signing_use_in_transaction(
+  let signing_use = claim_native_local_initial_host_signing_use_in_transaction(
     db, grant, scope, 100L,
   ).unwrap()
   db.commit().unwrap()
@@ -46,12 +46,12 @@ test "initial Host use keeps Reviewer entries closed and claims only its one exa
   assert_true(history.observed_outcome() == Claimed)
   assert_eq(
     @credential.local_signing_credential_use_json(history.original_use()),
-    @credential.local_signing_credential_use_json(use),
+    @credential.local_signing_credential_use_json(signing_use),
   )
   db.begin_immediate().unwrap()
   assert_true(
     check_native_local_original_signing_use_in_transaction(
-      db, grant, use, scope, 101L,
+      db, grant, signing_use, scope, 101L,
     )
     is Err(Credential(_)),
   )
@@ -59,18 +59,18 @@ test "initial Host use keeps Reviewer entries closed and claims only its one exa
     record_native_local_original_signing_outcome_in_transaction(
       db,
       grant,
-      use,
+      signing_use,
       Succeeded,
     )
     is Err(Credential(_)),
   )
   check_native_local_initial_host_signing_use_in_transaction(
-    db, grant, use, scope, 101L,
+    db, grant, signing_use, scope, 101L,
   ).unwrap()
   record_native_local_initial_host_signing_outcome_in_transaction(
     db,
     grant,
-    use,
+    signing_use,
     Succeeded,
   ).unwrap()
   |> ignore
@@ -124,11 +124,11 @@ test "initial Host Unknown and failed original outcomes never become a fresh use
     )
     let scope = @credential.local_signing_credential_grant_scope(grant)
     db.begin_immediate().unwrap()
-    let use = claim_native_local_initial_host_signing_use_in_transaction(
+    let signing_use = claim_native_local_initial_host_signing_use_in_transaction(
       db, grant, scope, 100L,
     ).unwrap()
     record_native_local_initial_host_signing_outcome_in_transaction(
-      db, grant, use, outcome,
+      db, grant, signing_use, outcome,
     ).unwrap()
     |> ignore
     db.commit().unwrap()
@@ -143,7 +143,7 @@ test "initial Host Unknown and failed original outcomes never become a fresh use
       record_native_local_initial_host_signing_outcome_in_transaction(
         db,
         grant,
-        use,
+        signing_use,
         Succeeded,
       )
       is Err(Journal(@sqlite.Collision)),
@@ -169,7 +169,7 @@ test "initial Host current refuses expiry revocation and missing durable use wit
     let scope = @credential.local_signing_credential_grant_scope(grant)
     let cid = @credential.local_signing_credential_grant_cid(grant)
     db.begin_immediate().unwrap()
-    let use = claim_native_local_initial_host_signing_use_in_transaction(
+    let signing_use = claim_native_local_initial_host_signing_use_in_transaction(
       db, grant, scope, 100L,
     ).unwrap()
     db.commit().unwrap()
@@ -189,7 +189,7 @@ test "initial Host current refuses expiry revocation and missing durable use wit
       check_native_local_initial_host_signing_use_in_transaction(
         db,
         grant,
-        use,
+        signing_use,
         scope,
         if variant == 0 {
           10000L

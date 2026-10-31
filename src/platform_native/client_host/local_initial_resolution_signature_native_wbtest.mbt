@@ -14,7 +14,7 @@ fn initial_resolution_physical_fixture(
   let (key, request, scope) = initial_issue_storage_fixture(name)
   let physical = prepare_local_initial_resolution_physical(key, scope).unwrap()
   guard initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap()
-    is InitialStorageClaim(original, use) else {
+    is InitialStorageClaim(original, signing_use) else {
     fail("fresh original signing claim required")
   }
   let transport = physical.sign_once().unwrap()
@@ -28,25 +28,25 @@ fn initial_resolution_physical_fixture(
     .unwrap(),
   )
   let standard = local_initial_resolution_signature_standard(transport).unwrap()
-  (key, original, use, physical, standard)
+  (key, original, signing_use, physical, standard)
 }
 
 ///|
 test "initial original signature and exact terminal outcome share one confirmed Host transaction" {
-  let (key, original, use, physical, signature) = initial_resolution_physical_fixture(
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
     "initial-signature-confirmed",
   )
   let host = key.original.host
   host.journal
   .transaction(() => {
     store_local_initial_resolution_signature_locked(
-      host, original, use, signature,
+      host, original, signing_use, signature,
     )
   })
   .unwrap()
   let restored = host.journal
     .transaction(() => {
-      local_initial_resolution_signature_locked(host, original, use)
+      local_initial_resolution_signature_locked(host, original, signing_use)
     })
     .unwrap()
   assert_eq(restored, signature)
@@ -60,7 +60,7 @@ test "initial original signature and exact terminal outcome share one confirmed 
   assert_true(history.observed_outcome() is @credential_resource.Succeeded)
   assert_eq(
     @credential.local_signing_credential_use_cid(history.original_use()),
-    @credential.local_signing_credential_use_cid(use),
+    @credential.local_signing_credential_use_cid(signing_use),
   )
   assert_true(physical.sign_once() is Err(@crypto.Signing(_)))
   physical.close_checked().unwrap()
@@ -69,7 +69,7 @@ test "initial original signature and exact terminal outcome share one confirmed 
 
 ///|
 test "initial signature storage rolls back a foreign use and rejects a changed authenticated packet" {
-  let (key, original, use, physical, signature) = initial_resolution_physical_fixture(
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
     "initial-signature-foreign",
   )
   let host = key.original.host
@@ -105,7 +105,7 @@ test "initial signature storage rolls back a foreign use and rejects a changed a
   host.journal
   .transaction(() => {
     store_local_initial_resolution_signature_locked(
-      host, original, use, signature,
+      host, original, signing_use, signature,
     )
   })
   .unwrap()
@@ -146,7 +146,7 @@ test "initial signature storage rolls back a foreign use and rejects a changed a
   .unwrap()
   assert_true(
     host.journal.transaction(() => {
-      local_initial_resolution_signature_locked(host, original, use)
+      local_initial_resolution_signature_locked(host, original, signing_use)
     })
     is Err(CustodyLost),
   )
@@ -157,7 +157,7 @@ test "initial signature storage rolls back a foreign use and rejects a changed a
 ///|
 test "lost signature commit return retains original signature and outcome on same-process Host reopen" {
   let name = "initial-signature-commit-return"
-  let (key, original, use, physical, signature) = initial_resolution_physical_fixture(
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
     name,
   )
   let host = key.original.host
@@ -169,7 +169,7 @@ test "lost signature commit return retains original signature and outcome on sam
   assert_true(
     host.journal.transaction(() => {
       store_local_initial_resolution_signature_locked(
-        host, original, use, signature,
+        host, original, signing_use, signature,
       )
     })
     is Err(TransactionUnknown),
@@ -191,7 +191,7 @@ test "lost signature commit return retains original signature and outcome on sam
     .unwrap()
   let restored = reopened.journal
     .transaction(() => {
-      local_initial_resolution_signature_locked(reopened, original, use)
+      local_initial_resolution_signature_locked(reopened, original, signing_use)
     })
     .unwrap()
   assert_eq(restored, signature)

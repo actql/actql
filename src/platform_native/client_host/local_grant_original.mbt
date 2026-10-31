@@ -395,9 +395,7 @@ fn NativeLocalHostConnection::local_grant_custody(
       Err(@sqlite.NotFound) => ()
       Err(issue) => return Err(Physical(issue))
       Ok(result) => {
-        guard original.grant is SigningGrant(grant) else {
-          return Err(CustodyLost)
-        }
+        guard original.grant is SigningGrant(_) else { return Err(CustodyLost) }
         let history = match
           local_initial_signing_original_history_locked(self, original) {
           Ok(value) if value.observed_outcome() ==

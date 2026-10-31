@@ -141,7 +141,7 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
     // The retained original is selected before the only clock sample. A
     // claimed/Unknown/failed operation cannot refresh its preparation/expiry.
     let sampled_at = match retained {
-      None => @env.now().to_int64()
+      None => @env.now().reinterpret_as_int64()
       Some(original) => {
         guard original.grant is SigningGrant(grant) &&
           original.initial_issue is Some(_) &&

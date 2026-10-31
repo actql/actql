@@ -3,14 +3,14 @@
 // protocol. It is not a grant, Host attestation, Resolution or return permit.
 fn local_initial_resolution_signature_fields(
   original : NativeLocalGrantOriginal,
-  use : @credential.LocalSigningCredentialUse,
+  signing_use : @credential.LocalSigningCredentialUse,
   signature : String,
   candidate_cid? : String? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) else { return Err(CustodyLost) }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   if signature.length() != 88 ||
-    @credential.local_signing_credential_use_projection(use).0 !=
+    @credential.local_signing_credential_use_projection(signing_use).0 !=
     @credential.local_signing_credential_grant_cid(grant) {
     return Err(CustodyLost)
   }
@@ -24,7 +24,7 @@ fn local_initial_resolution_signature_fields(
     ("operation_cid", original.operation_cid),
     ("preimage", scope.preimage),
     ("signature", signature),
-    ("use_cid", @credential.local_signing_credential_use_cid(use)),
+    ("use_cid", @credential.local_signing_credential_use_cid(signing_use)),
     ("version", "actql-native-local-installation-original/0.1"),
   ]
   if candidate_cid is Some(cid) {
@@ -37,9 +37,9 @@ fn local_initial_resolution_signature_fields(
 fn local_initial_resolution_signature_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
-  use : @credential.LocalSigningCredentialUse,
+  signing_use : @credential.LocalSigningCredentialUse,
 ) -> Result[String, NativeClientRunJournalIssue] {
-  local_initial_resolution_result_locked(host, original, use).map(value => {
+  local_initial_resolution_result_locked(host, original, signing_use).map(value => {
     value.0
   })
 }
@@ -50,7 +50,7 @@ fn local_initial_resolution_signature_locked(
 fn local_initial_resolution_result_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
-  use : @credential.LocalSigningCredentialUse,
+  signing_use : @credential.LocalSigningCredentialUse,
 ) -> Result[(String, String?), NativeClientRunJournalIssue] {
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
@@ -87,7 +87,7 @@ fn local_initial_resolution_result_locked(
   let expected = match
     local_initial_resolution_signature_fields(
       original,
-      use,
+      signing_use,
       fields[4],
       candidate_cid~,
     ) {
@@ -128,7 +128,7 @@ fn local_initial_resolution_result_locked(
 fn store_local_initial_resolution_signature_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
-  use : @credential.LocalSigningCredentialUse,
+  signing_use : @credential.LocalSigningCredentialUse,
   signature : String,
   prepared? : @checkpoint.PreparedResolutionProof? = None,
   attested? : @checkpoint.AdmittedResolution? = None,
@@ -205,7 +205,7 @@ fn store_local_initial_resolution_signature_locked(
   let payload = match
     local_initial_resolution_signature_fields(
       original,
-      use,
+      signing_use,
       signature,
       candidate_cid~,
     ) {
@@ -262,14 +262,14 @@ fn store_local_initial_resolution_signature_locked(
     @credential_resource.record_native_local_initial_host_signing_outcome_in_transaction(
       host.database,
       grant,
-      use,
+      signing_use,
       @credential_resource.Succeeded,
     )
   } else {
     @credential_resource.record_native_local_original_signing_outcome_in_transaction(
       host.database,
       grant,
-      use,
+      signing_use,
       @credential_resource.Succeeded,
     )
   }
@@ -277,7 +277,7 @@ fn store_local_initial_resolution_signature_locked(
     Err(_) => return Err(CustodyLost)
     Ok(_) => ()
   }
-  match local_initial_resolution_signature_locked(host, original, use) {
+  match local_initial_resolution_signature_locked(host, original, signing_use) {
     Ok(value) if value == signature => Ok(())
     Ok(_) => Err(CustodyLost)
     Err(issue) => Err(issue)

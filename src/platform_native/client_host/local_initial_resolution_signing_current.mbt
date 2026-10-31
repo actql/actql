@@ -129,7 +129,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
         grant,
         credential_use,
         self.scope,
-        @env.now().to_int64(),
+        @env.now().reinterpret_as_int64(),
       ) {
       Err(@credential_resource.Journal(issue)) => return Err(Physical(issue))
       Err(_) => return Err(AuthorizationDenied)

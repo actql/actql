@@ -181,7 +181,7 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
         self.scope,
         self.scope.attempt_id,
         self.earlier_valid_until,
-        () => @env.now().to_int64(),
+        () => @env.now().reinterpret_as_int64(),
         () => current.require_locked(),
       ) {
       Err(InitialStorageJournal(issue)) => return Err(issue)
@@ -192,21 +192,21 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
       Ok(value) => value
     }
     match result {
-      InitialStorageClaim(original, use) =>
-        self.original_use = Some((original, use))
+      InitialStorageClaim(original, signing_use) =>
+        self.original_use = Some((original, signing_use))
       InitialStorageHistory(original, history) => {
         // A claimed/Unknown/Failed tag or absent/corrupt signature never signs
         // again. Even Succeeded must have this exact authenticated original.
         if history.observed_outcome() != @credential_resource.Succeeded {
           return Err(CustodyLost)
         }
-        let use = history.original_use()
+        let signing_use = history.original_use()
         let signature = match
-          local_initial_resolution_signature_locked(host, original, use) {
+          local_initial_resolution_signature_locked(host, original, signing_use) {
           Err(issue) => return Err(issue)
           Ok(value) => value
         }
-        self.original_use = Some((original, use))
+        self.original_use = Some((original, signing_use))
         retained_signature.val = Some(signature)
       }
     }
@@ -249,7 +249,7 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      guard self.original_use is Some((original, use)) else {
+      guard self.original_use is Some((original, signing_use)) else {
         return Err(OriginalSigningUnavailable)
       }
       match
@@ -262,7 +262,7 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
             store_local_initial_resolution_signature_locked(
               host,
               original,
-              use,
+              signing_use,
               signature,
               prepared=Some(self.materials.proof),
             ) {
@@ -290,7 +290,7 @@ pub fn NativeLocalInitialResolutionSigning::original_candidate(
     Ok(value) => value
   }
   guard self.signature is Some(signature) &&
-    self.original_use is Some((original, use)) &&
+    self.original_use is Some((original, signing_use)) &&
     original.grant is SigningGrant(grant) else {
     return Err(OriginalSigningUnavailable)
   }
@@ -313,10 +313,11 @@ pub fn NativeLocalInitialResolutionSigning::original_candidate(
         Ok(_) => return Err(CustodyLost)
       }
       if @credential.local_signing_credential_use_cid(history.original_use()) !=
-        @credential.local_signing_credential_use_cid(use) {
+        @credential.local_signing_credential_use_cid(signing_use) {
         return Err(CustodyLost)
       }
-      match local_initial_resolution_result_locked(host, original, use) {
+      match
+        local_initial_resolution_result_locked(host, original, signing_use) {
         Ok((value, Some(wire))) if value == signature =>
           retained.val = Some(wire)
         Ok(_) => return Err(CustodyLost)
