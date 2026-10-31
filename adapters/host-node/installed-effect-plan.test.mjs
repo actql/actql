@@ -83,6 +83,7 @@ for (const sourceKind of ['source-free', 'base Source', 'provider Source']) {
       return {$tag: 1, _0: plan};
     }
     const moon = {clientProgramEffectAcquisitionCount: p => {assert.equal(p, prepared); return count;},
+      clientProgramInstalledEffectOperationDemandPrepare() {assert.fail('No selected operation in this bridge counter');},
       clientProgramInstalledEffectModelManagedPlanPrepare: providers === undefined ? accept
         : () => assert.fail('Provider vector requires its typed Some bridge'),
       clientProgramInstalledEffectModelManagedProviderPlanPrepare: providers === undefined
