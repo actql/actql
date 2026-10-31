@@ -145,31 +145,53 @@ pub fn start_installed_managed_serialization_prefix(
   owner.source_free_opening = true
   preparation_module_call(
     () => {
-      let ledger = match require_installed_managed_run(owner) {
-        Err(issue) => return Err(issue)
-        Ok(ledger) => ledger
-      }
-      guard owner.preparation is Some(preparation) &&
+      guard owner.ledger is Some(ledger) &&
+        owner.preparation
+        is Some(PreparationContentManaged(admission, original)) &&
+        physical_equal(original, prepared) &&
         owner.content is SerializationContent(current) &&
         physical_equal(current, selected) else {
         return Err(Retired)
       }
-      let prefix = match
-        start_serialization_prefix_provider(
+      let preparation = PreparationContentManaged(admission, original)
+      let reservation = match
+        @resources.reserve_node_managed_run_attempt(
+          admission,
+          prepared,
+          ledger,
+          0L,
+          @execution.execution_capacity_retained_bytes(selected.capacity),
+          @execution.execution_capacity_execution_bytes(selected.capacity),
+        ) {
+        Err(@resources.Resource(issue)) =>
+          return Err(SerializationPrefix(Physical(issue)))
+        Err(issue) => return Err(Resource(issue))
+        Ok(original) => original
+      }
+      let prefix = serialization_prefix_reservation(ledger, reservation)
+      owner.serialization_prefix = Some(prefix)
+      match check_installed_managed_run_original(owner, ledger, preparation) {
+        Err(issue) => {
+          // No provider has started. Keep the original here if settlement
+          // refuses, so later cleanup cannot lose this reservation.
+          prefix.child_cleaned = true
+          ignore(cleanup_client_serialization_prefix(prefix))
+          return Err(issue)
+        }
+        Ok(_) => ()
+      }
+      match
+        start_retained_serialization_prefix_provider(
+          prefix,
           selected.sequence,
           selected.provider,
-          selected.capacity,
           [],
           selected.execution,
           selected.measurement,
-          ledger,
-          None,
-          retain=Some(prefix => owner.serialization_prefix = Some(prefix)),
         ) {
         Err(issue) => return Err(SerializationPrefix(issue))
-        Ok(prefix) => prefix
+        Ok(_) => ()
       }
-      owner.serialization_prefix = Some(prefix)
       match check_installed_managed_run_original(owner, ledger, preparation) {
         Err(issue) => return Err(issue)
         Ok(original_ledger) if physical_equal(original_ledger, ledger) =>

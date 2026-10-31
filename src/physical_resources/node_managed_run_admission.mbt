@@ -344,6 +344,40 @@ pub fn[P] check_node_managed_run_mutable_admission(
 }
 
 ///|
+/// Reserve on the same prepared original at one synchronous boundary. The
+/// existing admission performs current once and rechecks its original lifetime;
+/// the existing reservation mutation inspects that resulting state without
+/// another callback. This returns only the ordinary original Reservation, not
+/// a reusable current proof, replacement Ledger or physical-start permission.
+pub fn[P] reserve_node_managed_run_attempt(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Reservation, ImportedChildLedgerIssue] {
+  if transfer_bytes < 0L || retained_bytes < 0L || execution_bytes < 0L {
+    return Err(Resource(InvalidCharge))
+  }
+  match check_node_managed_run_mutable_admission(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match check_imported_child_admission_current(ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  reserve_attempt_current(
+    ledger,
+    transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+    None,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
 /// Keep the opaque checked preparation fixed by the actual Root. Equal CIDs
 /// or an independently checked copy cannot replace this original afterwards.
 pub fn[P] check_node_managed_run_preparation(

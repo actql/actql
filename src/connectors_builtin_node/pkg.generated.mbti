@@ -766,6 +766,8 @@ pub fn client_program_complete_request_effect_preparation(@client_local_host.Cli
 
 pub fn client_program_complete_request_model_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
+pub fn client_program_complete_request_serialization_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSerializationPreparation) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
@@ -1621,6 +1623,10 @@ pub fn client_program_installed_managed_run_requirements(@run_publication_host.P
 pub fn client_program_installed_managed_run_retire(@client_local_host.ClientInstalledManagedRun) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_source_read(@client_local_host.ClientInstalledManagedRun, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_serialization_prefix_cleanup(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedSerializationPreparation) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_serialization_prefix_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledManagedSerializationPreparation) -> Result[@client_local_host.ClientSerializationPrefix, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_source_free_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedSourceFreePreparation) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -2640,6 +2646,10 @@ pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequ
 
 pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_prepare_request_serialization_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientSerializationPlanGraph, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_serialization_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity?) -> Result[@client_local_host.ClientInstalledManagedSerializationPreparation, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_request_source_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
 
 pub fn client_program_prepare_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue) -> Result[String, @client_local_host.ClientRequestPreparationIssue]
@@ -2669,6 +2679,8 @@ pub fn client_program_prepared_composed_infer_bounds(@run_publication_host.Clien
 pub fn client_program_prepared_installed_managed_model_requirements(@client_local_host.ClientInstalledManagedModelPlan) -> Array[Int64]
 
 pub fn client_program_prepared_installed_managed_source_free_requirements(@client_local_host.ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
+
+pub fn client_program_prepared_installed_serialization_prefix_requirements(@client_local_host.ClientInstalledManagedSerializationPreparation) -> Array[Int64]
 
 pub fn client_program_prepared_local_publication_limits(@client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
 

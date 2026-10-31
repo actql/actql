@@ -2,7 +2,7 @@
 fn same_request_serialization_compilation_fixture() -> (
   PreparedClientProgram,
   ClientSerializationPlanGraph,
-) {
+) raise {
   let owner = serialization_preparation_test_program(projected=true)
   let component = issue_prepared_client_serialization_plan_graph(
     owner,

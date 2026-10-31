@@ -213,7 +213,7 @@ test "one Effect operation borrow observes original current once for Plan and Le
     owner, prepared, request, plan, 0, true, 2, 0, "operation",
   ).unwrap()
   assert_eq(calls.val - before, 1)
-  retire_installed_effect_operation(operation, true).unwrap()
+  assert_true(retire_installed_effect_operation(operation, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
 }
 

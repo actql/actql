@@ -106,6 +106,8 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(@physical_resourc
 
 pub fn[I] begin_preparation_owned_installed_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
+pub fn[I] begin_preparation_owned_installed_serialization_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSerializationPreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
 pub fn begin_prepared_installed_effect_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
 
 pub fn begin_prepared_installed_managed_source_free_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -187,6 +189,8 @@ pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, Cli
 pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput) -> Result[Bool, ClientSerializationPrefixIssue]
 
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
+
+pub fn cleanup_installed_managed_serialization_prefix(ClientInstalledManagedRun, ClientInstalledManagedSerializationPreparation) -> Result[Bool, ClientInstalledManagedRunIssue]
 
 pub fn[I, P] clear_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -305,6 +309,8 @@ pub fn[I] complete_request_effect_preparation(ClientRequestPreparation[I], I, Cl
 pub fn[I] complete_request_model_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] complete_request_program_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSourceFreePreparation) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] complete_request_serialization_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedSerializationPreparation) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
@@ -644,6 +650,10 @@ pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], 
 
 pub fn[I] prepare_request_program_module_body(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], invocation? : (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[Unit, ClientRequestProgramPlanIssue]
 
+pub fn[I] prepare_request_serialization_compilation(ClientRequestPreparation[I], I, @run_publication_host.ClientSerializationPlanGraph, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramPlanIssue]
+
+pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
+
 pub fn[I, T] prepare_request_submitted_intent(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T]) -> Result[String, ClientRequestPreparationIssue]
 
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -669,6 +679,8 @@ pub fn prepared_installed_managed_capture_requirements(ClientInstalledManagedCap
 pub fn prepared_installed_managed_model_requirements(ClientInstalledManagedModelPlan) -> Array[Int64]
 
 pub fn prepared_installed_managed_publication_limits(ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
+
+pub fn prepared_installed_managed_serialization_prefix_requirements(ClientInstalledManagedSerializationPreparation) -> Array[Int64]
 
 pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
@@ -829,6 +841,8 @@ pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccu
 pub fn start_installed_effect_operation(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_keyed_source_read_rows(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+
+pub fn start_installed_managed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_source_read_listing_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
@@ -1037,7 +1051,10 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Ledger(@physical_resources.LedgerIssue)
   ModelRead(@run_publication_host.ClientModelReadPreparationIssue)
   Sequence(@lowering_relation.SequenceIssue)
+  SerializationPrefix(ClientSerializationPrefixIssue)
 }
+
+type ClientInstalledManagedSerializationPreparation
 
 type ClientInstalledManagedSourceFreePreparation
 

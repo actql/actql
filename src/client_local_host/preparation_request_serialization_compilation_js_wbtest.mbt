@@ -99,39 +99,58 @@ fn request_serialization_preparation_fixture(
 ///|
 test "same Request source-free Content adopts one compiler and starts its retained prefix once with one current observation" {
   let calls = Ref(0)
-  let during_start = Ref[ClientInstalledManagedRun?](None)
+  let during_start : Ref[ClientInstalledManagedRun?] = Ref(None)
   let reentry_fenced = Ref(false)
   let (parent, input, prepared, selected, request) = request_serialization_preparation_fixture(current=() => {
-    calls.val += 1
-    if during_start.val is Some(run) {
-      reentry_fenced.val = retire_installed_managed_run(run) is Err(CleanupPending)
-    }
-    true
-  })
+      calls.val += 1
+      if during_start.val is Some(run) {
+        reentry_fenced.val = retire_installed_managed_run(run)
+          is Err(CleanupPending)
+      }
+      true
+    },
+  )
   let ledger = parent.ledger
   let spent = parent.program_artifact_work_spent
   assert_true(spent > 0L)
   guard parent.program_compilation is Some(@publication_host.Tasks(compilation)) else {
     fail("retained compiler original")
   }
-  assert_true(@publication_host.client_compiled_run_matches_tasks(selected._observed_compiled, prepared, compilation))
+  assert_true(
+    @publication_host.client_compiled_run_matches_tasks(
+      selected._observed_compiled,
+      prepared,
+      compilation,
+    ),
+  )
   let before = @resources.ledger_usage(ledger)
   complete_request_serialization_preparation(parent, input, selected).unwrap()
   let run = begin_request_content_managed_run(parent, request).unwrap()
   assert_true(run.ledger is Some(original) && physical_equal(original, ledger))
-  assert_true(run.content is SerializationContent(original) && physical_equal(original, selected))
+  assert_true(
+    run.content is SerializationContent(original) &&
+    physical_equal(original, selected),
+  )
   assert_eq(parent.program_artifact_work_spent, spent)
   assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
   let observed = calls.val
   during_start.val = Some(run)
-  let prefix = start_installed_managed_serialization_prefix(run, prepared, selected).unwrap()
+  let prefix = start_installed_managed_serialization_prefix(
+    run, prepared, selected,
+  ).unwrap()
   during_start.val = None
   assert_eq(calls.val, observed + 1)
   assert_true(reentry_fenced.val)
   assert_true(physical_equal(prefix.ledger, ledger))
-  assert_true(run.serialization_prefix is Some(original) && physical_equal(original, prefix))
+  assert_true(
+    run.serialization_prefix is Some(original) &&
+    physical_equal(original, prefix),
+  )
   let after_start = @resources.ledger_usage(ledger)
-  assert_true(start_installed_managed_serialization_prefix(run, prepared, selected) is Err(AlreadyBound))
+  assert_true(
+    start_installed_managed_serialization_prefix(run, prepared, selected)
+    is Err(AlreadyBound),
+  )
   assert_eq(calls.val, observed + 1)
   assert_eq(@resources.ledger_usage(ledger), after_start)
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
@@ -147,17 +166,28 @@ test "same Request source-free Content adopts one compiler and starts its retain
   }
   let output = output.unwrap()
   assert_eq(@execution.completed_row_count(output), 2)
-  assert_eq(@execution.completed_output_row_wire(output, 0, 10000, 1000, 100).unwrap(), "{\"id\":2}")
-  assert_eq(@execution.completed_output_row_wire(output, 1, 10000, 1000, 100).unwrap(), "{\"id\":1}")
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 100).unwrap(),
+    "{\"id\":2}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 10000, 1000, 100).unwrap(),
+    "{\"id\":1}",
+  )
   assert_true(client_serialization_prefix_work(prefix).unwrap() > 0L)
-  assert_true(cleanup_installed_managed_serialization_prefix(run, selected).unwrap())
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(run, selected).unwrap(),
+  )
   retire_installed_managed_run(run).unwrap()
   let retired = @resources.ledger_usage(ledger)
   assert_eq(retired.live_reservations, 0)
   assert_eq(retired.reserved_retention_bytes, 0L)
   assert_eq(retired.reserved_execution_bytes, 0L)
   assert_eq(retired.attempts, after_start.attempts)
-  assert_true(start_installed_managed_serialization_prefix(run, prepared, selected) is Err(ForeignOriginal))
+  assert_true(
+    start_installed_managed_serialization_prefix(run, prepared, selected)
+    is Err(ForeignOriginal),
+  )
 }
 
 ///|

@@ -325,7 +325,6 @@ fn start_serialization_prefix_provider(
   measurement : @execution.FixedInputGuardMeasureLimits,
   ledger : @resources.Ledger,
   workspace : @execution.ExecutionCapacity?,
-  retain? : ((ClientSerializationPrefix) -> Unit)? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   let capacity = match workspace {
     None => capacity
@@ -348,16 +347,31 @@ fn start_serialization_prefix_provider(
   // Retain the original reservation BEFORE the fallible provider constructor.
   // None with child_cleaned=false remains pending if foreign code unwinds
   // without a returned child or a known no-child refusal. It is never an ACK.
-  let prefix : ClientSerializationPrefix = {
-    child: None,
-    ledger,
-    reservation,
-    child_cleaned: false,
-    released: false,
-  }
-  if retain is Some(retain) {
-    retain(prefix)
-  }
+  let prefix = serialization_prefix_reservation(ledger, reservation)
+  start_retained_serialization_prefix_provider(
+    prefix, sequence, provider, inputs, execution, measurement,
+  )
+}
+
+///|
+fn serialization_prefix_reservation(
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+) -> ClientSerializationPrefix {
+  { child: None, ledger, reservation, child_cleaned: false, released: false, }
+}
+
+///|
+// The caller retained this exact reservation before any later original fence
+// or fallible constructor. It does not observe current or reserve again.
+fn start_retained_serialization_prefix_provider(
+  prefix : ClientSerializationPrefix,
+  sequence : @execution.GeneratedSequence,
+  provider : @local.ManagedProvider,
+  inputs : Array[@local.ManagedProviderInput],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   match
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -380,21 +394,6 @@ fn start_serialization_prefix_provider(
         Err(issue) => Err(issue)
       }
     }
-  }
-}
-
-///|
-fn bind_serialization_prefix_reservation(
-  child : @local.ManagedProviderExecution,
-  ledger : @resources.Ledger,
-  reservation : @resources.Reservation,
-) -> ClientSerializationPrefix {
-  {
-    child: Some(child),
-    ledger,
-    reservation,
-    child_cleaned: false,
-    released: false,
   }
 }
 

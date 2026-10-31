@@ -3846,3 +3846,10 @@ precedes start; the post-constructor fence checks local original/lifetime
 bindings without calling external current again. Constructor/output backing,
 including the retained prefix slot and full Content/Store overlap, is still
 required before entry and is not supplied by the prefix-only requirement view.
+
+The Resource owner combines the original managed-admission check and attempt
+reservation at that same synchronous boundary. Its existing current callback
+and post-callback preparation/lifetime fences precede the existing reservation
+mutation. No checked token or reusable current permission is returned. A stop,
+foreign preparation or changed original observed there refuses before a new
+reservation commits; all ordinary quota and original-inventory checks remain.
