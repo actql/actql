@@ -266,7 +266,7 @@ test('Host Model adoption uses its existing run bag and retains transient origin
   assert.equal(run.preparedSequences, undefined); assert.equal(run.modelAcquisitions, undefined);
   assert.equal(f.begin(), run); assert.equal(f.calls.filter(value => value === 'construct').length, 1);
   f.finishScope(); const finish = f.retire();
-  assert.deepEqual(f.calls.slice(-3), ['retire', 'sever', 'aliases']); finish();
+  assert.deepEqual(f.calls.slice(-3), ['retire', 'aliases', 'sever']); finish();
   assert.equal(run.prepared, undefined); assert.equal(run.closed, true);
   const g = hostFixture({failAfterAdopt: true});
   assert.throws(g.begin, error => error === g.primary);

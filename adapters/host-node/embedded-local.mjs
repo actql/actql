@@ -6066,10 +6066,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         // The Scope's census has acknowledged physical retirement. Cut its
         // raw compiler/definition/graph aliases before returning the original
         // typed preparation borrower and completing that same parent debit.
+        if (run.preparationKind === 'model-plan' && !run.modelAliasesReleased) {
+          // The original receiver must survive its own alias release. Spend
+          // that managed retirement before returning a consumed parent borrow.
+          Reflect.apply(run.releaseModelAliases, run.model, []);
+          run.modelAliasesReleased = true;
+        }
         run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
         run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
         run.manager.severPreparation(prepared,run.original);
-        if (run.preparationKind === 'model-plan') Reflect.apply(run.releaseModelAliases, run.model, []);
         run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
         run.prepared=undefined;run.closed=true;
         run.queryInvocation=run.queryTimePreparation=undefined;
