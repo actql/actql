@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
@@ -280,4 +281,53 @@ test('Host Model failed construction retains its original Scope and partial modu
   f.setFinish(true); f.retire();
   assert.equal(f.record.computeRuns.has(f.prepared), false); assert.equal(f.record.computeLiveRuns.size, 0);
   assert.equal(run.closed, true); assert(!f.calls.includes('retire')); assert(!f.calls.includes('sever'));
+});
+
+test('actual Model custody selector borrows original handler and dispatch tokens while Effect and Content stay unselected', () => {
+  let selection;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === 'localPreparationCustody') selection = node.init.arguments[0];
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(walk);
+      else if (child && typeof child === 'object') walk(child);
+    }
+  };
+  walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selection);
+  const inventories = new WeakMap(), prepared = {}, holders = new Set(), handler = {};
+  inventories.set(prepared, {kind: 'effect_free', infers: [{}], serializations: [], acquisitions: 2});
+  holders.add(handler);
+  const moon = {
+    clientProgramSerializationOccurrences: p => inventories.get(p).serializations,
+    clientProgramComposedInferOccurrences: p => ({$tag: 1, _0: inventories.get(p).infers}),
+    clientProgramAcquisitionCount: p => inventories.get(p).acquisitions,
+    clientProgramPreparationBorrowRead: token => {assert(holders.has(token)); return prepared;},
+    clientProgramPreparationBorrowSibling(token) {
+      assert.equal(token, handler); const child = {}; holders.add(child); return {$tag: 1, _0: child};
+    },
+    clientProgramPreparationBorrowReturn(token) {
+      assert(holders.delete(token)); return {$tag: 1, _0: holders.size === 0};
+    },
+  };
+  const selector = Function('preparation', 'prepareSubmit', 'moon', 'runtimeIsOk', 'runtimeField',
+    `return (${hostSource.slice(selection.start, selection.end)});`)(
+    {canRetireManagedPreparation: () => true, managesInstalledSources: () => true},
+    {kindOf: p => inventories.get(p).kind}, moon, value => value.$tag === 1, (value, index) => value['_'+index]);
+  for (const facts of [{kind: 'effectful', infers: [{}], serializations: [], acquisitions: 2},
+    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0},
+    {kind: 'effect_free', infers: [{}, {}], serializations: [], acquisitions: 2}]) {
+    const foreign = {}; inventories.set(foreign, facts); assert.equal(selector(foreign), false);
+  }
+  let retired = 0;
+  const registry = installLocalPreparationRegistry(selector, p => {
+    assert.equal(p, prepared); retired++; return () => {if (holders.size) throw new Error('OriginalBorrowPending');};
+  }, {runtime: moon, borrow: p => {assert.equal(p, prepared); return handler;}});
+  const request = registry.capture({kind: 'program', input: {}, parameters: null});
+  const handle = registry.adopt(prepared, request), submission = registry.attach(registry.copy(request), handle);
+  const dispatch = registry.begin(submission); assert.equal(holders.size, 2);
+  assert.throws(dispatch.retire, /OriginalBorrowPending/); assert.equal(holders.size, 1);
+  assert.equal(submission.preparedProgram, prepared);
+  registry.finishHandler(request); assert.equal(holders.size, 0);
+  dispatch.retire(); assert.equal(retired, 1);
+  assert.throws(() => submission.preparedProgram, /Retired/);
 });
