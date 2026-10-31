@@ -196,8 +196,11 @@ test "Program inventory borrow can select Content without replacing its grown ex
   let capacity = parent.program_capacity.unwrap()
   let quote = parent.program_plan_quote.unwrap()
   let (r, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  // Independent occupied test extents, deliberately greater than the 64-byte
-  // link carrier. They do not stand in for a provider's full domain recipe.
+  // Independent Plan/Request/compiler link inventory:3 headers,4 refs,3 words
+  // at the pinned16/8/8-byte tariff, not a value read from the product quote.
+  let links = 3L * 16L + 4L * 8L + 3L * 8L
+  // Independent occupied test extents, deliberately greater than those links.
+  // They do not stand in for a provider's full domain recipe.
   @resources.reserve_working_preparation_phase(
     capacity,
     input,
@@ -212,7 +215,7 @@ test "Program inventory borrow can select Content without replacing its grown ex
   assert_eq(parent.program_plan_quote.unwrap(), quote)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 64L, e + 257L + 64L)),
+    Ok((r + 129L + links, e + 257L + links)),
   )
   for holder in [program, content] {
     assert_true(
