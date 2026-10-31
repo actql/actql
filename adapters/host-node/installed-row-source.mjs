@@ -1771,7 +1771,7 @@ export async function createInstalledRowSource({moon, declaration,
           prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
       if (planned !== undefined && prepareSourceRead !== undefined &&
           prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement,
-            occurrence, managedRun, originalRead})) !== originalRead) fail('InstalledSourceReadUnavailable');
+            occurrence, managedRun, originalRead, requestIdentity})) !== originalRead) fail('InstalledSourceReadUnavailable');
       if (originalRead !== undefined) {
         if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
         // Bind includes the same current check. No external operation occurs

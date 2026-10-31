@@ -432,24 +432,35 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         originalKeyedTransport:keyedTransports.get(entry),
-        prepareSourceRead({checkedOwner,effectful,declaration,occurrence,managedRun,originalRead}){
-          if(effectful!==false)fail('InstalledEffectPlanUnavailable');
-          const run=sameRun(checkedOwner),index=occurrence.stage;
-          const shared=sharedRuns.get(checkedOwner)===run;
-          if(effectful!==run.effectful||declaration!==entry.declaration||occurrence.input!==0||
+        prepareSourceRead({checkedOwner,effectful,declaration,occurrence,managedRun,originalRead,requestIdentity}){
+          current();
+          let run=sharedRuns.get(checkedOwner);
+          if(run===undefined&&effectful===true&&managedRun!==undefined&&originalRead!==undefined&&requestIdentity!==undefined){
+            // The shared Source has already checked this exact Effect
+            // Run/Prepared/Request and selected its original read. Retain only
+            // local child provenance; the Host still owns admission/lifetime.
+            run={prepared:checkedOwner,request:requestIdentity,value:managedRun,effectful:true,reads:new Map()};
+            sharedRuns.set(checkedOwner,run);
+          }
+          const index=occurrence.stage;
+          if(run===undefined||run.retired||run.failed||effectful!==run.effectful||
+              declaration!==entry.declaration||occurrence.input!==0||
               !Number.isSafeInteger(index)||index<0||run.reads.has(index)||
-              shared&&(managedRun!==run.value||originalRead===undefined))fail('LocalFilesSourcePreparationMismatch');
-          const raw=sourceManaged.prepareRead(checkedOwner,declaration,shared?run.value:run.original,occurrence);
-          const read={raw,entry,owner:shared?run:undefined,index,value:shared?originalRead:undefined,reader:undefined,physical:undefined,close:undefined,closeCaptured:false,
+              managedRun!==run.value||originalRead===undefined||
+              requestIdentity!==undefined&&requestIdentity!==run.request)fail('LocalFilesSourcePreparationMismatch');
+          // The original Host validates its own adopted parent before it
+          // retains the physical child. No second Core current callback is
+          // needed between the shared read selection and this same handoff.
+          const raw=sourceManaged.prepareRead(checkedOwner,declaration,run.value,occurrence);
+          const read={raw,entry,owner:run,index,value:originalRead,reader:undefined,physical:undefined,close:undefined,closeCaptured:false,
             retain:undefined,closed:false,attempted:false};
           run.reads.set(index,read);
-          if(shared)sharedReads.add(read);
+          sharedReads.add(read);
           // Retain the same physical child control before callback getters or
           // currentness can reject it. The Host remains the sole Run owner.
           captureClose(read);read.retain=read.raw.retainChild;
           if(typeof read.retain!=='function')fail('LocalFilesManagedReadUnavailable');
           current();
-          if(!shared)read.value=checked(moon.clientProgramInstalledManagedRunSourceRead(run.value,index));
           reads.set(read.value,{run,read});return read.value;
         },
         async closeSourceRead(original){
@@ -608,14 +619,26 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         },
         async prepare(facts){
           const owner=facts.preparedEffect??facts.preparedProgram;
-          const original=sharedRuns.get(owner);
-          if(original===undefined||original.failed) {
-            if(original?.failed)throw original.failure;
-            fail('LocalFilesManagedReadUnavailable');
-          }
-          const forwarded=sharedRuns.get(owner)===original?Object.freeze({...facts,
-            managedRun:original.value,requestIdentity:original.request}):facts;
+          let original=sharedRuns.get(owner);
+          if(original===undefined){
+            // Only the actual shared Effect selection may establish this
+            // local provenance record. Its Core getter and the Host read
+            // consumer validate the original tuple before acquiring a child.
+            if(facts.preparedEffect===undefined||facts.preparedProgram!==undefined||
+                facts.managedRun===undefined||facts.requestIdentity===undefined)
+              fail('LocalFilesManagedReadUnavailable');
+          }else if(original.failed)throw original.failure;
+          if(original!==undefined&&((facts.managedRun!==undefined&&facts.managedRun!==original.value)||
+              (facts.requestIdentity!==undefined&&facts.requestIdentity!==original.request)))
+            fail('LocalFilesSourcePreparationMismatch');
+          // A consumed occurrence keeps its original read and any pending
+          // cleanup. Reject before another Core getter can return that same
+          // read and a failed second preparation could retire the first.
+          if(original?.reads.has(facts.occurrence?.stage))fail('LocalFilesSourcePreparationMismatch');
+          const forwarded=original===undefined?facts:Object.freeze({...facts,
+            managedRun:original.value,requestIdentity:original.request});
           const prepared=await adapter.prepare(forwarded);
+          original??=sharedRuns.get(owner);
           if(sameRun(owner)!==original)fail('LocalFilesSourcePreparationMismatch');
           preparedRuns.set(prepared,original);return prepared;},
         ledgerCapacity(prepared){const run=preparedRuns.get(prepared);

@@ -9424,7 +9424,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "eec397613335e9218978fa676e14ddb27b7978cd96620cbff7db1675a4e5d900",
+      "sha256": "97d8fa710f334612d4c59010be4f0934004cacde3d2a5f701876fc6bf8a317f0",
       "operations": [
         {
           "name": "byCid/byCid",

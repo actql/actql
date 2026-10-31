@@ -496,7 +496,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d0806ec1f40a8dd2e531998ed0c1db93304b476f69a66f72542df78d24119a3",
+      "sha256": "cae1cf176081d6b68bf515201cca9c8b0887ac9289d50bd7e3c99b68209b75b7",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -602,7 +602,8 @@
             "declaration",
             "occurrence",
             "managedRun",
-            "originalRead"
+            "originalRead",
+            "requestIdentity"
           ],
           "async": false
         },

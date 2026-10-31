@@ -914,6 +914,15 @@ Changing original connection bytes changes installation reuse identity; equal
 Source labels cannot replace the retained declaration. Explicit Mock setup is
 separate and never follows merely from installing a normal Local Source.
 
+A Local Source feeding an Effect consumes the same adopted Effect Run,
+Prepared, Request and read selected by the shared Source owner. The Local
+record retains child provenance, not another Run admission. The shared typed
+selection and the Host's original child consumer check that handoff; Local
+does not repeat the Core current callback between them. The original
+post-acquisition and post-await current fences remain. A consumed occurrence
+is refused before another getter can return its existing read, so a failed
+second preparation cannot retire the first read or its pending native child.
+
 The selected ordinary Local factory supplies the existing finite
 `lookup_execution` policy from those same installed Local limits before
 admitting the Host Environment. The retained Project Source preparation must
