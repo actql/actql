@@ -140,6 +140,7 @@ fn borrow_installed_effect_operation_original(
   operation_index : Int,
   row_index : Int,
   operation : String,
+  lookup_probes? : Ref[Int64]? = None,
 ) -> Result[
   ClientInstalledEffectOperationBorrow,
   ClientInstalledManagedRunIssue,
@@ -162,6 +163,7 @@ fn borrow_installed_effect_operation_original(
     Err(issue) => return Err(issue)
   }
   for prior in owner.effect_operations {
+    record_effect_operation_lookup_probe(lookup_probes)
     if prior.member_index == member_index &&
       prior.per_row == per_row &&
       prior.operation_index == operation_index &&
@@ -216,13 +218,17 @@ fn borrow_installed_effect_operation_original(
 ///|
 fn require_installed_effect_operation(
   value : ClientInstalledEffectOperationBorrow,
+  lookup_probes? : Ref[Int64]? = None,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
   guard !value.retired &&
     value.owner is Some(owner) &&
-    owner.effect_operations.any(prior => physical_equal(prior, value)) &&
+    owner.effect_operations.any(prior => {
+      record_effect_operation_lookup_probe(lookup_probes)
+      physical_equal(prior, value)
+    }) &&
     value.ledger is Some(original_ledger) else {
     return Err(Retired)
   }
@@ -230,6 +236,16 @@ fn require_installed_effect_operation(
     Ok(ledger) if physical_equal(ledger, original_ledger) => Ok(ledger)
     Ok(_) => Err(ForeignOriginal)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Optional private component work output at the actual search/comparison,
+// never at function entry. Ordinary callers pass None; this is not a quota,
+// permission, callback, timing sample or retained Run field.
+fn record_effect_operation_lookup_probe(probes : Ref[Int64]?) -> Unit {
+  if probes is Some(probes) {
+    probes.val += 1L
   }
 }
 
