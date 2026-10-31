@@ -3927,6 +3927,25 @@ Request; it cannot construct a replacement Ledger or substitute a pure module.
 A source-free serialization is a distinct Content purpose, not a fabricated
 keyed acquisition.
 
+The ordinary Mock Model caller constructs its source-free module or two-query
+capture Plan under that same Request parent, using the retained TaskCompilation,
+selected Limits and ordered original acquisitions. The installing Host retains
+partial module outputs and the Model carrier before another current check or
+Scope acquisition can fail. Source preparation borrows the adopted Plan's
+original requirement instead of preparing an equal query. This route does not
+use the standalone Local Mock Model Run constructor.
+
+The Local component closes its Source children, consuming read and original
+Scope before acknowledging its own retirement. It leaves Request parent
+retirement to the existing Host continuation. The Host cuts the Model aliases
+after the actual Core payload-sever observation, then returns the original
+handler and dispatch borrows and finishes that same parent. A refused
+construction retains its partial module and issued Scope for original cleanup;
+pending children or an unacknowledged Scope cannot become alias retirement.
+An inventory shape selects custody only when the same Request supplies an
+actual Core borrower. It does not authorize Model construction or adopt Content
+into this Model route.
+
 These input and handoff contracts do not supply physical backing. Complete
 compiler, module, provider, codec, output, constructor and failed-child overlap
 must already belong to the same parent before each constructor. Scope, child
