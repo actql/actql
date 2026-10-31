@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {types} from 'node:util';
 import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 // Execute the existing manager method with explicit Core original/phase ports.
@@ -159,4 +160,74 @@ test('Request Model compilation retains one original artifact and graph without 
   assert.throws(() => g.compile(graph), error => error === failure);
   assert.throws(() => g.compile(graph), error => error === failure);
   assert.equal(attempts, 1);
+});
+
+
+function adoptionFixture(family, failure) {
+  const parent = {}, input = {}, request = {}, identity = {}, prepared = {}, holder = {};
+  const plan = {}, scope = {}, value = {}, graph = {}, artifact = {}, original = {}, calls = [];
+  const model = {graph, scope: undefined};
+  const state = {parent, prepared, holder, context: {}, original, compilationFamily: family,
+    modelCompilation: artifact, modelGraph: graph};
+  const producer = {request, receipt: input, preparation: state, liveRuns: 0};
+  const runs = new WeakMap(), liveRuns = new Set();
+  const moon = {
+    clientProgramPreparationBorrowRead(actual) {assert.equal(actual, holder); return prepared;},
+    clientProgramPrepareRequestModelReadScope(p, i, selected) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
+      calls.push('scope'); return scope;
+    },
+    clientProgramCompleteRequestModelPreparation(p, i, selected) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
+      assert.equal(model.scope, scope, 'The existing caller must retain Scope before completion');
+      calls.push('complete'); if (failure) throw failure;
+    },
+    clientProgramAdoptRequestModelPreparation(p, id, originalScope) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); assert.equal(originalScope, scope);
+      calls.push('adopt'); return value;
+    },
+    clientProgramCompleteRequestContentPreparation(p, i, id, selected) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input);
+      assert.equal(id, identity); assert.equal(selected, plan); calls.push('complete');
+      if (failure) throw failure;
+    },
+    clientProgramAdoptRequestContentPreparation(p, id) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); calls.push('adopt'); return value;
+    },
+  };
+  state.context.runtime = moon;
+  const name = family === 'model' ? 'adoptModelPreparation' : 'adoptContentPreparation';
+  const a = source.indexOf('    '+name+'('), b = source.indexOf('    adopt'+(family === 'model' ? 'Content' : 'Effect')+'Preparation(', a);
+  assert(a >= 0 && b > a);
+  const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'runs', 'liveRuns', 'fail', 'types', 'checked',
+    `return ({${source.slice(a,b).trim().replace(/,$/u,'')}});`)(() => {},
+    {request(_originals, actual) {assert.equal(actual, prepared); return request;}}, {},
+    actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result);
+  return {state, model, plan, scope, value, calls, original, producer, runs, liveRuns, prepared,
+    adopt: () => family === 'model' ? object[name](prepared, identity, plan, model) : object[name](prepared, identity, plan)};
+}
+
+test('Model handoff retains the original Scope before completion and adopts the same parent Request', () => {
+  const f = adoptionFixture('model'), run = f.adopt();
+  assert.equal(run.original, f.original); assert.equal(run.value, f.value); assert.equal(run.model, f.model);
+  assert.equal(f.model.scope, f.scope); assert.equal(f.runs.get(f.prepared), run);
+  assert(f.liveRuns.has(run)); assert.equal(f.producer.liveRuns, 1);
+  assert.deepEqual(f.calls, ['scope', 'complete', 'adopt']);
+  assert.equal(f.state.modelCompilation, undefined); assert.equal(f.state.modelPlan, undefined);
+  const primary = new Error('original-model-completion'), g = adoptionFixture('model', primary);
+  assert.throws(g.adopt, error => error === primary);
+  assert.equal(g.model.scope, g.scope); assert.equal(g.state.modelPlan, g.plan);
+  assert.throws(g.adopt, error => error === primary);
+  assert.deepEqual(g.calls, ['scope', 'complete']); assert.equal(g.producer.liveRuns, 0);
+});
+
+test('keyed Content completion and adoption preserve the original parent and selected Plan on failure', () => {
+  const f = adoptionFixture('content'), run = f.adopt();
+  assert.equal(run.original, f.original); assert.equal(run.value, f.value); assert.equal(run.content, f.plan);
+  assert.equal(f.runs.get(f.prepared), run); assert.equal(f.producer.liveRuns, 1);
+  assert.deepEqual(f.calls, ['complete', 'adopt']); assert.equal(f.state.contentPlan, undefined);
+  const primary = new Error('original-content-completion'), g = adoptionFixture('content', primary);
+  assert.throws(g.adopt, error => error === primary);
+  assert.equal(g.state.contentPlan, g.plan); assert.throws(g.adopt, error => error === primary);
+  assert.deepEqual(g.calls, ['complete']); assert.equal(g.producer.liveRuns, 0);
 });

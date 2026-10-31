@@ -836,6 +836,83 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    adoptModelPreparation(prepared, identity, modelPlan, model) {
+      current();
+      const request = callbacks.request(originals, prepared);
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.modelCompilation === undefined || state.modelGraph !== model?.graph ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
+          liveRuns.size >= 4096 || model === null || typeof model !== 'object' || types.isProxy(model)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      // This is the existing physical caller's record, retained before entry.
+      // Its Scope must survive a later completion/adoption failure.
+      const scopeField = Object.getOwnPropertyDescriptor(model, 'scope');
+      if (scopeField === undefined || !Object.hasOwn(scopeField, 'value') ||
+          scopeField.value !== undefined || scopeField.writable !== true) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      const scope = moon.clientProgramPrepareRequestModelReadScope;
+      const complete = moon.clientProgramCompleteRequestModelPreparation;
+      const adopt = moon.clientProgramAdoptRequestModelPreparation;
+      if (![scope, complete, adopt].every(method => typeof method === 'function')) {
+        fail('NodeManagedRunRuntimeUnavailable');
+      }
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      state.modelPlan = modelPlan;
+      state.adopting = true;
+      try {
+        model.scope = checked(Reflect.apply(scope, moon, [state.parent, producer.receipt, modelPlan]));
+        if (model.scope === undefined) fail('NodeManagedRunAdmissionUnavailable');
+        checked(Reflect.apply(complete, moon, [state.parent, producer.receipt, modelPlan]));
+        const value = checked(Reflect.apply(adopt, moon, [state.parent, identity, model.scope]));
+        const run = {prepared, request, producer, purpose: 'local-mock-model', model,
+          effectful: false, content: undefined, original: state.original,
+          children: [], fileIdentity: undefined, value};
+        producer.liveRuns++;
+        runs.set(prepared, run); liveRuns.add(run);
+        state.modelCompilation = state.modelGraph = state.modelPlan = undefined;
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      }
+    },
+    adoptContentPreparation(prepared, identity, contentPlan) {
+      current();
+      const request = callbacks.request(originals, prepared);
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
+          liveRuns.size >= 4096) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      const complete = moon.clientProgramCompleteRequestContentPreparation;
+      const adopt = moon.clientProgramAdoptRequestContentPreparation;
+      if (typeof complete !== 'function' || typeof adopt !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      state.contentPlan = contentPlan;
+      state.adopting = true;
+      try {
+        checked(Reflect.apply(complete, moon, [state.parent, producer.receipt, identity, contentPlan]));
+        const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
+        const run = {prepared, request, producer, purpose: 'local-content', model: undefined,
+          effectful: false, content: contentPlan, original: state.original,
+          children: [], fileIdentity: undefined, value};
+        producer.liveRuns++;
+        runs.set(prepared, run); liveRuns.add(run);
+        state.contentPlan = undefined;
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      }
+    },
     adoptEffectPreparation(prepared, request, identity, operationPlan) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
@@ -917,6 +994,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.preparation=undefined;
       state.parent=state.admission=state.original=state.context=undefined;
       state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
+      state.compilationFamily=undefined;
       state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
       run.value=run.producer=undefined;
       releaseFinishedProducer(producer);
