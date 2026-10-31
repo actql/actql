@@ -4449,3 +4449,20 @@ does not repeat the already-spent alias release. Pending children, failed
 observations, replaced originals and reentrant retirement retain their existing
 cleanup duties; this private reference cut issues no cleanup acknowledgement,
 reservation, capacity or replacement Run.
+
+### Native response-observer task custody
+
+The byte observer remains synchronous and returns Unit. If it instead returns
+a native Promise, the HTTPS binding registers settlement handlers on that exact
+Promise through its captured native method before inspecting a replaceable
+public `then` property. Refusal destroys the same request/socket, but their
+close events cannot release the binding while that original task remains live.
+A public getter failure keeps its original error, and a replaced method cannot
+substitute a different settled wrapper for the original task.
+
+Native constructor/species lookup can itself refuse before registering those
+handlers. The existing binding then retains the unjoined original and error in
+its response-custody slot; the failed join and later socket close supply no task
+retirement acknowledgement. This does not issue another request or Journal use,
+reset Unknown, or make an invalid asynchronous observer acceptable. Normal
+synchronous byte charging and its original error/transport duties are unchanged.

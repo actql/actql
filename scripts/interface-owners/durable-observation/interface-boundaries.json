@@ -6836,6 +6836,11 @@
           "async": false
         },
         {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
           "parameters": [
             "yes",
@@ -6967,6 +6972,7 @@
             "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
             "receive/receive/request/request/request",
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
@@ -8040,7 +8046,7 @@
           }
         }
       ],
-      "sha256": "883363c11c928d18c6491f41b0411cff944e4aa036f90863dc70185761f9ff77",
+      "sha256": "2448f7a48815fe7f954f9c86feee1c633fc53bc71fd8ce23003c7a6150cb1d8e",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

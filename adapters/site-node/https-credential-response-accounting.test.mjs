@@ -9,7 +9,7 @@ import * as resource from './https-credential-resource.mjs';
 
 // Real original HTTPS binding/request/socket and explicit authority/Journal
 // ports. This does not issue a Common grant or prove a normal funded Effect.
-async function fixture(t, handle) {
+async function fixture(t, handle, {unjoinedOriginal = false} = {}) {
   const root = await mkdtemp(join(process.env.ACTQL_TEST_SCRATCH_PARENT ?? tmpdir(), 'actql-response-accounting-'));
   const {ca, cert, key} = await fixtureCertificates(root);
   const server = createServer({cert, key}, handle);
@@ -26,7 +26,7 @@ async function fixture(t, handle) {
   const resolveSecret = async () => 'fixture-secret';
   const binding = resource.openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,assertCurrent(){}});
   t.after(async()=>{
-    assert.equal(resource.closeHttpsCredentialBinding(binding),'closed');
+    assert.equal(resource.closeHttpsCredentialBinding(binding),unjoinedOriginal?'pending':'closed');
     await new Promise(resolve=>server.close(resolve));
     if(process.env.ACTQL_TEST_PRESERVE_SCRATCH==='1')t.diagnostic(`Retained owned TLS fixture: ${root}`);
     else await rm(root,{recursive:true,force:true});
@@ -129,6 +129,24 @@ for (const publicThen of ['throwing getter', 'throwing method']) {
     assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
   });
 }
+
+test('native byte observer join failure retains the original under existing binding custody', async t => {
+  let settle;
+  const original = new Promise(resolve => {settle = resolve;});
+  const primary = new Error('original native species lookup failed');
+  Object.defineProperty(original, 'constructor', {get() {throw primary;}});
+  let requests = 0;
+  const f = await fixture(t, (request, response) => {
+    requests++; response.writeHead(200); response.end('{}');
+  }, {unjoinedOriginal: true});
+  await assert.rejects(f.call({observeResponseBytes() {return original;}}), error => error === primary);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+  settle(); await new Promise(setImmediate);
+  // Failed native registration supplied no observable settlement witness to
+  // this binding. A test-owned resolver cannot acknowledge its original duty.
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+  assert.equal(requests, 1); assert.equal(f.claims(), 1); assert.deepEqual(f.outcomes, ['unknown']);
+});
 
 test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
   const primary=new Error('original Ledger charge refusal');

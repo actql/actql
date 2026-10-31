@@ -30,6 +30,7 @@ const bindings = new WeakMap();
 // cannot construct the original physical claim. This contains no secret.
 const runResponseOriginals = new WeakMap();
 const compareBodyBytes = Buffer.compare;
+const nativePromiseThen = Promise.prototype.then;
 
 // Private synchronous consumer for an original legacy Run response. This is
 // historical DATA, not current authority, a new use, Store custody or an ACK.
@@ -769,16 +770,35 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
               maxResponseBytes - received + 1))) !== null) {
               const observed = observeResponseBytes(chunk.byteLength);
               if (observed !== undefined) {
-                const then = observed !== null && (typeof observed === 'object' || typeof observed === 'function')
-                  ? observed.then : undefined;
-                if (typeof then === 'function') {
+                if (types.isPromise(observed)) {
                   // Invalid async borrowing remains joined to this SAME
                   // request/socket promise until settlement. Cleanup cannot
                   // ACK or drop the callback's original child in the meantime.
                   observerPending = true;
-                  const joined = new Promise((yes, no) => Reflect.apply(then, observed, [yes, no]));
                   const finishObserver = () => { observerPending = false; release(); };
-                  joined.then(finishObserver, finishObserver);
+                  try {
+                    // Register on the native original before observing a
+                    // replaceable public getter/method. A rejected wrapper
+                    // around that method cannot settle the original task.
+                    Reflect.apply(nativePromiseThen, observed, [finishObserver, finishObserver]);
+                  } catch (cause) {
+                    // Constructor/species can refuse before native registration.
+                    // Keep that unresolved original under this existing binding;
+                    // a socket close or failed join is not its cleanup ACK.
+                    binding.unjoinedResponseCustody = {original: observed, cause};
+                    observerPending = false;
+                    throw cause;
+                  }
+                  void observed.then;
+                } else {
+                  const then = observed !== null && (typeof observed === 'object' || typeof observed === 'function')
+                    ? observed.then : undefined;
+                  if (typeof then === 'function') {
+                    observerPending = true;
+                    const joined = new Promise((yes, no) => Reflect.apply(then, observed, [yes, no]));
+                    const finishObserver = () => { observerPending = false; release(); };
+                    joined.then(finishObserver, finishObserver);
+                  }
                 }
                 fail('InvalidRemoteCredentialResponseByteObserver');
               }
