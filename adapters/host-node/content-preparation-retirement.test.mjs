@@ -129,3 +129,12 @@ test('Content refusal before Request retention releases only the unaccepted slot
   assert.throws(()=>Reflect.apply(original.releaseAliases,original,[undefined,original.inputHolder]),{message:'InstalledContentRunCleanupPending'});
   assert.equal(original.retired,false);current.retire();assert.equal(original.retired,true);
 });
+
+test('Content consumed-return retry rechecks its actual Host bag without repeating spent alias release',()=>{
+  const f=fixture(),current=f.open(),run=current.run,original=f.retained[0],value=run.value;
+  const first=new Error('same consumed Request return');let calls=0;
+  run.manager.severPreparation=()=>{if(++calls===1)throw first;};
+  assert.throws(current.retire,e=>e===first);assert.equal(original.retired,true);assert.equal(run.contentAliasesReleased,true);
+  f.origins.get(value).before=()=>f.record.computeRuns.set(current.p,{});
+  assert.throws(current.retire,{code:'ForeignInstalledContentRun'});assert.equal(calls,1);
+});
