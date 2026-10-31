@@ -281,50 +281,69 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // The selected existing Source owner creates the same-Run Content parent
   // before durable admission or I/O. This finite prefix recipe is DATA; the
   // callback must retain its real Resource original and partial cleanup.
-  run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}) => {
-    if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
+  run.prepareManagedKeyedCompilation = ({preparedProgram, serializationGraph, request, keyedAcquisition}) => {
+    if (!preparedRunRequired || typeof assertRunCurrent !== 'function' || request === undefined ||
         typeof prepareKeyedManagedRun !== 'function' || typeof borrowKeyedManagedLedger !== 'function') {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
     }
     assertRunCurrent();
-    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
-    if (plan.kind !== 'serialization' || plan.serializationGraph === undefined) {
-      throw new TypeError('InstalledContentRunPreparationUnsupported');
-    }
-    if (keyedAcquisition === undefined ||
+    if (serializationGraph === undefined || keyedAcquisition === undefined ||
         moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
       throw new TypeError('ForeignInstalledContentRun');
     }
     const prior = preparedKeyedRuns.get(preparedProgram);
     if (prior !== undefined) {
-      // requestOf may reproject the same checked immutable request value.
-      // This only selects an already retained preparation; it cannot issue
-      // another admission. The typed borrower still checks the original Run.
-      const scope = prior.request === request ? undefined : moon.clientRequestScopeCid(request);
-      if (prior.plan !== plan || prior.keyedAcquisition !== keyedAcquisition || prior.request !== request &&
-          (typeof scope !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(scope) ||
-            scope !== moon.clientRequestScopeCid(prior.request) ||
-            moon.clientRequestIntentCid(request) !== moon.clientRequestIntentCid(prior.request))) {
-        throw new TypeError('ForeignInstalledContentRun');
+      if (prior.serializationGraph !== serializationGraph || prior.keyedAcquisition !== keyedAcquisition ||
+          prior.request !== request) throw new TypeError('ForeignInstalledContentRun');
+      if (prior.failed) throw prior.failure;
+      if (prior.managed.closed || prior.managed.contentCompilation === undefined) {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
       }
-      if (prior.failure !== undefined) throw prior.failure;
-      return;
+      return prior.managed.contentCompilation;
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {plan, request, keyedAcquisition, recipe: undefined, failure: undefined};
+    const original = {serializationGraph, plan: undefined, request, keyedAcquisition,
+      recipe: undefined, managed: undefined, failed: false, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);
     try {
-      const {task, step} = plan.serializationGraph;
+      const {task, step} = serializationGraph;
       const prefix = control.prefixCapacity(preparedProgram, task, step,
         bodies, prefixLimits, workspace, true);
       original.recipe = Object.freeze({...bodies, task, step, keyedAcquisition,
         prefixRetainedBytes: prefix.retainedBytes, prefixExecutionBytes: prefix.executionBytes});
-      if (prepareKeyedManagedRun(preparedProgram, request, original.recipe) !== undefined) {
+      original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe);
+      if (original.managed === undefined || original.managed.value === undefined ||
+          original.managed.selectedKeyed === undefined || original.managed.contentCompilation === undefined) {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
       }
       assertRunCurrent();
-    } catch (cause) {original.failure = cause; throw cause;}
+      return original.managed.contentCompilation;
+    } catch (cause) {original.failed = true; original.failure = cause; throw cause;}
+  };
+  // Compilation/adoption belongs to the original Request before Run definition.
+  // This later call only binds the SAME issuer's completed plan to that holder.
+  run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}) => {
+    if (!preparedRunRequired || typeof assertRunCurrent !== 'function') {
+      throw new TypeError('InstalledContentRunPreparationUnavailable');
+    }
+    assertRunCurrent();
+    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    const original = preparedKeyedRuns.get(preparedProgram);
+    if (original === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
+    const scope = original.request === request ? undefined : moon.clientRequestScopeCid(request);
+    if (plan.kind !== 'serialization' || plan.serializationGraph !== original.serializationGraph ||
+        original.keyedAcquisition !== keyedAcquisition || original.plan !== undefined && original.plan !== plan ||
+        original.request !== request && (typeof scope !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(scope) ||
+          scope !== moon.clientRequestScopeCid(original.request) ||
+          moon.clientRequestIntentCid(request) !== moon.clientRequestIntentCid(original.request))) {
+      throw new TypeError('ForeignInstalledContentRun');
+    }
+    if (original.failed) throw original.failure;
+    if (original.managed.closed || original.managed.value === undefined) {
+      throw new TypeError('InstalledContentRunPreparationUnavailable');
+    }
+    original.plan = plan;
   };
   run.captureKeyed = options => installRunKeyedContentCapture({moon, publications,
     control: core.contentCaptureControl, namespaceId, authorityScopeCid, storeAuthorityCid,
@@ -412,7 +431,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (preparedRunRequired) {
       const original = preparedKeyedRuns.get(preparedProgram);
-      if (original === undefined || original.plan !== plan || original.failure !== undefined ||
+      if (original === undefined || original.plan !== plan || original.failed ||
           !capturedContent || typeof borrowKeyedManagedLedger !== 'function') {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
       }

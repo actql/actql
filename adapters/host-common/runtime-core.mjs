@@ -3387,6 +3387,14 @@ function publicationControl(moon) {
       return compiledRunResult(Reflect.apply(compile, moon, [parent, input, original, contracts]),
         'RunHostTaskCompilationRejected');
     },
+    prepareCheckedClientRequestKeyedSerializationCompilation(parent, input, selected, graph) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestKeyedSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request keyed Content compiler unavailable');
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, selected, original]),
+        'RunHostTaskCompilationRejected');
+    },
     prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled, definition,
       limits, workspace) {
       const value = compiledRunTokens.get(compiled);

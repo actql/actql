@@ -939,6 +939,34 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    prepareKeyedContentRun(prepared, request, identity, graph, constructPlan, compileOriginal) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.contentGraph !== undefined ||
+          typeof constructPlan !== 'function' || typeof compileOriginal !== 'function') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime;
+      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      state.preparing = true; state.contentGraph = graph;
+      try {
+        // The same Request owns the original selected keyed Plan BEFORE its
+        // compiler consumes that Plan, graph and immutable contract inputs.
+        state.contentPlan = Reflect.apply(constructPlan, undefined, [state.parent, producer.receipt]);
+        if (state.contentPlan === undefined) fail('InstalledContentRunPreparationUnavailable');
+        state.contentCompilation = Reflect.apply(compileOriginal, undefined,
+          [state.parent, producer.receipt, state.contentPlan, graph]);
+        if (state.contentCompilation === undefined) fail('NodeManagedRunCompilationUnavailable');
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      } catch (cause) {state.preparationFailed = true; state.preparationFailure = cause; throw cause;}
+      finally {state.preparing = false;}
+      return view.adoptContentPreparation(prepared, identity, state.contentPlan);
+    },
     prepareSerializationRun(prepared, request, identity, constructPlan) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
@@ -969,13 +997,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (typeof complete !== 'function' || typeof adopt !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
       state.contentPlan = contentPlan;
+      // Child-count DATA comes from this same typed selected Plan. It neither
+      // retains another Resource original nor replaces the adopted Core Ledger.
+      const required = serialization ? undefined : callbacks.contentRequirements(originals, prepared, contentPlan);
       state.adopting = true;
       try {
         checked(Reflect.apply(complete, moon, serialization
           ? [state.parent, producer.receipt, contentPlan] : [state.parent, producer.receipt, identity, contentPlan]));
         const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
         const run = {prepared, request, producer, purpose: 'local-content', model: undefined,
-          effectful: false, content: contentPlan, original: state.original,
+          effectful: false, content: contentPlan, original: state.original, required,
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
@@ -1199,10 +1230,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     ...(project ? {} : {prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     }}),
-    prepareContentRun(prepared, selected) {
-      if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
-      return prepareRun(prepared, 'local-content', undefined, selected);
-    },
     prepareRead(prepared, declaration, originalRun, occurrence) {
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);

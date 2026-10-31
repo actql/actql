@@ -2147,7 +2147,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (!runtimeIsOk(inventory)) return false;
     const count = runtimeField(inventory, 0).length;
     if (serializations.length !== 0) return serializations.length === 1 && count === 0 &&
-      moon.clientProgramAcquisitionCount(prepared) === 0 &&
+      (moon.clientProgramAcquisitionCount(prepared) === 0 || preparation.managesInstalledSources?.() === true) &&
       typeof moon.clientProgramPreparationBorrowSibling === 'function';
     // This selects custody only. The registry still requires the SAME
     // Request's actual Core borrower, not an INFER shape or a permission.
@@ -3079,7 +3079,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire, requestIdentity) => {
+    retainedDefinitionWire, requestIdentity, keyedOriginal) => {
     prepareSubmit.assertOwned(preparedProgram);
     const earlyMock = earlyMockInferPlans.get(preparedProgram);
     if (earlyMock !== undefined) {
@@ -3136,7 +3136,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         const serializationGraph = selectInstalledSerializationGraph({...common,
           resultDataPolicy: installedResultDataPolicy});
         const compilationOriginal = moon.clientProgramAcquisitionCount(preparedProgram) === 0
-          ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph) : undefined;
+          ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph)
+          : preparation === undefined ? undefined : runContent.prepareManagedKeyedCompilation({
+            preparedProgram, request: requestIdentity, serializationGraph, keyedAcquisition: keyedOriginal});
         return serializationTaskRunAdmission({...common,
           serializationGraph, compilationOriginal, resultDataPolicy: installedResultDataPolicy});
       } catch (cause) {
@@ -3227,11 +3229,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     prepareSerializationManagedRun: preparation === undefined ? undefined
       : (prepared, request, plan, limits, workspace) => preparation.prepareManagedSerializationRun(
         moon, prepared, request, plan, limits, workspace),
-    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, recipe) => {
+    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, graph, recipe) => {
       if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
-      return sourceProfile.prepareManagedContentRun(prepared, request, recipe);
+      return sourceProfile.prepareManagedContentRun(prepared, request, recipe, graph);
     },
     borrowKeyedManagedLedger: preparation === undefined ? undefined : (prepared, request, recipe,
       direct, keyed, capacity) => {
@@ -4202,7 +4204,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (early === undefined) {
             early = {requestId: submission.requestId,
               keyedAcquisition,
-              plan: planFor(submission, retained?.runDefinition.wire, requested)};
+              plan: planFor(submission, retained?.runDefinition.wire, requested, keyedAcquisition)};
             earlyContentPlans.set(submission.preparedProgram, early);
           }
           if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});
@@ -5416,6 +5418,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
       if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
+          run.preparationKind === 'keyed-content-plan' ||
           run.preparationKind === 'effect-plan' && (run.preparationFunded || run.requestInput !== undefined)) {
         const finish = preparation.retireManagedComputeRun(run.prepared);
         finish?.();
@@ -5834,6 +5837,53 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked});
     },
+    prepareManagedKeyedContentRun(runtime, prepared, request, graph, recipe, constructPlan) {
+      const manager = sourceManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareKeyedContentRun !== 'function' ||
+          record.managedSourceProfile === undefined || typeof constructPlan !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      assertSourceManagedInstallationCurrent(manager, originals);
+      const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
+      originalInstallation.computeRuns = runs;
+      const prior = runs.get(prepared);
+      if (prior !== undefined) {
+        if (Object.hasOwn(prior, 'failure')) throw prior.failure;
+        if (prior.closed || prior.preparationKind !== 'keyed-content-plan' || prior.runtime !== runtime ||
+            prior.request !== request || prior.manager !== manager || prior.contentGraph !== graph ||
+            prior.contentRecipe !== recipe) throw clientOperationError('ForeignInstalledContentRun');
+        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request])); return prior;
+      }
+      if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
+      const run = {runtime, prepared, request, manager, contentGraph: graph, contentRecipe: recipe,
+        preparationKind: 'keyed-content-plan', original: undefined, value: undefined,
+        selectedKeyed: undefined, contentCompilation: undefined, closed: false, selecting: true};
+      runs.set(prepared, run); liveRuns.add(run);
+      try {
+        run.retire = runtime.clientProgramInstalledManagedRunRetire;
+        run.check = runtime.clientProgramInstalledManagedRunCheck;
+        if (![run.retire, run.check].every(method => typeof method === 'function')) {
+          throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+        }
+        const control = runtimeCore(runtime).publicationControl;
+        const adopted = manager.prepareKeyedContentRun(prepared,
+          originalSourceManagedHostRequest(originals, prepared), request, graph,
+          (parent, input) => {
+            // Complete C backing must precede the actual selected constructor.
+            run.selectedKeyed = Reflect.apply(constructPlan, undefined, [parent, input]);
+            return run.selectedKeyed;
+          }, (parent, input, selected, originalGraph) => {
+            run.contentCompilation = control.prepareCheckedClientRequestKeyedSerializationCompilation(
+              parent, input, selected, originalGraph);
+            return run.contentCompilation;
+          });
+        run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        assertSourceManagedInstallationCurrent(manager, originals);
+        return run;
+      } catch (cause) {run.failure = cause; throw cause;}
+      finally {run.selecting = false;}
+    },
     prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareSerializationRun !== 'function' ||
@@ -6024,7 +6074,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
       if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
-      if (run.preparationKind === 'serialization-plan' && run.value === undefined) {
+      if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
         // No prefix start can precede an adopted Run. The original Request
         // still owns its partial constructor and aborts it on existing cleanup.
         record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
@@ -6076,6 +6126,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
         run.manager.severPreparation(prepared,run.original);
         run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
+        run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
         run.prepared=undefined;run.closed=true;
         run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
@@ -6233,6 +6284,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // is the same one required by that service's original identity fence.
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
+        prepareManagedContentRun(prepared, request, graph, recipe, constructPlan) {
+          return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan);
+        },
         prepareManagedRun(prepared, request, profile, prepareInvocation) {
           return Reflect.apply(prepare, preparation, prepareInvocation === undefined
             ? [moon, prepared, request, profile] : [moon, prepared, request, profile, prepareInvocation]);

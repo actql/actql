@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import test from 'node:test';
+import {parse} from 'acorn';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
+import {AcquisitionOpenError} from '../host-common/acquisition-outcome.mjs';
+import {installNodeContentRun} from './installed-content-run.mjs';
+
+// Actual Local constructor -> Host bag -> Request manager -> runtime port.
+// Core nominal/Resource/current interfaces are explicit fixture ports. This is
+// neither a compiled Common ABI nor physical backing, Source IO or a public Run.
+function method(file, name, ports) {
+  const s=readFileSync(new URL(file,import.meta.url),'utf8');let selected;
+  const walk=n=>{if(!n||typeof n!=='object')return;
+    if(n.type==='Property'&&n.key?.name===name){assert(!selected);selected=n;}
+    for(const value of Object.values(n)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
+  walk(parse(s,{ecmaVersion:'latest',sourceType:'module'}));assert(selected,name);
+  return Function(...Object.keys(ports),`return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
+}
+const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
+async function fixture({failurePhase,failure}={}) {
+  const prepared={},request={},sdkRequest={},parent={},input={},holder={},original={},value={},selected={},compilation={};
+  const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
+  const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
+  const record={},originalInstallation={},originals={},runs=new WeakMap(),liveRuns=new Set(),view={};
+  let profile,localOptions;
+  const state={parent,prepared,holder,compilationFamily:'content',context:undefined,original};
+  const producer={receipt:input,preparation:state,liveRuns:0};
+  const moon={
+    clientProgramPreparationBorrowRead:h=>{assert.equal(h,holder);return prepared;},
+    clientProgramCompleteRequestContentPreparation(p,i,r,s){assert.deepEqual([p,i,r,s],[parent,input,request,selected]);
+      assert.equal(record.computeRuns.get(prepared).selectedKeyed,selected);assert.equal(state.contentCompilation,compilation);
+      calls.push('complete');if(failurePhase==='complete')throw failure;return ok();},
+    clientProgramAdoptRequestContentPreparation(p,r){assert.deepEqual([p,r],[parent,request]);calls.push('adopt');if(failurePhase==='adopt')throw failure;return ok(value);},
+    clientProgramPrepareRequestKeyedSerializationCompilation(p,i,s,g){assert.equal(this,moon);assert.deepEqual([p,i,s,g],[parent,input,selected,rawGraph]);
+      assert.equal(state.contentPlan,selected);calls.push('compile');if(failurePhase==='compile')throw failure;return ok(compilation);},
+    clientProgramInstalledManagedRunCheck(v,p,r){assert.deepEqual([v,p,r],[value,prepared,request]);return ok();},
+    clientProgramInstalledManagedRunRetire(){assert.fail('Local child cannot retire its Host parent');},
+    clientProgramNodeLocalContentRunPrepare(){assert.fail('No independent Content admission');},
+    clientProgramInstalledManagedKeyedContentRunBegin(){assert.fail('No standalone Content begin');},
+    clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
+    clientProgramKeyedAcquisitionMatchesProgram:(k,p)=>k===keyed&&p===prepared,
+    clientProgramKeyedDirectAcquisitionCoordinates:()=>({_0:0,_1:0}),
+    clientProgramPrepareLocalQueryRequirement:()=>ok({}),clientProgramQueryRequirementSourceRef:()=> 'local:files',
+    clientProgramKeyedAcquisitionSourceEvidenceFacts:()=>ok(['local:contents']),
+    clientProgramRowSourcePrepareAcquisition:d=>{assert.equal(d,declaration);return ok({});},
+    clientProgramInstalledRowCaptureCapacity:()=>({}),
+    clientProgramInstalledManagedKeyedContentPrepare(...args){assert.equal(args[0],prepared);assert.equal(args[2],keyed);calls.push('selected');return ok(selected);},
+  };
+  state.context={runtime:moon};
+  const managerPorts={current(){},producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,
+    callbacks:{request:()=>sdkRequest,contentRequirements(o,p,s){assert.deepEqual([o,p,s],[originals,prepared,selected]);return{attempts:3};}},
+    originals,runs,liveRuns,view,checked};
+  for(const name of ['prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
+  view.assertCurrent=()=>{};view.prepareRead=()=>assert.fail('No physical read selected');
+  const tokens=new WeakMap([[graph,rawGraph]]),control={};
+  control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-core.mjs',
+    'prepareCheckedClientRequestKeyedSerializationCompilation',{serializationPlanTokens:tokens,moon,compiledRunResult:checked});
+  const host=method('./embedded-local.mjs','prepareManagedKeyedContentRun',{
+    sourceManaged:view,moon,record,originalInstallation,originals,checked,
+    clientOperationError:code=>Object.assign(new Error(code),{code}),assertSourceManagedInstallationCurrent(){},
+    originalSourceManagedHostRequest:()=>sdkRequest,runtimeCore:()=>({publicationControl:control})});
+  const path=new URL('../connectors/local/host/installed-project-files.mjs',import.meta.url),s=readFileSync(path,'utf8');
+  const names=new Set(['fail','canonical','cid','positive','text','acknowledged','physicalReadChild','installPreparedProjectLocalFiles']);
+  const parts=parse(s,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(n=>{
+    const v=n.type==='ExportNamedDeclaration'?n.declaration:n;
+    const selectedNames=v?.type==='VariableDeclaration'?v.declarations.map(d=>d.id.name):[v?.id?.name];
+    if(!selectedNames.some(n=>names.has(n)))return[];selectedNames.forEach(n=>assert(names.delete(n)));return[s.slice(v.start,v.end)];});assert.equal(names.size,0);
+  const install=Function('createHash','canonicalJson','checked','runtimeOptionalField','readFile','moduleUrl',
+    'createInstalledRowSource','rowSourceCheckEnvironment','composeInstalledCheckEnvironment','retainInstalledHostInitializationFailure','AcquisitionOpenError','mime',
+    parts.join('\n').replaceAll('import.meta.url','moduleUrl')+'\nreturn installPreparedProjectLocalFiles;')(
+      createHash,canonicalJson,checked,runtimeOptionalField,readFile,path,
+      async options=>{localOptions=options;return{connectorBindings:[],admitsSource:()=>true};},()=>({wire:'{}'}),()=> '{}',
+      async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'));
+  const entry={connection:'local',rootPath:'/not-opened',declaration,scopeCid:'sha256:'+'a'.repeat(64),
+    limits:{maxReadBytes:100,maxPages:2,maxPageBytes:8,maxFileBytes:32},wire:JSON.stringify({views:[
+      {resource:'files',source_ref:'local:files'},{resource:'contents',source_ref:'local:contents'}]})};
+  const bundle={sources:[entry]};profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged:view,
+    baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'context'},assertAccountCurrent(){}}),
+    prepareManagedContentRun(p,r,g,recipe,construct){assert.equal(profile,record.managedSourceProfile);return host(moon,p,r,g,recipe,construct);}});
+  record.managedSourceProfile=profile;
+  const content=installNodeContentRun({moon,core:{contentGenerationControl:{workspaceCapacity:()=>({retainedBytes:1n,executionBytes:1n}),
+    prefixCapacity(p,t,s){assert.deepEqual([p,t,s],[prepared,0,1]);calls.push('prefix');return{retainedBytes:5n,executionBytes:7n};}},
+    publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
+    preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
+    prepareKeyedManagedRun:(p,r,g,recipe)=>profile.prepareManagedContentRun(p,r,recipe,g),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
+  return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,
+    compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
+    bind:()=>content.prepareManagedKeyedRun({preparedProgram:prepared,request,plan,keyedAcquisition:keyed})};
+}
+
+test('Request keyed Content selects then compiles once before completing and adopting its same Host parent',async()=>{
+  const f=await fixture();assert.equal(f.compile(),f.compilation);assert.equal(f.compile(),f.compilation);
+  assert.deepEqual(f.calls,['prefix','selected','compile','complete','adopt']);
+  const run=f.record.computeRuns.get(f.prepared);assert.equal(run.selectedKeyed,f.selected);assert.equal(run.contentCompilation,f.compilation);
+  f.bind();f.bind();await f.profile.close();assert.equal(f.calls.filter(x=>x==='compile').length,1);
+});
+
+test('Request keyed Content preserves its exact failed constructor without reissuing after undefined or typed refusal',async()=>{
+  for(const [failurePhase,failure]of[['compile',undefined],['complete',new Error('same completion')],['adopt',new Error('same adoption')]]){
+    const f=await fixture({failurePhase,failure});for(let i=0;i<2;i++){
+      let thrown=false;try{f.compile();}catch(e){thrown=true;assert.equal(e,failure);}assert(thrown);
+    }
+    assert.equal(f.calls.filter(x=>x==='selected').length,1);assert.equal(f.calls.filter(x=>x==='compile').length,1);
+    assert.equal(f.record.computeRuns.get(f.prepared).selectedKeyed,f.selected);await f.profile.close();
+  }
+});
+
+test('Request keyed Content refuses missing compiler preparation and foreign graph or keyed originals',async()=>{
+  const f=await fixture();assert.throws(f.bind,{message:'InstalledContentRunPreparationUnavailable'});assert.deepEqual(f.calls,[]);
+  assert.throws(()=>f.compile({keyedAcquisition:{}}),{message:'ForeignInstalledContentRun'});
+  assert.throws(()=>f.control.prepareCheckedClientRequestKeyedSerializationCompilation({}, {}, f.selected, {...f.graph}),{message:'Foreign Content compilation graph'});
+  f.compile();assert.throws(()=>f.compile({serializationGraph:{...f.graph}}),{message:'ForeignInstalledContentRun'});await f.profile.close();
+});
