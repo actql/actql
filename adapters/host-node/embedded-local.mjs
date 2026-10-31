@@ -616,6 +616,93 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
   return plan;
 }
 
+// The same Request invokes this while its Model construction input is live.
+// Complete physical backing belongs before this call; the retained Bounds,
+// capacities and module below are originals, not an allocation permission.
+function prepareRequestMockModelPlan(originals, run, model, compilation, parent, input) {
+  const {projectRuntime: moon, initialControl, retainedRelationOutput} = originals.installation;
+  const current = () => {
+    assertSourceManagedHostPreparation(originals);
+    if (parent === undefined || input === undefined || run.runtime !== moon || run.closed ||
+        Object.hasOwn(run, 'failure') || run.model !== model ||
+        originals.installation.computeRuns?.get(run.prepared) !== run) {
+      throw clientOperationError('ForeignInstalledModelPreparation');
+    }
+    originalSourceManagedHostRequest(originals, run.prepared);
+  };
+  current();
+  const installed = prepareInstalledSequenceContractOriginal(originals), contracts = installed.contracts;
+  if (installed.moon !== moon || installed.control !== initialControl ||
+      typeof retainedRelationOutput !== 'boolean' || model.control !== runtimeCore(moon).publicationControl ||
+      typeof moon.clientProgramPreparedComposedInferBounds !== 'function' ||
+      typeof moon.clientProgramComposedInferRetainedLimits !== 'function') {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  const count = moon.clientProgramAcquisitionCount(run.prepared);
+  if (count !== 0 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+  // Retain the actual selected opaque Limits before the module/Plan frame.
+  // The nine fixed DATA fields are the existing consumer suffix, not the
+  // Model Ledger totals and not a repeat of the old fifteen-number quote.
+  model.selectedBounds = checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
+  const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
+  if (!Array.isArray(limits) || limits.length !== 9 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
+      limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
+  model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
+    readRetainedBytes: limits[2], readExecutionBytes: limits[3],
+    modelRetainedBytes: limits[4], modelExecutionBytes: limits[5],
+    maxReservations: Number(limits[6]), maxHoldings: Number(limits[7]), maxDelegations: Number(limits[8])});
+  current();
+  if (count === 0) {
+    if (typeof moon.clientProgramPrepareInstalledMockModelSourceFreeWithContracts !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    run.preparedSequences = checked(moon.clientProgramPrepareInstalledMockModelSourceFreeWithContracts(
+      run.prepared, compilation, installed.admission, contracts.values,
+      contracts.expression, contracts.ordered, retainedRelationOutput));
+    current();
+    run.modelPlan = model.control.prepareCheckedClientMockModelSourceFreePlan(run.preparedSequences,
+      run.request, model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
+  } else {
+    const sources = readInstalledMockPreparation(originals).sources;
+    if (sources.length !== 2 || typeof moon.clientProgramInstalledMockModelCapturePlanPrepare !== 'function') {
+      throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+    }
+    const query = readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-acquisition.json');
+    const evidence = readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-process-evidence.json');
+    const acquisitions = run.modelAcquisitions = [];
+    for (let stage = 0; stage < 2; stage++) {
+      const requirement = checked(run.queryTimePreparation === undefined
+        ? moon.clientProgramPrepareLocalQueryRequirement(run.prepared, stage, 0,
+          installed.admission, contracts.values, contracts.expression, contracts.ordered)
+        : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(run.prepared, stage, 0,
+          run.queryTimePreparation, run.request, installed.admission,
+          contracts.values, contracts.expression, contracts.ordered));
+      const held = {requirement, acquisition: undefined, capacity: undefined};
+      acquisitions.push(held);
+      held.acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+        sources[stage].declaration, requirement, query, evidence));
+      held.capacity = moon.clientProgramInstalledRowCaptureCapacity(held.acquisition);
+      if (held.capacity === undefined) throw clientOperationError('InstalledSourceCapacityUnavailable');
+      current();
+    }
+    // Same fixed Mock document limits as its real original reader. These
+    // supply demand to Core; no row, Source observation or ACK is fabricated.
+    const documentBytes = Object.freeze([1048576n, 1048576n]);
+    run.preparedSequences = checked(moon.clientProgramInstalledMockModelCapturePlanPrepare(
+      run.prepared, run.request, compilation, acquisitions.map(value => value.capacity),
+      documentBytes, documentBytes, installed.admission, contracts.values,
+      contracts.expression, contracts.ordered, retainedRelationOutput, run.queryTimePreparation));
+    current();
+    run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
+      model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
+  }
+  current();
+  return run.modelPlan;
+}
+
 // The separate selected Compute original covers this projection. An empty
 // declaration inventory is not a Source installation or a scalar admission:
 // Common still checks the same nominal preparation and its complete graph.
