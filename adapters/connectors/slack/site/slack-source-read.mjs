@@ -36,7 +36,7 @@ export function prepareSlackSourceReadSequence({moon,workspaceId,resource,names,
     if(!Number.isSafeInteger(count)||count<0||count>bound.maxTotalRows-observedRows)fail('InstalledSlackMessagesOccurrenceLimit');
     observedRows+=count;
   };
-  const request=async(context,operation,method,path,query,project,body)=>{
+  const request=async(context,operation,method,path,query,project,body,originalRequest)=>{
     // Consume the actual earlier response before allocating the next original
     // request. The last response remains available for the coalesced row page.
     if(chargePending){await context.consumeObservation();chargePending=false;}
@@ -44,8 +44,13 @@ export function prepareSlackSourceReadSequence({moon,workspaceId,resource,names,
     requestCount++;
     const value=await context.readChild({operation,prepare(){
       if(Buffer.byteLength(requestTarget(path,query))>bound.maxTargetBytes)fail('SlackSourceTargetLimit');
-      return{request:{method,path,query,...(body===undefined?{}:{body}),
-        headers:[['accept','application/json']],responseHeaders:[]},project(response){
+      const request=Object.freeze({method,path,query:Object.freeze(query.map(pair=>Object.freeze(pair.slice()))),
+        ...(body===undefined?{}:{body}),headers:Object.freeze([Object.freeze(['accept','application/json'])]),
+        responseHeaders:Object.freeze([])});
+      // The same fixed physical request is its original occurrence for the
+      // list/identity grammar. Dependent reads retain the Catalog-issued
+      // original instead; neither descriptor is an operation grant.
+      return{original:originalRequest??request,request,project(response){
         if(!response.accepted||response.statusCode!==200)fail('SlackSourceReadRejected');
         return project(response.body);
       }};
@@ -129,7 +134,7 @@ export function prepareSlackSourceReadSequence({moon,workspaceId,resource,names,
       const admitted=await request(context,SLACK_MESSAGE_REPLIES_OPERATION,'GET','/api/conversations.replies',query,body=>{
         const admitted=checked(provider.slackAdmitMessageRepliesPage(control,original,body));
         accountRows(provider.slackMessageRepliesPageRowCount(admitted));return admitted;
-      });
+      },undefined,original);
       if(context.project(()=>!provider.slackMessageRepliesPageHasNext(admitted),undefined,[])){
         context.project(()=>checked(provider.slackFinishMessageReplies(control,admitted)),undefined,[]);
         return control;
@@ -165,7 +170,7 @@ export function prepareSlackSourceReadSequence({moon,workspaceId,resource,names,
         const originalPage=checked(provider.slackAdmitMessageHistoryPage(history,original,body));
         const count=provider.slackMessagePageRowCount(originalPage);accountRows(count);
         return{original:originalPage,count};
-      });
+      },undefined,original);
       pages.push(page);
       if(context.project(()=>!provider.slackMessageHistoryPageHasNext(page.original),undefined,[])){
         context.project(()=>checked(provider.slackFinishMessageHistory(history,page.original)),undefined,[]);break;

@@ -392,7 +392,8 @@ pub fn installed_slack_source_reader_capacity(
     scalar_words: 16L + 4L * rows,
     owned_utf16_units: 6L * (limits[8].to_int64() + 2L * limits[9].to_int64()) +
     256L,
-    owned_wire_bytes: 0L,
+    // The original auth.test POST body is exactly the two UTF8 bytes {}.
+    owned_wire_bytes: 2L,
   }
   guard @execution.preparation_execution_capacity({
       retained,

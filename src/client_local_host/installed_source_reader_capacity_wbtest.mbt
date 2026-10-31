@@ -36,7 +36,7 @@ test "Slack original prefix composes retained scalar composite and protocol inve
   assert_eq(
     @execution.execution_capacity_execution_bytes(capacity) -
     @execution.execution_capacity_execution_bytes(json),
-    26960L,
+    26962L,
   )
   assert_true(installed_slack_source_reader_capacity(limits, 8, 3, 2) is None)
   assert_true(installed_slack_source_reader_capacity(limits, 11, 3, 1) is None)

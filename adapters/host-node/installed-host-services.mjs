@@ -1037,7 +1037,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
-          ...(nested === undefined ? {} : {maxRequestBytes:nested.original.maxRequestBytes}),
+          ...(slack !== undefined ? {maxRequestBytes:2} : nested === undefined ? {} : {maxRequestBytes:nested.original.maxRequestBytes}),
           maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});
       if (constructor !== undefined) {
         const all = BigInt(nested?.responses ?? limits.maxPages) * BigInt(limits.maxResponseBytes);

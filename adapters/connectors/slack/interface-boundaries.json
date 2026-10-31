@@ -2841,7 +2841,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/slack-source-read.mjs",
-      "sha256": "8ad3567f756c5dfb2317a9aa004083fecfeed3ba4bca13b5bfe35717b4102409",
+      "sha256": "a2079b83c3c392cbefe55a26d47d9a4a1cef7387c0b18c5c8bd245cdf2d869fc",
       "exports": [
         "prepareSlackSourceReadSequence"
       ],
@@ -3054,7 +3054,8 @@
             "path",
             "query",
             "project",
-            "body"
+            "body",
+            "originalRequest"
           ],
           "async": true
         },
@@ -3067,6 +3068,13 @@
           "name": "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/init:project/init:project",
           "parameters": [
             "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/request/request",
+          "parameters": [
+            "pair"
           ],
           "async": false
         }
@@ -3120,7 +3128,8 @@
             "prepareSlackSourceReadSequence/readReplies/readReplies/readReplies#3",
             "prepareSlackSourceReadSequence/request/request",
             "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare",
-            "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/init:project/init:project"
+            "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/init:project/init:project",
+            "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/request/request"
           ],
           "exports": [
             "prepareSlackSourceReadSequence"

@@ -152,7 +152,13 @@ standalone reader factory remains in the normal loader.
 The service captures each provider and Host method with its original receiver.
 The actual Source owner spends each physical request occurrence before awaiting
 currentness, retains the original authorization and issues a separate grant for
-each declared operation. In particular auth.test checks the exact selected
+each declared operation. Each dependent read forwards its same Catalog-issued
+request; the list/identity grammar forwards its same frozen physical request
+descriptor as the occurrence. A fresh empty marker or operation label never
+replaces that association. The selected recipe backs auth.test's exact two-byte
+UTF8 `{}` body and the managed reader receives that fixed request bound before
+its POST constructor. This is protocol inventory, not a new profile knob.
+In particular auth.test checks the exact selected
 workspace on the same retained token; its observation never grants users,
 channels, history or replies. Each previous response charge is consumed before
 constructing the next original request. Queries still admit complete declared
