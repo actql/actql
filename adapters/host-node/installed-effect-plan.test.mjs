@@ -54,6 +54,45 @@ for (const model of [false, true]) test(`Effect Plan forwards the same retained 
   assert.deepEqual(calls, ['demand', 'plan']);
 });
 
+// JS passes only original DATA arrays. The selected Moon bridge, not this
+// caller, constructs its own typed None/Some provider vector. Explicit ports
+// below establish routing/argument identity, not a native Plan or its backing.
+for (const sourceKind of ['source-free', 'base Source', 'provider Source']) {
+  test(`Model Plan uses the typed ${sourceKind} bridge without a JS Option`, () => {
+    const prepared = {}, request = {}, model = {}, component = {}, declaration = {}, provider = {}, plan = {};
+    const count = sourceKind === 'source-free' ? 0 : 1;
+    const providers = sourceKind === 'provider Source' ? Object.freeze([provider]) : undefined;
+    const sources = Object.freeze({declarations: Object.freeze(count ? [declaration] : []),
+      ...(providers === undefined ? {} : {providers}), queryContract: count ? 'query' : '',
+      evidenceContract: count ? 'evidence' : '', transferBytes: Object.freeze(count ? [37n] : []),
+      executionBytes: Object.freeze(count ? [19n] : [])});
+    const inputs = {sourceInputs: sources, installedContracts: {}, values: 'values',
+      fragment: undefined, ordered: undefined, modelDemand: model, modelComponents: Object.freeze([component])};
+    let calls = 0;
+    function accept(...actual) {
+      assert.equal(this, moon); calls++;
+      const expected = [prepared, request, sources.declarations,
+        ...(providers === undefined ? [] : [providers]), sources.queryContract, sources.evidenceContract,
+        sources.transferBytes, sources.executionBytes, inputs.installedContracts, inputs.values,
+        undefined, undefined, [], model, inputs.modelComponents, undefined];
+      assert.equal(actual.length, expected.length);
+      actual.forEach((value, i) => {
+        if (Array.isArray(expected[i]) && expected[i].length === 0) assert.deepEqual(value, []);
+        else assert.strictEqual(value, expected[i]);
+      });
+      return {$tag: 1, _0: plan};
+    }
+    const moon = {clientProgramEffectAcquisitionCount: p => {assert.equal(p, prepared); return count;},
+      clientProgramInstalledEffectModelManagedPlanPrepare: providers === undefined ? accept
+        : () => assert.fail('Provider vector requires its typed Some bridge'),
+      clientProgramInstalledEffectModelManagedProviderPlanPrepare: providers === undefined
+        ? () => assert.fail('Base Source is not a zero-Source or invented provider') : accept};
+    assert.equal(prepareInstalledEffectManagedPlan({moon, facts: {prepared, identity: request},
+      inputs, unit: {stageIndex: 0}, members: [], recipeFor: () => assert.fail('No operation recipe needed')}), plan);
+    assert.equal(calls, 1);
+  });
+}
+
 // Explicit Core ports count calls only. This refusal case does not fabricate a
 // successful native Plan, a Request parent, a source acquisition or capacity.
 test('unavailable original Source or Model inputs refuse before constructing Effect demands', () => {
