@@ -127,6 +127,27 @@ fund reusable control backing, scalar indices, snapshots and overlapping read
 controls before use. Bounded slots alone establish neither those coefficients,
 physical backing, process RSS nor coverage of another backend.
 
+### Effect durable Store usage
+
+The SQLite Effect Store keeps a connection-local TEMP projection of the original
+entry, physical response, batch member and outcome counts and encoded bytes.
+Each existing writer transaction checks the unchanged Store limits and advances
+this projection by the exact inserted rows and bytes. The business mutation,
+totals and external-version stamp share the same commit or rollback; there is
+no JavaScript post-commit usage cache and no additional persistent Store format.
+A lost commit reply retains the existing unknown/connection-usability outcome.
+
+Opening a connection admits the full original durable inventory. Within each
+later writer transaction, an external main-database commit detected through
+[SQLite data_version](https://www.sqlite.org/pragma.html#pragma_data_version)
+requires that same full observation again before a quota decision. The version
+is meaningful only on its original connection and is stored with the TEMP
+projection, so a refused mutation cannot leave a newer version stamped over old
+totals. Concurrent connections keep their independent observation boundaries;
+this mechanism does not claim to remove full observation after external writes.
+Physical digests, canonical admission, claim/CAS, reply-loss recovery and the
+original database close owner remain independent obligations.
+
 ### Checked Local demand
 
 The installed Local preparation retains one checked sequence inventory for both

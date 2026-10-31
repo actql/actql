@@ -92248,7 +92248,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aec2deb3761d9a4dfbe013a79da4f04e10a79aa447c47d617d0e093da065fe1f",
+      "sha256": "0aa48ac54e180b460e674cfddd7bac3d1bae3c52de40eb935ef864201bffa6ef",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -92663,6 +92663,33 @@
           "async": false
         },
         {
+          "name": "prepareEffectLedgerUsage",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerUsage/init:add/init:add",
+          "parameters": [
+            "entries",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerUsage/init:get/init:get",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerUsage/refresh/refresh",
+          "parameters": [
+            "selectedVersion"
+          ],
+          "async": false
+        },
+        {
           "name": "responseDigest/responseDigest",
           "parameters": [
             "row"
@@ -92735,6 +92762,10 @@
             "openSqliteEffectLedger/uniqueLocatorDispatch/uniqueLocatorDispatch",
             "outcomeDigest/outcomeDigest",
             "physicalDigest/physicalDigest",
+            "prepareEffectLedgerUsage",
+            "prepareEffectLedgerUsage/init:add/init:add",
+            "prepareEffectLedgerUsage/init:get/init:get",
+            "prepareEffectLedgerUsage/refresh/refresh",
             "responseDigest/responseDigest",
             "sha256Hex/sha256Hex"
           ],

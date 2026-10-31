@@ -753,3 +753,117 @@ test('response bytes reserve capacity before durable insertion', async t => {
   assert.equal(ledger.response(cid('2')), undefined);
   assert.equal(ledger.current(locator).entryCid, cid('2'));
 });
+
+
+test('Effect quota mutations do not reaggregate the whole durable history', async t => {
+  const root = await fixture(t);
+  const prepare = DatabaseSync.prototype.prepare;
+  let fullHistoryReads = 0;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = prepare.call(this, sql);
+    if (!sql.includes('SUM(LENGTH(')) return statement;
+    const get = statement.get;
+    return new Proxy(statement, {get(target, key) {
+      if (key === 'get') return (...args) => {
+        fullHistoryReads++;
+        return Reflect.apply(get, target, args);
+      };
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+  });
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+  t.after(() => ledger.close());
+  // Initialization/restoration has its own original full admission boundary.
+  fullHistoryReads = 0;
+  for (let index = 0; index < 40; index++) {
+    append(ledger, index,
+      `sha256:${(index + 100).toString(16).padStart(64, '0')}`,
+      JSON.stringify({revision: index + 1}));
+  }
+  assert.equal(ledger.current(locator).revision, 40);
+  assert.equal(fullHistoryReads, 0,
+    'no same-connection mutation may rescan every retained entry/response');
+});
+
+test('Effect transactional usage rolls back the external-change stamp with a failed insert', async t => {
+  const root = await fixture(t);
+  const first = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxEntries: 2});
+  t.after(() => first.close());
+  const other = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxEntries: 2});
+  t.after(() => other.close());
+  other.append({logicalRequestScopeCid: scope, logicalItemLocatorCid: cid('c'),
+    expectedRevision: 0, entryCid: cid('3'), entryJson: firstJson});
+  const prepare = DatabaseSync.prototype.prepare;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    if (sql.includes('INSERT INTO effect_ledger_entries')) {
+      throw new Error('INSERT_AFTER_EXTERNAL_REFRESH_FAILED');
+    }
+    return prepare.call(this, sql);
+  });
+  assert.throws(() => append(first, 0, cid('1'), firstJson),
+    /INSERT_AFTER_EXTERNAL_REFRESH_FAILED/u);
+  t.mock.restoreAll();
+  // No further external COMMIT: the earlier failed transaction must not make
+  // this same version look admitted while retaining its old empty totals.
+  assert.throws(() => first.appendBatch(['d', 'e'].map((digit, index) => ({
+    logicalRequestScopeCid: scope, logicalItemLocatorCid: cid(digit),
+    expectedRevision: 0, expectedEntryCid: null,
+    entries: [{entryCid: cid(index === 0 ? '4' : '5'), entryJson: firstJson}],
+  }))), {code: 'EffectLedgerCapacityExceeded'});
+  assert.equal(first.current(locator), undefined);
+  assert.equal(first.current(cid('d')), undefined);
+  assert.equal(first.current(cid('e')), undefined);
+  assert.equal(first.current(cid('c')).revision, 1);
+});
+
+test('Effect transactional usage reobserves externally changed UTF8 bytes before a new quota decision', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope,
+    maxStoredBytes: Buffer.byteLength(firstJson) + 2});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson);
+  const external = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  t.after(() => external.close());
+  external.prepare('UPDATE effect_ledger_entries SET entry_json = ?').run('界'.repeat(100));
+  assert.throws(() => ledger.append({logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: cid('c'), expectedRevision: 0,
+    entryCid: cid('2'), entryJson: '{}'}), {code: 'EffectLedgerCapacityExceeded'});
+  assert.equal(ledger.current(cid('c')), undefined);
+  // Capacity projection does not bless externally corrupted physical facts.
+  assert.throws(() => ledger.current(locator), {code: 'EffectLedgerIntegrityFailed'});
+});
+
+test('Effect transactional usage survives actual COMMIT reply loss and fresh reopen without a second mutation', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxEntries: 1});
+  t.after(() => ledger.close());
+  const exec = DatabaseSync.prototype.exec;
+  let commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = exec.call(this, sql);
+    if (sql === 'COMMIT') {
+      commits++;
+      throw new Error('ACTUAL_COMMIT_REPLY_LOST');
+    }
+    return result;
+  });
+  assert.throws(() => append(ledger, 0, cid('1'), firstJson), error => {
+    assert.equal(error.code, 'EffectLedgerCommitOutcomeUnknown');
+    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.connectionUsable, true);
+    return true;
+  });
+  assert.equal(commits, 1);
+  t.mock.restoreAll();
+  assert.equal(ledger.current(locator).entryCid, cid('1'));
+  ledger.close();
+  const reopened = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxEntries: 1});
+  t.after(() => reopened.close());
+  assert.equal(reopened.current(locator).entryCid, cid('1'));
+  assert.throws(() => append(reopened, 1, cid('2'), secondJson),
+    {code: 'EffectLedgerCapacityExceeded'});
+  const inspector = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  t.after(() => inspector.close());
+  assert.equal(inspector.prepare("SELECT COUNT(*) AS n FROM sqlite_schema WHERE name = 'effect_ledger_usage'").get().n, 0);
+});

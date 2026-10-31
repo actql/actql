@@ -49,6 +49,75 @@ const outcomeDigest = row => createHash('sha256')
 const sha256Hex = value => typeof value === 'string' &&
   /^[0-9a-f]{64}$/.test(value);
 
+// This connection's transactional projection of the SAME Store facts. TEMP
+// rows share commit/rollback with the business mutation and disappear on close;
+// no JS usage snapshot or new persistent format/permission owner is introduced.
+// SQLite data_version changes on another connection's commit, not our own:
+// https://www.sqlite.org/pragma.html#pragma_data_version
+function prepareEffectLedgerUsage(database) {
+  const original = database.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM effect_ledger_entries) +
+      (SELECT COUNT(*) FROM effect_ledger_responses) +
+      (SELECT COUNT(*) FROM effect_ledger_batch_responses) +
+      (SELECT COUNT(*) FROM effect_ledger_batch_members) +
+      (SELECT COUNT(*) FROM effect_ledger_outcomes) AS entries,
+      (SELECT COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0)
+        FROM effect_ledger_entries) +
+      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
+        FROM effect_ledger_responses) +
+      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
+        FROM effect_ledger_batch_responses) +
+      (SELECT COALESCE(SUM(LENGTH(CAST(outcome_json AS BLOB))), 0)
+        FROM effect_ledger_outcomes) AS bytes,
+      MAX(
+        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
+          FROM effect_ledger_responses),
+        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
+          FROM effect_ledger_batch_responses)
+      ) AS max_response_bytes
+  `);
+  const version = database.prepare('PRAGMA main.data_version');
+  database.exec(`CREATE TEMP TABLE effect_ledger_usage (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    data_version INTEGER NOT NULL,
+    entries INTEGER NOT NULL CHECK (entries >= 0),
+    bytes INTEGER NOT NULL CHECK (bytes >= 0)
+  ) STRICT`);
+  const read = database.prepare(`SELECT data_version, entries, bytes
+    FROM temp.effect_ledger_usage WHERE singleton = 1`);
+  const retain = database.prepare(`INSERT INTO temp.effect_ledger_usage
+    (singleton, data_version, entries, bytes) VALUES (1, ?, ?, ?)
+    ON CONFLICT(singleton) DO UPDATE SET data_version = excluded.data_version,
+      entries = excluded.entries, bytes = excluded.bytes`);
+  const advance = database.prepare(`UPDATE temp.effect_ledger_usage
+    SET entries = entries + ?, bytes = bytes + ? WHERE singleton = 1`);
+  const refresh = selectedVersion => {
+    const observed = original.get();
+    retain.run(selectedVersion, observed.entries, observed.bytes);
+    return observed;
+  };
+  const initial = refresh(version.get().data_version);
+  return Object.freeze({initial,
+    get() {
+      // All calls run inside the existing BEGIN IMMEDIATE. An external writer
+      // cannot change this cut between version observation and quota mutation.
+      const selectedVersion = version.get().data_version;
+      const observed = read.get();
+      return observed?.data_version === selectedVersion
+        ? observed : refresh(selectedVersion);
+    },
+    add(entries, bytes) {
+      // The same transaction has already admitted these exact increments.
+      // Failed inserts/CAS/reads and uncertain COMMIT keep their original
+      // rollback/connection semantics, including rollback of this version stamp.
+      if (advance.run(entries, bytes).changes !== 1) {
+        fail('EffectLedgerIntegrityFailed');
+      }
+    },
+  });
+}
+
 // Stores the exact canonical ledger-entry bytes and CAS head pointers. It
 // neither constructs CIDs nor decides Effect transitions or retry authority.
 export function openSqliteEffectLedger(root, {
@@ -80,6 +149,7 @@ export function openSqliteEffectLedger(root, {
   const transaction = createSqliteTransaction(database, 'EffectLedger');
   let closed = false;
   let databaseClosed = false;
+  let usage;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
@@ -172,6 +242,15 @@ export function openSqliteEffectLedger(root, {
           metadata.get('authority_scope_cid')?.value !== authorityScopeCid) {
         fail('EffectLedgerAuthorityMismatch');
       }
+      usage = prepareEffectLedgerUsage(database);
+      const initialUsage = usage.initial;
+      if (!count(initialUsage.entries) || !count(initialUsage.bytes) ||
+          !count(initialUsage.max_response_bytes) ||
+          initialUsage.entries > maxEntries ||
+          initialUsage.max_response_bytes > maxResponseBytes ||
+          initialUsage.bytes > maxStoredBytes) {
+        fail('EffectLedgerCapacityExceeded');
+      }
     });
     if (!existed) {
       const descriptor = openSync(directory, 'r');
@@ -182,37 +261,6 @@ export function openSqliteEffectLedger(root, {
     throwSqliteInitializationFailure(database, error, 'effect_ledger');
   }
   try {
-  const usage = database.prepare(`
-    SELECT
-      (SELECT COUNT(*) FROM effect_ledger_entries) +
-      (SELECT COUNT(*) FROM effect_ledger_responses) +
-      (SELECT COUNT(*) FROM effect_ledger_batch_responses) +
-      (SELECT COUNT(*) FROM effect_ledger_batch_members) +
-      (SELECT COUNT(*) FROM effect_ledger_outcomes) AS entries,
-      (SELECT COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0)
-        FROM effect_ledger_entries) +
-      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
-        FROM effect_ledger_responses) +
-      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
-        FROM effect_ledger_batch_responses) +
-      (SELECT COALESCE(SUM(LENGTH(CAST(outcome_json AS BLOB))), 0)
-        FROM effect_ledger_outcomes) AS bytes,
-      MAX(
-        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
-          FROM effect_ledger_responses),
-        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
-          FROM effect_ledger_batch_responses)
-      ) AS max_response_bytes
-  `);
-  const initialUsage = usage.get();
-  if (!count(initialUsage.entries) || !count(initialUsage.bytes) ||
-      !count(initialUsage.max_response_bytes) ||
-      initialUsage.entries > maxEntries ||
-      initialUsage.max_response_bytes > maxResponseBytes ||
-      initialUsage.bytes > maxStoredBytes) {
-    fail('EffectLedgerCapacityExceeded');
-  }
-
   const active = () => {
     if (closed) fail('EffectLedgerClosed');
     transaction.assertUsable();
@@ -567,6 +615,7 @@ export function openSqliteEffectLedger(root, {
           }
           throw error;
         }
+        usage.add(1, bytes);
         return Object.freeze({outcome: batchEvidence === undefined
           ? outcome(dispatchEntryCid)
           : materializeOutcome(readOutcome.get(dispatchEntryCid), observed),
@@ -633,6 +682,7 @@ export function openSqliteEffectLedger(root, {
             status_code: statusCode,
             response_bytes: responseBytes,
           }));
+        usage.add(1, responseBytes.byteLength);
         return Object.freeze({
           response: materializeResponse(readResponse.get(dispatchEntryCid)),
           created: true,
@@ -732,6 +782,7 @@ export function openSqliteEffectLedger(root, {
           insertMember.run(member.dispatch_entry_cid, batchOwnerCid,
             member.position, member.logical_item_locator_cid);
         }
+        usage.add(indexed.length + 1, responseBytes.byteLength);
         return Object.freeze({created: true, batchOwnerCid});
       });
     },
@@ -812,6 +863,7 @@ export function openSqliteEffectLedger(root, {
             expectedRevision, head.entry_cid);
           if (result.changes !== 1) fail('EffectLedgerCASFailed');
         }
+        usage.add(1, entryBytes);
         return Object.freeze({
           entry: current(logicalItemLocatorCid),
           created: true,
@@ -904,6 +956,7 @@ export function openSqliteEffectLedger(root, {
             if (updated.changes !== 1) fail('EffectLedgerCASFailed');
           }
         }
+        usage.add(additionalEntries, additionalBytes);
         return Object.freeze({created: true, entries: Object.freeze(
           operations.map(operation => current(operation.logicalItemLocatorCid)),
         )});
