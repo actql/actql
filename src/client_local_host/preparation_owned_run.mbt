@@ -39,6 +39,10 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
   guard original.owner is Pure(owner) && physical_equal(owner, prepared) else {
     return Err(ForeignOriginal)
   }
+  if original._observed_query_time is Some((_, bound_request)) &&
+    !physical_equal(bound_request, request) {
+    return Err(ForeignOriginal)
+  }
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
     @publication_host.client_request_program_cid(request) ||
@@ -53,19 +57,20 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
     0 {
     return Err(Unsupported)
   }
-  let (admission, ledger, retirement, holder) = match
-    @resources.adopt_node_preparation_admission(
-      initial, input, capacity, prepared,
-    ) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
   }
-  let value = new_installed_managed_run(admission, prepared, request, ledger)
-  value.source_free_preparation = Some(original)
-  value.preparation_retirement = Some(
-    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  adopt_preparation_owned_pure_plan(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    Some(original),
+    None,
   )
-  Ok(value)
 }
 
 ///|
@@ -86,14 +91,52 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     !physical_equal(plan.request, request) {
     return Err(ForeignOriginal)
   }
-  let limits = match
-    @resources.node_source_compute_preparation_limits(initial, input) {
+  // Both fixed constructors now retain this opaque body type. The ordinary
+  // entry must still refuse Model rather than discarding its Scope census.
+  if !installed_managed_run_purpose_supported(prepared) {
+    return Err(Unsupported)
+  }
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   if !installed_effect_limits_fit(plan.limits, limits) {
     return Err(InsufficientCapacity)
   }
+  // This existing opaque constructor already selected ordinary, non-Model
+  // capture. Disposal changes no byte debit or consumed input history.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  adopt_preparation_owned_pure_plan(
+    initial,
+    input,
+    capacity,
+    prepared,
+    request,
+    None,
+    Some(plan),
+  )
+}
+
+///|
+// Fixed Pure constructors have checked their actual ordinary/Model purpose
+// and Scope obligation. Share the same adoption and two lifetime holders;
+// neither a new initial admission nor a cleanup owner is constructed here.
+fn[I] adopt_preparation_owned_pure_plan(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  source_free : ClientInstalledManagedSourceFreePreparation?,
+  captured : ClientInstalledManagedCapturePlan?,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(
       initial, input, capacity, prepared,
@@ -102,7 +145,8 @@ pub fn[I] begin_preparation_owned_installed_capture_run(
     Ok(value) => value
   }
   let run = new_installed_managed_run(admission, prepared, request, ledger)
-  run.captured_preparation = Some(plan)
+  run.source_free_preparation = source_free
+  run.captured_preparation = captured
   run.preparation_retirement = Some(
     PurePreparation({ retirement, admission, holder: Some(holder), }),
   )
@@ -130,14 +174,92 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   if plan.model is Some(_) {
     return Err(Unsupported)
   }
-  let limits = match
-    @resources.node_source_compute_preparation_limits(initial, input) {
+  match check_preparation_owned_effect_limits(initial, input, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The original plan.model guard above already selected this non-Model
+  // constructor. No operation-name or graph reconstruction is needed.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  adopt_preparation_owned_installed_effect_plan(
+    initial, input, capacity, request, plan,
+  )
+}
+
+///|
+/// The Model owner retained this Scope before completing the same Plan. Keep
+/// its census and original cleanup obligation through the existing adoption.
+/// No Scope, bootstrap reservation, compiler or Model resource is issued here.
+fn[I] begin_preparation_owned_installed_effect_model_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  ledger : @resources.Ledger,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  if !installed_effect_plan_matches(plan, prepared, request) {
+    return Err(ForeignOriginal)
+  }
+  guard plan.model is Some(selected) else { return Err(Unsupported) }
+  let identity = match
+    @resources.preparation_capacity_inventory_original(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  if !@publication_host.client_model_read_scope_original_inventory(
+      scope, ledger, identity,
+    ) ||
+    !@publication_host.client_model_read_scope_live(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+    ) {
+    return Err(ForeignOriginal)
+  }
+  match check_preparation_owned_effect_limits(initial, input, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  adopt_preparation_owned_installed_effect_plan(
+    initial, input, capacity, request, plan,
+  )
+}
+
+///|
+fn[I] check_preparation_owned_effect_limits(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   if !installed_effect_limits_fit(plan.limits, limits) {
     return Err(InsufficientCapacity)
   }
+  Ok(())
+}
+
+///|
+// Both fixed purposes already checked their original Plan/bounds and selected
+// their actual Scope/ordinary obligation. Share the exact original holders and
+// retirement engine without another current callback or admission.
+fn[I] adopt_preparation_owned_installed_effect_plan(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(initial, input, capacity, plan) {
     Err(issue) => return Err(Resource(issue))
@@ -248,4 +370,62 @@ fn[P] preparation_retirement_payload_severed(
   original.holder is None &&
   @resources.check_node_preparation_cleanup_original(original.admission, ledger)
   is Ok(_)
+}
+
+///|
+/// The fixed Content constructor has already retained its selected keyed and
+/// serialization material under the same Request construction borrow. Adopt
+/// that exact preparation without selecting the legacy Content Root or scope.
+/// The complete provider/output/constructor overlap must already be funded;
+/// numerical compatibility here does not issue that physical backing.
+pub fn[I] begin_preparation_owned_installed_content_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  selected : ClientInstalledManagedKeyedPreparation,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  if !physical_equal(selected.prepared, prepared) ||
+    identity.program_definition_cid !=
+    @publication_host.client_request_program_cid(request) ||
+    identity.parameter_values_cid !=
+    @publication_host.client_request_parameters_cid(request) {
+    return Err(ForeignOriginal)
+  }
+  let limits = match @resources.node_local_preparation_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(selected.limits, limits) {
+    return Err(InsufficientCapacity)
+  }
+  // This actual Content constructor excludes Model. Retire only its unused
+  // input census metadata; consumed IO/work and byte debit are unchanged.
+  match
+    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  let (admission, ledger, retirement, holder) = match
+    @resources.adopt_node_preparation_admission(
+      initial, input, capacity, prepared,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  let run = new_installed_managed_run_owned(
+    PreparationContentManaged(admission, prepared),
+    request,
+    ledger,
+  )
+  run.keyed = Some(selected)
+  run.preparation_retirement = Some(
+    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  )
+  Ok(run)
 }

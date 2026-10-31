@@ -15,6 +15,9 @@ pub fn[I] start_node_preparation_admission(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
+  if admission.purpose != LocalPreparation {
+    return Err(Unavailable)
+  }
   owner.transitioning = true
   let outcome = start_node_managed_run_admission(admission)
   owner.transitioning = false
@@ -25,7 +28,7 @@ pub fn[I] start_node_preparation_admission(
 /// Read the immutable limits of this exact started input admission before a
 /// checked plan is transferred. No Ledger, new grant, purpose conversion or
 /// second imported child is exposed. The later adoption rechecks currentness.
-pub fn[I] node_source_compute_preparation_limits(
+pub fn[I] node_local_preparation_limits(
   owner : NodePreparationAdmission[I],
   input : I,
 ) -> Result[LedgerLimits, ImportedChildLedgerIssue] {
@@ -33,7 +36,7 @@ pub fn[I] node_source_compute_preparation_limits(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_source_compute_run_preparation(admission, input) {
+  match check_node_local_preparation_original(admission, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -42,49 +45,6 @@ pub fn[I] node_source_compute_preparation_limits(
   // owns the reentrant current boundary and post-callback state fence. This
   // getter cannot admit a Run or certify currentness/physical cleanup.
   Ok(ledger_limits(ledger))
-}
-
-///|
-/// Install the original census before allocating the first preparation token.
-/// The fixed initial supplier funds bootstrap controls and their bounded slot
-/// inventories. Starting the imported child remains the separate one-use call;
-/// a failed initialization leaves its bootstrap on that same cleanup owner.
-pub fn[I] begin_node_preparation_inventory(
-  owner : NodePreparationAdmission[I],
-  input : I,
-  retained_bytes : Int64,
-  execution_bytes : Int64,
-  max_reservations : Int,
-  max_holdings : Int,
-  max_delegations : Int,
-) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue] {
-  if owner.transitioning {
-    return Err(Unknown)
-  }
-  guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_managed_run_preparation(admission, input) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  guard admission.ledger is Some(ledger) else { return Err(Unavailable) }
-  owner.transitioning = true
-  let outcome = match
-    reserve_node_managed_run_read_bootstrap(
-      admission, input, ledger, retained_bytes, execution_bytes,
-    ) {
-    Err(issue) => Err(issue)
-    Ok(bootstrap) =>
-      begin_original_ledger_inventory(
-        ledger, bootstrap, max_reservations, max_holdings, max_delegations,
-      ).map_err(issue => {
-        match issue {
-          Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
-          _ => Unavailable
-        }
-      })
-  }
-  owner.transitioning = false
-  outcome
 }
 
 ///|
@@ -109,7 +69,7 @@ pub fn[I, P] adopt_node_preparation_admission(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  match check_node_managed_run_preparation(admission, input) {
+  match check_node_local_preparation_original(admission, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -123,18 +83,10 @@ pub fn[I, P] adopt_node_preparation_admission(
     child.origin.stopping {
     return Err(Unavailable)
   }
-  // Bootstrap may have been installed before preparation. Transfer its
-  // actual recorded census, never reinitialize it from equal aggregate bytes.
-  match admission.read_bootstrap {
-    None => if admission.read_bootstrap_attempted { return Err(Unavailable) }
-    Some(bootstrap) => {
-      guard admission.read_bootstrap_attempted &&
-        ledger.original_inventory is Some(inventory) &&
-        physical_equal(inventory.bootstrap, bootstrap) &&
-        original_ledger_inventory_available(inventory.identity) else {
-        return Err(Unavailable)
-      }
-    }
+  // The census belongs to the original preparation capacity. A separate
+  // read-bootstrap owner cannot be transferred as a compatibility path.
+  if admission.read_bootstrap_attempted || admission.read_bootstrap is Some(_) {
+    return Err(Unavailable)
   }
   if !physical_equal(capacity.ledger, ledger) ||
     !(capacity.input is Some(original) && physical_equal(original, input)) ||
@@ -200,9 +152,6 @@ pub fn[I, P] adopt_node_preparation_admission(
   next.attempted = true
   next.ledger = Some(ledger)
   next.preparation_holder = Some(holder)
-  next.read_bootstrap_attempted = admission.read_bootstrap_attempted
-  next.read_bootstrap = admission.read_bootstrap
-  admission.read_bootstrap = None
   admission.prepared = None
   owner.admission = None
   owner.transitioning = false
@@ -238,5 +187,24 @@ pub fn[I] check_node_preparation_input(
     return Err(Unknown)
   }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
-  check_node_managed_run_preparation(admission, input)
+  check_node_local_preparation_original(admission, input)
+}
+
+///|
+/// The actual local-preparation supplier was selected before a checked domain
+/// existed. Keep that original input purpose through adoption; no completed
+/// Plan can convert it to a separately issued Source, Model or Content child.
+fn[I] check_node_local_preparation_original(
+  admission : NodeManagedRunAdmission[I],
+  input : I,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(admission, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if admission.purpose == LocalPreparation {
+    Ok(())
+  } else {
+    Err(Unavailable)
+  }
 }

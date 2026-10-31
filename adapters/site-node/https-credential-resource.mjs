@@ -603,18 +603,28 @@ function operationFor(operations, scope, maxRequestBytes) {
   });
 }
 
+// One selected original binary reader may consume ONE extra byte to observe
+// refusal. This is an implementation extent, never an observed byte count,
+// transfer permission, protocol body-cap increase or all-wire/RSS claim.
+export function httpsCredentialResponseWindowBytes(maxResponseBytes) {
+  if (!count(maxResponseBytes) || maxResponseBytes === 0) fail('InvalidRemoteCredentialResponseWindow');
+  return BigInt(maxResponseBytes) + 1n;
+}
+
+const responseReadQuantum = 16_384;
+
 function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
   authenticationForm = false,
   headers, ca, cert, key, signal, maxResponseBytes, binding,
-  retainRunResponseOriginal = false}) {
+  retainRunResponseOriginal = false, observeResponseBytes}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let socket;
     let socketClosed = false;
     let requestClosed = false;
-    let complete;
+    let complete, observerPending = false;
     const release = () => {
-      if (!binding || !requestClosed || (socket && !socketClosed)) return;
+      if (!binding || !requestClosed || (socket && !socketClosed) || observerPending) return;
       binding.request = undefined;
       complete?.();
     };
@@ -683,17 +693,52 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         Object.freeze({etagCount, contentEncodingCount});
       const chunks = [];
       let received = 0;
-      response.on('data', chunk => {
-        received += chunk.byteLength;
-        if (received > maxResponseBytes) {
-          response.destroy(Object.assign(
-            new Error('RemoteCredentialResponseLimitExceeded'),
-            {code: 'RemoteCredentialResponseLimitExceeded'},
-          ));
-          return;
-        }
-        chunks.push(Buffer.from(chunk));
-      });
+      if (observeResponseBytes === undefined) {
+        response.on('data', chunk => {
+          received += chunk.byteLength;
+          if (received > maxResponseBytes) {
+            response.destroy(Object.assign(
+              new Error('RemoteCredentialResponseLimitExceeded'),
+              {code: 'RemoteCredentialResponseLimitExceeded'},
+            ));
+            return;
+          }
+          chunks.push(Buffer.from(chunk));
+        });
+      } else {
+        // Paused binary read(size) returns at most size bytes. Bound the SAME
+        // reader's selected representation to B+1 even when its protocol body
+        // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
+        // offending byte is included, never silently counted as zero.
+        const readObservedResponse = () => {
+          if (settled || observerPending || response.destroyed) return;
+          try {
+            let chunk;
+            while ((chunk = response.read(Math.min(responseReadQuantum,
+              maxResponseBytes - received + 1))) !== null) {
+              const observed = observeResponseBytes(chunk.byteLength);
+              if (observed !== undefined) {
+                const then = observed !== null && (typeof observed === 'object' || typeof observed === 'function')
+                  ? observed.then : undefined;
+                if (typeof then === 'function') {
+                  // Invalid async borrowing remains joined to this SAME
+                  // request/socket promise until settlement. Cleanup cannot
+                  // ACK or drop the callback's original child in the meantime.
+                  observerPending = true;
+                  const joined = new Promise((yes, no) => Reflect.apply(then, observed, [yes, no]));
+                  const finishObserver = () => { observerPending = false; release(); };
+                  joined.then(finishObserver, finishObserver);
+                }
+                fail('InvalidRemoteCredentialResponseByteObserver');
+              }
+              received += chunk.byteLength;
+              if (received > maxResponseBytes) fail('RemoteCredentialResponseLimitExceeded');
+              chunks.push(Buffer.from(chunk));
+            }
+          } catch (error) { response.destroy(error); }
+        };
+        response.on('readable', readObservedResponse);
+      }
       response.once('error', error => finish(reject, error));
       response.once('end', () => finish(resolve, Object.freeze({
         statusCode: response.statusCode,
@@ -744,6 +789,7 @@ async function callCredentialResource({
   returnRejectedResponse = false,
   retainRunResponseOriginal = false,
   currentBeforeSend,
+  observeResponseBytes,
   signal,
 }, binding) {
   if (typeof control?.identity !== 'function' ||
@@ -758,6 +804,11 @@ async function callCredentialResource({
       (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
+  if (observeResponseBytes !== undefined &&
+      (typeof observeResponseBytes !== 'function' || binding === undefined)) {
+    fail('InvalidRemoteCredentialResponseByteObserver');
+  }
+  if (observeResponseBytes !== undefined) httpsCredentialResponseWindowBytes(maxResponseBytes);
   const metadata = binding?.metadata === true;
   const fenced = binding?.assertCurrent !== undefined;
   if (!metadata && fenced && typeof currentBeforeSend !== 'function') {
@@ -873,6 +924,7 @@ async function callCredentialResource({
       maxResponseBytes,
       binding,
       retainRunResponseOriginal,
+      observeResponseBytes,
     });
     // A response awaiting its original current check remains in this binding's
     // custody. A refusal or unconfirmed outcome cannot publish it or discard it

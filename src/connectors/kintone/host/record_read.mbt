@@ -20,6 +20,7 @@ pub struct RecordDeclaration {
   priv catalog : @catalog.FormFieldCatalog
   priv settings : @catalog.AppNumberSettings?
   priv declaration : @rows.RowDeclaration
+  priv names : Array[String]
 }
 
 ///|
@@ -71,7 +72,7 @@ pub fn declare_records(
     Ok(value) => value
     Err(issue) => return Err(Host(issue))
   }
-  Ok({ catalog, settings, declaration, })
+  Ok({ catalog, settings, declaration, names: names.copy(), })
 }
 
 ///|

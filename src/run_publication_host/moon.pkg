@@ -62,6 +62,7 @@ import {
 } for "test"
 
 import {
+  "actql/actql/physical_strategy" @strategy_view,
   "actql/actql/capacity_law",
   "moonbitlang/core/debug",
   "actql/actql/bounded_execution" @bounded,

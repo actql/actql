@@ -20,6 +20,8 @@ import shlex
 import subprocess
 import sys
 import time
+import shutil
+from python_release_cohort import select_release_version
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
@@ -81,15 +83,20 @@ def local_initial_entry_arguments(parts: list[str], moon_home: Path,
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
                  ar_driver: Path | None = None, entry: str = ENTRY,
-                 source_sha: str | None = None) -> list[list[str]]:
+                 source_sha: str | None = None,
+                 package_version: str | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
+    if package_version is not None:
+        if entry != LOCAL_ENTRY:
+            raise ValueError('Package version belongs to the Native client, not the resident helper')
+        package_version = select_release_version(package_version)['version']
     if entry == LOCAL_ENTRY and (source_sha is None or re.fullmatch(r'[0-9a-f]{40}', source_sha) is None):
         raise ValueError('Exact Local CLI source pin is required')
     core = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.c')
     executable = core.with_suffix('.exe')
     commands: list[list[str]] = []
-    links = finals = providers = source_pins = 0
+    links = finals = providers = source_pins = version_pins = 0
     runtime: set[str] = set()
     modules: set[str] = set()
     for line in output.splitlines():
@@ -163,6 +170,11 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                         raise ValueError('Duplicate Local CLI source pin')
                     source_pins += 1
                     parts.append('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + source_sha + '"')
+                if package_version is not None and resolved.resolve() == (ROOT / 'src/cmd/native_client/version_stub.c').resolve():
+                    if any(p.startswith('-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION') for p in parts):
+                        raise ValueError('Duplicate Native package version compiler input')
+                    version_pins += 1
+                    parts.append('-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION="' + package_version + '"')
             # Every generated Core, original FFI, and runtime source sees the
             # same derived header first. There is exactly one provider below.
             parts[0] = str(clang)
@@ -192,6 +204,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         raise ValueError('Incomplete or duplicated Core/runtime/provider composition')
     if entry == LOCAL_ENTRY and source_pins != 1:
         raise ValueError('Missing or duplicate Local CLI source pin entrance')
+    if package_version is not None and version_pins != 1:
+        raise ValueError('Missing or duplicate Native package version stub compilation')
     if 'actql/actql/' + entry_package not in modules:
         raise ValueError('Selected CLI entry is missing')
     return commands
@@ -230,8 +244,12 @@ def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
 
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           destination: Path, seconds: int, *, plan_only: bool,
-          entry: str = ENTRY) -> dict[str, object]:
+          entry: str = ENTRY, package_version: str | None = None) -> dict[str, object]:
     entry_package = selected_entry(entry)
+    if package_version is not None:
+        if entry != LOCAL_ENTRY:
+            raise ValueError('Only the Native client has a release package version')
+        package_version = select_release_version(package_version)['version']
     if type(seconds) is not int or seconds <= 0 or type(plan_only) is not bool:
         raise ValueError('Explicit positive preparation budget required')
     deadline = time.monotonic() + seconds
@@ -300,7 +318,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
     commands = commands_for(dry, moon_home, emission, allocator, clang, sdk,
-                            cc_driver=cc_driver, ar_driver=ar_driver, entry=entry, source_sha=source)
+                            cc_driver=cc_driver, ar_driver=ar_driver, entry=entry, source_sha=source,
+                            package_version=package_version)
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
@@ -323,6 +342,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
              moon_home / 'lib/libmoonbitrun.o', moon_home / 'lib/libbacktrace.a'}
     paths.update(moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS)
+    if package_version is not None:
+        node = shutil.which('node')
+        if node is None:
+            raise ValueError('Explicit package version needs the selected build-time Node parser')
+        paths.update((ROOT / 'scripts/release-version.mjs', ROOT / 'scripts/python_release_cohort.py', Path(node).resolve()))
     for package in packages:
         paths.update(p for p in (ROOT / 'src' / package).iterdir()
                      if p.is_file() and p.suffix in ('.mbt', '.pkg', '.c', '.h', '.inc'))
@@ -342,6 +366,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         'allocator': selection, 'plan_only': plan_only, 'commands_completed': 0,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,
     }
+    if package_version is not None:
+        receipt['package_version'] = package_version
     (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
     if not plan_only:
         build_command = moon_arguments + ['--verbose']
@@ -384,7 +410,9 @@ if __name__ == '__main__':
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--plan-only', action='store_true')
     parser.add_argument('--entry', choices=(ENTRY, LOCAL_ENTRY), default=ENTRY)
+    parser.add_argument('--package-version')
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.moon_home.resolve(), args.clang,
                            args.sdk, args.destination.resolve(), args.seconds,
-                           plan_only=args.plan_only, entry=args.entry), sort_keys=True))
+                           plan_only=args.plan_only, entry=args.entry,
+                           package_version=args.package_version), sort_keys=True))

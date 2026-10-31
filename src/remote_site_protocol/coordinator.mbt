@@ -835,10 +835,12 @@ pub fn restore_coordinator_dispatch_record(
 
 ///|
 /// A projection of an admitted Site observation, never permission to execute.
-/// Terminal execution and physical cleanup remain independent facts.
+/// Terminal execution, rejected evidence and physical cleanup remain
+/// independent facts. Rejection is not a failed physical execution or release.
 pub(all) struct CoordinatorExecutionObservation {
   execution : RemoteExecutionState?
   cleanup : RemoteCleanupState?
+  evidence_rejected : Bool
   revision : Int
   execution_terminal : Bool
   cleanup_complete : Bool
@@ -862,6 +864,7 @@ pub fn coordinator_execution_observation(
     return Ok({
       execution: None,
       cleanup: None,
+      evidence_rejected: false,
       revision: record.revision,
       execution_terminal: false,
       cleanup_complete: false,
@@ -886,6 +889,7 @@ pub fn coordinator_execution_observation(
   Ok({
     execution: Some(execution),
     cleanup: Some(cleanup),
+    evidence_rejected: record.site_evidence == evidence_state_code(EvidenceRejected),
     revision: record.revision,
     execution_terminal: terminal,
     cleanup_complete: released &&

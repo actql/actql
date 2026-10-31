@@ -60,7 +60,11 @@ test "first Request Values ceiling stays on the same compiler original and actua
     assets.ordered,
   ).unwrap()
   client_program_prepare_request_program_module_body(
-    parent, receipt, contracts, false,
+    parent,
+    receipt,
+    contracts,
+    false,
+    None,
   ).unwrap()
   assert_true(
     physical_equal(
@@ -90,7 +94,11 @@ test "selected Request one-row-short ceiling retains original typed Plan refusal
     assets.ordered,
   ).unwrap()
   let refusal = client_program_prepare_request_program_module_body(
-    parent, receipt, contracts, false,
+    parent,
+    receipt,
+    contracts,
+    false,
+    None,
   )
   assert_true(
     refusal
@@ -128,17 +136,26 @@ test "module limit projection keeps actual foreign and retiring preparation fail
     request_diagnostic_test_receipt(),
     contracts,
     false,
+    None,
   )
   assert_true(foreign is Err(Preparation(Preparation(ForeignOriginal))))
   assert_eq(client_program_request_program_module_issue_code(foreign), None)
   let success = client_program_prepare_request_program_module_body(
-    parent, receipt, contracts, false,
+    parent,
+    receipt,
+    contracts,
+    false,
+    None,
   )
   assert_true(success is Ok(_))
   assert_eq(client_program_request_program_module_issue_code(success), None)
   assert_true(client_program_abort_request_preparation(parent) is Err(_))
   let retiring = client_program_prepare_request_program_module_body(
-    parent, receipt, contracts, false,
+    parent,
+    receipt,
+    contracts,
+    false,
+    None,
   )
   assert_true(retiring is Err(Preparation(Preparation(WrongPhase))))
   assert_eq(client_program_request_program_module_issue_code(retiring), None)

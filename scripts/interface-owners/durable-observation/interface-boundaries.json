@@ -5507,6 +5507,7 @@
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
+        "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
         "withHttpsCredentialRunResponseOriginal"
@@ -5634,6 +5635,7 @@
             "returnRejectedResponse",
             "retainRunResponseOriginal",
             "currentBeforeSend",
+            "observeResponseBytes",
             "signal",
             "binding"
           ],
@@ -5756,6 +5758,13 @@
           "async": false
         },
         {
+          "name": "httpsCredentialResponseWindowBytes",
+          "parameters": [
+            "maxResponseBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openHttpsCredentialBinding",
           "parameters": [
             "scope",
@@ -5867,7 +5876,8 @@
             "signal",
             "maxResponseBytes",
             "binding",
-            "retainRunResponseOriginal"
+            "retainRunResponseOriginal",
+            "observeResponseBytes"
           ],
           "async": false
         },
@@ -5925,6 +5935,24 @@
           "name": "receive/receive/request/request",
           "parameters": [
             "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
           ],
           "async": false
         },
@@ -6073,6 +6101,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -6115,6 +6147,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "responseRepresentation: response.responseRepresentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
               }
             ],
             "identity": [
@@ -6149,6 +6185,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
               }
             ],
             "ownership": [
@@ -6179,6 +6219,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
               }
             ],
             "synchronization": [
@@ -6209,6 +6253,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
               }
             ],
             "failure": [
@@ -6239,6 +6287,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
               }
             ],
             "cancellation": [
@@ -6269,6 +6321,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
               }
             ],
             "resources": [
@@ -6307,6 +6363,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
               }
             ],
             "extension": [
@@ -6337,6 +6397,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
               }
             ],
             "verification": [
@@ -6415,6 +6479,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
                 "anchor": "Account target original rejects missing weak wildcard"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
               }
             ]
           }
@@ -6517,9 +6585,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "httpsCredentialResponseWindowBytes",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined"
+          ],
+          "exports": [
+            "httpsCredentialResponseWindowBytes"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "- Response reader verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "c61b2876b407e448439a5a276c099c572dee6057b3e3dcbb5e51036e172153ee",
+      "sha256": "ab7bddb526d1e83b9726e150bc9419b901ce156ba5336154c3180029869871cb",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

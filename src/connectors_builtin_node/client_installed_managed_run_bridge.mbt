@@ -383,53 +383,6 @@ pub fn client_program_node_local_content_run_prepare(
 }
 
 ///|
-#export_name("clientProgramInstalledManagedKeyedContentPrepare")
-pub fn client_program_installed_managed_keyed_content_prepare(
-  prepared : @publication_host.PreparedClientProgram,
-  direct : @client_local_host.ClientInstalledCaptureCapacity,
-  keyed : @publication_host.ClientKeyedAcquisition,
-  declaration : @client_row_source_host.RowDeclaration,
-  max_page_bytes : Int,
-  max_text_bytes : Int,
-  row_work : Int,
-  transport_bytes : Array[Int64],
-  transport_execution_bytes : Array[Int64],
-  max_bytes : Int,
-  max_work : Int,
-  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-  task : Int,
-  step : Int,
-  prefix_retained_bytes : Int64,
-  prefix_execution_bytes : Int64,
-) -> Result[
-  @client_local_host.ClientInstalledManagedKeyedPreparation,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.prepare_installed_managed_keyed_content(
-    prepared,
-    direct,
-    keyed,
-    declaration,
-    client_keyed_row_limits(max_page_bytes, max_text_bytes, row_work),
-    transport_bytes,
-    transport_execution_bytes,
-    max_bytes,
-    max_work,
-    installed_contracts,
-    values_body,
-    fragment_body,
-    ordered_body,
-    task,
-    step,
-    prefix_retained_bytes,
-    prefix_execution_bytes,
-  )
-}
-
-///|
 #export_name("clientProgramInstalledManagedKeyedContentRequirements")
 pub fn client_program_installed_managed_keyed_content_requirements(
   value : @client_local_host.ClientInstalledManagedKeyedPreparation,

@@ -1,4 +1,11 @@
-# Fixed SDK / Node release
+# SDK / Node release preparation
+
+The formal version and finished product artifact cohort remain unselected.
+Legacy version numbers and retained fixtures below are historical inputs,
+not proposed replacement versions or publication instructions. Preparation
+commands produce local candidates. Staging, publication, tags and promotion
+still require the independently protected executor and the owner's explicit
+decision on the exact final version, bytes, scope and evidence.
 
 The standard cohort is `@actql/client-wire`, `@actql/sdk`,
 `@actql/local-node`, and `@actql/node`, with one explicitly selected complete
@@ -84,6 +91,81 @@ loopback registry that serves the fixed RC. npm resolves dependencies, and
 the acceptance audits exports/types and executes the existing Local/restart
 and short-query/HTTPS cases. This establishes registry installation mechanics,
 not public npm availability, live Cloud operation or every Provider feature.
+
+After the selected versions are actually published, the **same** harness has
+an explicit public npm mode:
+
+```sh
+node scripts/test-package-release-install.mjs <original-RC-directory> --public-registry <externally-retained-release.json-SHA256>
+```
+
+For the owner-review release set, explicitly bind both the same original Node
+cohort and the selected fixed upper target:
+
+```sh
+node scripts/test-package-release-install.mjs <original-RC-directory> \
+  --public-registry <externally-retained-release.json-SHA256> \
+  --release-set <fixed-release-set-directory> <externally-retained-upper-SHA256> \
+  --target <original-node-target-id>
+```
+
+The upper digest does not replace the original child digest. The launcher
+requires the same complete four-package Node cohort, exact source/version,
+child-manifest bytes and all original archive identities. Its existing full
+cohort verifier still reads the retained `development` manifest and original
+development tarballs. The flat fixed set does not contain that supplier lineage;
+do not reconstruct missing originals, copy a different cohort into their place,
+or weaken verification to final payload hashes. A missing original refuses
+before consumer installation. Native, Python and optional Explorer targets do
+not inherit this consumer's scope.
+
+The resulting receipt binds `releaseSetBinding.manifestSha256`, `targetId` and
+`cohortManifestSha256` plus exact artifact identities and requested platform/profile
+DATA. Actual executed cases and the observed Node/OS remain separate; this
+association does not certify every requested platform/profile or owner approval.
+The legacy child-only public mode remains available with a null upper binding,
+and cannot be reported as acceptance of an owner-approved upper digest.
+
+The digest selects the exact original Node cohort child manifest retained by
+the approved upper set. It is not a new version choice or approval. The
+existing complete cohort verifier and anonymous npm byte reader run before
+consumer creation: each original name/version/SRI and actual streamed archive
+size/SHA256/SRI must match. The separate historical public observation is saved
+even when a version is absent, unknown or conflicting; any such state refuses
+installation, with no loopback fallback, local tarball substitution or resend.
+
+Public mode creates a fresh HOME, a separate fresh cache for each entry and user/global configuration,
+without forwarding publisher credentials, source profiles or Node injection.
+Only the exact `@actql/node` or `@actql/sdk` entry is installed, using
+`--save-exact --ignore-scripts --engine-strict` against
+`https://registry.npmjs.org/`. Its
+[npm lockfile](https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/)
+must retain the selected public dependency graph, official registry origins,
+exact versions and fixed SRI. Every installed ActQL payload byte/mode is
+compared to its original archive inventory before the existing package-graph
+and consuming-interface audits. npm's nested third-party dependency directory
+is separate from the package payload; bundled dependency payloads are refused
+until their own consumer scope is selected.
+
+The README, Local/restart, short-query, explicit pre-Run refusal and SDK
+own-HTTPS cases and their original oracles remain unchanged. Public mode does
+not start a private package registry. Its final receipt names both the initial
+and final actual public-byte observations, fixed cohort digest, lockfile digest,
+optional exact upper binding and actual installed payload audits, while
+retaining the incomplete pre-Run approval scope. The original cohort and supplied
+upper set are reverified after consumption; a changed or unavailable public
+artifact does not become successful acceptance or permission to rerun old state.
+A public package download is
+not live Cloud or Provider acceptance. The actual public mode remains
+unexecuted until the real candidate/version is selected and published; its
+inert component fixtures do not qualify that runtime boundary or a release.
+
+Both private and public harness modes now explicitly retain their owned
+consumer directory after success as well as failure, including the original
+software, lockfiles and Run/DB/WAL/key/state evidence. This uses the existing
+scratch Owner's preservation selection; it does not waive the requirement to
+confirm that every started process, Host and Store has ended. No previous
+consumer state is opened, replayed or removed by selecting the new mode.
 
 Give the integration reviewer the source SHA, PR, manifest, exact archives,
 digests, commands and receipts. Independent acceptance must consume the same
@@ -204,6 +286,43 @@ consumer acceptance must verify actual built asset delivery, original refs/ports
 unavailable capability states and closure without cancelling borrowed work.
 It does not complete the Cloud adapter, Full Explorer or formal npm publication.
 
+## Prepare a selected Python target on another host
+
+Release preparation reads fixed artifact bytes; it does not need to execute
+that target. The existing Python component owner now keeps the full shared
+byte/recipe predicate separate from the installed host check. Maintainer
+preparation and wheel staging use that predicate with an explicit target:
+
+```sh
+python scripts/prepare-python-local-runtime.py \
+  --artifact-directory <original-artifact-directory> --destination <new-stage> \
+  --target-platform darwin-arm64
+python scripts/build-python-product-wheels.py \
+  --artifact-directory <original-artifact-directory> --destination <new-cohort> \
+  --version <complete-SemVer> --target-platform darwin-arm64
+```
+
+The original allocation-specific binding/native-library arguments still apply.
+Omitting the target preserves the existing Darwin-only preparation selection;
+it does not detect or adopt the preparation host. No implicit release version
+is added. Both real CLI parsers refuse unqualified Linux/other target choices.
+
+The current artifact target and wheel tag remain Darwin arm64. All original
+source, component hashes, recipe, image/fuel/limits, notices, library format/ABI,
+copy and final reobservation duties remain. The target namespace is selected
+from the existing component owner, never expanded from an artifact's claim.
+No library/engine is loaded, image deserialized or capacity/current authority
+granted by packaging. Fixed artifact and source correspondence still precede
+any final pack; no old artifact is retagged to a new source.
+
+`inspect_local_components` and the installed normal resolver retain the early
+actual-host refusal before component or installed metadata I/O. The private
+packaging reader is not a user execution option. Linux runtime support still
+requires its actual library names/dependencies, engine target/image, ABI,
+platform definition, wheel and ordinary install acceptance. It cannot be
+created by changing a tag or passing this target argument. Cross-host inert
+component tests do not establish that runtime or a real Linux build.
+
 ## Sharing one normal prepack across exact cohorts
 
 A normal Explorer six-package cohort and a normal Node four-package cohort
@@ -261,9 +380,10 @@ execution path is connected and the owner approves a fixed release set.
 `node scripts/release.mjs freeze <request.json> <cohorts.json> <new-directory>`
 connects existing ecosystem outputs without building or publishing. The cohort
 file is an explicit array of `{targetId, kind, directory}` records. Supported
-kinds are `node-npm`, `native-npm` and `python-wheels`. Native npm launcher
-packages are not standalone Native archives; no standalone adapter is connected
-at this layer yet. The existing Python wheel verifier currently selects only
+kinds are `node-npm`, `native-npm`, `python-wheels` and `native-standalone`.
+Native npm launcher packages and standalone archives retain separate manifests
+and acceptance. The standalone connection reuses an existing Native npm OS
+payload and does not compile another binary. The existing Python wheel verifier currently selects only
 its actual macOS-arm64 layout and refuses other platforms.
 
 Each selected target must retain its complete, dependency-ordered child cohort,
@@ -289,8 +409,8 @@ the exact artifact `identity` (name/version/bytes/SHA256 and npm integrity).
 Identical bytes may be reused, absence names the same missing bytes, unknown
 or conflict blocks the plan and any identity mismatch stops it. This input is not authenticated
 registry reobservation or owner authority, and the command never sends bytes.
-Protected execution, standalone Native observation, channel arbitration and
-release acceptance remain separate unfinished work.
+Protected execution, authenticated Native draft recovery, channel arbitration
+and release acceptance remain separate unfinished work.
 
 All sets from this layer remain explicitly `unaccepted`. The existing Python
 checker reused here establishes wheel metadata and frozen-byte correspondence,
@@ -299,7 +419,197 @@ acceptance. Synthetic metadata fixtures contain no usable engine. Real
 candidate assembly and acceptance wait for the selected coherent product
 source and owner-selected version/scope.
 
+## Bind the review evidence and proposed execution scope
+
+The preparation manifest alone does not contain a complete approval
+presentation. After collecting the original build and acceptance records, use
+the same fixed-set owner to retain them in a **new** directory:
+
+```sh
+node scripts/release.mjs review <preparation-directory> <externally-retained-SHA256> <review-request.json> <new-review-directory>
+node scripts/release.mjs summary <new-review-directory> <new-externally-retained-SHA256>
+```
+
+The new upper manifest retains the exact preparation manifest, raw review
+request and original evidence bytes with sizes/SHA256s. Artifact and child
+manifest bytes remain exact. The original preparation is unchanged; enriching
+an already enriched set or overwriting a destination refuses. Changed evidence
+or proposed execution scope creates a different upper digest and therefore a
+different candidate for any later approval. The detached digest is not an
+approval record.
+
+The request has schema `actql-release-review-request/0.1` and exactly these
+fields, validated by the existing `release-set.mjs` owner:
+
+- `manifestSha256`: the original preparation digest.
+- `evidence`: original `{id, kind, file, bytes, sha256}` records. `file` is
+  relative to this request's directory, with no traversal or symlink. Kinds
+  are `recipe`, `toolchain`, `build`, `acceptance`, `diff` and `signing`.
+- `provenance`: one ordered `{targetId, recipeEvidence, toolchainEvidence,
+  build}` entry per selected target. A supplied GitHub build records kind
+  `github-actions`, `repository`, decimal-string `runId`, positive `attempt`,
+  decimal-string `artifactId`, `artifactSha256` and build `evidence` id. A
+  local build instead records `{kind: "local", run, artifactId: null,
+  evidence}`. A local receipt cannot invent a hosted immutable artifact id.
+- `environments`: one ordered `{targetId, platforms, profiles, node, python,
+  abi, limitations}` entry per target. Platforms/profiles must equal the
+  original selection; runtime range text or `null` and ABI declarations are
+  supplied claims for review, not certified support.
+- `acceptance`: two ordered entries per target, phases
+  `prepublication-install` then `public-install`, each containing
+  `{targetId, phase, status, evidence, limitations}`. Status is `not-run`,
+  `passed` or `failed`. An executed result requires original acceptance
+  evidence ids; `not-run` has none. A reported pass does not establish that
+  its scope, source, bytes, runtime or oracle has been independently verified.
+- `changes`: `{previousSource, diffEvidence}`, both `null` if none is supplied;
+  otherwise an exact prior commit and original diff evidence id.
+- `executionScope`: `{publish, promote, resumeIdenticalMissing}`. Publish and
+  resume are explicit target-id arrays. Proposed promotions are
+  `{targetId, channel}` entries already selected in the request. Resume cannot
+  exceed the proposed publication targets. This data grants no operation.
+
+The request is bounded to 1 MiB, with at most 128 original evidence files,
+64 MiB each and 256 MiB total. Every input is checked before output creation;
+all retained evidence is reobserved during cold verification. These bounds
+apply to release-review records, not product or runtime limits. A copy failure
+leaves failed partial output for inspection rather than rebuilding or repairing.
+
+Both JSON and Markdown summaries include the same bound provenance, runtime
+declarations, reported results, evidence digests, limitations and proposed
+scope. They continue to say `unaccepted`. The protected reviewer must inspect
+the original evidence and actual trusted run/artifact identity, source and
+branch rules, policy and complete acceptance; local JSON, `passed`, actor text
+and hashes do not establish those facts. No line permission, publisher role,
+registry mutation, public install or owner approval is created by this step.
+
+## npm staging protocol and protected execution
+
+```sh
+node scripts/release.mjs npm-stage-plan <fixed-directory> <externally-retained-SHA256> <target-id>
+```
+
+This command only describes the exact original npm target and proposed
+arguments. Mutation CLI commands remain disabled. The reusable
+`stagePackageRelease` function in the existing publisher module has no default
+runner, credentials or owner reader. A separately protected executor must bind
+the owner's approval to this complete fixed set, the permitted identical-byte
+recovery scope, immutable validator/workflow revisions and an exact npm pin.
+It must enforce one exclusive execution across repositories and keep publisher
+credentials outside source-controlled validation. Supplying a callback or a
+local approval field does not establish any of these properties.
+
+[npm staged publishing](https://docs.npmjs.com/staged-publishing/) requires
+Node 22.14 or newer and npm 11.15 or newer. Stage-only trusted-publisher tokens
+cannot list, view or download pending stages; a separate protected owner read
+port is required. Approval/rejection retains npm's owner and 2FA duties.
+Staging an unused name creates a public `0.0.0-stage` placeholder, so this
+protocol requires a distinct owner operation for that initial-name send.
+Neither port presence nor a version probe proves the external permission
+configuration. The [stage command](https://docs.npmjs.com/cli/v12/commands/npm-stage/)
+retains its selected tag through approval. Select a new staging tag explicitly;
+`latest`, maintenance tags and proposed final promotion channels are refused
+here. Final channel movement remains a separate protected operation.
+
+The protocol cold-verifies the fixed set and every complete original package
+inventory, refuses lifecycle preparation, then checks the whole target before
+any send. Public versions need exact remote bytes. Pending versions need a
+complete owner inventory, the exact name/version/tag/stage identity before and
+after downloading, and the actual length/SHA256/SRI of the pending tarball.
+An occupied tag, changed bytes, ambiguous stage, incomplete inventory or denied
+read blocks execution. Neither actor text nor a registry `shasum` is a byte
+proof. These observations do not provide a lock or CAS.
+
+Each new attempt retains private, immutable receipts below the manifest digest
+and target. The exact artifact is copied into a private read-only payload;
+the intent is synced before the send. Only `npm stage publish` with explicit
+registry/access/tag/provenance and ignored lifecycle scripts is issued. Raw
+command output and command success remain distinct from owner byte readback.
+A successful tool probe or stage send requires the original terminal result
+with exit code `0` and an explicitly reported `signal: null`. A signal or missing
+status is not success even when stdout contains a valid stage ID. The bounded
+original stdout and terminal status remain separate receipts; malformed or
+unreported status is marked without inventing a successful terminal. A lost
+reply or unavailable confirmation remains unknown. Later recovery
+reobserves the originals, reuses an exact public/pending version without sending
+again, and sends only missing bytes within the separately approved scope.
+
+The runner must settle only when its original child is terminal. If observation
+is lost while the child remains live, the protected executor retains that same
+handle; it must not invoke this protocol again. File or descriptor cleanup
+failure retains the original cleanup duty. Receipts and synthetic component
+tests do not establish registry trust, provenance, owner approval, actual
+staging/publication or consumer acceptance. All acceptance conditions stay
+pending until their independent evidence exists.
+
+### Separate owner-terminal approval helper
+
+`npmStageApprovalPlan` and `approveStagedPackageRelease` in the existing
+publisher module use the same fixed set, stage selection, full payload reader
+and owner pending-stage reader. Supply the explicit original ordered
+`stages: [{file, stageId}]` from that set's original staging attempt. A pending
+entry must retain exactly that stage ID and immutable staging tag; missing,
+ambiguous, changed or unavailable bytes refuse the entire cohort. An entry
+already publicly available must still have the exact original bytes; its ID
+may be retained historically, or be `null` if no stage was needed.
+
+The read-only plan contains the complete original candidate summary and every
+package/version/tag/stage ID/digest in dependency order, as JSON and Markdown.
+It supplies no approval. The separate owner process must display that whole
+review, validate the actual independent approval and hold exclusive execution.
+It must load its validator from the trusted protected revision, not trust a
+candidate branch's implementation or an agent-written `approved` field.
+
+The approval helper has **no default owner terminal, credentials or executable
+CLI route**. Its supplied `runNpmOwner` port receives only the explicit
+`npm stage approve <original-stage-id> --registry https://registry.npmjs.org/`
+command and an immutable full-cohort presentation. Each package is a separate
+publication, never an atomic cohort approval. The existing Node 22.14/npm 11.15
+minimums and exact actual npm pin check remain.
+
+Only the owner terminal performs the interactive authentication required by
+[npm stage approve](https://docs.npmjs.com/cli/v12/commands/npm-stage/).
+There is no OTP input, `--otp`, agent confirmation or captured authentication
+output. The version probe may return its nonsecret version string; an approval
+terminal must return only `{code, signal}` after its same child has terminated.
+Its stdout/stderr, prompts, browser links, session, credentials and exceptions
+must stay with the owner. Unexpected authentication output is refused without
+being written to a receipt. Terminal settlement does not prove owner identity,
+2FA or independent approval.
+
+If the owner terminal throws, the returned generic error retains the exact
+private failure object as non-enumerable `originalOwnerFailure` for that same
+owner caller, including original cleanup duties. It is not a public receipt
+or serialized error cause. Normal error inspection and persisted Unknown
+records contain no authentication exception text. The owner must still settle
+its original process/session and cleanup; discarding that private duty is not
+successful closure.
+
+Every operation has a synced private intent before that owner terminal is
+invoked. Complete public/pending byte observations fence the whole original
+cohort before and after each operation. The existing channel reader separately
+requires the unique staging tag to be absent while pending and to point to the
+exact original version once published. Unknown, occupied or changed staging
+tags refuse without an implicit channel update. A zero exit cannot replace publication
+readback; a lost response, cancellation, missing publication or changed next
+stage stops before another package, retaining Unknown. The original owner
+retains any live child and authentication cleanup duty. No automatic retry,
+reject, restage, tag change, resubmission or version selection occurs.
+
+A separately authorized same-digest invocation reobserves the actual public
+bytes and skips an already-published original; only the remaining exact pending
+IDs can be approved. Each new attempt is distinct and no prior success flag
+is accepted as currentness. Actual owner-only CLI/session provisioning, 2FA,
+registry trust separation, exclusive execution and public installed acceptance
+remain pending. Injected-terminal component results do not establish them.
+
 ## Read-only public registry observation
+
+The [Native Draft publication protocol](native-cli.md#exact-byte-native-draft-publication-protocol)
+uses the same full Native archive and registry byte owners, but requires separate
+protected owner read/mutation ports with no default credentials or executable
+publish CLI. Complete draft visibility, immutable settings and exact asset
+recovery are distinct from the anonymous public observer below. Final channel
+promotion, owner authority and real public installation remain unaccepted.
 
 ```sh
 node scripts/release.mjs observe <fixed-directory> <externally-retained-SHA256>
@@ -322,17 +632,44 @@ and streams the wheel to verify its actual bytes. Unselected files, a yanked
 file or an occupied empty release cannot authorize appending a new platform or
 replacing an old placeholder. PyPI has no npm-style channel promotion.
 
-Only a 404 from the original version metadata route is absence. Authentication,
+For npm and PyPI, only a 404 from the original version metadata route is absence. Authentication,
 rate-limit/server/transport failures, malformed metadata, failed artifact GETs
 and interrupted streams remain unknown. Different occupied identities/bytes
 remain conflicts. Both states block resume; neither causes a resend, version
-bump, rebuild or `--skip-existing`. Responses are bounded, redirects are not
-followed, and artifact downloads stay on the selected public registry origins.
+bump, rebuild or `--skip-existing`. Responses are bounded. npm/PyPI redirects
+are not followed; artifact downloads stay on the selected public registry origins.
+
+Standalone Native archives use the same `observe` command with their fixed
+upper manifest. The anonymous [release-by-tag reader](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name)
+requires a visible immutable published release and the exact prerelease flag.
+It resolves the actual [Git reference](https://docs.github.com/en/rest/git/refs#get-a-reference),
+including a bounded annotated-tag chain, to the fixed source commit;
+`target_commitish` alone is not source proof. The complete paginated
+[asset inventory](https://docs.github.com/en/rest/releases/assets#list-release-assets)
+must contain exactly the selected archive and checksum filenames and metadata.
+The observer downloads each actual asset through the public binary API and
+compares size/SHA256, even when a legacy API record has no digest. A bounded
+HTTP 302 may reach only the selected HTTPS GitHub asset CDN origins; signed
+query strings are used for that GET and omitted from the observation receipt.
+
+An anonymous GitHub 404 remains **unknown**, because it cannot establish that
+an invisible draft does not already exist. A mutable/different public release
+or an immutable release missing a selected asset blocks adoption. This port
+does not append assets, authenticate to a draft, create a tag, publish a draft
+or perform partial-draft recovery. Those duties still require the separately
+approved executor and its actual current observations.
 
 These checks are not a public fresh-install or runtime acceptance. Native npm
-launcher artifacts use the same npm route; standalone GitHub archives still
-require their actual assembly/observation connection. No observer grants
-publication authority or substitutes for the separate approved executor.
+launcher artifacts use the npm route. No observer grants publication authority
+or substitutes for the separate approved executor.
+
+The separate [standalone Native Remote consumer](native-cli.md#public-standalone-remote-consumer)
+retains that same checked public stream for a fresh external extraction and
+executes the original direct Native path. Its external Remote test Host is a
+separate exact public Node installation; Native children have no Node search
+path. Inert HTTP/payload and own-process observation controls qualify only that
+consumer mechanism. A selected actual public Native candidate, platform/profile
+behavior, standard CLI/README and Local bootstrap remain separate acceptance.
 
 ## Channel transition review
 
@@ -367,6 +704,122 @@ The final execution design must also exclude other writers and recheck actual
 values under its authority. A GitHub concurrency name is repository-scoped;
 separate repositories must route through the same actual executor. No workflow,
 registry role, channel or exclusive-writer setting is configured by these plans.
+
+### Separate post-freeze promotion evidence
+
+A public installed receipt names its original frozen upper digest. Inserting
+that receipt into the same manifest would change the digest and create a
+self-reference. Do not rewrite the frozen set, its earlier `not-run` result,
+or an approval record to make later facts look pre-existing. Prepare a separate
+immutable review bundle under the existing release-review owner instead:
+
+```sh
+node scripts/release.mjs promotion-review \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <exact-promotion-plan.json> <original-channel-report.json> \
+  <public-evidence-request.json> <new-review-directory>
+node scripts/release.mjs verify-promotion-review \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <promotion-review-directory> <externally-retained-promotion-review-SHA256>
+node scripts/release.mjs promotion-summary \
+  <original-fixed-directory> <original-upper-SHA256> \
+  <promotion-review-directory> <externally-retained-promotion-review-SHA256>
+```
+
+The request has schema `actql-release-promotion-review-request/0.1` and exactly
+`manifestSha256`, `publicInstallEvidence` and `limitations`. Every evidence
+record is `{id, targetId, kind, file, bytes, sha256}`. IDs are unique lower-case
+review identifiers, and files are relative to that request without traversal
+or links. The existing review bounds apply: 128 records, 64 MiB per original,
+256 MiB total. Every promoted target needs evidence; unselected targets refuse.
+
+One connected kind is `node-public-install`, from the existing
+four-package Node public consumer with an explicit upper/child binding. The
+reader compares only its exact original release-set, target, child, source,
+version, public-origin and artifact identities. It retains the original actual
+Node/OS and declared business/approval scope without promoting those claims.
+Legacy child-only, private-loopback, foreign-child or substituted-cohort records
+cannot acquire a new upper binding. `native-public-install` separately binds
+the actual direct standalone Native consumer, its same-upper public Node Host,
+original Native archive/binary/version and complete downloaded asset identities.
+Its declared Remote-only scope and unverified Local/Project/other-platform/
+launcher/fault/authority fields remain exact and visible. This does not cast
+Native-npm or Python receipts into Node or certify their missing adapters.
+
+The exact supplied plan is recomputed through the existing promotion owner and
+its original raw channel report, retaining expected prior values, source/version,
+pre-release and maintenance safeguards. Every move must be in the fixed review's
+original proposed promotion scope. Reports are historical DATA, not fresh CAS.
+
+All inputs validate before output. Only the original plan/report/request and
+raw evidence are copied, with a separate header and detached digest; original
+artifacts are neither copied nor changed. The destination must be physically
+outside the original fixed set. Cold verification still needs the exact original
+fixed files and independently reobserves every copied input. Missing originals,
+changed bytes or an existing output refuse; there is no reconstruction, new
+version, recursive enrichment or overwrite.
+
+JSON and Markdown summaries show the same original candidate/artifacts, prior
+and proposed channel values, evidence identities and preserved limitations.
+Changed evidence or expected values creates a different review digest while
+the original artifact digest stays fixed. Both remain `unaccepted`; raw receipt
+JSON and a local digest cannot prove a trusted run, actual install/current/close,
+owner identity or authority. The separate protected owner decision must bind
+this bundle and original fixed set. A future exclusive executor must reobserve
+actual public bytes and channel values under its real authority. No credential,
+2FA, stage approval, channel mutation or workflow is supplied by these commands.
+
+### npm promotion protocol inside the protected executor
+
+`promoteNpmReleaseChannels` in `scripts/publish-package-release.mjs` is the
+existing publisher owner's channel protocol. Its explicit inputs are the
+original fixed directory/SHA256, separate review directory/SHA256, a private
+receipt directory, an exact npm tool version, a protected `runNpm` port and
+the existing public HTTP reader. No default runner or `release.mjs promote`
+mutation route is connected. Callback presence and supplied receipt claims
+do not establish independent approval, actual public-install acceptance,
+publisher permissions or an exclusive writer.
+
+Before calling it, the separately protected executor must accept the actual
+installation evidence and the owner's exact approval of both digests and
+the channel moves. It must retain one exclusive execution across every
+read, command and readback, including other repositories and other writer
+credentials. Repository-scoped concurrency or a prior GET is not registry
+CAS. Completed/revoked authority must not be reused to invoke this protocol.
+These external configuration and acceptance duties remain pending.
+
+The current verified tool branches are npm 11.21 or later in major 11 and
+npm 12.2 or later in major 12, with Node 22.14 or later. npm 12.0/12.1 are
+not accepted merely because their major is larger than 11; an unknown future
+major needs a deliberate tool compatibility check. The actual runner version
+must equal the explicit pin. The protected runner must use its own clean,
+pinned npm configuration and Environment-bound OIDC permissions; credentials
+and ambient workspace/configuration must not come from the candidate.
+[OIDC dist-tag support](https://docs.npmjs.com/adding-dist-tags-to-packages/)
+is separate from stage/direct-publish permission.
+
+The protocol verifies the original review and complete public artifact bytes,
+then checks all selected channels. Each move must still have its original
+explicit prior value or already have the exact destination version. Commands
+run in the fixed artifact dependency order, with explicit package version,
+channel, official registry, scripts disabled and workspace expansion disabled.
+No version, new package, default tag, rebuild, upload or removal is inferred.
+
+Every command has a synced private original intent before send. Full public
+byte and selected-channel fences run before and after each move and finally;
+unrelated selected tags must remain unchanged. Successful stdout/exit alone
+does not confirm a move. A missing/nonzero response or failed readback leaves
+an original Unknown receipt, stops before the next package and never rolls
+back or automatically retries. The runner must settle only when its same
+original child is terminal; observation loss cannot start another command.
+
+A separately authorized same-digest invocation reobserves actual originals;
+it skips a channel already at the exact destination and may execute only the
+remaining original moves whose prior values still match. It does not trust a
+prior success flag or change the approved plan. All attempts stay distinct,
+and original fixed/review files stay unchanged. This is protocol preparation,
+not proof that the real exclusive executor, owner approval, registry settings,
+2FA stage approval, public installation or GitHub Latest is configured.
 
 ## Source and maintenance review
 
@@ -408,3 +861,68 @@ evidence and compatibility. A self-authored bugfix label, evidence hash or
 backport PRs and commit-level forward-ports; do not merge whole main into the
 maintenance branch or promise a support window implicitly. Maintenance merges
 do not pick a number, build a candidate or publish anything.
+
+### Bind source history to fixed artifacts
+
+The request-only inspection above does not bind an artifact set. For an owner
+review of already-frozen bytes, select the upper digest and history input:
+
+```sh
+node scripts/release.mjs fixed-source-plan <fixed-release-set-directory> \
+  <externally-retained-upper-SHA256> <repository> <history.json> [branches.json]
+```
+
+The history input must be one of these complete forms:
+
+```json
+{"kind":"initial"}
+```
+
+```json
+{"kind":"previous","directory":"/absolute/original-previous-release-set","manifestSha256":"<externally-retained-previous-upper-SHA256>"}
+```
+
+These are input examples, not an initial-release decision or evidence of public
+publication. A missing prior record is not treated as initial. The protected
+reviewer must independently authenticate the actual prior published release,
+or the deliberately selected initial scope. Local bytes cannot establish that
+no previous release exists. The previous fixed directory must retain its full
+original child manifests and artifacts; hashes or Git labels alone do not
+replace them.
+
+The existing full fixed-set verifier checks both sets before and after the
+original Git source check. The candidate request comes from its exact upper
+manifest, while policy and branch configuration still come from the separately
+trusted source owner. This call retains the original history and configuration
+before byte reads yield; later caller mutation cannot replace them. This does
+not cache permission or waive later protected current-state checks. The selected
+prior must have an earlier complete version
+on the same line, and its actual commit must be an ancestor of the fixed
+candidate. A branch advancing during release preparation does not substitute
+its new tip for the approved source SHA. Equal-version same-byte recovery uses
+the original publication/resume protocol, not a new release candidate.
+
+The original maintenance cut, complete commit inventory and broad-merge findings
+remain. A maintenance source still requires `maintenance-plan` and protected
+hunk/regression/forward-port review; this connection does not clear findings or
+replace that review. The output binds both original upper digests and the actual
+local Git observation, with execution unavailable. It does not authenticate the
+remote repository, discover publication history, approve a candidate, create a
+branch/tag, build or publish. Initial/prior choice, source changes or a different
+upper digest belong in a new exact owner review.
+
+If the supplied stage, Python project, Native mutation or npm promotion runner
+throws, the generic returned error retains its
+SAME private exception as non-enumerable `originalPublisherFailure`. If
+recording Unknown also fails, that original physical write error is returned
+with the same private runner exception. Neither normal error inspection nor
+receipts serialize the private exception; the original caller still owns its
+process/session and cleanup duties.
+
+Python's [exact-byte publication protocol](python-local.md#exact-byte-python-publication-protocol)
+uses `release.mjs python-publish-plan` and the same publisher/receipt Owner.
+It prepares one project per protected job, keeps the facade behind exact public
+SDK/runtime bytes, and distinguishes lost response, terminal success, raw
+attestation output and public confirmation. No executable CLI, configured
+workflow, OIDC credential, owner approval or actual publication is supplied by
+that plan or its inert component controls.

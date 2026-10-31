@@ -2,6 +2,9 @@
 // Actual checked AQL and declaration-derived demand, not an operational Run,
 // physical Source, allocation guarantee or permission positive.
 priv struct SplitKeyedContentLimitsFixture {
+  document : String
+  environment : @checked.CheckEnvironment
+  declaration : @row_source_host.RowDeclaration
   prepared : @publication_host.PreparedClientProgram
   direct : ClientInstalledCaptureCapacity
   keyed : @publication_host.ClientKeyedAcquisition
@@ -64,8 +67,12 @@ fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise 
     Text,
     Some(context),
   ).unwrap()
+  let program = lowered.program.unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @syntax.emit_program_source(program, writer)
+  let document = @encode.finish(writer)
   let prepared = @publication_host.prepare_parsed_effect_free_client_program(
-    lowered.program.unwrap(),
+    program,
     environment,
     None,
     @publication_host.client_standard_program_preparation_limits(),
@@ -100,7 +107,17 @@ fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise 
     declaration,
     original_keyed_child_limits(),
   ).unwrap()
-  { prepared, direct, keyed, capacity, task, step, }
+  {
+    document,
+    environment,
+    declaration,
+    prepared,
+    direct,
+    keyed,
+    capacity,
+    task,
+    step,
+  }
 }
 
 ///|

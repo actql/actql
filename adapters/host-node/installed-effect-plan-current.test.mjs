@@ -18,6 +18,7 @@ function fixture(withModel = false) {
   const controls = {getters: 0, checks: 0, quotes: 0, selected: 0, demands: 0,
     onRead: undefined, onCurrent: undefined, returnedPlan: plan, failBegin: false};
   const runtime = {
+    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
     clientProgramInstalledManagedRunRetire() {return ok();},
     clientProgramNodeEffectManagedPlanCleanup() {return ok();},
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
@@ -31,21 +32,20 @@ function fixture(withModel = false) {
       assert.equal(occurrence, model.occurrence); assert.equal(graph, model.graph);
       controls.demands++; return ok(demand);
     },
-    clientProgramNodeEffectModelManagedPlanPrepare(value, selected) {
-      assert.equal(value, original); assert.equal(selected, plan); assert(withModel); return ok(admission);
-    },
-    clientProgramInstalledEffectModelManagedPlanBegin(value, p, r, selected) {
-      assert.equal(value, admission); assert.equal(p, prepared); assert.equal(r, request); assert.equal(selected, plan);
-      assert(withModel); return controls.failBegin ? {$tag: 0, _0: undefined} : ok({_0: parent, _1: scope});
+    clientProgramInstalledEffectPlanMatchesModelDemand(selected, originalDemand) {
+      assert(withModel); return selected === plan && originalDemand === demand;
     },
     clientProgramFinishInferOriginalReadScope() {return ok(false);},
   };
-  const quote = function(p, selected) {
-    assert.equal(this, manager); assert.equal(p, prepared); assert.equal(selected, plan);
-    controls.quotes++; return original;
-  };
   const requestInput = {};
-  const manager = {prepareEffectModelPlanRun: quote,
+  const manager = {
+    adoptEffectModelPreparation(p, actualInput, identity, selected, run) {
+      assert.equal(this, manager); assert(withModel); assert.equal(p, prepared);
+      assert.equal(actualInput, requestInput); assert.equal(identity, request); assert.equal(selected, plan);
+      assert.equal(run, runs.get(prepared)); run.original = original; run.modelScope = scope;
+      controls.quotes++; if (controls.failBegin) throw undefined;
+      return {original, value: parent, operationPlan: plan};
+    },
     adoptEffectPreparation(p, actualInput, identity, selected) {
       assert.equal(this, manager); assert(!withModel); assert.equal(p, prepared);
       assert.equal(actualInput, requestInput); assert.equal(identity, request); assert.equal(selected, plan);
@@ -58,7 +58,7 @@ function fixture(withModel = false) {
     if (withModel) assert.equal(actualInputs.modelDemand, demand); else assert.equal(actualInputs, inputs);
     controls.selected++; return plan;
   }});
-  const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput: withModel ? undefined : requestInput, facts, selection, inputs,
+  const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput, facts, selection, inputs,
     sourceProfile, model, checked, assertCurrent() {controls.onCurrent?.(runs.get(prepared));}};
   return {options, runs, liveRuns, prepared, request, plan, parent, scope, model, demand, admission, original, controls};
 }
@@ -114,7 +114,8 @@ test('public partial Record and Model Begin retains an undefined primary without
     assert.equal(thrown(() => prepare(f.options)), undefined);
     const run = f.runs.get(f.prepared);
     assert.equal(run.original, withModel ? f.original : undefined);
-    assert.equal(run.admission, withModel ? f.admission : undefined);
+    assert.equal(run.admission, undefined);
+    assert.equal(run.modelScope, withModel ? f.scope : undefined);
     assert(Object.hasOwn(run, 'failure'));
     assert.equal(thrown(() => prepare(f.options)), undefined);
     assert.equal(f.controls.quotes, 1); assert.equal(f.controls.selected, 1);
@@ -168,4 +169,39 @@ test('actual public acquired owner uses one bound getter before its next origina
 
 test('actual public acquired owner refuses a prepared identity replaced by its bound getter', async () => {
   await acquiredBoundary(true);
+});
+
+test('original Effect control debit follows Request adoption once before a consumer getter',()=>{
+  for(const withModel of [false,true]){
+    const f=fixture(withModel);let debits=0;
+    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=function(owner,prepared,request,plan){
+      assert.equal(this,f.options.runtime);assert.equal(owner,f.parent);assert.equal(prepared,f.prepared);assert.equal(request,f.request);assert.equal(plan,f.plan);
+      assert.equal(f.runs.get(f.prepared).value,f.parent);assert.equal(f.controls.quotes,1);debits++;return ok();
+    };
+    f.controls.onRead=()=>assert.equal(debits,1);
+    assert.equal(prepare(f.options),f.parent);assert.equal(prepare(f.options),f.parent);read(f.options);
+    assert.equal(debits,1);assert.equal(f.runs.get(f.prepared).operationsBegun,true);
+  }
+});
+
+test('failed original Effect control debit remains attached to its same adopted Request',()=>{
+  for(const failure of [undefined,false,new Error('original control capacity refusal')]){
+    const f=fixture();let debits=0;
+    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{debits++;throw failure;};
+    assert.equal(thrown(()=>prepare(f.options)),failure);
+    const original=f.runs.get(f.prepared);
+    assert.equal(original.value,f.parent);assert.equal(original.operationsBegun,false);assert.equal(original.failure,failure);
+    assert.equal(thrown(()=>prepare(f.options)),failure);assert.equal(thrown(()=>read(f.options)),failure);
+    assert.equal(debits,1);assert.equal(f.controls.quotes,1);assert.equal(f.controls.selected,1);
+  }
+});
+
+test('control Begin preserves a recorded primary before its secondary native refusal',()=>{
+  for(const primary of [undefined,false,new Error('original current failure')]){
+    const f=fixture(),secondary=new Error('secondary native refusal');
+    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{f.runs.get(f.prepared).failure=primary;return {$tag:0,_0:secondary};};
+    assert.equal(thrown(()=>prepare(f.options)),primary);
+    assert.equal(thrown(()=>read(f.options)),primary);
+    assert.equal(f.controls.quotes,1);
+  }
 });

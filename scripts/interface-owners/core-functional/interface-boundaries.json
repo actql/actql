@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "9b701c1164401d32d4d81b7df7408cbe80f3268178d544ba3d5aadf5ce4aadd2",
+      "sha256": "384ae5487d6fdde70898eee8b92df6896038d63a37d37cf085e99bc6721837da",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1833,20 +1833,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-          "parameters": [
-            "admission",
-            "prepared",
-            "request",
-            "compiled",
-            "compilation",
-            "definition",
-            "graph",
-            "budget"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
           "parameters": [
             "compiled",
@@ -2480,27 +2466,6 @@
             "compilation",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "occurrence",
-            "graph",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
           ],
           "async": false
         },
@@ -8585,7 +8550,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9349,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -9474,6 +9439,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -9484,12 +9453,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -9500,12 +9477,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -9516,12 +9501,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -9532,12 +9525,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -9548,75 +9549,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-            "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
+              },
               {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ]
           }
@@ -41267,6 +41203,2751 @@
         }
       ],
       "referenceQualification": "Original Source read contract and receipts remain unchanged. New Request captured-module delegate and its underlying captured compilation case are SOURCE/FORMAT ONLY; Core/Node canonical API generation, compiler, external ABI and actual normal caller/backing remain UNEXECUTED."
+    },
+    {
+      "module": "src/client_local_host/installed_effect_request_construction.mbt",
+      "sha256": "c9525f708b45e71f112692c2918b7d1724661e4ecaad9e5542f31539e5f225ea",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_json_effect_request_construction_capacity",
+          "declaration": "installed_json_effect_request_construction_capacity ( provider : @ execution . ExecutionCapacity , max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_effect_response_construction_capacity",
+          "declaration": "installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_json_effect_request_construction_capacity",
+            "installed_json_effect_response_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_request_construction.mbt",
+                "anchor": "The selected standard Effect constructor consumes the SAME native provider"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Form correspondence compares every immutable original field path in place."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original spelling and request correlation. Missing/foreign originals, invalid"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous constructor metadata only; it opens no read/write operation or cleanup child and never acknowledges cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_kintone_create_plan_js_wbtest.mbt",
+                "anchor": "test \"same Request CREATE Plan backs separate native Form and acknowledgement constructors before projection\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_construction.mbt",
+      "sha256": "7424ce8052dd2d7fa203a7979c5f086ed729a6ca370dfe2b731f5475b16038ab",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "create_construction_domain",
+          "declaration": "create_construction_domain ( contract : @ contract . Contract ) - > Bool"
+        },
+        {
+          "name": "create_construction_max",
+          "declaration": "create_construction_max ( left : @ shape . CollectionConstructionExtent , right : @ shape . CollectionConstructionExtent , ) - > @ shape . CollectionConstructionExtent"
+        },
+        {
+          "name": "record_create_mapped_proposal_construction_capacity",
+          "declaration": "record_create_mapped_proposal_construction_capacity ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_create_mapped_proposal_construction_inventory",
+          "declaration": "record_create_mapped_proposal_construction_inventory ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordCreateRequestConstructionInventory ?"
+        },
+        {
+          "name": "record_create_mapped_request_construction_capacity",
+          "declaration": "record_create_mapped_request_construction_capacity ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_create_mapped_request_construction_inventory",
+          "declaration": "record_create_mapped_request_construction_inventory ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordCreateRequestConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "create_construction_domain",
+            "create_construction_max",
+            "record_create_mapped_request_construction_capacity",
+            "record_create_mapped_request_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction.mbt",
+                "anchor": "Native mapped CREATE constructor units, not capacity or permission."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Form correspondence compares every immutable original field path in place."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original spelling and request correlation. Missing/foreign originals, invalid"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous constructor metadata only; it opens no read/write operation or cleanup child and never acknowledges cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"mapped CREATE inventory covers real native constructor and unmapped-field refusal prefix\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "record_create_mapped_proposal_construction_capacity",
+            "record_create_mapped_proposal_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_protocol_construction.mbt",
+      "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_create_mapped_form_recheck_construction_capacity",
+          "declaration": "record_create_mapped_form_recheck_construction_capacity ( mapping : RecordCreateMapping , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_create_mapped_form_recheck_construction_inventory",
+          "declaration": "record_create_mapped_form_recheck_construction_inventory ( mapping : RecordCreateMapping , limits : @ catalog . FormFieldLimits , ) - > RecordCreateProtocolConstructionInventory ?"
+        },
+        {
+          "name": "record_create_mapped_response_construction_capacity",
+          "declaration": "record_create_mapped_response_construction_capacity ( mapping : RecordCreateMapping , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_create_mapped_response_construction_inventory",
+          "declaration": "record_create_mapped_response_construction_inventory ( mapping : RecordCreateMapping , limits : @ catalog . RecordMutationLimits , ) - > RecordCreateProtocolConstructionInventory ?"
+        },
+        {
+          "name": "record_create_protocol_capacity",
+          "declaration": "record_create_protocol_capacity ( inventory : RecordCreateProtocolConstructionInventory , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_create_mapped_form_recheck_construction_capacity",
+            "record_create_mapped_form_recheck_construction_inventory",
+            "record_create_mapped_response_construction_capacity",
+            "record_create_mapped_response_construction_inventory",
+            "record_create_protocol_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/record_create_protocol_construction.mbt",
+                "anchor": "Native protocol constructors only."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Form correspondence compares every immutable original field path in place."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original spelling and request correlation. Missing/foreign originals, invalid"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous constructor metadata only; it opens no read/write operation or cleanup child and never acknowledges cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_protocol_construction_wbtest.mbt",
+                "anchor": "test \"original one-row CREATE response inventory keeps wide refusal prefix and exact acknowledgement outcome\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_write_request.mbt",
+      "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_record_create_values",
+          "declaration": "check_record_create_values ( catalog : FormFieldCatalog , records : Array [ RecordWriteValues ] , limits : RecordMutationLimits , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "emit_record_create_body",
+          "declaration": "emit_record_create_body ( writer : @ encode . Writer , catalog : FormFieldCatalog , records : Array [ RecordWriteValues ] , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "prepare_record_create_request",
+          "declaration": "prepare_record_create_request ( catalog : FormFieldCatalog , records : Array [ RecordWriteValues ] , limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordMutationIssue ]"
+        },
+        {
+          "name": "prepare_record_update_request",
+          "declaration": "prepare_record_update_request ( records : Array [ ( OriginalRecordTarget , RecordWriteValues ) ] , limits : RecordMutationLimits , ) - > Result [ RecordUpdateRequest , RecordMutationIssue ]"
+        },
+        {
+          "name": "project_record_create_acknowledgement",
+          "declaration": "project_record_create_acknowledgement ( request : RecordCreateRequest , status : Int , bytes : Bytes , limits : RecordMutationLimits , ) - > Result [ RecordCreateAcknowledgement , RecordMutationIssue ]"
+        },
+        {
+          "name": "project_record_update_acknowledgement",
+          "declaration": "project_record_update_acknowledgement ( request : RecordUpdateRequest , status : Int , bytes : Bytes , limits : RecordMutationLimits , ) - > Result [ RecordUpdateAcknowledgement , RecordMutationIssue ]"
+        },
+        {
+          "name": "recheck_record_create_form",
+          "declaration": "recheck_record_create_form ( request : RecordCreateRequest , bytes : Bytes , limits : FormFieldLimits , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "record_create_acknowledgement_is_original",
+          "declaration": "record_create_acknowledgement_is_original ( value : RecordCreateAcknowledgement , ) - > Bool"
+        },
+        {
+          "name": "record_create_acknowledgement_records",
+          "declaration": "record_create_acknowledgement_records ( response : RecordCreateAcknowledgement , ) - > Array [ ( String , String ) ]"
+        },
+        {
+          "name": "record_create_acknowledgement_request",
+          "declaration": "record_create_acknowledgement_request ( response : RecordCreateAcknowledgement , ) - > RecordCreateRequest"
+        },
+        {
+          "name": "record_create_request_app_id",
+          "declaration": "record_create_request_app_id ( request : RecordCreateRequest ) - > String"
+        },
+        {
+          "name": "record_create_request_body",
+          "declaration": "record_create_request_body ( request : RecordCreateRequest ) - > String"
+        },
+        {
+          "name": "record_create_request_count",
+          "declaration": "record_create_request_count ( request : RecordCreateRequest ) - > Int"
+        },
+        {
+          "name": "record_create_request_is_original",
+          "declaration": "record_create_request_is_original ( value : RecordCreateRequest ) - > Bool"
+        },
+        {
+          "name": "record_create_request_values",
+          "declaration": "record_create_request_values ( request : RecordCreateRequest , ) - > Array [ RecordWriteValues ]"
+        },
+        {
+          "name": "record_update_acknowledgement_is_original",
+          "declaration": "record_update_acknowledgement_is_original ( value : RecordUpdateAcknowledgement , ) - > Bool"
+        },
+        {
+          "name": "record_update_acknowledgement_records",
+          "declaration": "record_update_acknowledgement_records ( response : RecordUpdateAcknowledgement , ) - > Array [ ( String , String ) ]"
+        },
+        {
+          "name": "record_update_acknowledgement_request",
+          "declaration": "record_update_acknowledgement_request ( response : RecordUpdateAcknowledgement , ) - > RecordUpdateRequest"
+        },
+        {
+          "name": "record_update_request_app_id",
+          "declaration": "record_update_request_app_id ( request : RecordUpdateRequest ) - > String"
+        },
+        {
+          "name": "record_update_request_body",
+          "declaration": "record_update_request_body ( request : RecordUpdateRequest ) - > String"
+        },
+        {
+          "name": "record_update_request_count",
+          "declaration": "record_update_request_count ( request : RecordUpdateRequest ) - > Int"
+        },
+        {
+          "name": "record_update_request_is_original",
+          "declaration": "record_update_request_is_original ( value : RecordUpdateRequest ) - > Bool"
+        },
+        {
+          "name": "record_update_request_observation",
+          "declaration": "record_update_request_observation ( request : RecordUpdateRequest , limits : RecordMutationLimits , ) - > Result [ RecordDeleteRequest , RecordMutationIssue ]"
+        },
+        {
+          "name": "record_update_request_values",
+          "declaration": "record_update_request_values ( request : RecordUpdateRequest , ) - > Array [ ( OriginalRecordTarget , RecordWriteValues ) ]"
+        },
+        {
+          "name": "restore_record_create_request",
+          "declaration": "restore_record_create_request ( catalog : FormFieldCatalog , records : Array [ RecordWriteValues ] , original_body : String , limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordMutationIssue ]"
+        },
+        {
+          "name": "write_response_cursor",
+          "declaration": "write_response_cursor ( status : Int , bytes : Bytes , limits : RecordMutationLimits , ) - > Result [ @ decode . Cursor , RecordMutationIssue ]"
+        },
+        {
+          "name": "write_response_identities",
+          "declaration": "write_response_identities ( records : Array [ ( String , String ) ] , limits : RecordMutationLimits , ) - > Result [ Int , RecordMutationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_record_create_values",
+            "emit_record_create_body",
+            "prepare_record_create_request",
+            "prepare_record_update_request",
+            "project_record_create_acknowledgement",
+            "project_record_update_acknowledgement",
+            "recheck_record_create_form",
+            "record_create_acknowledgement_is_original",
+            "record_create_acknowledgement_records",
+            "record_create_acknowledgement_request",
+            "record_create_request_app_id",
+            "record_create_request_body",
+            "record_create_request_count",
+            "record_create_request_is_original",
+            "record_create_request_values",
+            "record_update_acknowledgement_records",
+            "record_update_acknowledgement_request",
+            "record_update_request_app_id",
+            "record_update_request_body",
+            "record_update_request_count",
+            "record_update_request_observation",
+            "record_update_request_values",
+            "restore_record_create_request",
+            "write_response_cursor",
+            "write_response_identities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "still authenticate its saved description, original row/key/occurrence, selected"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "emission and saved comparison; a text-equivalent alternate JSON spelling"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only; it opens no physical child or clock and supplies no retirement or cancellation acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "send. Parser/cell construction, comparison controls and retained saved inputs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"cold CREATE retains complete original saved body and checked values under same Mapping\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request_wbtest.mbt",
+                "anchor": "test \"create requests embed exact checked values and retain their original Form and order\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
+                "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "record_update_acknowledgement_is_original",
+            "record_update_request_is_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_json.mbt",
+      "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "create_json_issue",
+          "declaration": "create_json_issue ( issue : RecordWriteJsonIssue ) - > RecordCreateJsonIssue"
+        },
+        {
+          "name": "create_json_records",
+          "declaration": "create_json_records ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ Array [ RecordWriteValues ] , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "prepare_record_create_request_json",
+          "declaration": "prepare_record_create_request_json ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "record_create_request_values_json",
+          "declaration": "record_create_request_values_json ( request : RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "restore_record_create_request_json",
+          "declaration": "restore_record_create_request_json ( catalog : FormFieldCatalog , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "create_json_records",
+            "prepare_record_create_request_json",
+            "record_create_request_values_json",
+            "restore_record_create_request_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "still authenticate its saved description, original row/key/occurrence, selected"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "emission and saved comparison; a text-equivalent alternate JSON spelling"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only; it opens no physical child or clock and supplies no retirement or cancellation acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "send. Parser/cell construction, comparison controls and retained saved inputs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"cold CREATE retains complete original saved body and checked values under same Mapping\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request_wbtest.mbt",
+                "anchor": "test \"create requests embed exact checked values and retain their original Form and order\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
+                "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "create_json_issue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_execution.mbt",
+      "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_create_execution_proposal",
+          "declaration": "prepare_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "prepare_record_create_execution_request",
+          "declaration": "prepare_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "restore_record_create_execution_proposal",
+          "declaration": "restore_record_create_execution_proposal ( mapping : RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "restore_record_create_execution_request",
+          "declaration": "restore_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_execution_request",
+            "restore_record_create_execution_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "still authenticate its saved description, original row/key/occurrence, selected"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "emission and saved comparison; a text-equivalent alternate JSON spelling"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only; it opens no physical child or clock and supplies no retirement or cancellation acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "send. Parser/cell construction, comparison controls and retained saved inputs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Kintone CREATE restoration re-admits the complete checked value rows"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"cold CREATE retains complete original saved body and checked values under same Mapping\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request_wbtest.mbt",
+                "anchor": "test \"create requests embed exact checked values and retain their original Form and order\""
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
+                "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_record_create_execution_proposal",
+            "restore_record_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
+      "sha256": "521af46fa44474c7dd83ca6a0fbd1c350cb0c637dbf2986105c330e05aa2b142",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_effect_operation_controls",
+          "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "borrow_installed_effect_operation",
+          "declaration": "borrow_installed_effect_operation ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "borrow_installed_effect_operation_original",
+          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "charge_installed_effect_operation",
+          "declaration": "charge_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "ensure_installed_effect_operation_controls",
+          "declaration": "ensure_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_operation_control_capacity",
+          "declaration": "installed_effect_operation_control_capacity ( children : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "mark_installed_effect_operation_transfer_uncertain",
+          "declaration": "mark_installed_effect_operation_transfer_uncertain ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "require_installed_effect_operation",
+          "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retire_installed_effect_operation",
+          "declaration": "retire_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_effect_operation",
+          "declaration": "start_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_effect_operation_controls",
+            "borrow_installed_effect_operation",
+            "borrow_installed_effect_operation_original",
+            "charge_installed_effect_operation",
+            "ensure_installed_effect_operation_controls",
+            "installed_effect_operation_control_capacity",
+            "mark_installed_effect_operation_transfer_uncertain",
+            "require_installed_effect_operation",
+            "retire_installed_effect_operation",
+            "start_installed_effect_operation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate coordinates, even when they share an immutable extent or index."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "keeps the original input pin until child retirement, including failure before"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "capacity reservation settles. The installation's full selected extent must"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"member capture and row constructor retain distinct original same Request reservations\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"original Effect controls are debited once before the consumer borrows a body\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "create_proposal_values",
+            "prepare_record_create_request_proposal",
+            "restore_record_create_request_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "fe198e9f375b7da433c6a75b42859fe0015f4b572723bb0576b05846355bbcb5",
+      "operations": [
+        {
+          "name": "create_proposal_values",
+          "declaration": "create_proposal_values ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordWriteValues , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "prepare_record_create_request_proposal",
+          "declaration": "prepare_record_create_request_proposal ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "restore_record_create_request_proposal",
+          "declaration": "restore_record_create_request_proposal ( catalog : FormFieldCatalog , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_mapping.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_mapping",
+            "record_create_mapping",
+            "record_create_mapping_is_original",
+            "record_create_mapping_matches_declaration",
+            "record_create_mapping_matches_request",
+            "record_create_mapping_resource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "eebebbdc1d04d60dd884e370bd1150deadfb3df2f66d8f40e4709819c4c4e371",
+      "operations": [
+        {
+          "name": "prepare_record_create_mapping",
+          "declaration": "prepare_record_create_mapping ( original : RecordDeclaration , resource : String , sources : Array [ @ rows . RowMappingSource ] , approval : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordCreateMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_create_mapping",
+          "declaration": "record_create_mapping ( value : RecordCreateMapping ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_create_mapping_is_original",
+          "declaration": "record_create_mapping_is_original ( value : RecordCreateMapping ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_declaration",
+          "declaration": "record_create_mapping_matches_declaration ( value : RecordCreateMapping , original : RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_request",
+          "declaration": "record_create_mapping_matches_request ( value : RecordCreateMapping , request : @ catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_resource",
+          "declaration": "record_create_mapping_resource ( mapping : RecordCreateMapping , ) - > Result [ String , RecordCreateExecutionIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_preview_outcome",
+            "client_program_kintone_create_preview_outcome_matches",
+            "client_program_kintone_create_preview_outcome_response_sha256",
+            "client_program_kintone_create_preview_outcome_row_cid",
+            "client_program_kintone_create_preview_outcome_wire",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_prepare_create_mapping",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_proposal_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "b5a3c5ff47bad0f2685b48a7c6443588fca848a8bd6fd476b3c4d23520cb214c",
+      "operations": [
+        {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome",
+          "declaration": "client_program_kintone_create_preview_outcome ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , max_value_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordCreatePreviewOutcome , @ kintone_host . RecordCreateOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_matches",
+          "declaration": "client_program_kintone_create_preview_outcome_matches ( value : @ kintone_host . RecordCreatePreviewOutcome , mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_preview_outcome_response_sha256 ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_create_preview_outcome_row_cid ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_wire",
+          "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_effect_outcome",
+            "client_program_kintone_create_effect_outcome_matches_request",
+            "client_program_kintone_create_effect_outcome_response_sha256",
+            "client_program_kintone_create_effect_outcome_wire",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_form_recheck_construction_capacity",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_mapping_resource",
+            "client_program_kintone_create_preview_outcome",
+            "client_program_kintone_create_preview_outcome_matches",
+            "client_program_kintone_create_preview_outcome_response_sha256",
+            "client_program_kintone_create_preview_outcome_row_cid",
+            "client_program_kintone_create_preview_outcome_wire",
+            "client_program_kintone_create_request_construction_capacity",
+            "client_program_kintone_create_response_construction_capacity",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_execution_proposal",
+            "client_program_kintone_prepare_create_mapping",
+            "client_program_kintone_restore_create_execution_proposal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the existing native parser admits exactly the complete `state:present`/`value`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The shared owner retains exact request DATA/CID and its whole saved envelope."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime methods with their namespace receiver. Input String units and UTF8 bytes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "owner and cannot stand in for full constructor/Host/secret/failed-child overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Kintone standard CREATE declaration supplies only its fixed endpoint,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
+                "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_execution_wbtest.mbt",
+                "anchor": "test \"original CREATE proposal ingress rejects foreign envelopes without an encoder fallback\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_create_proposal_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cold restoration borrows the saved body, checks its UTF8 bound at both existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "saved String itself remains with the caller's separately backed material."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "node bound, not the two allowed field names, so an unknown or duplicate key"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous protocol DATA only. It performs no physical operation, signs no grant and returns no cancellation or retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are native constructor quantities only. Input parser/index/String/Bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The native Kintone proposal constructor quote includes the complete outer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope accompanies native fresh and exact cold body without a new request\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
+                "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "97722262dd2512abc01097abb0f2a6f9ac224cdd5d8d4847581932345e825695",
+      "operations": [
+        {
+          "name": "client_program_kintone_create_effect_outcome",
+          "declaration": "client_program_kintone_create_effect_outcome ( request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_create_effect_outcome_matches_request ( value : @ kintone_catalog . RecordCreateEffectOutcome , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_effect_outcome_wire",
+          "declaration": "client_program_kintone_create_effect_outcome_wire ( value : @ kintone_catalog . RecordCreateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_form_recheck_construction_capacity",
+          "declaration": "client_program_kintone_create_form_recheck_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_resource",
+          "declaration": "client_program_kintone_create_mapping_resource ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome",
+          "declaration": "client_program_kintone_create_preview_outcome ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , response : @ kintone_catalog . RecordCreateAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , max_value_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordCreatePreviewOutcome , @ kintone_host . RecordCreateOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_matches",
+          "declaration": "client_program_kintone_create_preview_outcome_matches ( value : @ kintone_host . RecordCreatePreviewOutcome , mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_create_preview_outcome_response_sha256 ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_create_preview_outcome_row_cid ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_preview_outcome_wire",
+          "declaration": "client_program_kintone_create_preview_outcome_wire ( value : @ kintone_host . RecordCreatePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_create_proposal_construction_capacity",
+          "declaration": "client_program_kintone_create_proposal_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_request_construction_capacity",
+          "declaration": "client_program_kintone_create_request_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_response_construction_capacity",
+          "declaration": "client_program_kintone_create_response_construction_capacity ( mapping : @ kintone_host . RecordCreateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_execution_proposal",
+          "declaration": "client_program_kintone_prepare_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_create_execution_proposal",
+          "declaration": "client_program_kintone_restore_create_execution_proposal ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , original_body : String , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_response_buffer.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_operation_response_backing_fits",
+            "installed_effect_response_buffer_construction_capacity",
+            "installed_effect_response_buffer_representation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "checks the capacity of that same original selected extent against this buffer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "creates no new reservation: the existing original Plan and parent own the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "It holds that whole envelope through original output retirement rather than"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Before borrowing or binding a physical occurrence, the shared Effect child"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refuses before binding, grant consumption or a physical call. This check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "acknowledgement, and no old compiled runtime gains the new native predicates."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "secret/current/Journal material, provider parsing and saved response envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The buffer inventory is one necessary component, not the complete physical"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"Effect response buffer backing checks exact original extent before an occurrence can use it\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response backing shortage refuses the original physical extent before borrow or binding'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "eb823daef1db58ca68bd4a5179e45f1ae4909e6dae08dc1757849a4589c69068",
+      "operations": [
+        {
+          "name": "installed_effect_operation_response_backing_fits",
+          "declaration": "installed_effect_operation_response_backing_fits ( original : ClientInstalledEffectOperationExtent , max_response_bytes : Int , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_response_buffer_construction_capacity",
+          "declaration": "installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_effect_response_buffer_representation",
+          "declaration": "installed_effect_response_buffer_representation ( max_response_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_operation_borrow",
+            "client_program_installed_effect_operation_charge",
+            "client_program_installed_effect_operation_controls_begin",
+            "client_program_installed_effect_operation_extent_from_capacity",
+            "client_program_installed_effect_operation_extent_physical",
+            "client_program_installed_effect_operation_extent_transfer",
+            "client_program_installed_effect_operation_response_backing_fits",
+            "client_program_installed_effect_operation_retire",
+            "client_program_installed_effect_operation_start",
+            "client_program_installed_effect_operation_transfer_uncertain",
+            "client_program_installed_effect_response_buffer_construction_capacity",
+            "client_program_installed_json_effect_request_construction_capacity",
+            "client_program_installed_json_effect_response_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The observed binary HTTPS receiver retains its copied chunk prefix beside the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "checks the capacity of that same original selected extent against this buffer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "creates no new reservation: the existing original Plan and parent own the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "It holds that whole envelope through original output retirement rather than"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Before borrowing or binding a physical occurrence, the shared Effect child"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refuses before binding, grant consumption or a physical call. This check"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "acknowledgement, and no old compiled runtime gains the new native predicates."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "secret/current/Journal material, provider parsing and saved response envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The buffer inventory is one necessary component, not the complete physical"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"Effect response buffer backing checks exact original extent before an occurrence can use it\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response backing shortage refuses the original physical extent before borrow or binding'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "4771724043a3b3340295441611aa1b066752108196b07314f13147c0763c6378",
+      "operations": [
+        {
+          "name": "client_program_installed_effect_operation_borrow",
+          "declaration": "client_program_installed_effect_operation_borrow ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationBorrow , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_charge",
+          "declaration": "client_program_installed_effect_operation_charge ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_controls_begin",
+          "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_from_capacity",
+          "declaration": "client_program_installed_effect_operation_extent_from_capacity ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_physical",
+          "declaration": "client_program_installed_effect_operation_extent_physical ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Bool"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_transfer",
+          "declaration": "client_program_installed_effect_operation_extent_transfer ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Int64"
+        },
+        {
+          "name": "client_program_installed_effect_operation_response_backing_fits",
+          "declaration": "client_program_installed_effect_operation_response_backing_fits ( original : @ client_local_host . ClientInstalledEffectOperationExtent , max_response_bytes : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_installed_effect_operation_retire",
+          "declaration": "client_program_installed_effect_operation_retire ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , original_cleanup_confirmed : Bool , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_start",
+          "declaration": "client_program_installed_effect_operation_start ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_transfer_uncertain",
+          "declaration": "client_program_installed_effect_operation_transfer_uncertain ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_response_buffer_construction_capacity",
+          "declaration": "client_program_installed_effect_response_buffer_construction_capacity ( max_response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_effect_request_construction_capacity",
+          "declaration": "client_program_installed_json_effect_request_construction_capacity ( provider : @ execution . ExecutionCapacity , max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_effect_response_construction_capacity",
+          "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_model_demand.mbt",
+      "sha256": "c3246fc55e5ae3938174ef24868b9181ec9a3539e0536621e39fa165896acca8",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_plan_matches_model_demand",
+          "declaration": "installed_effect_plan_matches_model_demand ( plan : ClientInstalledEffectManagedPlan , model : ClientInstalledEffectModelDemand , ) - > Bool"
+        },
+        {
+          "name": "prepare_installed_effect_model_demand",
+          "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledEffectModelDemand , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_plan_matches_model_demand",
+            "prepare_installed_effect_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+      "sha256": "8a579eae450a09878f0c7965991b2f9e38e97adb2558c7e3df5f4c0e6fa251d0",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_model_demand_prepare",
+          "declaration": "client_program_installed_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_model_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_plan_matches_model_demand",
+          "declaration": "client_program_installed_effect_plan_matches_model_demand ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , model : @ client_local_host . ClientInstalledEffectModelDemand , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_model_demand_prepare",
+            "client_program_installed_effect_model_managed_plan_prepare",
+            "client_program_installed_effect_plan_matches_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_managed_run_bridge.mbt",
+      "sha256": "b9bfdcfd0d38ca8ff0ae80b19a67c062b2ba563cdcae1ed8a342363559547ca2",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local Source and Node Effect owners; D retires unused raw Effect admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_managed_run_check",
+          "declaration": "client_program_installed_effect_managed_run_check ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_prepare_ledger",
+          "declaration": "client_program_installed_effect_managed_run_prepare_ledger ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_requirements",
+          "declaration": "client_program_installed_effect_managed_run_requirements ( prepared : @ publication_host . PreparedClientEffectComputation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_managed_run_check",
+            "client_program_installed_effect_managed_run_prepare_ledger",
+            "client_program_installed_effect_managed_run_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -20,6 +20,7 @@ function fixture() {
   let current = true, checkCallback = () => {}, selected = plan;
   const failure = new Error('original-current');
   const runtime = {
+    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
     clientProgramInstalledManagedRunRetire() {}, clientProgramNodeEffectManagedPlanCleanup() {},
     clientProgramInstalledEffectManagedRunCheck(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);

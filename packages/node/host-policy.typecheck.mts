@@ -1,4 +1,4 @@
-import {connect, type HostCapacityPolicy, type HostLookupExecutionPolicy} from '@actql/node';
+import {connect, open, type HostCapacityPolicy, type HostLookupExecutionPolicy} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 const policy: HostCapacityPolicy = {
   "max_aggregate_array_items": 1000,
@@ -50,3 +50,22 @@ void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate
 void connect({mode: 'local', owner: 'local', installation: {hostLookupExecutionPolicy: {max_total_request_bytes: 1}}});
 // @ts-expect-error A caller cannot mutate the captured policy through its public type.
 lookup.max_total_response_bytes = 1;
+
+// A Host supplies any admitted policy original; these compile-only values do
+// not establish a classification, source permission or execution admission.
+declare const admittedPolicyCid: string | undefined;
+void connect({mode: 'local', installation: {
+  async verifyRequestValuePolicy(subject, {signal}) {
+    signal?.throwIfAborted();
+    const sourceRef: string = subject.source_ref;
+    void sourceRef;
+    // @ts-expect-error Checked subjects cannot be replaced by the callback.
+    subject.request.selector = 'replacement';
+    return undefined;
+  },
+}});
+void open({installation: {verifyRequestValuePolicy: () => admittedPolicyCid}});
+// @ts-expect-error A classification object is not an admitted policy CID.
+void connect({mode: 'local', installation: {verifyRequestValuePolicy: () => ({classification: 'public'})}});
+// @ts-expect-error A boolean Promise cannot acknowledge policy verification.
+void open({installation: {verifyRequestValuePolicy: async () => true}});

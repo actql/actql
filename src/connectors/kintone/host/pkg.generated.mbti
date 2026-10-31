@@ -4,7 +4,9 @@ package "actql/actql/connectors/kintone/host"
 import {
   "actql/actql/client_row_source_host",
   "actql/actql/connectors/kintone/catalog",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
+  "actql/actql/execution_relation",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -19,6 +21,8 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn prepare_record_create_execution_proposal(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
 pub fn prepare_record_create_execution_request(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordCreateMapping, @client_row_source_host.RowMappingIssue]
@@ -26,6 +30,8 @@ pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_ro
 pub fn prepare_record_delete_mapping(RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
 
 pub fn prepare_record_delete_preview(RecordDeleteMapping, @catalog.OriginalRecordTarget, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreview, RecordReadIssue]
+
+pub fn prepare_record_key_upsert_before(RecordDeclaration, @catalog.RecordLookupObservation, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordKeyUpsertBefore, RecordReadIssue]
 
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
@@ -37,6 +43,22 @@ pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.Recor
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
+pub fn record_create_mapped_form_recheck_construction_capacity(RecordCreateMapping, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_form_recheck_construction_inventory(RecordCreateMapping, @catalog.FormFieldLimits) -> RecordCreateProtocolConstructionInventory?
+
+pub fn record_create_mapped_proposal_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_proposal_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
+pub fn record_create_mapped_request_construction_capacity(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_request_construction_inventory(RecordCreateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordCreateRequestConstructionInventory?
+
+pub fn record_create_mapped_response_construction_capacity(RecordCreateMapping, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_create_mapped_response_construction_inventory(RecordCreateMapping, @catalog.RecordMutationLimits) -> RecordCreateProtocolConstructionInventory?
+
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
 
 pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
@@ -44,6 +66,8 @@ pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
 pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
 
 pub fn record_create_mapping_matches_request(RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool
+
+pub fn record_create_mapping_resource(RecordCreateMapping) -> Result[String, RecordCreateExecutionIssue]
 
 pub fn record_create_preview_outcome_matches(RecordCreatePreviewOutcome, RecordCreateMapping, @catalog.RecordCreateRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
 
@@ -81,6 +105,18 @@ pub fn record_delete_preview_version_cid(RecordDeletePreview) -> String
 
 pub fn record_form_request_body(PreparedRecordRead, Int) -> Result[String, RecordReadIssue]
 
+pub fn record_key_upsert_before_identity(RecordKeyUpsertBefore) -> String
+
+pub fn record_key_upsert_before_key(RecordKeyUpsertBefore) -> String
+
+pub fn record_key_upsert_before_matches(RecordKeyUpsertBefore, RecordDeclaration, @catalog.RecordLookupObservation) -> Bool
+
+pub fn record_key_upsert_before_target(RecordKeyUpsertBefore) -> @catalog.OriginalRecordTarget?
+
+pub fn record_key_upsert_before_version_cid(RecordKeyUpsertBefore) -> String?
+
+pub fn record_key_upsert_before_wire(RecordKeyUpsertBefore) -> String?
+
 pub fn record_page_next_cursor(RecordRead, String?, Int) -> Result[String?, RecordReadIssue]
 
 pub fn record_page_request_body(PreparedRecordRead, String?, Int, Int) -> Result[String, RecordReadIssue]
@@ -104,6 +140,10 @@ pub fn record_update_mapping(RecordUpdateMapping) -> @client_row_source_host.Row
 pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDeclaration) -> Bool
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
+
+pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
+pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
@@ -135,6 +175,17 @@ pub struct RecordCreatePreviewOutcome {
   // private fields
 }
 
+pub(all) struct RecordCreateProtocolConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+}
+
+pub(all) struct RecordCreateRequestConstructionInventory {
+  representation : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+}
+
 pub struct RecordDeclaration {
   // private fields
 }
@@ -157,6 +208,10 @@ pub struct RecordDeletePreview {
 }
 
 pub struct RecordDeletePreviewOutcome {
+  // private fields
+}
+
+pub struct RecordKeyUpsertBefore {
   // private fields
 }
 

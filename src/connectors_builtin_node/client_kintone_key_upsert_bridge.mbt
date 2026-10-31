@@ -1,0 +1,216 @@
+// Private original keyed UPSERT DATA. The same complete lookup selects one
+// native branch; these adapters issue no Mapping, Preview, grant or claim.
+
+///|
+#export_name("clientProgramKintoneWriteValuesJson")
+pub fn client_program_kintone_write_values_json(
+  catalog : @kintone_catalog.FormFieldCatalog,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  limits : @kintone_catalog.RecordWriteLimits,
+) -> Result[
+  @kintone_catalog.RecordWriteValues,
+  @kintone_catalog.RecordWriteJsonIssue,
+] {
+  @kintone_catalog.prepare_record_write_values_json(
+    catalog, bytes, max_input_bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertRequest")
+pub fn client_program_kintone_key_upsert_request(
+  lookup : @kintone_catalog.RecordLookupObservation,
+  values : @kintone_catalog.RecordWriteValues,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordKeyUpsertRequest,
+  @kintone_catalog.RecordKeyUpsertIssue,
+] {
+  @kintone_catalog.prepare_record_key_upsert_request(
+    lookup, values, write_limits, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertUsesLookup")
+pub fn client_program_kintone_key_upsert_uses_lookup(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+  lookup : @kintone_catalog.RecordLookupObservation,
+) -> Bool {
+  @kintone_catalog.record_key_upsert_request_matches_lookup(request, lookup)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertCreateRequest")
+pub fn client_program_kintone_key_upsert_create_request(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> @kintone_catalog.RecordCreateRequest? {
+  @kintone_catalog.record_key_upsert_create_request(request)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertUpdateRequest")
+pub fn client_program_kintone_key_upsert_update_request(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> @kintone_catalog.RecordUpdateRequest? {
+  @kintone_catalog.record_key_upsert_update_request(request)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertResponse")
+pub fn client_program_kintone_key_upsert_response(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+  status : Int,
+  bytes : Bytes,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordKeyUpsertAcknowledgement,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_key_upsert_acknowledgement(
+    request, status, bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertResponseUsesRequest")
+pub fn client_program_kintone_key_upsert_response_uses_request(
+  response : @kintone_catalog.RecordKeyUpsertAcknowledgement,
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> Bool {
+  @kintone_catalog.record_key_upsert_acknowledgement_matches_request(
+    response, request,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertOutcome")
+pub fn client_program_kintone_key_upsert_outcome(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+  response : @kintone_catalog.RecordKeyUpsertAcknowledgement,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordKeyUpsertEffectOutcome,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_key_upsert_effect_outcome(
+    request, response, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertOutcomeWire")
+pub fn client_program_kintone_key_upsert_outcome_wire(
+  outcome : @kintone_catalog.RecordKeyUpsertEffectOutcome,
+) -> String {
+  @kintone_catalog.record_key_upsert_effect_outcome_wire(outcome)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertOutcomeResponseSha256")
+pub fn client_program_kintone_key_upsert_outcome_response_sha256(
+  outcome : @kintone_catalog.RecordKeyUpsertEffectOutcome,
+) -> String {
+  @kintone_catalog.record_key_upsert_effect_outcome_response_sha256(outcome)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertOutcomeUsesRequest")
+pub fn client_program_kintone_key_upsert_outcome_uses_request(
+  outcome : @kintone_catalog.RecordKeyUpsertEffectOutcome,
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> Bool {
+  @kintone_catalog.record_key_upsert_effect_outcome_matches_request(
+    outcome, request,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBefore")
+pub fn client_program_kintone_key_upsert_before(
+  original : @kintone_host.RecordDeclaration,
+  lookup : @kintone_catalog.RecordLookupObservation,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[@kintone_host.RecordKeyUpsertBefore, @kintone_host.RecordReadIssue] {
+  @kintone_host.prepare_record_key_upsert_before(
+    original, lookup, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeKey")
+pub fn client_program_kintone_key_upsert_before_key(
+  value : @kintone_host.RecordKeyUpsertBefore,
+) -> String {
+  @kintone_host.record_key_upsert_before_key(value)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeIdentity")
+pub fn client_program_kintone_key_upsert_before_identity(
+  value : @kintone_host.RecordKeyUpsertBefore,
+) -> String {
+  @kintone_host.record_key_upsert_before_identity(value)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeTarget")
+pub fn client_program_kintone_key_upsert_before_target(
+  value : @kintone_host.RecordKeyUpsertBefore,
+) -> @kintone_catalog.OriginalRecordTarget? {
+  @kintone_host.record_key_upsert_before_target(value)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeWire")
+pub fn client_program_kintone_key_upsert_before_wire(
+  value : @kintone_host.RecordKeyUpsertBefore,
+) -> String? {
+  @kintone_host.record_key_upsert_before_wire(value)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeVersionCid")
+pub fn client_program_kintone_key_upsert_before_version_cid(
+  value : @kintone_host.RecordKeyUpsertBefore,
+) -> String? {
+  @kintone_host.record_key_upsert_before_version_cid(value)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeMatches")
+pub fn client_program_kintone_key_upsert_before_matches(
+  value : @kintone_host.RecordKeyUpsertBefore,
+  original : @kintone_host.RecordDeclaration,
+  lookup : @kintone_catalog.RecordLookupObservation,
+) -> Bool {
+  @kintone_host.record_key_upsert_before_matches(value, original, lookup)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertObservedRequest")
+pub fn client_program_kintone_key_upsert_observed_request(
+  original : @kintone_host.RecordDeclaration,
+  lookup : @kintone_catalog.RecordLookupObservation,
+  before : @kintone_host.RecordKeyUpsertBefore,
+  values : @kintone_catalog.RecordWriteValues,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordKeyUpsertRequest,
+  @kintone_catalog.RecordKeyUpsertIssue,
+] {
+  if !@kintone_host.record_key_upsert_before_matches(before, original, lookup) {
+    return Err(InvalidLookup)
+  }
+  @kintone_catalog.prepare_record_key_upsert_request(
+    lookup,
+    values,
+    write_limits,
+    limits,
+    target=@kintone_host.record_key_upsert_before_target(before),
+  )
+}

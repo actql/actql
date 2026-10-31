@@ -218,7 +218,9 @@ pub fn prepared_client_requires_task_compilation(
     return true
   }
   if !@strategy.graph_source_free_inputs_complete(value.graph) {
-    return false
+    // A single captured task still has an original receiving input. The
+    // direct Values compiler requires its own source-free Values root.
+    return true
   }
   guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
     return false

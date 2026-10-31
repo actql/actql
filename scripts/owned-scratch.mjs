@@ -7,6 +7,8 @@
 // - a zero exit without `passed()` keeps it and exits 1: the test did not
 //   confirm that everything it started in the directory has ended;
 // - ACTQL_TEST_PRESERVE_SCRATCH=1 keeps it and prints how to remove it;
+// - an explicit preserve:true owner keeps its original state without offering
+//   a blanket removal command; this does not waive the passed confirmation;
 // - otherwise the named artifacts' digests and the directory's file volume
 //   are printed, the directory is removed, and its absence is checked. A
 //   removal that fails or leaves the directory keeps it and exits 2, so a
@@ -49,13 +51,14 @@ const megabytes = bytes => `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 // the messages; `digests` lists file names at the top of the directory whose
 // sha256 is printed before removal (for example the installed tarballs).
 export async function createOwnedScratch({parent, prefix, label,
-  digests = () => []}) {
+  digests = () => [], preserve = false}) {
+  if (typeof preserve !== 'boolean') throw new TypeError('Invalid scratch preservation selection');
   await mkdir(parent, {recursive: true});
   const path = await mkdtemp(join(parent, prefix));
   let passed = false;
   const keep = reason => {
     console.error(`${label}: ${reason}; scratch kept: ${path}`);
-    console.error(`${label}: remove it after inspection with: rm -rf -- ${
+    if (!preserve) console.error(`${label}: remove it after inspection with: rm -rf -- ${
       quote(path)}`);
   };
   process.once('exit', code => {
@@ -68,7 +71,7 @@ export async function createOwnedScratch({parent, prefix, label,
       process.exitCode = UNCONFIRMED_EXIT;
       return;
     }
-    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+    if (preserve || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
       keep('test passed, preservation requested');
       return;
     }

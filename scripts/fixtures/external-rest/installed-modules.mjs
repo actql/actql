@@ -132,10 +132,18 @@ export async function loadExternalRestModules(options) {
   assert(Array.isArray(connector.installedConnectors) && connector.installedConnectors.length === 1);
   assert.equal(connector.installedConnectors[0].providerBundle, undefined);
   assert.equal(connector.installedConnectors[0].effect, undefined);
+  // The package root is deliberately lazy. Force the generated installation
+  // itself to load before declaring its normal public entrance available.
+  const source = connector.installedConnectors[0].source;
+  assert.equal(typeof source?.load, 'function');
+  const installation = await Reflect.apply(source.load, source, []);
+  const installationExports = ['check', 'identityParts', 'load', 'publish'];
+  for (const name of installationExports) assert.equal(typeof installation?.[name], 'function');
   const connectorTable = host.createInstalledConnectorTable(connector.installedConnectors);
   // Same canonical Node require-context as the installed public caller. The
   // conformance helper captures its original getter once before start/await.
   const publicSdk = createRequire(paths.node)('@actql/sdk');
   return Object.freeze({connect: options => Reflect.apply(node.connect, node, [options]),
-    publicSdk, connectorTable, paths});
+    publicSdk, connectorTable, paths,
+    loadedInstallationExports: Object.freeze(installationExports)});
 }

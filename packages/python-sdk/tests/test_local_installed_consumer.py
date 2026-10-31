@@ -77,14 +77,14 @@ class InstalledConsumerTests(unittest.TestCase):
         expected = None
         for facade in ('sync', 'async'):
             events = []; client = (ClientSpy if facade == 'sync' else AsyncClientSpy)(events)
-            if self.receipt.exists(): self.receipt.unlink()
+            receipt = self.receipt.with_name(facade + '.json')
             with patch.dict('sys.modules', {'actql': SimpleNamespace(Client=client, AsyncClient=client)}):
-                if facade == 'sync': consumer._sync('cohort', 'initial', self.receipt)
-                else: asyncio.run(consumer._async('cohort', 'initial', self.receipt))
-            body = json.loads(self.receipt.read_bytes())
+                if facade == 'sync': consumer._sync('cohort', 'initial', receipt)
+                else: asyncio.run(consumer._async('cohort', 'initial', receipt))
+            body = json.loads(receipt.read_bytes())
             self.assertEqual(body['submission'], {'epoch': {'epoch': 'original epoch'}, 'nonce': 'original nonce'})
             self.assertEqual(body['run'], RUN); self.assertEqual(body['producer_facade'], facade)
-            self.assertEqual(self.receipt.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(receipt.stat().st_mode & 0o777, 0o600)
             self.assertEqual([item[0] for item in events],
                 ['open', 'new', 'start', 'wait', 'result', 'all', 'result', 'all', 'close'])
             self.assertEqual(events[2][1], 'SELECT 1 AS n')
@@ -157,3 +157,34 @@ class InstalledConsumerTests(unittest.TestCase):
         self.assertFalse(self.receipt.exists()); self.assertEqual(output.getvalue(), '')
         self.assertEqual(sum(event[0] == 'open' for event in events), 1)
         self.assertEqual(sum(event[0] == 'start' for event in events), 1)
+
+    def test_failed_wait_keeps_original_ref_before_wait_without_a_success_receipt_or_repeat(self):
+        events = []
+        class FailedWait(RunSpy):
+            def wait(inner):
+                pending = json.loads(self.receipt.with_name(self.receipt.name + '.submitted').read_bytes())
+                self.assertEqual(pending['run'], RUN)
+                raise RuntimeError('original wait failed')
+        client = ClientSpy(events)
+        with patch.object(client, 'start_source', return_value=FailedWait(events)), \
+                patch.dict('sys.modules', {'actql': SimpleNamespace(Client=client)}):
+            with self.assertRaisesRegex(RuntimeError, 'original wait failed'):
+                consumer._sync('cohort', 'initial', self.receipt)
+        self.assertFalse(self.receipt.exists())
+        with patch.object(consumer.metadata, 'version', return_value='cohort'), \
+                patch.object(consumer, '_sync') as repeated:
+            with self.assertRaisesRegex(AssertionError, 'fresh receipt'):
+                consumer.installed('cohort', 'local', facade='sync', phase='initial', receipt=self.receipt)
+        repeated.assert_not_called()
+
+    def test_close_observer_requires_the_original_process_ack_after_observation(self):
+        output = StringIO()
+        with patch.object(consumer.sys, 'stdin', StringIO('observed\n')), redirect_stdout(output):
+            consumer._observe_closed()
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row['stage'] for row in rows], ['closed', 'close-observation-ack'])
+        self.assertTrue(all(row['pid'] == os.getpid() for row in rows))
+        output = StringIO()
+        with patch.object(consumer.sys, 'stdin', StringIO('unobserved\n')), redirect_stdout(output):
+            with self.assertRaisesRegex(RuntimeError, 'observation incomplete'): consumer._observe_closed()
+        self.assertEqual(len(output.getvalue().splitlines()), 1)

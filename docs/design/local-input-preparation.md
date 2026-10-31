@@ -2813,6 +2813,20 @@ The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
 
+### Local native read retirement
+
+The Local Source retains its original physical reader and raw managed child
+through cleanup. The physical reader must acknowledge stop, followed by the
+captured original raw close method with its original receiver. Only then may
+the same ordinary or keyed typed read retire and the Local read become closed.
+Typed retirement is not evidence that native cleanup has completed.
+
+A pending or throwing native close retains the same read and prevents the
+existing parent-retirement loop from retiring that Run. A typed retirement
+failure also leaves the read retained for the same cleanup retry. Cleanup does
+not acquire a new Root, permission or current-state admission, and an absent,
+inherited or accessor `pending` field is not an acknowledgment.
+
 ### Normal SQL and AQL Request continuation
 
 SQL and Pipe Source inputs retain the same SDK snapshot and Request as native
@@ -3398,7 +3412,12 @@ The installed implementation supplies its complete original operation Plan.
 The manager retains that Plan before calling the existing Request completion
 and adoption entries with the same input receipt and final Request identity.
 Failure remains on that Request and cannot renew compilation, completion or
-admission. The Model-specific Scope path retains its separate existing contract.
+admission. For a Model Plan, the existing outer Run first retains the Scope
+constructed from that same Request input and exact Plan, then completion and
+Model adoption consume the same originals. Partial completion/adoption keeps
+that Scope attached for the existing physical cleanup, without a second Node
+admission. The generic initial envelope must already admit the selected Model
+and its simultaneous constructor/read holdings.
 
 After the actual dispatch and physical children have retired, Host cleanup
 starts the same managed Run retirement, observes its original payload-sever
@@ -3670,3 +3689,150 @@ parent through the required supplemental semantic phase before final compiler
 and body selection. Neither an absent verifier result nor this Unit return is
 permission to serialize again, substitute a Source publication, skip policy
 verification or manufacture an unowned fallback preparation.
+
+### Original Contract Value body construction
+
+`value_admission.contract_value_body_construction_inventory` projects the
+existing Value constructor inventory from the same admitted Contract and
+construction quantities. It does not manufacture a ParameterType or reread
+Parameter/default syntax. The original ParameterType route uses this same
+body; the completed ParameterSyntax route still uses its retained checked
+Decimal precision without another Contract walk. Arithmetic and representation
+quantities have one implementation.
+
+The supported body consists of scalar Text/Number/Boolean/Date/Timestamp/
+Signed64/Decimal and their Array/Object constructors. Json, Vector and reference
+constructors require their own inventories and return no inventory through this
+projection. This is an inventory scope, not a new language or value-admission
+restriction. Actual typed admission retains the original Contract and enforces
+its original type, nullability, constraints and node/depth/text limits.
+
+Construction geometry is DATA. An observed original subtree and a separately
+justified pre-construction envelope have different provenance; this projection
+proves neither. The caller must back its original metadata inspection frame
+before entry and justify every bound it supplies. It must also include its
+actual entry/checked-value, request/response overlap, writer, refusal and cleanup
+holdings. The returned logical constructor quantities neither reserve a Ledger
+nor establish physical backing, permission or a cleanup acknowledgment.
+
+
+### Effect Model Scope on the original Request
+
+The initial Local preparation retains its census on the original first
+reservation before input construction. Its sealed admitted envelope must
+contain the ordinary Local baseline and the actual selected domain supply;
+it need not equal that single baseline. Quantity bounds remain separately
+installed once after known input cleanup. No late limit expansion or scope
+selection follows from a numerical DATA match.
+
+`prepare_request_effect_model_read_scope` binds the selected Effect Plan's
+original compiled Run/definition/Model graph to that census before body
+completion. The caller retains and backs the complete selected Model,
+constructor, material and callback overlap first. Growth preserves the same
+working extents, consumed input attempts/work and original holder inventory.
+The returned Scope must remain with that same caller through any later
+refusal and physical cleanup.
+
+Completion requires the same retained Plan. Model adoption requires the same
+Scope, Ledger and original census and uses the existing two body holders and
+retirement. Ordinary entry still excludes Model; its unused unbound census
+metadata can retire without returning bytes or resetting consumption. A live
+Scope, outstanding borrower, pending child or failed cleanup independently
+keeps the original preparation reservation. No new Model resource, Root,
+compiler, permission, physical acknowledgment or Source read is issued by
+this ownership handoff.
+
+The Node preparation admission has no separate read-bootstrap census
+constructor. Its input-facing owner starts the original Ledger; the atomic
+preparation entrance then retains the census on that first capacity
+reservation. Adoption transfers the same capacity and holders, while a
+separate read-bootstrap state is refused. Census cleanup remains with the
+original preparation retirement and cannot leave another bootstrap token for
+the admission to settle later.
+
+
+### Model compilation before the original module handoff
+
+The Pure Model constructor retains the original selected Graph and compiler
+configuration before measurement. Its same-Request compiler measures the
+issuer-owned component arrays and completed writer geometry, grows the
+original capacity and spends the existing ExecutionPlan work receipt. It
+returns the actual TaskCompilation to the original module/Plan; a separate
+compilation of equal bytes cannot replace it at Scope binding. The ordinary
+constructor still excludes Model, and the fixed Model profile retains its
+existing occurrence, serialization and Source shape guards.
+
+The Model Plan record, original component Graph storage and complete
+module/provider/codec/output overlap must be backed before allocation on
+that same parent. Fixed caller controls and compiler measurements do not
+establish physical funding or grant Model execution. Scope and body
+retirement retain their distinct original cleanup obligations.
+
+### Keyed Content on the original Request
+
+The Content constructor borrows the same compiled Program before allocating
+its selected Plan. An outstanding Program inventory borrower may coexist;
+Content selection preserves the actual grown extents and adds its selected
+links once. Returning the older inventory borrow cannot release the retained
+Content material. Model and Content constructor purposes remain distinct.
+
+The keyed Plan retains its original Direct acquisition, coordinates,
+contracts, transport and completed requirements. Later Source and Ledger
+selection checks those same originals and reads that retained demand without
+reconstructing the query or calculating another capacity. Changed or foreign
+material requires its own full preparation.
+
+Content adoption transfers the original initial admission and reservation.
+Only an unused unbound input census can leave at that handoff; a bound or
+active census retains its original cleanup obligation. Metadata disposal
+does not refund consumed input work/attempts or any byte debit. The selected
+keyed/declaration/transport/prefix/provider/codec/output and constructor
+overlap still needs complete backing before allocation on this same parent.
+
+### Ordinary invocation before module construction
+
+An ordinary QueryTime-dependent module consumes the Request parent's original
+compiler output. Compilation precedes module construction so that the caller
+can issue its actual compiled Run and Definition and bind its original
+QueryTime preparation before constructing the generated sequences. The module
+handoff carries those four original objects: QueryTime preparation, Request
+identity, compiled Run and Definition. Equal executable bytes, another Request
+identity or an independently compiled artifact cannot replace them.
+
+A checked graph with receiving Source inputs uses the existing Task compiler
+even when it has one task and one Result. The direct Values compiler requires
+its source-free Values root. Result correspondence uses the same checked
+selected-step or prefix output as the fragment and its contract measurement;
+it does not reconstruct an untimed acquisition that can select an earlier
+capture. An empty task still uses its original receiving input port through
+that same output selector, without inventing a Compute operation.
+
+The existing QueryTime preparation retains the first successfully bound Pure
+compiled Run alongside its original Definition and evaluation context. Reading
+that bound invocation compares the retained originals; it does not re-admit
+the Definition, sample time, invoke Host currentness or bind another Run. The
+module uses this already-bound context, and a captured Plan must retain the
+same QueryTime preparation and Request. Untimed module construction remains a
+separate existing path; an already timed captured Plan cannot omit its original
+handoff. This does not widen the ordinary Model or serialization purpose guards.
+
+The Node and RelA pre-module projection returns the existing QueryTime getter's
+original Option directly. The caller retains that same QueryTime and Prepared
+under its original input borrower and passes the Option unchanged into the
+module constructor. It does not reconstruct an Option or tuple from JavaScript
+fields. An unbound preparation or another Prepared yields no invocation. This
+projection precedes module completion and Run adoption; the installed Run getter
+continues to serve the separate post-adoption publication boundary.
+
+Run adoption retains the same module, compiler and invocation. The immutable
+Run getter returns the original four objects so that later publication need
+not issue another compiled Run from the artifact. It observes the existing
+payload-retirement fence. A returned original is DATA, not a currentness,
+permission or physical-cleanup acknowledgment; actual execution and publication
+retain their own mutable boundary checks.
+
+The QueryTime preparation's additional compiler reference, its selected Option
+carrier and the input/output tuple carriers are real retained or overlapping
+material. Their complete backing belongs to the caller's same-parent domain
+inventory before allocation. A reference getter or compiler-work receipt does
+not fund those holdings, and retirement cannot refund consumed work or attempts.

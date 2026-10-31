@@ -140,15 +140,12 @@ fn issue_client_result_plan_parts(
     }
     @pipeline.Step(selected)
   } else {
-    match @strategy.graph_task_target(owner.graph, task) {
-      Some(target) => target
-      None => {
-        guard client_publication_task_target(owner, task) is Some(captured) else {
-          return Err(Root(RequiresResultTransformation))
-        }
-        captured
-      }
+    // Projection may change the row shape, never the original fragment's
+    // checked producer. Acquisition selection is a separate Run obligation.
+    guard client_task_output_target(owner.graph, task) is Some(target) else {
+      return Err(Root(RequiresResultTransformation))
     }
+    target
   }
   guard @results.port_target(
       @execution.managed_result_occurrence_port(occurrence),
