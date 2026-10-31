@@ -33,6 +33,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
   const producer={receipt:input,preparation:state,liveRuns:0};
   const moon={
     clientProgramPreparationBorrowRead:h=>{assert.equal(h,holder);return prepared;},
+    clientProgramPreparationBorrowRetirementStarted:h=>{assert.equal(h,holder);return true;},
     clientProgramCompleteRequestContentPreparation(p,i,r,s){assert.deepEqual([p,i,r,s],[parent,input,request,selected]);
       assert.equal(record.computeRuns.get(prepared).selectedKeyed,selected);assert.equal(state.contentCompilation,compilation);
       calls.push('complete');if(failurePhase==='complete')throw failure;return ok();},
@@ -62,7 +63,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
   const managerPorts={current,producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,
     callbacks:{request:()=>sdkRequest,contentRequirements(o,p,s){assert.deepEqual([o,p,s],[originals,prepared,selected]);return{attempts:2};}},
     originals,runs,liveRuns,view,checked};
-  for(const name of ['prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
+  for(const name of ['retainContentPreparation','prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
   view.assertCurrent=current;view.prepareRead=()=>assert.fail('No physical read selected');
   const managerSource=readFileSync(new URL('./ordinary-source-managed.mjs',import.meta.url),'utf8');
   const privateNames=new Set(['runFor','captureReader','closeChild']);
@@ -100,13 +101,14 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}
       {resource:'files',source_ref:'local:files'},{resource:'contents',source_ref:'local:contents'}]})};
   const bundle={sources:[entry]};profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged:view,
     baseEnvironmentWire:'{}',authorizationFor:async()=>({context:{contextCid:'context'},assertAccountCurrent(){}}),
-    prepareManagedContentRun(p,r,g,recipe,construct){assert.equal(profile,record.managedSourceProfile);return host(moon,p,r,g,recipe,construct);}});
+    prepareManagedContentRun(p,r,g,recipe,construct,preparation){assert.equal(profile,record.managedSourceProfile);return host(moon,p,r,g,recipe,construct,preparation);}});
   record.managedSourceProfile=profile;
   const content=installNodeContentRun({moon,core:{contentGenerationControl:{workspaceCapacity:()=>({retainedBytes:1n,executionBytes:1n}),
     prefixCapacity(p,t,s){assert.deepEqual([p,t,s],[prepared,0,1]);calls.push('prefix');return{retainedBytes:5n,executionBytes:7n};}},
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
-    prepareKeyedManagedRun:(p,r,g,recipe)=>profile.prepareManagedContentRun(p,r,recipe,g),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
+    retainPreparation:(p,original)=>view.retainContentPreparation(p,sdkRequest,original),
+    prepareKeyedManagedRun:(p,r,g,recipe,original)=>profile.prepareManagedContentRun(p,r,recipe,g,original),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
   return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,moon,view,original,
     child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
     compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
@@ -205,4 +207,36 @@ test('Request keyed Host cuts raw compiler aliases before its consumed parent re
     managedPreparationRetirementContinuation:original=>{assert.equal(original,run);assert.equal(run.closed,true);return()=>{};}});
   assert.throws(()=>retire(f.prepared),e=>e===primary);const finish=retire(f.prepared);finish();
   assert.equal(returns,2);assert.equal(run.closed,true);await f.profile.close();
+});
+
+
+test('Local keyed Content cuts all original and dynamic aliases while its Prepared key stays held',async()=>{
+  const f=await fixture({hostRetirement:true});f.compile();f.bind();
+  const original=f.state.contentPreparation,local=original.localPreparation;
+  for(const key of ['recipe','graph','selected','keyed','contentEntry','hostRun'])assert.notEqual(local[key],undefined,key);
+  f.view.severPreparation=()=>{assert.equal(original.retired,true);assert.equal(local.retired,true);
+    for(const key of Object.keys(original))if(key!=='retired')assert.equal(original[key],undefined,key);
+    for(const key of Object.keys(local))if(key!=='retired')assert.equal(local[key],undefined,key);};
+  const retire=method('./embedded-local.mjs','retireManagedComputeRun',{
+    moon:f.moon,record:f.record,checked,finishInstalledEffectModelScope,
+    clientOperationError:code=>Object.assign(new Error(code),{code}),managedPreparationRetirementContinuation:()=>()=>{}});
+  retire(f.prepared)();
+  assert.throws(f.compile,{message:'ForeignInstalledContentRun'});
+  assert.throws(f.bind,{message:'InstalledContentRunPreparationUnavailable'});
+  await f.profile.close();
+});
+
+test('Local Content alias retirement retains a pending original read and retries that same release',async()=>{
+  const f=await fixture({hostRetirement:true});f.compile();
+  const original=f.state.contentPreparation,local=original.localPreparation;
+  const read=f.localOptions.prepareKeyedSourceRead({checkedOwner:f.prepared,keyedAcquisition:f.keyed,request:{},declaration:f.declaration});
+  let cuts=0;f.view.severPreparation=()=>{cuts++;};
+  const retire=method('./embedded-local.mjs','retireManagedComputeRun',{
+    moon:f.moon,record:f.record,checked,finishInstalledEffectModelScope,
+    clientOperationError:code=>Object.assign(new Error(code),{code}),managedPreparationRetirementContinuation:()=>()=>{}});
+  assert.throws(()=>retire(f.prepared),{code:'LocalFileCleanupPending'});
+  assert.equal(original.retired,false);assert.equal(local.retired,false);assert.equal(cuts,0);
+  await f.localOptions.closeKeyedSourceRead(read);retire(f.prepared)();
+  assert.equal(original.retired,true);assert.equal(local.retired,true);assert.equal(cuts,1);
+  await f.profile.close();
 });

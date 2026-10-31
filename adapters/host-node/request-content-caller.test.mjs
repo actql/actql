@@ -68,6 +68,7 @@ test('Request Content manager retains its original constructor and completion fa
 function hostFixture({constructFailure}={}) {
   const prepared={},request={},sdkRequest={},parent={},input={},selected={},original={},value={},limits={},workspace={};
   const plan={kind:'serialization',compiled:{},runDefinition:{}},calls=[],record={},originalInstallation={},originals={};
+  const contentPreparation={prepared,inputHolder:{},releaseAliases(){assert.equal(this,contentPreparation);calls.push('alias-cut');this.retired=true;}};
   const primary=new Error('same-consumed-parent-return');let cleanup=true,severFailure;
   const content={prepareRequestPrefix(p,i,r,c,d,l,w){
     assert.deepEqual([p,i,r,c,d,l,w],[parent,input,request,plan.compiled,plan.runDefinition,limits,workspace]);
@@ -88,7 +89,7 @@ function hostFixture({constructFailure}={}) {
     managedPreparationRetirementContinuation:run=>{assert(run.serializationCleaned);return()=>calls.push('finish');}};
   const prepare=method('./embedded-local.mjs','prepareManagedSerializationRun',ports),retire=method('./embedded-local.mjs','retireManagedComputeRun',ports);
   return{record,calls,prepared,selected,value,primary,content,
-    begin:()=>prepare(moon,prepared,request,plan,limits,workspace),retire:()=>retire(prepared),
+    begin:()=>prepare(moon,prepared,request,plan,limits,workspace,contentPreparation),retire:()=>retire(prepared),
     setCleanup:v=>{cleanup=v;},failSever:()=>{severFailure=primary;}};
 }
 
@@ -126,7 +127,7 @@ test('terminal Content failed start retries only the same retained managed prefi
     clientProgramAcquisitionLedger:()=>assert.fail('Request terminal Content cannot create another Ledger')},
     core:{contentGenerationControl:control,publicationControl:{checkClientCompiledRunOwner:()=>{},
       checkedClientSerializationGenerationLimits:()=>({maxRows:1,maxBytes:16})}},
-    preparedRunRequired:true,assertRunCurrent:()=>{},ownerPrincipal:'principal',storeAuthorityCid:'store',
+    preparedRunRequired:true,assertRunCurrent:()=>{},retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},ownerPrincipal:'principal',storeAuthorityCid:'store',
     now:()=> '2026-10-31T00:00:00.000Z',authorize:()=>true,
     prepareSerializationManagedRun(p,r,actual){assert.deepEqual([p,r,actual],[preparedProgram,request,plan]);prepares++;return managed;}});
   run.prepareRun({preparedProgram,request,plan});run.prepareRun({preparedProgram,request,plan});assert.equal(prepares,1);

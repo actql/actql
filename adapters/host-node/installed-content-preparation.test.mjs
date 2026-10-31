@@ -42,7 +42,7 @@ function fixture(keyed = false) {
       assert.strictEqual(value, compiled); assert.strictEqual(program, preparedProgram);
     }},
   }, registry: '{}', values: '{}', ownerPrincipal: 'fixture', preparedRunRequired: true,
-  assertRunCurrent: current,
+  assertRunCurrent: current, retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},
   prepareSerializationManagedRun(program, identity, selected, limits) {
     assert.equal(program, preparedProgram); assert.equal(identity, request); assert.equal(selected, plan);
     assert.equal(limits.maxWork, 1000000); managedPreparations++;
