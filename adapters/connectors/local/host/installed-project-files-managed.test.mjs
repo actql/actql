@@ -399,6 +399,12 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
   const moon = {
     clientProgramLocalFileTimestamp() {}, clientProgramResourceReferenceIssuer: () => ({}),
     clientProgramInstalledManagedRunCheck: () => assert.fail('Effect must not select the Pure Run check'),
+    clientProgramInstalledKeyedSourceReadCheckCurrent: () => assert.fail('No keyed read'),
+    clientProgramInstalledKeyedSourceReadAcquisition: () => assert.fail('No keyed read'),
+    clientProgramInstalledKeyedSourceReadRetire: () => assert.fail('No keyed read'),
+    clientProgramInstalledSourceReadCheckCurrent: () => assert.fail('No repeated current before binding'),
+    clientProgramInstalledSourceReadBindProgram: () => assert.fail('No Pure input'),
+    clientProgramInstalledSourceReadAttachAcquisition: () => assert.fail('No replacement acquisition'),
     clientProgramInstalledEffectManagedRunCheck(run, checkedOwner, intent) {
       assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
       if (intent !== request) throw new Error('OriginalEffectRequestMismatch');
