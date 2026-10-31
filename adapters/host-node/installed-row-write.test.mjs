@@ -21,7 +21,8 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
 import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
-  SHEETS_READ_OPERATION, SHEETS_LIMITS} from '../connectors/sheets/site/sheets-exchange.mjs';
+  SHEETS_READ_OPERATION, SHEETS_LIMITS, prepareSheetsTargetRequest, projectSheetsTarget}
+  from '../connectors/sheets/site/sheets-exchange.mjs';
 
 // Execute the complete internal adapter with its actual transport callees.
 // The constructor test below separately imports and exercises its real caller.
@@ -154,6 +155,58 @@ test('standard declared read check owns fixed HTTP while pure callbacks retain o
       return nativeObservation;}});
   assert.deepEqual([bodyCalls,projectCalls,reads],[1,1,1]);
   assert.deepEqual(driver.check,{resource:'forms',operation:'fixture:form',beforeSend:true});
+});
+
+test('standard declared GET metadata check preserves the original absent body',async()=>{
+  let reads=0,projects=0;
+  const check={resource:'forms',operation:'fixture:form',
+    http:{origin,method:'GET',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+    body(){return undefined;},project(){projects++;}};
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture');
+  const {request}=driver.prepareRequest({member,value:{name:'original'}});
+  await driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+    callResource(options){
+      reads++;const operation=options.operations.get('fixture:form');
+      assert.deepEqual(operation,{method:'GET',path:'/form'});
+      assert.equal(Object.hasOwn(operation,'body'),false);return response;
+    }});
+  assert.deepEqual([reads,projects],[1,1]);
+});
+
+test('absent declared metadata body preserves POST invalid-body and unsupported HEAD refusals',async()=>{
+  let reads=0;
+  const selected=(method,body)=>deriveInstalledRowWrite(declaration({check:{resource:'forms',operation:'fixture:form',
+    http:{origin,method,path:'/form',maxRequestBytes:200,maxResponseBytes:400},body,project(){}}}),'fixture');
+  const invoke=driver=>{
+    const {request}=driver.prepareRequest({member,value:{name:'original'}});
+    return driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+      callResource(){reads++;assert.fail('no HTTP from refused metadata body');}});
+  };
+  assert.throws(()=>selected('HEAD',()=>undefined),{code:'InvalidHttpRequestMethod'});
+  for(const [method,value] of [['POST',undefined],['GET',null]]){
+    await assert.rejects(invoke(selected(method,()=>value)),{code:'InvalidInstalledRowWrite'});
+  }
+  assert.equal(reads,0);
+});
+
+test('invalid asynchronous metadata body stays joined and preserves an original undefined rejection',async()=>{
+  for(const rejected of [false,true]){
+    let resolve,reject,entered,settled=false;
+    const original=new Promise((yes,no)=>{resolve=yes;reject=no;}),observed=new Promise(yes=>{entered=yes;});
+    const driver=deriveInstalledRowWrite(declaration({check:{resource:'forms',operation:'fixture:form',
+      http:{origin,method:'GET',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+      body(){entered();return original;},project(){assert.fail('no projection after invalid body');}}}),'fixture');
+    const {request}=driver.prepareRequest({member,value:{name:'original'}});
+    const work=driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+      callResource(){assert.fail('no HTTP from invalid asynchronous body');}}).then(
+      ()=>assert.fail('invalid asynchronous body cannot succeed'),cause=>{
+        settled=true;if(rejected)assert.strictEqual(cause,undefined);
+        else assert.equal(cause.code,'InvalidInstalledRowWrite');
+      });
+    await observed;await new Promise(yes=>setImmediate(yes));assert.equal(settled,false);
+    if(rejected)reject(undefined);else resolve(undefined);
+    await work;assert.equal(settled,true);
+  }
 });
 
 test('declared read refuses foreign input origin or mixed callback mode before HTTP',async()=>{
@@ -407,19 +460,39 @@ test('Sheets normal declaration keeps full logical value, batch target, original
   const write = selectedWrite('../connectors/sheets/host/installed-sheets.mjs', {
     site, providerMoon, boundaryCid, SHEETS_APPEND_OPERATION, SHEETS_READ_OPERATION, SHEETS_LIMITS,
     prepareSheetsAppend, fail: code => {throw Object.assign(new Error(code), {code});},
-    checkSheetsTarget: context => {assert.equal(context.spreadsheetId, site.spreadsheetId); return 'checked';},
+    prepareSheetsTargetRequest, projectSheetsTarget(context) {
+      assert.equal(context.spreadsheetId,site.spreadsheetId);assert.equal(context.response.body,response.body);
+    },
     projectSheetsAppend: () => ({kind: 'provider-response'}),
   });
   const driver = deriveInstalledRowWrite(write, 'sheets');
   const value = {name: 'original'}, selectedMember = {...member, resource: 'append_rows'};
   const prepared = driver.prepareRequest({member: selectedMember, value});
   assert.equal(prepared.requestCid, providerCid); assert.equal(driver.requestFacts(prepared.request).value, value);
-  assert.equal(driver.checkRequest({}), 'checked');
+  let reads=0;
+  await driver.checkRequest({request:prepared.request,authorization:authorization(SHEETS_READ_OPERATION),credential:{},
+    callResource(options){reads++;const selected=options.operations.get(SHEETS_READ_OPERATION);
+      assert.equal(selected.method,'GET');assert.equal(Object.hasOwn(selected,'body'),false);return response;}});
+  assert.equal(reads,1);
   const calls = [], context = {request: prepared.request, authorization: authorization(SHEETS_APPEND_OPERATION),
     credential: {}, callResource: args => {calls.push(args); return response;}};
   assert.deepEqual(await driver.send(context), await sendSheetsAppend(context));
   assert.deepEqual(calls[0], calls[1]);
   assert.equal(calls[0].operations.get(SHEETS_APPEND_OPERATION).path, '/v4/spreadsheets/sheet_original:batchUpdate');
+});
+
+test('actual Sheets append exposes its original metadata HTTP phase to the same-parent Plan',()=>{
+  const site={apiOrigin:origin,spreadsheetId:'sheet_original',appendSheetId:7,columns:['name'],gridRange:{}};
+  const providerMoon={},write=selectedWrite('../connectors/sheets/host/installed-sheets.mjs',{
+    site,providerMoon,boundaryCid,SHEETS_APPEND_OPERATION,SHEETS_READ_OPERATION,SHEETS_LIMITS,
+    prepareSheetsAppend,prepareSheetsTargetRequest,
+    projectSheetsTarget(){assert.fail('no metadata projection during original declaration');},
+    projectSheetsAppend(){assert.fail('no output projection during original declaration');},
+    fail:code=>{throw Object.assign(new Error(code),{code});},
+  });
+  const original=deriveInstalledRowWriteOriginal(write,'sheets');
+  assert.deepEqual(original.construction.check,{resource:'rows',operation:SHEETS_READ_OPERATION,
+    beforeSend:false,maxRequestBytes:SHEETS_LIMITS.maxRequestBytes,maxResponseBytes:SHEETS_LIMITS.maxResponseBytes});
 });
 
 

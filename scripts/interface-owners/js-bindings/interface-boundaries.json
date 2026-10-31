@@ -66653,7 +66653,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a50f073ee1c7d264f225a4436582044317ca3be2c135a8c73955921106e73d06",
+      "sha256": "b3a9d11f11819e13cf88c20f569568561a468651c120bbc849246ca98f4450bd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

@@ -51,12 +51,13 @@ async function exchange({authorization, credential, callResource, operation,
     maxResponseBytes: SHEETS_LIMITS.maxResponseBytes, signal});
 }
 
-export async function checkSheetsTarget({moon, spreadsheetId, columns, range,
-  appendSheetId, authorization, credential, callResource, signal}) {
-  const response = await exchange({authorization, credential, callResource,
-    operation: SHEETS_READ_OPERATION, method: 'GET',
-    path: `${basePath(spreadsheetId)}?fields=${encodeURIComponent(metadataFields)}`,
-    signal});
+export function prepareSheetsTargetRequest(spreadsheetId) {
+  return Object.freeze({method: 'GET',
+    path: `${basePath(spreadsheetId)}?fields=${encodeURIComponent(metadataFields)}`});
+}
+
+export function projectSheetsTarget({moon, spreadsheetId, columns, range,
+  appendSheetId, response}) {
   if (!response.accepted || response.statusCode !== 200) {
     fail('SheetsTargetUnverified');
   }
@@ -67,6 +68,14 @@ export async function checkSheetsTarget({moon, spreadsheetId, columns, range,
   } catch (cause) {
     throw refusedEffectPreparation(cause);
   }
+}
+
+export async function checkSheetsTarget({moon, spreadsheetId, columns, range,
+  appendSheetId, authorization, credential, callResource, signal}) {
+  const request = prepareSheetsTargetRequest(spreadsheetId);
+  const response = await exchange({authorization, credential, callResource,
+    operation: SHEETS_READ_OPERATION, ...request, signal});
+  return projectSheetsTarget({moon, spreadsheetId, columns, range, appendSheetId, response});
 }
 
 export async function readSheetsGrid({moon, spreadsheetId, columns, range,

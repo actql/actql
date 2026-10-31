@@ -478,15 +478,19 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
           signal?.throwIfAborted();
           const context = Object.freeze({resource, value: mappedValue, request});
           const value = Reflect.apply(body, check, [context]);
-          if (typeof value !== 'string') {
+          // Existing metadata GET operations carry no entity body. Keep
+          // that original wire distinction; an empty String adds HTTP framing.
+          const absentBody = value === undefined && checkMethod === 'GET';
+          if (!absentBody && typeof value !== 'string') {
             // Invalid async provider work stays in this SAME original child
             // until settlement. Rejection preserves its original cause.
             await value;
             fail();
           }
-          if (value.length > requestBytes || Buffer.byteLength(value) > requestBytes) fail();
+          if (!absentBody && (value.length > requestBytes || Buffer.byteLength(value) > requestBytes)) fail();
           const observed = await invokeScopedCredentialOperation({authorization, credential, callResource,
-            operation, method: checkMethod, path: template.target, headers: template.headers, body: value,
+            operation, method: checkMethod, path: template.target, headers: template.headers,
+            ...(absentBody ? {} : {body: value}),
             responseHeaders: readResponseHeaders, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, signal});
           signal?.throwIfAborted();
           const projected = Reflect.apply(project, check, [Object.freeze({resource, value: mappedValue, request,

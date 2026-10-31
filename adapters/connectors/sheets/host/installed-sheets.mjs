@@ -12,7 +12,7 @@ import {createInstalledRowSource, installRowSourceAuthorization,
   from '../../../host-node/installed-row-source.mjs';
 import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
 import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
-  projectSheetsAppend, readSheetsGrid, SHEETS_APPEND_OPERATION,
+  projectSheetsAppend, prepareSheetsTargetRequest, projectSheetsTarget, readSheetsGrid, SHEETS_APPEND_OPERATION,
   SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from './sheets-range-command.mjs';
@@ -330,9 +330,15 @@ async function load(profile, options, effect) {
           return request;
         },
         check: {resource: 'rows', operation: SHEETS_READ_OPERATION,
-          request: options => checkSheetsTarget({...options, moon: providerMoon,
-          spreadsheetId: site.spreadsheetId, columns: site.columns, range: site.gridRange,
-          appendSheetId: site.appendSheetId})},
+          http: {origin: site.apiOrigin, ...prepareSheetsTargetRequest(site.spreadsheetId),
+            headers: [['accept', 'application/json']],
+            maxRequestBytes: SHEETS_LIMITS.maxRequestBytes, maxResponseBytes: SHEETS_LIMITS.maxResponseBytes},
+          body() {return undefined;},
+          project({accepted, observation}) {
+            return projectSheetsTarget({moon: providerMoon, spreadsheetId: site.spreadsheetId,
+              columns: site.columns, range: site.gridRange, appendSheetId: site.appendSheetId,
+              response: {accepted, statusCode: observation.statusCode, body: observation.body}});
+          }},
         classify: options => projectSheetsAppend({...options, moon: providerMoon})}});
   } catch (cause) {
     closed = true;

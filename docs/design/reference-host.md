@@ -1724,6 +1724,19 @@ with that declaration. An invalid async projection remains joined through
 settlement, with its original rejection preserved, before the same child can
 finish. A body or projection supplies no grant, current decision or ACK.
 
+For an existing metadata GET, `body` may return `undefined` to preserve the
+original request without an entity body. An empty String is a different HTTP
+shape and is not substituted. POST still requires its declared String body;
+invalid asynchronous results remain joined and refused. The existing HTTP
+method owner continues to determine the supported method set.
+
+Sheets append uses that declaration for its original spreadsheet/grid metadata
+check. The fixed request description and pure target projection are shared with
+publication's existing physical check, so the Plan can retain the actual HTTP
+bounds without hiding I/O inside a provider callback. Native codec construction,
+Host parsing, physical response and failed-child holdings still need their
+separate same-parent backing before invocation.
+
 An optional fixed `check.beforeSend` additionally requires a distinct
 `write-check` occurrence. The constructor captures the original check method
 and receiver and refuses missing/incompatible recipe supply. Inside the same

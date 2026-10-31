@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "56786bc484b57fed866a9feb031f1cb69f5a327d1e54f5c7bb91c71d56571f94",
+    "sha256": "543393e5d955672695d93358dfa84c5c7b4422607b3b279610a891fcf5bb6430",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -146,6 +146,11 @@
         "async": false
       },
       {
+        "name": "load/init:body/init:body",
+        "parameters": [],
+        "async": false
+      },
+      {
         "name": "load/init:close/init:close",
         "parameters": [],
         "async": false
@@ -153,6 +158,14 @@
       {
         "name": "load/init:close/init:close#2",
         "parameters": [],
+        "async": false
+      },
+      {
+        "name": "load/init:project/init:project",
+        "parameters": [
+          "accepted",
+          "observation"
+        ],
         "async": false
       },
       {
@@ -170,13 +183,6 @@
       },
       {
         "name": "load/load#3",
-        "parameters": [
-          "options"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/load#4",
         "parameters": [
           "options"
         ],
@@ -538,7 +544,6 @@
           "load/load",
           "load/load#2",
           "load/load#3",
-          "load/load#4",
           "loadInstalledSheetsEffect/loadInstalledSheetsEffect",
           "loadInstalledSheetsSource/loadInstalledSheetsSource",
           "openSite",
@@ -549,7 +554,9 @@
           "publish",
           "publish/init:close/init:close",
           "publishInstalledSheetsEffect/publishInstalledSheetsEffect",
-          "publishInstalledSheetsSource/publishInstalledSheetsSource"
+          "publishInstalledSheetsSource/publishInstalledSheetsSource",
+          "load/init:body/init:body",
+          "load/init:project/init:project"
         ],
         "exports": [
           "loadInstalledSheetsEffect",
@@ -1120,7 +1127,7 @@
   {
     "module": "adapters/connectors/sheets/site/sheets-exchange.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "01911f782d45bec31eb7bd7a0d0d58f3ee517a81c1291791c0ff6b4523f25760",
+    "sha256": "68cf07163f69e9d2426e6384aff450185fac3a53dc093de27d08136b12b00dfe",
     "exports": [
       "SHEETS_APPEND_OPERATION",
       "SHEETS_CLEAR_OPERATION",
@@ -1131,9 +1138,11 @@
       "checkSheetsTarget",
       "prepareSheetsAppend",
       "prepareSheetsClear",
+      "prepareSheetsTargetRequest",
       "prepareSheetsUpdate",
       "projectSheetsAppend",
       "projectSheetsClear",
+      "projectSheetsTarget",
       "projectSheetsUpdate",
       "readSheetsGrid",
       "readSheetsRangeTarget",
@@ -1234,6 +1243,13 @@
         "async": false
       },
       {
+        "name": "prepareSheetsTargetRequest",
+        "parameters": [
+          "spreadsheetId"
+        ],
+        "async": false
+      },
+      {
         "name": "prepareSheetsUpdate",
         "parameters": [
           "moon",
@@ -1258,6 +1274,18 @@
           "moon",
           "request",
           "observation"
+        ],
+        "async": false
+      },
+      {
+        "name": "projectSheetsTarget",
+        "parameters": [
+          "moon",
+          "spreadsheetId",
+          "columns",
+          "range",
+          "appendSheetId",
+          "response"
         ],
         "async": false
       },
@@ -1507,7 +1535,9 @@
           "projectSheetsAppend",
           "projectSheetsUpdate",
           "rangeArgs/rangeArgs",
-          "sheetsUpdateRequestCid"
+          "sheetsUpdateRequestCid",
+          "prepareSheetsTargetRequest",
+          "projectSheetsTarget"
         ],
         "exports": [
           "SHEETS_APPEND_OPERATION",
@@ -1519,7 +1549,9 @@
           "prepareSheetsUpdate",
           "projectSheetsAppend",
           "projectSheetsUpdate",
-          "sheetsUpdateRequestCid"
+          "sheetsUpdateRequestCid",
+          "prepareSheetsTargetRequest",
+          "projectSheetsTarget"
         ],
         "attributes": {
           "responsibility": [
@@ -1618,6 +1650,10 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
+              "anchor": "test('actual Sheets metadata projection preserves original target refusal separately from transport rejection'"
             }
           ]
         }
