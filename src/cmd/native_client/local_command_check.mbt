@@ -342,9 +342,14 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   // Trusted literal quick queries may initialize a genuinely absent default
   // Host through the same original Session. This selects physical setup only,
   // not Reviewer registration, Effect approval or missing-state repair.
+  // Explicit first Product adoption uses that same initial-signing entrance;
+  // the original Session still checks eligibility before issuing material.
   let initialize_signing = (
       operation == "adopt" &&
-      child.flags.get("initialize-signing").unwrap_or(false)
+      (
+        child.flags.get("initialize-signing").unwrap_or(false) ||
+        self.initial_product_selected
+      )
     ) ||
     (
       local_quick_query_requested(operation, child) &&
