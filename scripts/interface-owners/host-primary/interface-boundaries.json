@@ -5091,7 +5091,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "197c0f917636d4f7e753b406ef23a3639cfee7b1b5fdd4ea0fb9aa30317c7356",
+      "sha256": "2c9fad0da7f2858ac8c8b32c928aa04ccc8f4e2699c04e6c3bd0e6f63592bd2e",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -10766,6 +10766,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "inputsOutputs": [
@@ -10780,6 +10784,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "identity": [
@@ -10794,6 +10802,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "ownership": [
@@ -10808,6 +10820,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "synchronization": [
@@ -10822,6 +10838,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "failure": [
@@ -10836,6 +10856,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "cancellation": [
@@ -10850,6 +10874,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "resources": [
@@ -10864,6 +10892,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "extension": [
@@ -10878,6 +10910,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model alias retirement before Request return"
               }
             ],
             "verification": [
@@ -10892,6 +10928,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Host Model retains the original alias receiver across a consumed preparation return failure"
               }
             ]
           }
