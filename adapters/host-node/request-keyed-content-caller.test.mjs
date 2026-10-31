@@ -27,7 +27,7 @@ async function fixture({failurePhase,failure}={}) {
   const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
   const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
   const record={},originalInstallation={},originals={},runs=new WeakMap(),liveRuns=new Set(),view={};
-  let profile,localOptions;
+  let profile,localOptions,currentFailure;
   const state={parent,prepared,holder,compilationFamily:'content',context:undefined,original};
   const producer={receipt:input,preparation:state,liveRuns:0};
   const moon={
@@ -52,11 +52,23 @@ async function fixture({failurePhase,failure}={}) {
     clientProgramInstalledManagedKeyedContentPrepare(...args){assert.equal(args[0],prepared);assert.equal(args[2],keyed);calls.push('selected');return ok(selected);},
   };
   state.context={runtime:moon};
-  const managerPorts={current(){},producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,
-    callbacks:{request:()=>sdkRequest,contentRequirements(o,p,s){assert.deepEqual([o,p,s],[originals,prepared,selected]);return{attempts:3};}},
+  const current=()=>{if(currentFailure)throw currentFailure;};
+  const managerPorts={current,producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,
+    callbacks:{request:()=>sdkRequest,contentRequirements(o,p,s){assert.deepEqual([o,p,s],[originals,prepared,selected]);return{attempts:2};}},
     originals,runs,liveRuns,view,checked};
   for(const name of ['prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
-  view.assertCurrent=()=>{};view.prepareRead=()=>assert.fail('No physical read selected');
+  view.assertCurrent=current;view.prepareRead=()=>assert.fail('No physical read selected');
+  const managerSource=readFileSync(new URL('./ordinary-source-managed.mjs',import.meta.url),'utf8');
+  const privateNames=new Set(['runFor','captureReader','closeChild']);
+  let privateFunctions=[];
+  const walk=n=>{if(!n||typeof n!=='object')return;
+    if(n.type==='FunctionDeclaration'&&privateNames.has(n.id?.name))privateFunctions.push(managerSource.slice(n.start,n.end));
+    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
+  walk(parse(managerSource,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(privateFunctions.length,3);
+  const privatePorts={current,runs,fail,pending:v=>v?.pending===true,resourceRuntime:{assertOrdinaryManagedRunCurrent(o,i){assert.equal(o,original);assert.equal(i,input);}}};
+  const helpers=Function(...Object.keys(privatePorts),privateFunctions.join('\n')+'\nreturn{runFor,captureReader,closeChild};')(...Object.values(privatePorts));
+  view.prepareKeyedRead=method('./ordinary-source-managed.mjs','prepareKeyedRead',{
+    ...helpers,project:true,bundle:{sources:[{declaration}]},fail});
   const tokens=new WeakMap([[graph,rawGraph]]),control={};
   control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-core.mjs',
     'prepareCheckedClientRequestKeyedSerializationCompilation',{serializationPlanTokens:tokens,moon,compiledRunResult:checked});
@@ -90,6 +102,7 @@ async function fixture({failurePhase,failure}={}) {
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
     prepareKeyedManagedRun:(p,r,g,recipe)=>profile.prepareManagedContentRun(p,r,recipe,g),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
   return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,
+    child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
     compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
     bind:()=>content.prepareManagedKeyedRun({preparedProgram:prepared,request,plan,keyedAcquisition:keyed})};
 }
@@ -116,4 +129,20 @@ test('Request keyed Content refuses missing compiler preparation and foreign gra
   assert.throws(()=>f.compile({keyedAcquisition:{}}),{message:'ForeignInstalledContentRun'});
   assert.throws(()=>f.control.prepareCheckedClientRequestKeyedSerializationCompilation({}, {}, f.selected, {...f.graph}),{message:'Foreign Content compilation graph'});
   f.compile();assert.throws(()=>f.compile({serializationGraph:{...f.graph}}),{message:'ForeignInstalledContentRun'});await f.profile.close();
+});
+
+
+test('Request keyed child keeps its original physical close through current refusal',async()=>{
+  const f=await fixture();f.compile();const child=f.child(),primary=new Error('same current refusal');
+  let pending=true,calls=0;const physical={close(){assert.equal(this,physical);calls++;return{pending};},status:()=>({pending})};
+  child.retainChild(physical);physical.close=()=>assert.fail('No replacement close');f.failCurrent(primary);
+  assert.throws(()=>f.child(),e=>e===primary);assert.equal((await child.close()).pending,true);
+  pending=false;assert.equal((await child.close()).pending,false);assert.equal(calls,2);await f.profile.close();
+});
+
+test('Request keyed child history and original request are not refilled by physical close',async()=>{
+  const f=await fixture();f.compile();const request={},child=f.child(request);
+  assert.throws(()=>f.child(request),{code:'InstalledSourcePreparationMismatch'});
+  assert.equal((await child.close()).pending,false);assert.equal((await f.child().close()).pending,false);
+  assert.throws(()=>f.child(),{code:'InstalledSourcePreparationMismatch'});await f.profile.close();
 });

@@ -181,7 +181,7 @@ test('Request Content runtime retains original prefix start and cleanup without 
   assert.deepEqual(calls,['start','start','cleanup','cleanup']);
 });
 
-test('Request Content custody selects only terminal source-free Serialization and keeps keyed and mixed purposes separate',()=>{
+test('Request Content custody selects terminal source-free or managed keyed Serialization and keeps mixed purposes separate',()=>{
   const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');let selected;
   const walk=node=>{if(!node||typeof node!=='object')return;
     if(node.type==='VariableDeclarator'&&node.id?.name==='localPreparationCustody')selected=node.init.arguments[0];
@@ -197,6 +197,7 @@ test('Request Content custody selects only terminal source-free Serialization an
     {kindOf:p=>values.get(p).kind},moon,v=>v.$tag===1,(v,i)=>v['_'+i]);
   const base={kind:'effect_free',serializations:[{}],infers:[],acquisitions:0};
   const prepared={};values.set(prepared,base);assert.equal(select(prepared),true);
+  const keyed={};values.set(keyed,{...base,acquisitions:2});assert.equal(select(keyed),true);
   for(const change of [{acquisitions:1},{infers:[{}]},{serializations:[{},{}]},{kind:'effectful'}]){
     const p={};values.set(p,{...base,...change});assert.equal(select(p),false);
   }

@@ -8,7 +8,7 @@ function fixture(keyed = false) {
     serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})});
   let currentFailure, constructionFailure, ledgerCount = 0, acquisitions = 0, quotes = 0;
   let currentCalls = 0, failAt, managedPreparations = 0;
-  const managed = {value: {}, serialization: {}, closed: false};
+  const managed = {value: {}, serialization: {}, selectedKeyed: {}, contentCompilation: {}, closed: false};
   const request = {scope: 'sha256:' + 'a'.repeat(64), intent: 'sha256:' + 'b'.repeat(64)},
     ledger = {}, direct = {}, acquisition = {}, capacity = {};
   let retainedRecipe, keyedPreparations = 0, keyedBorrows = 0, keyedFailure;
@@ -49,7 +49,8 @@ function fixture(keyed = false) {
     if (constructionFailure !== undefined) throw constructionFailure;
     return managed;
   },
-  ...(keyed ? {prepareKeyedManagedRun(prepared, actualRequest, recipe) {
+  ...(keyed ? {prepareKeyedManagedRun(prepared, actualRequest, graph, recipe) {
+    assert.equal(graph, plan.serializationGraph);
     assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
     assert.equal(recipe.task, 0); assert.equal(recipe.step, 1);
     assert.equal(recipe.prefixRetainedBytes, 13n); assert.equal(recipe.prefixExecutionBytes, 19n);
@@ -57,13 +58,16 @@ function fixture(keyed = false) {
     assert.equal(Object.isFrozen(recipe), true);
     retainedRecipe = recipe; keyedPreparations++;
     if (keyedFailure !== undefined) throw keyedFailure;
+    return managed;
   }, borrowKeyedManagedLedger(prepared, actualRequest, recipe, actualDirect, actualAcquisition, actualCapacity) {
     assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
     assert.strictEqual(recipe, retainedRecipe); assert.strictEqual(actualDirect, direct);
     assert.strictEqual(actualAcquisition, acquisition); assert.strictEqual(actualCapacity, capacity);
     keyedBorrows++; return ledger;
   }} : {})});
-  return {run, preparedProgram, plan, managedPreparations: () => managedPreparations, counts: () => ({ledgerCount, quotes}),
+  return {run, preparedProgram, plan, serializationGraph: plan.serializationGraph,
+    compile(changes = {}) {return run.prepareManagedKeyedCompilation({preparedProgram, request, serializationGraph: plan.serializationGraph, keyedAcquisition: acquisition, ...changes});},
+    managedPreparations: () => managedPreparations, counts: () => ({ledgerCount, quotes}),
     failCurrent(error) {currentFailure = error;},
     failCurrentAt(count, error) {failAt = count; currentFailure = error;},
     failConstruction(error) {constructionFailure = error;},
@@ -74,7 +78,7 @@ function fixture(keyed = false) {
 }
 
 test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger', () => {
-  const f = fixture(true);
+  const f = fixture(true); f.compile();
   f.run.prepareManagedKeyedRun(f); f.run.prepareManagedKeyedRun(f);
   assert.strictEqual(f.run.prepareKeyedLedger({...f, capturedContent: true}), f.ledger);
   assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
@@ -85,7 +89,7 @@ test('ordinary keyed Content borrows its admitted original Run without a standal
 });
 
 test('ordinary keyed Content reuses a checked request projection without reissuing the original', () => {
-  const f = fixture(true);
+  const f = fixture(true); f.compile();
   f.run.prepareManagedKeyedRun(f);
   f.run.prepareManagedKeyedRun({...f, request: {...f.request}});
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
@@ -96,10 +100,10 @@ test('ordinary keyed Content reuses a checked request projection without reissui
 
 test('ordinary keyed Content refuses a foreign selection before admission and never replaces its original', () => {
   const f = fixture(true);
-  assert.throws(() => f.run.prepareManagedKeyedRun({...f, keyedAcquisition: {}}),
+  assert.throws(() => f.compile({keyedAcquisition: {}}),
     {message: 'ForeignInstalledContentRun'});
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 0, keyedBorrows: 0});
-  f.run.prepareManagedKeyedRun(f);
+  f.compile(); f.run.prepareManagedKeyedRun(f);
   assert.throws(() => f.run.prepareManagedKeyedRun({...f, keyedAcquisition: {...f.keyedAcquisition}}),
     {message: 'ForeignInstalledContentRun'});
   assert.strictEqual(f.run.prepareKeyedLedger({...f, capturedContent: true}), f.ledger);
@@ -120,9 +124,9 @@ test('ordinary keyed Content never obtains a scalar fallback before its actual p
 test('ordinary keyed Content retains the original preparation failure without reissuing', () => {
   const f = fixture(true), failure = new Error('partial Content admission');
   f.failKeyed(failure);
-  assert.throws(() => f.run.prepareManagedKeyedRun(f), error => error === failure);
+  assert.throws(() => f.compile(), error => error === failure);
   f.failKeyed(undefined);
-  assert.throws(() => f.run.prepareManagedKeyedRun(f), error => error === failure);
+  assert.throws(() => f.compile(), error => error === failure);
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
   assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
 });
