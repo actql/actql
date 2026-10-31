@@ -23,6 +23,31 @@ class ProductPublicationLookupTests(unittest.TestCase):
         host._publication_write_attempts.add(held.publication.ticket)
         return host, core, held, projection, store, scope, packets, faults, calls
 
+    def test_complete_original_index_retires_only_the_host_attempt_blocker(self):
+        with TemporaryDirectory() as directory:
+            host, core, held, projection, store, _, _, _, calls = self.host(Path(directory), stored=True)
+            publisher = host._pending_publication_publisher
+            sql = []
+            store._connection.set_trace_callback(sql.append)
+            host._ensure_original_publication_observation(projection)
+            self.assertIsNone(host._pending_publication_write)
+            self.assertIsNone(host._pending_publication_publisher)
+            observation = host._store_observations[held.publication.ticket]
+            self.assertIs(observation._projection, projection)
+            self.assertIs(observation._publisher, publisher)
+            self.assertIs(core._loans[held.record.ticket], held.record)
+            self.assertIn(held.publication.ticket, host._publication_write_attempts)
+            self.assertIn(projection, host._commit_projections)
+            self.assertIn(publisher, host._publishers)
+            self.assertEqual(sum(name == 'produce_observed_index' for _, name, _ in calls), 2)
+            self.assertFalse(any(statement.startswith(('INSERT', 'UPDATE', 'DELETE', 'COMMIT')) for statement in sql))
+            facts = host._original_commit_reader_facts(projection)
+            before = list(sql)
+            with self.assertRaises(LocalStorageError):
+                host._store_original_commit(projection, facts, ((held.row, held.capacity),), publisher)
+            self.assertEqual(sql, before)
+            self.assertTrue(host.close())
+
     def test_same_pending_write_looks_up_actual_older_index_once_without_replay_or_ack(self):
         with TemporaryDirectory() as directory:
             host, core, held, projection, store, scope, packets, _, calls = self.host(Path(directory), stored=True)
