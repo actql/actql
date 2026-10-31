@@ -14,7 +14,7 @@ const method = source.slice(start, end).trim().replace(/,$/u, '');
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
 function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
-  returned = true, foreign = false} = {}) {
+  returned = true, foreign = false, retirementComplete = true} = {}) {
   const parent = {}, input = {}, request = {}, prepared = {}, inventory = {}, selected = {};
   const snapshot = {input: {}, parameters: {}}, calls = [];
   let selectedLive = false, returnFailure = returned === true ? undefined : returned;
@@ -42,7 +42,7 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
       assert.equal(holder, inventory); assert(selectedLive, 'Select and retain the domain before returning inventory');
       calls.push('return-inventory');
       if (returnFailure !== undefined) throw returnFailure;
-      return true;
+      return retirementComplete;
     },
     clientProgramPrepareRequestProgramModuleBody() {calls.push('ordinary-module');},
     clientProgramRequiresQueryTime: () => false,
@@ -105,38 +105,43 @@ test('mixed inventories and foreign domain originals refuse before ordinary or d
   assert(!foreign.calls.includes('return-inventory'));
 });
 
-test('original Request cleanup retains both family borrows until each acknowledged return', () => {
-  const parent = {}, prepared = {}, inventory = {}, selected = {}, failure = new Error('inventory-return');
-  const calls = [];
-  let failReturn = true, retired = 0;
+test('original Request cleanup consumes both borrows once and retries only the retained parent settlement', () => {
+  const parent = {}, prepared = {}, inventory = {}, selected = {}, primary = new Error('original-settlement');
+  const calls = [], consumed = new Set();
+  let retired = 0;
   const state = {parent, holder: selected, inventoryHolder: inventory, prepared,
     compilationKind: 'effect_free', compilationFamily: 'model'};
   const ok = value => ({$tag: 1, _0: value});
   const moon = {
     clientProgramAbortRequestPreparation(owner) {
       assert.equal(owner, parent); calls.push('abort');
-      return state.holder !== undefined || state.inventoryHolder !== undefined
-        ? {$tag: 0, _0: 'retained-original-borrows'} : ok();
+      return consumed.size === 2 ? ok() : {$tag: 0, _0: 'retained-original-borrows'};
     },
     clientProgramPreparationBorrowRetirementStarted(holder) {
       assert(holder === inventory || holder === selected); return true;
     },
     clientProgramPreparationBorrowReturn(holder) {
-      calls.push(holder === inventory ? 'inventory' : 'selected');
-      if (holder === inventory && failReturn) throw failure;
-      return ok(true);
+      assert(!consumed.has(holder), 'The original Core consumes each borrower before settlement');
+      consumed.add(holder); calls.push(holder === inventory ? 'inventory' : 'selected');
+      return holder === inventory ? ok(false) : {$tag: 0, _0: primary};
     },
   };
   state.context = {runtime: moon};
   const retire = actual => {assert.equal(actual, prepared); retired++;};
-  assert.throws(() => cleanupRequestInput(state, retire), error => error === failure);
-  assert.equal(state.inventoryHolder, inventory); assert.equal(state.holder, selected);
-  assert.equal(state.prepared, undefined); assert.equal(retired, 1);
-  failReturn = false;
-  cleanupRequestInput(state, retire);
+  assert.throws(() => cleanupRequestInput(state, retire), error => error.cause === primary || error === primary);
   assert.equal(state.inventoryHolder, undefined); assert.equal(state.holder, undefined);
+  assert.equal(state.parent, parent); assert.equal(retired, 1);
+  cleanupRequestInput(state, retire);
   assert.equal(state.parent, undefined); assert.equal(retired, 1);
-  assert.deepEqual(calls, ['abort', 'inventory', 'abort', 'inventory', 'selected', 'abort']);
+  assert.deepEqual(calls, ['abort', 'inventory', 'selected', 'abort']);
+});
+
+test('a false original inventory return consumes that borrow while the selected Model owner remains live', async () => {
+  const f = fixture({infers: [{}], retirementComplete: false});
+  const result = await f.read(); assert.equal(result.prepared, f.prepared);
+  assert.equal(f.state.inventoryHolder, undefined); assert.equal(f.state.holder, f.selected);
+  assert.equal(f.state.preparationFailed, undefined);
+  assert.deepEqual(f.calls, ['check', 'compile', 'inventory', 'infer', 'serialization', 'model', 'return-inventory']);
 });
 
 
