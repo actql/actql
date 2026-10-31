@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-// CI consumes its already-required Node Common. A focused source component can
+// CI consumes the installed Gmail provider built by the normal Source inventory. A focused component can
 // select an explicitly qualified build of the unchanged Gmail provider only.
 const originalProvider = await import(process.env.ACTQL_TEST_GMAIL_PROVIDER_MODULE ??
-  new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+  new URL('../../../../_build/js/release/build/connectors/gmail/host_node/host_node.js', import.meta.url).href);
 import {prepareGmailThreadReadSequence} from '../site/gmail-thread-read.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
