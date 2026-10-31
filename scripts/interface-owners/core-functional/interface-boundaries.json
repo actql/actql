@@ -53764,7 +53764,7 @@
     },
     {
       "module": "src/connectors/github/host_node/comment_construction.mbt",
-      "sha256": "0ae19e9c0255b8e11ee901826047ded7d945c6d9a273c2786500b580c13c7f8d",
+      "sha256": "1d57c44f63a35e41868ef2a4a7ae6f2311125c235b3e81ea7135c9c8a2340684",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
@@ -53867,6 +53867,90 @@
               {
                 "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
                 "anchor": "test \"GitHub subject-check inventory is separate and prices the same original export\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/encode_core/text_writer_construction_inventory.mbt",
+      "sha256": "a0a72de243ac06c8853bf0dba5d474260475f3d1dd86dfda188b522546f69fb8",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing encode_core common constructor inventory; no new runtime/resource Owner or tariff",
+      "referenceQualification": "Selected existing common Source body and unchanged formula only; fixed H/R/W reuse is not whole Host backing or normal acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "text_writer_construction_inventory",
+          "declaration": "text_writer_construction_inventory ( output_bytes : Int , nodes : Int , depth : Int , ) - > TextWriterConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "text_writer_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/encode_core/text_writer_construction_inventory.mbt",
+                "anchor": "Closed protocol adapters may use its fixed H/R/W fields as a conservative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/encode_core/text_writer_construction_inventory.mbt",
+                "anchor": "pub(all) struct TextWriterConstructionInventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Only the original String bounds and literal geometry belong"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "single Host fee."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable quantity projection; no callback/current observation, resource reservation or physical action."
+            },
+            "failure": [
+              {
+                "path": "src/encode_core/text_writer_construction_inventory.mbt",
+                "anchor": "if output_bytes < 0 || nodes < 1 || depth < 0"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure logical quantity DATA only; no cancellation or cleanup observation can be issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Fixed controls use the existing common constructor envelope per actual"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "It does not duplicate builtin iterator/closure/header prices."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/encode_core/text_writer_construction_inventory_wbtest.mbt",
+                "anchor": "test \"common constructor controls cover both original closed protocol String exports\""
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"GitHub CREATE native inventory covers both escaped request Strings before HTTP admission\""
               }
             ]
           }

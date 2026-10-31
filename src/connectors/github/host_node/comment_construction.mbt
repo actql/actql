@@ -34,55 +34,28 @@ fn github_comment_request_wire_bounds(subject_check : Bool) -> (Int64, Int64) {
 }
 
 ///|
-// A pinned JS Json::stringify owns a builder, stack and empty indent cache.
-// Each live Object frame has its original Map Iter, closure, two captured
-// cells and old/new size-hint Some:7H6R7W including the frame. Its current
-// Some(value), Some(entry), entry tuple, builder and old/new/scratch Strings
-// add8H5R2W. Co-count the two calls instead of claiming return/GC retirement.
-// Literal Map pair arrays/tuples are included even where compilation elides
-// them. The common shape owner expands their Array/Map backing, not this file.
+// The native constructor owns a closed literal forest: three Objects and
+// three subject-check/four mutation String nodes, at maximum object depth2.
+// Use the EXISTING common fixed-control envelope for each of the TWO actual
+// stringify calls. This conservatively co-counts the whole retained forest at
+// both calls; it is not a new per-provider Iter/closure/slot price table.
 fn github_comment_request_construction_inventory(
   subject_check : Bool,
 ) -> @execution.PreparationRepresentationUnits? {
-  let fields = if subject_check { 4L } else { 5L }
-  let json_nodes = fields + 2L
-  let (iterator_h, iterator_r, iterator_w) = if subject_check {
-    (0L, 0L, 0L)
-  } else {
-    // Original body scalar counter: Iter, closure, captured index and the
-    // current Some(Char). The original body String is borrowed, never copied.
-    (4L, 4L, 3L)
-  }
-  // Inner object depth2 plus outer depth1. The original Ok(String) and failed
-  // Err carrier are both covered; refusal text is shared module DATA.
-  let depth = 2L + 1L
-  guard @shape.collection_construction_extent({
-      records: json_nodes + 2L + iterator_h + 2L * 8L + 7L * depth + fields,
-      record_references: json_nodes +
-      1L +
-      iterator_r +
-      2L * 5L +
-      6L * depth +
-      2L * fields,
-      record_words: json_nodes + 2L + iterator_w + 2L * 2L + 7L * depth,
-      reference_arrays: 2L * 2L + 3L,
-      reference_items: depth + fields,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 3L,
-      map_entries: fields,
-    })
+  let json_nodes = if subject_check { 6 } else { 7 }
+  guard @encode.text_writer_construction_inventory(0, json_nodes, 2)
     is Some(controls) else {
     return None
   }
+  let stringify_calls = 2L
   let (inner, outer) = github_comment_request_wire_bounds(subject_check)
   Some({
-    record_headers: controls.record_headers,
-    reference_slots: controls.reference_slots,
-    scalar_words: controls.scalar_words,
-    // JS concatenation's old/new value at each builder plus each call's
-    // current Char/hex scratch (<=4 units). Input, documents and fixed keys
-    // remain at their original owner. Neither call encodes UTF8 Bytes.
+    record_headers: stringify_calls * controls.record_headers,
+    reference_slots: stringify_calls * controls.reference_slots,
+    scalar_words: stringify_calls * controls.scalar_words,
+    // Actual pinned JS String domains remain Provider facts: old/new value
+    // of each builder and its current Char/hex scratch (<=4 units). Inputs,
+    // fixed documents and keys are borrowed. Neither call encodes UTF8 Bytes.
     owned_utf16_units: 2L * inner + 2L * outer + 8L,
     owned_wire_bytes: 0L,
   })

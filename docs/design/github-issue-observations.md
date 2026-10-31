@@ -110,6 +110,12 @@ Original subject/body text and the fixed documents remain borrowed. The common
 representation policy prices these units; the provider adds no byte tariff or
 capacity grant. Subject checks have a separate constructor inventory.
 
+Fixed controls use the existing common constructor envelope per actual
+stringify call over the whole co-held closed document forest. The two calls
+remain two occurrences for each row; their controls are not moved into a
+single Host fee. Only the original String bounds and literal geometry belong
+to this provider. It does not duplicate builtin iterator/closure/header prices.
+
 The Host must reserve the original Plan's composed extent before calling the
 constructor. It separately accounts for quotation controls, decoded input,
 JavaScript mapping/parsing/hash and saved request bodies, credentials, HTTP
