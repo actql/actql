@@ -3432,7 +3432,7 @@
     {
       "module": "adapters/store-local/metadata-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "12a18eb466797bde35f4a52d5f2d798211686fea256b5ce5be17bdc3c66bc655",
+      "sha256": "28c883de2be06cd829cba2ca65d1c16429f3e5071bedcd4aa100884146d6691f",
       "exports": [
         "createMetadataDeletionOwner"
       ],
@@ -3486,6 +3486,10 @@
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "export function"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -3496,60 +3500,98 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "bounded UTF-8 text or bounded byte frames"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "marker"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "pending"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "operations.serialize"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "catch (error)"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "async retry()"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.mjs",
                 "anchor": "operations.settle()"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "alternative representation requires verified conversion"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
         }
       ],
-      "imports": [],
+      "imports": [
+        "../host-common/managed-failure.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -6841,7 +6883,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f092c4b45728b17a9794f592dd251952b43a718ad66c53a6c08a60d402ec021",
+      "sha256": "a6dce008b0ba269713643f20a26dcc27aee6fe8fbf328e8665e5bc6e9e2ae95b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11329,60 +11371,100 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Joint delivery completion"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing pending-record carrier retains the captured completion function,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Retry never invokes the sink,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same cleanup child must acknowledge its real pending FD/directory duties before"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The group overlaps two bounded metadata buffers/Strings, reservations and"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "optional operation retain the separate receipt/record protocol; an explicitly"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "test('delivery END rejects copied originals and non-success records before writing', async t => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -11404,54 +11486,90 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A selected native read admits the actual stored Index body and binds all tuple"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readCommittedIndexRaw = async (key, original) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (original !== undefined && bytes.equals(original.bytes)) return original;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "These values and the bounded original buffer belong only to the active read."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Cold file-backed commit confirmation retains the bounded Index bytes across the real"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "fail('PublicIndexDurabilityMismatch');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "original FD close duties remain under the same Store, including partial failure."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A file-backed Index's immutable semantic alias still receives its original"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "No successful admission or permission is cached across public calls."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -11462,6 +11580,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native Index selected body corruption refuses without rebuilding unrelated publications"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -11578,6 +11700,7 @@
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
+            "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
@@ -11749,6 +11872,8 @@
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
+            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
+            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
@@ -11865,11 +11990,19 @@
             "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
             "openOriginalLocalPublicationStore/registerCustody/registerCustody",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
+            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+            "openOriginalLocalPublicationStore/removalKey/removalKey",
             "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
             "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
             "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
@@ -11914,6 +12047,7 @@
             "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
@@ -12001,19 +12135,7 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive",
-            "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
-            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
-            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
-            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
-            "openOriginalLocalPublicationStore/removalKey/removalKey",
-            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
+            "writeExclusive"
           ],
           "exports": [
             "PublicationStoreError",
@@ -12184,6 +12306,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Semantic preparation crash recovery"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -12302,6 +12428,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "### Selected publication metadata observation"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -12420,6 +12550,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -12530,6 +12664,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The original complete group and reservations remain owned on a lost reply."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -12644,6 +12782,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "For prepared-object custody, that same metadata writer acknowledges the final"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -12758,6 +12900,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Semantic preparation crash recovery"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -12864,6 +13010,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "An independently adopted file attempt retains its file progress and actual"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -12974,6 +13124,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "operation. Native setup admits the bounded originals once and commits their"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -13084,6 +13238,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "acknowledgements. A Store without this optional operation keeps the separate"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -13494,6 +13652,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -13510,12 +13672,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "operationalCurrent,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -13526,6 +13696,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -13536,6 +13710,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -13546,6 +13724,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -13556,6 +13738,10 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -13566,6 +13752,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -13576,6 +13766,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.storeOperations++;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -13586,6 +13780,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -13596,6 +13794,10 @@
               {
                 "path": "adapters/host-node/host-result-service.test.mjs",
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -13636,6 +13838,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -13650,6 +13856,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "function preparedOwnershipStatus(entry) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -13664,6 +13874,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -13686,6 +13900,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const retriedWriters = new Set();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -13704,6 +13922,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Store close attempts that retained failed writer's original confirmation before"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -13722,6 +13944,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "checking its reserved capacity. An unavailable confirmation remains pending;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -13736,6 +13962,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -13754,6 +13984,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "independent live payloads, readers and other cleanup duties still refuse close."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -13764,6 +13998,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "// Selected operational callers still supply their explicit finite bounds."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -13786,6 +14024,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('Store close confirms failed metadata without releasing an independent live payload', async t => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -13802,54 +14044,90 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const entry = originalPreparedStoreOwnership(original);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await entry.ownership.assertCurrent();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -13860,6 +14138,10 @@
               {
                 "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
                 "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -13887,60 +14169,100 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const updateTrustedClock = (clockContractCid, suppliedAt, sample) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readClockObservation = async clockContractCid =>"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const activePhysicalRecordWriters = new Set();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "clockObservationsPending++;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "fail('PublicationClockUncertain');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-clock-commit.test.mjs",
                 "anchor": "test('clock commit retains Store ownership through queued and pending file sync'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const bytes = checked.byteLength <= configuration.maxObjectBytes"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "They retain the original atomic replacement protocol."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/publication-clock-commit.test.mjs",
                 "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -13955,60 +14277,100 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Delivery admission durability batches"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putDeliveryContracts = async (grant, attempt, streaming) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await cleanup.retry();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "directory names and original reservations are bounded by the one or two input"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "grant use; only after this bounded batch succeeds is that claim ready for the"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('delivery admission batches its immutable contracts and validates each once', async t => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -14025,42 +14387,70 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Delivery record operation reuse"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const original = {contract, bytes: undefined};"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await syncDirectory(directory);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "fail('DeliveryRecordDurabilityMismatch');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "directory durability responsibilities are unchanged. This removes repeated"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -14071,12 +14461,20 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The Store keeps at most one last-confirmed record CID as a durability"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "own input; no admitted-record or authorization cache persists across calls."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -14087,6 +14485,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -14134,6 +14536,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Semantic preparation crash recovery"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -14152,6 +14558,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putSemanticBatch = async (supplied, retainedOriginals, recoveryInventory) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -14170,6 +14580,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (item.objectCreated && item.created) retainedOriginals.set("
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -14188,6 +14602,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "bytes never escape; the next public read acquires its own original and detects"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -14206,6 +14624,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "both new physical and semantic links, their actual directory acknowledgements,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -14228,6 +14650,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Semantic preparation crash recovery"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -14246,6 +14672,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "observation or retires the pending writer. The map is operation-local and its"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -14264,6 +14694,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "retain its private bytes and digest in that commit's existing observation map."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -14282,6 +14716,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "without reopening and hashing it immediately. Existing objects or aliases,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -14300,6 +14738,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication inventory retains failed Index alias durability before a fresh acquisition"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -14354,6 +14796,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Its attempt and grant readers explicitly acquire their original legacy files;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -14376,6 +14822,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readFileDeliveryAttemptContract = async (attemptCid, retained) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -14390,6 +14840,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -14408,6 +14862,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same bounded admission, semantic digest/hard-link and original reader-close"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -14426,6 +14884,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "refuses ambiguous keys or excess uses, and commits complete coverage once."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -14444,6 +14906,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "they do not query the incomplete native index or interpret it as absence. The"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -14458,6 +14924,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Recovery never dispatches payload,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -14476,6 +14946,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The bounded legacy migration reads each original attempt and referenced grant,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -14490,6 +14964,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "ready or missing adopted state cannot enter this building-only reader path."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -14532,6 +15010,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
@@ -14568,6 +15050,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -14578,6 +15064,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -14588,6 +15078,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -14598,6 +15092,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -14608,6 +15106,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -14618,6 +15120,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -14628,6 +15134,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -14638,6 +15148,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -14648,18 +15162,27 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/prepared-holder-owner.test.mjs",
                 "anchor": "unknown private transfer retains exact immutable selection until original holder settles"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
         }
       ],
       "imports": [
+        "../host-common/managed-failure.mjs",
         "../host-node/host-journal-directory.mjs",
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
@@ -14906,7 +15429,7 @@
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16ebf7de00f06e796ddad423a53e9605ad80797c88bf743db9757dd249287214",
+      "sha256": "5bcaaad0423ca2cd703f6433b8d6124b512f5086bb799e3b033fe8e01191c961",
       "exports": [
         "createResultDeletionOwner"
       ],
@@ -14965,6 +15488,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed physical object usage"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -14979,6 +15506,10 @@
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "if (allocation !== 'missing-unconfirmed') await operations.unlink();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "identity": [
@@ -14989,6 +15520,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "rememberPhysicalRemoval(materialCid,expectedBytes,state);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "ownership": [
@@ -14999,6 +15534,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "synchronization": [
@@ -15009,6 +15548,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "failure": [
@@ -15019,6 +15562,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "cancellation": [
@@ -15029,6 +15576,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "resources": [
@@ -15039,6 +15590,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Store limits bound installed totals, pending generation rows,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "extension": [
@@ -15049,6 +15604,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ],
             "verification": [
@@ -15059,12 +15618,18 @@
               {
                 "path": "adapters/store-local/result-deletion-owner.test.mjs",
                 "anchor": "an absent original with retained quota waits for its same directory ACK"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
               }
             ]
           }
         }
       ],
-      "imports": [],
+      "imports": [
+        "../host-common/managed-failure.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },

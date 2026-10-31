@@ -1,5 +1,7 @@
 // One retired Result owns the unlink-to-durable-reclamation transition.
 // The Store retains the shared capacity ledger and material-retention queue.
+import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
+
 export function createResultDeletionOwner(operations) {
   let pending = true;
   let unlinked = false;
@@ -45,7 +47,7 @@ export function createResultDeletionOwner(operations) {
           settle(true);
         });
       } catch (error) {
-        errors.push(error);
+        retainFirstAndLatestCleanupError(errors, error);
         throw error;
       }
       return status();

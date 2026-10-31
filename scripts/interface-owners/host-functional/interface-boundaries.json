@@ -7532,12 +7532,13 @@
     {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "48cd4ceb478dac30527b5b76833233fb2251a9a7a60e1ed991bf3bf32440affe",
+      "sha256": "ff4b663195256b985149ac3991660e0bb6ec4a835698f8e99d45bbf7c5509d7f",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
         "beginManagedFailureProgress",
         "recordManagedFailureExecutionSettled",
+        "retainFirstAndLatestCleanupError",
         "settleFailedManagedOperations"
       ],
       "operations": [
@@ -7600,6 +7601,14 @@
           "parameters": [
             "owner",
             "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainFirstAndLatestCleanupError",
+          "parameters": [
+            "errors",
+            "error"
           ],
           "async": false
         },
@@ -8032,6 +8041,84 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainFirstAndLatestCleanupError"
+          ],
+          "exports": [
+            "retainFirstAndLatestCleanupError"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
+                "anchor": "test('metadata cleanup keeps first/latest original diagnostics"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "anchor": "test('Result cleanup keeps first/latest original diagnostics"
               }
             ]
           }
@@ -26951,7 +27038,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27114,7 +27201,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27746,7 +27833,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -117483,7 +117570,7 @@
       "sha256": "39d4592c770137d8e0661aed0c3f5e39b4e4aed276aed98596e3ed727e579429",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -118200,7 +118287,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -118889,7 +118976,7 @@
       "sha256": "077da93f92f8c61e5a7fca7fc5546bba15cb7ee817bb8d7bcb1b2c2fd02b9b20",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",

@@ -36,6 +36,7 @@ import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
+import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
 // Internal physical adapter primitive, not a Client read/authority entry. Its
@@ -2834,8 +2835,7 @@ async function openOriginalLocalPublicationStore(
             // failed release, not an unbounded retry log. Keep both roles
             // even when the same Error is reused; status snapshots own their
             // copied arrays. This never settles the original physical duty.
-            if (errors.length < 2) errors.push(error);
-            else errors[1] = error;
+            retainFirstAndLatestCleanupError(errors, error);
             throw error;
           }).finally(() => { holder.releasing = undefined; });
           return holder.releasing;

@@ -69,3 +69,19 @@ material queue. Thus a marker appearing after the read cannot leave an unowned
 allocation: the durable Index or its original retirement owner still owns it.
 If its own witness is retired or absent, cleanup uses existing live-reference and
 original-generation recovery rather than reusing stale successful-adoption state.
+
+## Bounded deletion diagnostics
+
+Prepared-object release and the original Result/metadata deletion owners share
+the same first/latest cleanup diagnostic operation. Each private list retains
+its first original throwable and replaces only its latest positional slot.
+Repeated identical values still occupy both roles; primitives, frozen errors
+and `undefined` retain their exact identity. Frozen status snapshots remain
+independent of later list updates. This bounds retained retry history without
+restricting the number of retries or inspecting an error to infer success.
+
+The original deletion serialization, unconfirmed object inventory, unlink and
+directory durability stages remain authoritative. A failed observation keeps
+that same owner pending and retains its capacity. Only the existing successful
+durability/accounting transition settles it. Diagnostic replacement supplies no
+physical acknowledgement, new reservation, refund or permission to resend.

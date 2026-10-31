@@ -36,6 +36,7 @@ function fixture() {
     async reclaimContract(_object, unconfirmed) {
       calls.push('contract');
       if (!reclaimed) {
+        calls.push('retain-contract');
         unconfirmed.set('object', 17);
         reclaimed = true;
       }
@@ -116,6 +117,6 @@ test('metadata cleanup keeps first/latest original diagnostics through repeated 
   assert.equal(finished.pending, false);
   assert.deepEqual(finished.errors, [first, failures.at(-1)]);
   assert.equal(f.calls.filter(call => call === 'account:17').length, 1);
-  assert.equal(f.calls.filter(call => call === 'contract').length, 1);
+  assert.equal(f.calls.filter(call => call === 'retain-contract').length, 1);
   assert.equal(f.calls.filter(call => call === 'settle').length, 1);
 });
