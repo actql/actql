@@ -16,6 +16,8 @@ pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFail
 
 pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]
 
+pub fn append_request_document(Int, Array[Json]) -> Json
+
 pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]
 
 pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]
@@ -43,6 +45,8 @@ pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String,
 pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]
 
 pub fn excluded_blank_rows(Page) -> Int
+
+pub fn literal_cell_document(CellType, Json) -> Json?
 
 pub fn page_rows(Page) -> Array[Json]
 

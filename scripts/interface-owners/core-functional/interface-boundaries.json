@@ -46059,7 +46059,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "abab58078205674fc3b0ae05727c0e639833ba55d7ae98ccf946614c72cc3e0d",
+      "sha256": "60da7623b1e6f01a3ec940e06137ab08fe8a54d6a6e17b2ca229dfaaab3eeec4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -46076,7 +46076,7 @@
         },
         {
           "name": "installed_standard_create_constructor_capacities",
-          "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+          "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
         }
       ],
       "contracts": [
@@ -48358,7 +48358,7 @@
           }
         }
       ],
-      "sha256": "c99bbfac8420f7e58deb31b5830806824bf57de850cb5e4ab651cce1e4d9c15c",
+      "sha256": "b209c26fc573d523c97750592facab26acfa33f1a304ea49a4318857396d11b8",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -48418,7 +48418,7 @@
         },
         {
           "name": "client_program_installed_standard_create_constructor_capacities",
-          "declaration": "client_program_installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -54996,7 +54996,7 @@
     },
     {
       "module": "src/connectors/github/host_node/comment_construction.mbt",
-      "sha256": "21c5ef178a04e1064282122eaf9b533affc4d2efd51fdd969bf3f92284099079",
+      "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
@@ -55029,7 +55029,7 @@
         },
         {
           "name": "installed_standard_create_construction_profile",
-          "declaration": "installed_standard_create_construction_profile ( ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ?"
+          "declaration": "installed_standard_create_construction_profile ( ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
         },
         {
           "name": "installed_standard_create_http_limits",
@@ -55300,7 +55300,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "b25e982e944868d7f3cd4ea39e7beeb42cc33766740b3d87efa50b65c75d05d5",
+      "sha256": "dac615f0fb40c0cacdcb801848f9165996ae33abebe94c45ea11fca122bcd3f1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -55377,7 +55377,7 @@
         },
         {
           "name": "client_program_installed_standard_create_recipe_capacities",
-          "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_node_effect_managed_plan_cleanup",
@@ -55476,7 +55476,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "fd6118eb75f081e28408ded230ae3284607d96fde153bccfbbd7ed83c243d650",
+      "sha256": "b7b66d6ab51c60ce0d8f7008f921f03cde53db94d822366504c90fe6114bc31e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -55485,14 +55485,34 @@
       "operations": [
         {
           "name": "installed_standard_create_recipe_capacities",
-          "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+          "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "standard_create_grant_capacity",
+          "declaration": "standard_create_grant_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "standard_create_representation_capacity",
+          "declaration": "standard_create_representation_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "standard_create_secret_capacity",
+          "declaration": "standard_create_secret_capacity ( bytes : Int , prefix_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "standard_create_sum_capacities",
+          "declaration": "standard_create_sum_capacities ( values : Array [ @ execution . ExecutionCapacity ] , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "installed_standard_create_recipe_capacities"
+            "installed_standard_create_recipe_capacities",
+            "standard_create_grant_capacity",
+            "standard_create_representation_capacity",
+            "standard_create_secret_capacity",
+            "standard_create_sum_capacities"
           ],
           "exports": [],
           "attributes": {

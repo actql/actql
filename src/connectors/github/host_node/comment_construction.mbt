@@ -153,7 +153,7 @@ fn github_comment_response_export_geometry() -> @source.ParseLimits {
 /// whole Host recipe nor a transfer/grant/cleanup observation.
 #export_name("installedStandardCreateConstructionProfile")
 pub fn installed_standard_create_construction_profile() -> Array[
-  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
 ]? {
   guard github_comment_request_capacity(false) is Some(write) &&
     github_comment_request_capacity(true) is Some(read) else {
@@ -209,9 +209,9 @@ pub fn installed_standard_create_construction_profile() -> Array[
     max_depth: github_comment_page_limits.max_depth,
   }
   Some([
-    (write, None, write_export),
-    (read, None, read_export),
-    (projected, Some(input), response),
-    (projected, Some(input), response),
+    (write, None, Some(write_export)),
+    (read, None, Some(read_export)),
+    (projected, Some(input), Some(response)),
+    (projected, Some(input), Some(response)),
   ])
 }

@@ -7,10 +7,10 @@ test "automatic standard recipe retains original body header secret and stored r
     max_depth: 4,
   }
   let original = Some([
-    (native, Some(wire), wire),
-    (native, Some(wire), wire),
-    (native, Some(wire), wire),
-    (native, Some(wire), wire),
+    (native, Some(wire), Some(wire)),
+    (native, Some(wire), Some(wire)),
+    (native, Some(wire), Some(wire)),
+    (native, Some(wire), Some(wire)),
   ])
   let selected = installed_standard_create_recipe_capacities(
     original, 512, 32, 8, 128, 64, 64, 32, true, 16, 7, 32, 1024, 64, 4, 40L,
@@ -60,7 +60,7 @@ test "automatic standard recipe preserves absent checks and refuses incomplete n
     max_nodes: 8,
     max_depth: 3,
   }
-  let original = Some([(native, None, wire), (native, None, wire)])
+  let original = Some([(native, None, Some(wire)), (native, None, Some(wire))])
   let plain = installed_standard_create_recipe_capacities(
     original, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4, 0L,
   ).unwrap()
@@ -199,7 +199,7 @@ test "standard JSON constructor adapter rejects malformed and overflowing opaque
     max_nodes: 1,
     max_depth: 1,
   }
-  let pair = [(zero, None, output), (zero, None, output)]
+  let pair = [(zero, None, Some(output)), (zero, None, Some(output))]
   let capacities = installed_standard_create_constructor_capacities(Some(pair)).unwrap()
   assert_eq(capacities.length(), 2)
   assert_true(@execution.execution_capacity_retained_bytes(capacities[0]) > 0L)
@@ -220,13 +220,13 @@ test "standard JSON constructor adapter rejects malformed and overflowing opaque
   }
   assert_true(
     installed_standard_create_constructor_capacities(
-      Some([(zero, None, invalid), pair[1]]),
+      Some([(zero, None, Some(invalid)), pair[1]]),
     )
     is Err(Unsupported),
   )
   assert_true(
     installed_standard_create_constructor_capacities(
-      Some([(zero, Some(invalid), output), pair[1]]),
+      Some([(zero, Some(invalid), Some(output)), pair[1]]),
     )
     is Err(Unsupported),
   )
@@ -235,8 +235,36 @@ test "standard JSON constructor adapter rejects malformed and overflowing opaque
   ).unwrap()
   assert_true(
     installed_standard_create_constructor_capacities(
-      Some([(maximum, None, output), pair[1]]),
+      Some([(maximum, None, Some(output)), pair[1]]),
     )
     is Err(Unsupported),
   )
+}
+
+///|
+test "standard constructor absence preserves native capacity without invented JSON output" {
+  let native = @execution.execution_capacity(17L, 23L).unwrap()
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ] = [(native, None, None), (empty, None, None)]
+  let selected = installed_standard_create_constructor_capacities(
+    Some(original),
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(selected[0]), 17L)
+  assert_eq(@execution.execution_capacity_execution_bytes(selected[0]), 23L)
+  assert_eq(@execution.execution_capacity_retained_bytes(selected[1]), 0L)
+  assert_eq(@execution.execution_capacity_execution_bytes(selected[1]), 0L)
+  let limits : @source.ParseLimits = {
+    max_input_bytes: 64,
+    max_nodes: 8,
+    max_depth: 3,
+  }
+  // Input decoding remains an independent actual constructor even when its
+  // native consumer returns Unit rather than a JSON String.
+  let input = installed_standard_create_constructor_capacities(
+    Some([(native, Some(limits), None), original[1]]),
+  ).unwrap()
+  assert_true(@execution.execution_capacity_retained_bytes(input[0]) > 17L)
+  assert_true(@execution.execution_capacity_execution_bytes(input[0]) > 23L)
 }

@@ -76,3 +76,119 @@ test "Sheets bridge reports an acknowledgement, never a row identifier" {
     "{\"outcome\":\"Unknown\"}",
   )
 }
+
+///|
+test "Sheets native append profile covers original escaped request and genuine absent GET output" {
+  let columns = "[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false}]"
+  let original = sheets_append_construction_profile(
+    @utf8.encode(columns).length(),
+    1,
+    4096,
+    4096,
+    8192,
+    100,
+    12,
+  ).unwrap()
+  assert_eq(original.length(), 4)
+  let (empty, input, output) = original[1]
+  assert_true(input is None && output is None)
+  assert_eq(@execution.execution_capacity_retained_bytes(empty), 0L)
+  assert_eq(@execution.execution_capacity_execution_bytes(empty), 0L)
+  let row : Json = { "text": "\u{1}".repeat(128) + "é😀" }
+  let exported = sheets_append_request_json(
+    columns,
+    row.stringify(),
+    7,
+    4096,
+    100,
+    12,
+    100,
+  )
+  assert_true(@source.parse_json(exported, original[0].2.unwrap()) is Ok(_))
+  assert_true(exported.contains("body"))
+  let growth = sheets_append_construction_profile(
+    @utf8.encode(columns).length(),
+    1,
+    8192,
+    4096,
+    8192,
+    100,
+    12,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(growth[0].0) >
+    @execution.execution_capacity_retained_bytes(original[0].0),
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(growth[3].0),
+    @execution.execution_capacity_retained_bytes(original[3].0),
+  )
+}
+
+///|
+test "Sheets constructor profile retains invalid input response and over-quota refusal paths" {
+  let columns = "[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false}]"
+  let profile = sheets_append_construction_profile(
+    @utf8.encode(columns).length(),
+    1,
+    4096,
+    256,
+    8192,
+    100,
+    12,
+  ).unwrap()
+  let row : Json = { "text": "x".repeat(256) }
+  let refused = sheets_append_request_json(
+    columns,
+    row.stringify(),
+    7,
+    256,
+    100,
+    12,
+    100,
+  )
+  assert_true(refused.contains("InvalidSchema"))
+  assert_true(@source.parse_json(refused, profile[0].2.unwrap()) is Ok(_))
+  for status in [200, 503] {
+    let answer = sheets_append_outcome_json(
+      status, b"{}", "book", 8192, 100, 12, 100,
+    )
+    assert_true(@source.parse_json(answer, profile[2].2.unwrap()) is Ok(_))
+  }
+  assert_true(sheets_append_construction_profile(1, 0, 1, 1, 1, 1, 1) is None)
+  assert_true(sheets_append_construction_profile(1, 65, 1, 1, 1, 1, 1) is None)
+  assert_true(
+    sheets_append_construction_profile(1, 1, 2147483647, 1, 1, 1, 1) is None,
+  )
+}
+
+///|
+test "Sheets original native profile composes through the actual standard Host constructor owner" {
+  let native = sheets_append_construction_profile(
+    32768, 64, 1000000, 300000, 2000000, 200000, 32,
+  )
+  let combined = @client_host.installed_standard_create_constructor_capacities(
+    native,
+  ).unwrap()
+  let original = native.unwrap()
+  assert_eq(combined.length(), 4)
+  assert_eq(@execution.execution_capacity_retained_bytes(combined[1]), 0L)
+  for index in [0, 2, 3] {
+    assert_true(
+      @execution.execution_capacity_retained_bytes(combined[index]) >
+      @execution.execution_capacity_retained_bytes(original[index].0),
+    )
+  }
+  // These are constructor DATA quantities, not an admitted whole Run/Host,
+  // native heap observation, minimum, cleanup report or performance target.
+  for index, capacity in combined {
+    println(
+      "sheets-constructor[" +
+      index.to_string() +
+      "]=" +
+      @execution.execution_capacity_retained_bytes(capacity).to_string() +
+      "/" +
+      @execution.execution_capacity_execution_bytes(capacity).to_string(),
+    )
+  }
+}

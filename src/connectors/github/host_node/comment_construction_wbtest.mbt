@@ -149,10 +149,11 @@ test "standard CREATE native profile preserves original HTTP bounds and opaque c
   let mutation = github_add_comment_request_json(subject, "\u{1}".repeat(65536))
   let subject_wire = github_comment_subject_request_json(subject)
   assert_true(@utf8.encode(mutation).length() > 300000)
-  assert_true(@source.parse_json(mutation, write_output) is Ok(_))
-  assert_true(@source.parse_json(subject_wire, read_output) is Ok(_))
+  assert_true(@source.parse_json(mutation, write_output.unwrap()) is Ok(_))
+  assert_true(@source.parse_json(subject_wire, read_output.unwrap()) is Ok(_))
   for index in [2, 3] {
     let (_, input, output) = native[index]
+    let output = output.unwrap()
     assert_true(
       input
       is Some({ max_input_bytes: 100000, max_nodes: 10000, max_depth: 32, }),
@@ -189,7 +190,7 @@ test "standard CREATE native JSON profile funds indexed input and literal return
     @execution.execution_capacity_retained_bytes(combined[2]),
     @execution.execution_capacity_retained_bytes(combined[3]),
   )
-  assert_eq(native[0].2.max_nodes, 2)
+  assert_eq(native[0].2.unwrap().max_nodes, 2)
   assert_true(
     @client_host.installed_standard_create_constructor_capacities(None)
     is Err(Unsupported),
@@ -203,7 +204,7 @@ test "standard CREATE native JSON profile funds indexed input and literal return
 ///|
 test "standard CREATE response geometry admits original success and nested refusal exports unchanged" {
   let profile = installed_standard_create_construction_profile().unwrap()
-  let limits = profile[2].2
+  let limits = profile[2].2.unwrap()
   let body = b"{\"data\":{\"addComment\":{\"commentEdge\":{\"node\":{\"id\":\"comment\",\"databaseId\":3}},\"subject\":{\"__typename\":\"Issue\",\"id\":\"issue\"}}}}"
   let success = github_comment_outcome_json(
     200,
@@ -224,7 +225,9 @@ test "standard CREATE response geometry admits original success and nested refus
   let refused : Json = {
     "refused": graphql_issue_name(Row(MissingRequiredField("original"))),
   }
-  assert_true(@source.parse_json(refused.stringify(), profile[3].2) is Ok(_))
+  assert_true(
+    @source.parse_json(refused.stringify(), profile[3].2.unwrap()) is Ok(_),
+  )
   assert_eq(
     @json.parse(github_add_comment_request_json("", "original")),
     ({ "refused": "InvalidSubjectId" } : Json),

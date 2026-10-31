@@ -181,7 +181,7 @@ pub fn client_program_installed_effect_operation_controls_begin(
 #export_name("clientProgramInstalledStandardCreateConstructorCapacities")
 pub fn client_program_installed_standard_create_constructor_capacities(
   original : Array[
-    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
   ]?,
 ) -> Result[
   Array[@execution.ExecutionCapacity],

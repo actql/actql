@@ -17,7 +17,7 @@ test('automatic standard recipe forwards original constructor capacities and kee
       scope:Object.freeze({principal:'original',siteGeneration:1}),
       issuer:Object.freeze({authority:'issuer',keyId:'key'}),
       limits:Object.freeze({maxBindings:91,maxSecretBytes:23})})});
-    const providerMoon={installedStandardCreateConstructionProfile(){assert.equal(this,providerMoon);calls.push('profile');return profile;}};
+    const providerMoon={installedStandardCreateConstructionProfile(...geometry){assert.equal(this,providerMoon);assert.deepEqual(geometry,[512,32,8]);calls.push('profile');return profile;}};
     const extents=[];
     const moon={
       clientProgramInstalledStandardCreateRecipeCapacities(...args){

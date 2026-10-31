@@ -1,6 +1,7 @@
 // Installed Sheets uses the common row Source and Effect owners. This module
 // supplies finite configuration, immutable collection binding and physical I/O.
 import {randomUUID} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {mkdir, readFile, rename, rm, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -81,7 +82,8 @@ async function readSite(path, providerMoon) {
   }
   // The MoonBit codec checks the declared scalar schema and rectangular bound.
   checkSheetsGridConfiguration(providerMoon, site.columns, site.gridRange);
-  return Object.freeze({...site, ca: caPath === undefined ? undefined : await readFile(caPath)});
+  const columns = Object.freeze(site.columns.map(column => Object.freeze({...column})));
+  return Object.freeze({...site, columns, ca: caPath === undefined ? undefined : await readFile(caPath)});
 }
 
 function restore(moon, providerMoon, profile, site, expectedCatalogCid) {
@@ -243,6 +245,26 @@ export const publishInstalledSheetsSource = (profile, options) =>
 export const publishInstalledSheetsEffect = (profile, options) =>
   publish(checkInstalledSheetsEffectProfile(profile), options);
 
+// Bind the existing native constructor once to the SAME validated private
+// installation metadata. The original Plan supplies its existing input bound;
+// the complete returned Option/tuple stays opaque until Core consumes it.
+function bindSheetsAppendConstructionProfile(providerMoon, columns) {
+  if (providerMoon === null || !['object', 'function'].includes(typeof providerMoon) ||
+      nodeTypes.isProxy(providerMoon)) fail('InstalledStandardCreateRuntimeUnavailable');
+  const native = Object.getOwnPropertyDescriptor(providerMoon, 'sheetsAppendConstructionProfile');
+  if (!native || !Object.hasOwn(native, 'value') || typeof native.value !== 'function' ||
+      nodeTypes.isProxy(native.value) || nodeTypes.isAsyncFunction(native.value)) {
+    fail('InstalledStandardCreateRuntimeUnavailable');
+  }
+  const schemaBytes = Buffer.byteLength(JSON.stringify(columns), 'utf8');
+  const columnCount = columns.length;
+  return Object.freeze({installedStandardCreateConstructionProfile(inputWireBytes) {
+    return Reflect.apply(native.value, providerMoon, [schemaBytes, columnCount, inputWireBytes,
+      SHEETS_LIMITS.maxRequestBytes, SHEETS_LIMITS.maxResponseBytes,
+      SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth]);
+  }});
+}
+
 async function load(profile, options, effect) {
   const {moon, providerMoon, baseEnvironmentWire} = options;
   const site = await readSite(profile.siteProfilePath, providerMoon);
@@ -308,6 +330,7 @@ async function load(profile, options, effect) {
     const boundaryCid = contentCid({version: 'actql-sheets-append-boundary/0.1',
       api_origin: site.apiOrigin, spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId});
     return await createInstalledRowEffect({moon,
+      providerMoon: bindSheetsAppendConstructionProfile(providerMoon, site.columns),
       mappings: [{resource: 'append_rows', mappingRef: mapping.mappingRef,
         mappingCid: mapping.mappingCid, body: mapping.body}], environmentWire: environment.wire,
       connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,

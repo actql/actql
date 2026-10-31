@@ -136,7 +136,7 @@ fn standard_create_secret_capacity(
 /// issued by this immutable DATA constructor.
 pub fn installed_standard_create_recipe_capacities(
   original : Array[
-    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
   ]?,
   input_bytes : Int,
   input_nodes : Int,

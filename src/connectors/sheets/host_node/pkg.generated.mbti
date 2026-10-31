@@ -3,9 +3,13 @@ package "actql/actql/connectors/sheets/host_node"
 
 import {
   "actql/actql/connectors/sheets/catalog",
+  "actql/actql/execution_relation",
+  "actql/actql/source_value",
 }
 
 // Values
+pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
 pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
 
 pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]

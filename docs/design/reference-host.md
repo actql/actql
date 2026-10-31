@@ -1766,6 +1766,20 @@ physical write and pre-body controls retain distinct original lifetimes. A
 secret-size check after resolution does not fund the resolver's earlier or
 failed construction; that producer must already have its own actual backing.
 
+The Sheets append constructor uses the same closed literal document/cell
+builders as its actual mapper. Its immutable schema and the original Host input
+bound select native parser/index, scalar arrays, supplied-width closed-object
+maps, literal forest, both String builders and pre-refusal UTF8 buffers. The
+outgoing validator consumes that exact constructed forest; its geometry is not
+an arbitrary input-node ceiling. Supplied invalid row width is bounded by the
+original input's wire syntax, never by the allowed column count. Sheets uses
+preserving byte parsing, so its native quantities own that input directly and
+do not add the generic normalizing decoder again. An absent metadata GET body
+has no native output; typed None does not create an empty JSON document. Each
+present output still adds the original Host literal-JSON constructor. These
+quantities do not by themselves prove installation prelude, complete concurrent
+request/response/failed-child backing, ordinary execution or physical release.
+
 A synchronous request constructor returning a native Promise is invalid, but
 its original task stays in the same capture child until settlement. Observation
 uses the captured native Promise method before any replaceable public `then`.

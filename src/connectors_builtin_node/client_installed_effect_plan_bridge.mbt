@@ -64,7 +64,7 @@ pub fn client_program_installed_effect_operation_extent_from_capacity_prepare(
 #export_name("clientProgramInstalledStandardCreateRecipeCapacities")
 pub fn client_program_installed_standard_create_recipe_capacities(
   original : Array[
-    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
   ]?,
   input_bytes : Int,
   input_nodes : Int,

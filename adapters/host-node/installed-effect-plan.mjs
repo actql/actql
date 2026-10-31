@@ -77,7 +77,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   let units = BigInt(construction.metadataTextUnits) + BigInt(resourceTextUnits);
   for (const value of Object.values(secret.scope)) if (typeof value === 'string') units += BigInt(value.length);
   for (const value of Object.values(secret.issuer)) units += BigInt(value.length);
-  const capacities = checked(capacitiesFor(profile(), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+  const capacities = checked(capacitiesFor(profile(limits.maxWireBytes, limits.maxNodes, limits.maxDepth), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,

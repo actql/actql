@@ -800,3 +800,28 @@ test('CREATE original Common failures and empty inventory do not start Host JSON
   {maxWireBytes: 101, maxNodes: 17, maxDepth: 5});
   assert.deepEqual(empty, {rows: [], createRows: []}); assert.equal(calls, 1);
 });
+
+test('actual Sheets constructor binding forwards the original opaque profile with same metadata and receiver', () => {
+  const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
+  const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(value =>
+    value.type === 'FunctionDeclaration' && value.id.name === 'bindSheetsAppendConstructionProfile');
+  assert.ok(node);
+  const bind = Function('nodeTypes', 'SHEETS_LIMITS', 'fail', `return (${source.slice(node.start,node.end)});`)(
+    nodeTypes, SHEETS_LIMITS, code => {throw Object.assign(new Error(code), {code});});
+  const columns = Object.freeze([Object.freeze({name:'é😀',type:'string',nullable:false})]);
+  const original = Object.freeze({}), calls = [];
+  const provider = {sheetsAppendConstructionProfile(...args) {assert.equal(this,provider);calls.push(args);return original;}};
+  const bound = bind(provider,columns);
+  // Replacing the namespace property cannot substitute another original method.
+  provider.sheetsAppendConstructionProfile = () => assert.fail('replacement must not run');
+  assert.equal(bound.installedStandardCreateConstructionProfile(512,32,8),original);
+  assert.deepEqual(calls,[[Buffer.byteLength(JSON.stringify(columns)),1,512,
+    SHEETS_LIMITS.maxRequestBytes,SHEETS_LIMITS.maxResponseBytes,SHEETS_LIMITS.maxNodes,SHEETS_LIMITS.maxDepth]]);
+  assert.ok(Object.isFrozen(bound));
+  let getters=0;
+  const accessor = Object.defineProperty({},'sheetsAppendConstructionProfile',{get(){getters++;return ()=>original;}});
+  for (const bad of [accessor,new Proxy(provider,{}),{sheetsAppendConstructionProfile:async()=>original},{}]) {
+    assert.throws(()=>bind(bad,columns),{code:'InstalledStandardCreateRuntimeUnavailable'});
+  }
+  assert.equal(getters,0);
+});

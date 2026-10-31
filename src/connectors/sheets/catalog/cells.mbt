@@ -529,18 +529,7 @@ pub fn append_request(
     Ok(cells) => cells
     Err(issue) => return Err(issue)
   }
-  let body = (
-    {
-      "requests": [
-        {
-          "appendCells": {
-            "sheetId": sheet_id.to_json(),
-            "rows": [{ "values": Json::array(cells) }],
-            "fields": "userEnteredValue",
-          },
-        },
-      ],
-    } : Json).stringify()
+  let body = append_request_document(sheet_id, cells).stringify()
   if @utf8.encode(body).length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
@@ -553,6 +542,24 @@ pub fn append_request(
 }
 
 ///|
+/// The original literal append document, after the caller has checked its
+/// cells. This pure document builder admits no row or write. Constructor
+/// geometry uses the same fixed document rather than a second wire template.
+pub fn append_request_document(sheet_id : Int, cells : Array[Json]) -> Json {
+  {
+    "requests": [
+      {
+        "appendCells": {
+          "sheetId": sheet_id.to_json(),
+          "rows": [{ "values": Json::array(cells) }],
+          "fields": "userEnteredValue",
+        },
+      },
+    ],
+  }
+}
+
+///|
 fn literal_cells(
   columns : Array[Column],
   values : Array[Json],
@@ -562,18 +569,28 @@ fn literal_cells(
   }
   let cells : Array[Json] = []
   for index, column in columns {
-    let extended : Json = match (column.cell_type, values[index]) {
-      (Text, String(value)) if !value.is_empty() =>
-        { "stringValue": value.to_json() }
-      (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
-        { "numberValue": value.to_json() }
-      (Boolean, True) => { "boolValue": true }
-      (Boolean, False) => { "boolValue": false }
-      _ => return Err(UnrepresentableWrite(column.name))
+    match literal_cell_document(column.cell_type, values[index]) {
+      Some(cell) => cells.push(cell)
+      None => return Err(UnrepresentableWrite(column.name))
     }
-    cells.push({ "userEnteredValue": extended })
   }
   Ok(cells)
+}
+
+///|
+/// Original scalar cell representation, shared by the actual request builder
+/// and its constructor geometry. It carries no row identity or write grant.
+pub fn literal_cell_document(cell_type : CellType, value : Json) -> Json? {
+  let extended : Json = match (cell_type, value) {
+    (Text, String(value)) if !value.is_empty() =>
+      { "stringValue": value.to_json() }
+    (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
+      { "numberValue": value.to_json() }
+    (Boolean, True) => { "boolValue": true }
+    (Boolean, False) => { "boolValue": false }
+    _ => return None
+  }
+  Some({ "userEnteredValue": extended })
 }
 
 ///|
