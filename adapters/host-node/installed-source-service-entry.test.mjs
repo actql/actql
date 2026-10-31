@@ -164,3 +164,88 @@ test('Host service current check preserves optional Project original and closing
   assert.throws(make({modelRuntimeView: view, assertNewModelRuntime() {throw originalFailure;}}),
     error => error === originalFailure);
 });
+
+
+// Execute the actual common Site method. Its original installation/context
+// maps and physical opening port are explicit here; this does not issue a
+// Resource, grant, Credential or physical cleanup acknowledgement.
+async function effectCredentialSelectionFixture({policy = [65536, 100000, 100]} = {}) {
+  const source = await readFile(new URL('./installed-host-services.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('    openRowSite(options) {');
+  const end = source.indexOf('\n  });\n  const restoreDeclaration', start);
+  assert(start > 0 && end > start);
+  const installation = Object.freeze({}), context = Object.freeze({});
+  const scope = {installation, role: 'effect', active: true, prepared: {mappings: []}};
+  const material = {phase: 'working'};
+  const selected = new WeakMap([[installation, 'original runtime']]);
+  const sourceContexts = new WeakMap([[context, {scope, material}]]);
+  const implementations = new WeakMap(), sites = new WeakMap(), siteInstallations = new WeakMap();
+  const moon = Object.freeze({}), events = [], opened = {site: {}}, reader = Object.freeze({});
+  let current = true, calls = 0, onPolicy;
+  const bindings = {selected, sourceContexts, implementations, sites, siteInstallations, moon,
+    sourcePolicy() {assert.equal(this, moon);events.push('policy');onPolicy?.();return policy;},
+    publicationOnly: false, root: '/UNOPENED/effect', principalId: 'original principal',
+    current() {events.push('current');if (!current) throw new Error('original current failure');},
+    requireSourceConstructor(_services, original, fields) {
+      assert.equal(original, installation);
+      const value = fields.sourceInitialization?.value;
+      if (value !== context || !scope.active || material.phase !== 'working') {
+        throw Object.assign(new Error('InstalledSourceInitializationUnavailable'),
+          {code: 'InstalledSourceInitializationUnavailable'});
+      }
+      return value;
+    },
+    installedSourceConfigurationReader: () => reader,
+    async openInstalledRowSite(options) {calls++;events.push('open');return {...opened, options};},
+    fail(code) {throw Object.assign(new TypeError(code), {code});},
+  };
+  const nodeTypes = (await import('node:util')).types;
+  const services = new Function(...Object.keys(bindings), 'nodeTypes',
+    'const services = {' + source.slice(start, end) + '};return services;')(...Object.values(bindings), nodeTypes);
+  return {services, installation, context, scope, material, events, reader, opened,
+    input: {installation, sourceInitialization: context}, calls: () => calls,
+    duringPolicy(callback) {onPolicy = callback;}, stop() {current = false;}};
+}
+
+test('Effect Site selects original Core credential implementation bounds before physical construction', async () => {
+  const f = await effectCredentialSelectionFixture();
+  const opened = await f.services.openRowSite(f.input);
+  assert.deepEqual(opened.options.runAcquisitionLimits, {maxBindings: 100000, maxSecretBytes: 65536});
+  assert.equal(Object.isFrozen(opened.options.runAcquisitionLimits), true);
+  assert.equal(opened.options.sourceInitialization, f.context);
+  assert.equal(opened.options.installation, f.installation);
+  assert.equal(opened.options.configurationReader, f.reader);
+  assert.deepEqual(f.events, ['current', 'policy', 'open']);
+  const again = await f.services.openRowSite(f.input);
+  assert.equal(again.options.runAcquisitionLimits, opened.options.runAcquisitionLimits);
+  assert.equal(f.events.filter(event => event === 'policy').length, 1,
+    'immutable implementation bounds are selected once, not re-admitted per operation');
+  f.stop();
+  assert.throws(() => f.services.openRowSite(f.input), /original current failure/);
+  assert.equal(f.calls(), 2);
+});
+
+test('Effect Site refuses supplied bounds and invalidated original selection before opening', async () => {
+  const f = await effectCredentialSelectionFixture();
+  assert.throws(() => f.services.openRowSite({...f.input,
+    runAcquisitionLimits: {maxBindings: 1, maxSecretBytes: 1}}),
+  {code: 'InstalledEffectCredentialSelectionUnavailable'});
+  assert.equal(f.calls(), 0);
+  f.duringPolicy(() => {f.scope.active = false;});
+  assert.throws(() => f.services.openRowSite(f.input), {code: 'InstalledSourceInitializationUnavailable'});
+  assert.equal(f.calls(), 0);
+  for (const policy of [undefined, [1, 2], [0, 2, 3], [1, 2.5, 3], [1, 2147483648, 3]]) {
+    const invalid = await effectCredentialSelectionFixture({policy: policy ?? null});
+    assert.throws(() => invalid.services.openRowSite(invalid.input),
+      {code: 'InstalledEffectCredentialPolicyUnavailable'});
+    assert.equal(invalid.calls(), 0);
+  }
+});
+
+test('Source Site preserves its original selected reader bounds without Effect policy selection', async () => {
+  const f = await effectCredentialSelectionFixture();f.scope.role = 'source';
+  const runAcquisitionLimits = Object.freeze({maxBindings: 37, maxSecretBytes: 19});
+  const opened = await f.services.openRowSite({...f.input, runAcquisitionLimits});
+  assert.equal(opened.options.runAcquisitionLimits, runAcquisitionLimits);
+  assert.deepEqual(f.events, ['current', 'open']);
+});
