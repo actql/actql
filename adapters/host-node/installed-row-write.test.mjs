@@ -14,6 +14,8 @@ import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-c
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
+import * as githubComment from '../connectors/github/site/github-comment-create.mjs';
+import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
 import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
@@ -241,6 +243,92 @@ function selectedWrite(path, ports) {
   assert.equal(selected.length, 1, 'normal caller must select the declaration, not the old driver');
   return Function(...Object.keys(ports), `return (${source.slice(selected[0].start, selected[0].end)});`)(...Object.values(ports));
 }
+
+function normalGitHubReadFixture({reply, transportFailure, nativeFailure = 'Unknown', nativeProjection} = {}) {
+  const events = [], repository = Object.freeze({nodeId: 'R_original', databaseId: 7,
+    nameWithOwner: 'owner/original'}), site = {apiOrigin: origin};
+  const commentLimits = {maxRequestBytes: 300_000, maxResponseBytes: 100_000, maxNodes: 10_000, maxDepth: 32};
+  const originalBody = Buffer.from('{"original":"response"}');
+  const providerMoon = {
+    githubAddCommentRequestJson: (subject, body) => JSON.stringify({body: JSON.stringify({subject, body})}),
+    githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
+    githubResponseHeadersJson: () => '["x-ratelimit-remaining"]',
+    githubCommentSubjectRequestJson(subject) {
+      assert.equal(subject, 'I_original'); events.push('body'); return '{"body":"original-subject-request"}';
+    },
+    githubCommentSubjectJson(bytes, ...bounds) {
+      assert.equal(bytes, originalBody);
+      assert.deepEqual(bounds, [100_000, 10_000, 32, 'I_original', 'R_original', 7, 'owner/original']);
+      events.push('project');
+      return JSON.stringify(nativeProjection ?? {subject: {node_id: 'I_original', number: 3}});
+    },
+    githubClassifyFailureJson(status, names, values) {
+      assert.equal(status, reply.statusCode); assert.deepEqual(names, ['x-ratelimit-remaining']);
+      assert.deepEqual(values, ['0']); events.push('classify'); return JSON.stringify({kind: nativeFailure});
+    },
+  };
+  const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    ...githubComment, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+    site, repository, boundaryCid, providerMoon, commentLimits,
+    commentValue: (_resource, value) => value,
+    fail: code => {throw Object.assign(new Error(code), {code});},
+    commentOutcome: () => ({kind: 'provider-response'}),
+  });
+  assert.equal(write.check.request, undefined, 'standard caller cannot retain the provider-owned HTTP entrance');
+  assert.deepEqual(write.check.http, {origin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
+    headers: [['accept', 'application/json']], responseHeaders: ['x-ratelimit-remaining'],
+    maxRequestBytes: 300_000, maxResponseBytes: 100_000});
+  const driver = deriveInstalledRowWrite(write, 'github');
+  const {request} = driver.prepareRequest({member: {...member, resource: 'issue_comments'},
+    value: {subject_id: 'I_original', body: 'same exact comment'}});
+  const raw = authorization(GITHUB_GRAPHQL_READ_OPERATION);
+  const check = changes => driver.checkRequest({request, authorization: raw, credential: {},
+    callResource(options) {
+      events.push('HTTP'); assert.equal(options.grant, raw.grant); assert.equal(options.useId, raw.useId);
+      assert.deepEqual([...options.operations], [[GITHUB_GRAPHQL_READ_OPERATION, {
+        method: 'POST', path: GITHUB_GRAPHQL_PATH, body: 'original-subject-request',
+        headers: [['accept', 'application/json']], responseHeaders: ['x-ratelimit-remaining']}]]);
+      if (transportFailure !== undefined) throw transportFailure;
+      return Object.freeze({accepted: true, statusCode: 200, useCid: providerCid,
+        body: originalBody, headers: [['x-ratelimit-remaining', '0']], ...reply});
+    }, ...changes});
+  return {check, events, request, write};
+}
+
+test('standard GitHub subject read uses common HTTP with the original body and repository projection', async () => {
+  const f = normalGitHubReadFixture();
+  f.write.check.body = () => assert.fail('late body substitution');
+  f.write.check.project = () => assert.fail('late projection substitution');
+  f.write.check.http.path = '/foreign';
+  assert.equal(await f.check(), undefined);
+  assert.deepEqual(f.events, ['body', 'HTTP', 'project']);
+  await assert.rejects(f.check({request: {...f.request}}), {code: 'InvalidInstalledRowWrite'});
+  assert.deepEqual(f.events, ['body', 'HTTP', 'project']);
+});
+
+test('standard GitHub subject read preserves observed refusal and uncertain reply categories', async () => {
+  for (const [options, code, known] of [
+    [{reply: {accepted: false, statusCode: 200}}, 'GitHubCommentSubjectUnverified', false],
+    [{reply: {statusCode: 404}, nativeFailure: 'NotFound'}, 'GitHubCommentSubjectRejected', true],
+    [{reply: {statusCode: 429}, nativeFailure: 'RateLimited'}, 'GitHubRateLimited', false],
+    [{nativeProjection: {refused: {kind: 'ForeignRepository'}}}, 'GitHubCommentForeignRepository', true],
+  ]) {
+    const f = normalGitHubReadFixture(options);
+    await assert.rejects(f.check(), error => {
+      assert.equal(error.code, code); assert.equal(isEffectPreparationRefusal(error), known); return true;
+    });
+    assert.equal(f.events.filter(value => value === 'HTTP').length, 1);
+  }
+});
+
+test('standard GitHub subject read keeps cancellation and the original transport failure without resend', async () => {
+  const cancelled = new Error('cancelled original'), stopped = normalGitHubReadFixture();
+  await assert.rejects(stopped.check({signal: AbortSignal.abort(cancelled)}), error => error === cancelled);
+  assert.deepEqual(stopped.events, []);
+  const lost = new Error('lost original'), failed = normalGitHubReadFixture({transportFailure: lost});
+  await assert.rejects(failed.check(), error => error === lost);
+  assert.deepEqual(failed.events, ['body', 'HTTP']);
+});
 
 // Actual provider factories and the complete changed normal-caller declaration,
 // with explicit native codec/check/classifier DATA ports. No Common, Account,
