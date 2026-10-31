@@ -22653,9 +22653,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
@@ -43456,10 +43454,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
+            "<module>"
           ],
           "exports": [],
           "attributes": {

@@ -48396,17 +48396,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "fail/fail",
-            "installedMockRequestRealization",
-            "prepareInstalledProjectMock",
-            "prepareInstalledProjectMock/call/call",
-            "prepareInstalledProjectMock/current",
-            "prepareInstalledProjectMock/init:originalsForRuntime/init:originalsForRuntime",
-            "prepareInstalledProjectMock/init:retire/init:retire",
-            "prepareInstalledProjectMock/prepareInstalledProjectMock",
-            "prepareInstalledProjectMock/same",
-            "prepareInstalledProjectMock/select/select"
+            "<module>"
           ],
           "exports": [
             "installedMockRequestRealization",
@@ -78689,38 +78679,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "assertOrdinarySourcePreparationCurrent",
-            "fail/fail",
-            "fileIdentity/fileIdentity",
-            "pending/pending",
-            "prepareOrdinaryManagedInstallation/closeChild",
-            "prepareOrdinaryManagedInstallation/current/current",
-            "prepareOrdinaryManagedInstallation/producerFor/producerFor",
-            "prepareOrdinaryManagedInstallation/readBytes",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
-            "prepareOrdinaryManagedInstallation/runFor",
-            "prepareOrdinaryManagedInstallation/status/status",
-            "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-            "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-            "prepareOrdinaryManagedInstallation/view/init:close/init:close",
-            "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
-            "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-            "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-            "prepareOrdinarySourceManagedInstallation"
+            "<module>"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -85445,28 +85404,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "installLocalPreparationRegistry",
-            "installLocalPreparationRegistry/adopt/adopt",
-            "installLocalPreparationRegistry/bindPayload/bindPayload",
-            "installLocalPreparationRegistry/bindPayload/bindPayload/bindPayload",
-            "installLocalPreparationRegistry/copy/copy",
-            "installLocalPreparationRegistry/create/create",
-            "installLocalPreparationRegistry/init:attach/init:attach",
-            "installLocalPreparationRegistry/init:attach/init:attach/init:attach",
-            "installLocalPreparationRegistry/init:begin/init:begin",
-            "installLocalPreparationRegistry/init:begin/init:begin/init:begin",
-            "installLocalPreparationRegistry/init:begin/init:begin/init:retire/init:retire",
-            "installLocalPreparationRegistry/init:capture/init:capture",
-            "installLocalPreparationRegistry/init:finishHandler/init:finishHandler",
-            "installLocalPreparationRegistry/init:retireQuiescentUndispatched/init:retireQuiescentUndispatched",
-            "installLocalPreparationRegistry/init:retireRetiringOriginal/init:retireRetiringOriginal",
-            "installLocalPreparationRegistry/payload/payload",
-            "installLocalPreparationRegistry/payload/payload/payload",
-            "installLocalPreparationRegistry/read/read",
-            "installLocalPreparationRegistry/requireOpen/requireOpen",
-            "installLocalPreparationRegistry/retireUndispatched/retireUndispatched",
-            "installLocalPreparationRegistry/returnCore/returnCore"
+            "<module>"
           ],
           "exports": [
             "installLocalPreparationRegistry"
