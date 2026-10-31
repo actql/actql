@@ -77862,12 +77862,38 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "contentPlan"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
           "parameters": [
             "prepared",
             "request",
             "identity",
             "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "modelPlan",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "method"
           ],
           "async": false
         },
@@ -78140,6 +78166,15 @@
           "parameters": [
             "prepared",
             "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph"
           ],
           "async": false
         },
@@ -83751,6 +83786,20 @@
           "parameters": [
             "state",
             "retireInitialPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupRequestInput/cleanupRequestInput",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupRequestInput/cleanupRequestInput#2",
+          "parameters": [
+            "holder"
           ],
           "async": false
         },
