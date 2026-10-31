@@ -11,6 +11,7 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
+import {createInstalledRowEffect} from './installed-row-effect.mjs';
 
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
@@ -288,3 +289,113 @@ for (const malformed of [false, true]) {
     assert.equal(io.state.calls, calls, 'successful release is never repeated');
   });
 }
+
+// Actual loader, initial owner, Mapping/Environment constructor and RowEffect
+// adapter together. Native semantic/Resource and Site ports are explicit:
+// this is not a Common, Account, physical Site or normal public execution.
+async function constructionFixture(t, {refuseMapping = false} = {}) {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-construction-'));
+  t.after(() => fs.rm(root, {recursive: true, force: true}));
+  const version = 'actql-installed-effect-construction-fixture/0.1';
+  const profilePath = join(root, 'profile.json'), runtimePath = join(root, 'runtime.mjs');
+  await fs.writeFile(profilePath, JSON.stringify({version, connectorId: 'construction'}));
+  await fs.writeFile(runtimePath, 'export const identityOnly = true;\n');
+  const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, events = [];
+  const ok = value => ({$tag: 1, _0: value}), cid = 'sha256:' + 'a'.repeat(64);
+  const declared = {evidence_schemas: [], evidence_capabilities: [], view_bodies: [],
+    contracts: [], catalog: '{}', manifest_entry: '{}'};
+  const environmentWire = JSON.stringify({version: 'actql-check-environment/0.1',
+    connector_catalogs: [], schema_snapshots: [], connector_capabilities: [], mapping_contracts: []});
+  const refusal = new Error('original Mapping backing refusal'), pendingClose = new Error('original Site cleanup pending');
+  let mappingPhase = false, retained, prepared, installedOptions, closePending = true, nativeRetire = 0;
+  const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
+    'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
+    'AbortUncontinuedSourceMaterial', 'ChargeInstalledSourceIo', 'MarkInstalledSourceIoTransferUncertain',
+    'FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
+  Object.assign(moon, {
+    strategyRemoteManagedOutputEvidenceKind: () => 'explicit-unused-kind',
+    clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
+    clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
+    clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
+    clientProgramReserveInstalledSourceConstruction(value, original) {
+      assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
+      if (mappingPhase && refuseMapping) throw refusal;return ok();
+    },
+    clientProgramBeginInstalledSourceIo: () => ok({}),
+    clientProgramRetireInstalledSourceMaterial(value, original) {
+      assert.equal(value, capacity);assert.equal(original, input);nativeRetire++;return ok(true);
+    },
+    clientProgramRowSourceRestoreRelationDeclaration() {assert.equal(events.at(-1), 'reserve');events.push('declaration');return ok(declaration);},
+    clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(declared);},
+    clientProgramRowSourcePrepareMapping(value, writes, resource, sources) {
+      assert.equal(value, declaration);assert.equal(writes, '{"original":"writes"}');
+      assert.equal(resource, 'records');assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+      assert.equal(events.at(-1), 'reserve');events.push('mapping');
+      return JSON.stringify({mapping_ref: 'mapping:construction/create.v1', mapping_cid: cid,
+        body: JSON.stringify({mapping_contract_cid: cid, target_ref: 'connector://construction/records',
+          minimum_approval: 'required', permission_rules: [{effect_kind: 'create', permissions: ['write']}]}),
+        write_fields: ['label'], omittable: []});
+    },
+  });
+  const services = createInstalledHostServices({root, principalId: 'fixture', moon,
+    initialPreparation: initial, assertCurrent() {}});
+  const writes = Object.freeze([Object.freeze({resource: 'records', sources: Object.freeze([
+    Object.freeze({target: 'label', field: 'label', null_behavior: 'reject'})])})]);
+  const unused = () => assert.fail('No provider/Account operation in this constructor component');
+  const site = {issueEffectGrant: unused, issueReadGrant: unused,
+    async close() {if (closePending) throw pendingClose;}};
+  const driver = {kinds: ['create'], prepareRequest: unused, requestFacts: unused,
+    writeOperation: unused, send: unused, project: unused, footprint: unused};
+  const connectorTable = createInstalledConnectorTable([{name: 'effect_construction_fixture',
+    registration: 'effect_construction_fixture', revision: 'effect_construction_fixture/0.1', effect: {
+      profileVersion: version, load: async () => ({check: value => value, identityParts: unused,
+        async load(_profile, options) {
+          retained = options.sourceInitialization;
+          assert.equal(typeof retained?.prepareDeclaration, 'function', 'same original initial constructor before native work');
+          prepared = retained.prepareDeclaration([], undefined);
+          mappingPhase = true;
+          prepared = retained.prepareMappings('{"original":"writes"}', writes);
+          assert.equal(prepared.declaration, declaration);
+          assert.equal(JSON.parse(prepared.environment.wire).mapping_contracts.length, 1);
+          installedOptions = {moon, mappings: prepared.mappings, environmentWire: prepared.environment.wire,
+            declaration, declared: prepared.declared, environment: prepared.environment, sourceInitialization: retained,
+            connectorId: 'construction', connectorRegistration: options.installation.registration,
+            connectorRevision: options.installation.revision, installation: options.installation,
+            connection: 'explicit-construction', site, authorization: {authorize: unused},
+            runtimeBundleCid: options.runtimeBundleCid, bindingCid: cid, ledgerRoot: join(root, 'ledger'), driver};
+          return createInstalledRowEffect(installedOptions);
+        },
+      }),
+    }}]);
+  return {run: () => loader.loadInstalledEffect(profilePath, {root, principalId: 'fixture', moon,
+    runtimeUrl: pathToFileURL(runtimePath), baseEnvironmentWire: environmentWire, connectorTable, installationServices: services}),
+    services, events, refusal, pendingClose, options: () => installedOptions,
+    allowClose() {closePending = false;}, retired: () => nativeRetire};
+}
+
+test('Effect construction retains original Mapping Environment and adapter until the same Site cleanup', async t => {
+  const f = await constructionFixture(t), adapter = await f.run();
+  assert.deepEqual(f.events.slice(-4), ['reserve', 'declaration', 'reserve', 'mapping']);
+  assert.equal(retireInstalledSourceInitialization(f.services), false);
+  await assert.rejects(adapter.close(), error => error === f.pendingClose);
+  assert.equal(retireInstalledSourceInitialization(f.services), false);assert.equal(f.retired(), 0);
+  f.allowClose();await adapter.close();
+  assert.equal(retireInstalledSourceInitialization(f.services), true);assert.equal(f.retired(), 1);
+});
+
+test('Effect construction refuses Mapping backing before the native Mapping or Site constructor', async t => {
+  const f = await constructionFixture(t, {refuseMapping: true});
+  await assert.rejects(f.run(), error => error === f.refusal);
+  assert.equal(f.events.includes('mapping'), false);assert.equal(f.options(), undefined);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect construction refuses copied context or changed original Environment without another constructor', async t => {
+  const f = await constructionFixture(t), adapter = await f.run(), original = f.options();
+  for (const changed of [{sourceInitialization: Object.freeze({...original.sourceInitialization})},
+    {environment: Object.freeze({...original.environment})}]) {
+    await assert.rejects(createInstalledRowEffect({...original, ...changed}), {code: 'ForeignInstalledSourceConstruction'});
+  }
+  assert.equal(f.events.filter(value => value === 'mapping').length, 1);
+  f.allowClose();await adapter.close();assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
