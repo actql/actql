@@ -15613,6 +15613,202 @@
           }
         }
       ]
+    },
+    {
+      "module": "packages/local-node/observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "acb9f75ac03543079b6e2ffe72f48b66206e3ba98b65cf76194bd60fae855fa9",
+      "exports": [
+        "createHostObservationConnection",
+        "observationLimits"
+      ],
+      "operations": [],
+      "imports": [
+        "./adapters/host-common/observation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing canonical Host observation and Result access services; public typed forwarding only",
+      "rationale": "Original values and private nominal/service ownership are retained. The public facade issues no authority and adds no callback, currentness observation, capacity or cleanup owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createHostObservationConnection",
+            "observationLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Public runtime entry points forward the values declared by their existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "TypeScript interfaces. Local observation exposes `createHostObservationConnection`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Each export is the canonical implementation's original function or value."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The facade creates no wrapper, alternate registry, authority or lifecycle owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The module forwards no calls and adds no callback or asynchronous boundary."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Failures retain the canonical error class, code, cause and cleanup behavior."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Current authorization, delivery sequencing, cancellation and physical cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Importing a facade does not allocate a Run, reserve capacity or grant access."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Extensions require the existing typed and runtime public surfaces to agree."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Source-level facade checks compare actual namespaces and original identities,"
+              },
+              {
+                "path": "scripts/runtime-package-inputs.test.mjs",
+                "anchor": "test('public observation facade"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/run-host-core/result-access-public.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "55649f64f3a67ee282c533f8d65761d975f333020c835eb3ee33c7d28a773515",
+      "exports": [
+        "deliverAuthorizedResult",
+        "describeAuthorizedResult",
+        "inspectAuthorizedDeliveryAttempt",
+        "installResultAccessAuthority",
+        "installResultAccessService"
+      ],
+      "operations": [],
+      "imports": [
+        "./result-access.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing canonical Host observation and Result access services; public typed forwarding only",
+      "rationale": "Original values and private nominal/service ownership are retained. The public facade issues no authority and adds no callback, currentness observation, capacity or cleanup owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "deliverAuthorizedResult",
+            "describeAuthorizedResult",
+            "inspectAuthorizedDeliveryAttempt",
+            "installResultAccessAuthority",
+            "installResultAccessService"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Public runtime entry points forward the values declared by their existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "TypeScript interfaces. Local observation exposes `createHostObservationConnection`"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Each export is the canonical implementation's original function or value."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The facade creates no wrapper, alternate registry, authority or lifecycle owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "The module forwards no calls and adds no callback or asynchronous boundary."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Failures retain the canonical error class, code, cause and cleanup behavior."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Current authorization, delivery sequencing, cancellation and physical cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Importing a facade does not allocate a Run, reserve capacity or grant access."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Extensions require the existing typed and runtime public surfaces to agree."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/runtime-public-facades.md",
+                "anchor": "Source-level facade checks compare actual namespaces and original identities,"
+              },
+              {
+                "path": "scripts/runtime-package-inputs.test.mjs",
+                "anchor": "test('public Result facade"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,21 @@
 # Installed Local Node Host
 
+## Public helper imports
+
+`@actql/local-node/observation` exposes `createHostObservationConnection` and
+`observationLimits`, with the existing observation types. Its previously exposed
+untyped installation, projection and context implementation helpers are no
+longer exported from that public entry. The canonical Host implementation keeps
+those helpers and the same nominal connection identity.
+
+`@actql/run-host-core/result-access` retains all five typed service functions:
+`installResultAccessAuthority`, `installResultAccessService`,
+`deliverAuthorizedResult`, `inspectAuthorizedDeliveryAttempt`, and
+`describeAuthorizedResult`. The previously exposed, untyped `ResultAccessError`
+constructor is no longer a public import. Existing failures retain their original
+class, code, cause and cleanup behavior. Use the typed service entry points;
+these public import changes do not replace current authorization or cleanup.
+
 `@actql/node` includes this package in its standard installation. Embedded
 `connect({mode: 'local', owner: 'local'})` lazily loads the checked MoonBit
 compiler and runtime, and the built-in Local Host adapters.

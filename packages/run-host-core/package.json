@@ -12,7 +12,7 @@
     },
     "./result-access": {
       "types": "./result-access.d.ts",
-      "default": "./result-access.mjs"
+      "default": "./result-access-public.mjs"
     },
     "./observation": {
       "types": "./observation.d.ts",
@@ -28,7 +28,7 @@
     }
   },
   "dependencies": {"@actql/client-wire": "0.0.0-development"},
-  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.ts", "publication-action.mjs", "result-access.mjs",
+  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.ts", "publication-action.mjs", "result-access.mjs", "result-access-public.mjs",
     "result-access.d.ts", "result-delivery.mjs", "managed-failure.mjs",
     "observation.mjs", "observation.d.ts",
     "checkpoints.mjs", "checkpoints.d.ts",
