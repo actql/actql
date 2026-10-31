@@ -312,3 +312,60 @@ test "closed managed operation rechecks Resource originals after the nonescaping
     cleanup_node_managed_run_admission(admission).unwrap()
   }
 }
+
+///|
+test "closed managed controls share the one original boundary without a dummy body" {
+  let calls = Ref(0)
+  let (admission, prepared, ledger) = atomic_managed_run_reservation_fixture(() => {
+    calls.val += 1
+  })
+  let refused : () -> Result[Unit, String] = () => Err("retired")
+  let before = ledger_usage(ledger)
+  let serials = (ledger.next_capacity_serial, ledger.next_attempt_serial)
+  let observed = calls.val
+  assert_true(
+    reserve_node_managed_run_operation_controls(
+      admission,
+      prepared,
+      ledger,
+      refused,
+      None,
+      7L,
+      5L,
+    )
+    is Err(Original("retired")),
+  )
+  assert_eq(calls.val, observed + 1)
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq((ledger.next_capacity_serial, ledger.next_attempt_serial), serials)
+  let original : () -> Result[Unit, String] = () => Ok(())
+  let observed = calls.val
+  let control = reserve_node_managed_run_operation_controls(
+    admission,
+    prepared,
+    ledger,
+    original,
+    None,
+    7L,
+    5L,
+  ).unwrap()
+  assert_eq(calls.val, observed + 1)
+  let debited = ledger_usage(ledger)
+  let observed = calls.val
+  let reused = reserve_node_managed_run_operation_controls(
+    admission,
+    prepared,
+    ledger,
+    original,
+    Some(control),
+    7L,
+    5L,
+  ).unwrap()
+  assert_eq(calls.val, observed + 1)
+  assert_true(physical_equal(reused, control))
+  assert_eq(ledger_usage(ledger), debited)
+  assert_eq(debited.attempts, before.attempts)
+  assert_eq(ledger.next_attempt_serial, serials.1)
+  settle_capacity(ledger, control).unwrap()
+  cleanup_node_managed_run_admission(admission).unwrap()
+}

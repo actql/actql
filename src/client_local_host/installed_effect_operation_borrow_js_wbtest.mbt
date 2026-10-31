@@ -435,7 +435,12 @@ test "original Effect controls are debited once before the consumer borrows a bo
     is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   let original = owner.effect_operation_controls.unwrap()
   let debited = @resources.ledger_usage(ledger)
   assert_eq(
@@ -445,7 +450,12 @@ test "original Effect controls are debited once before the consumer borrows a bo
       plan.operation_control_capacity,
     ),
   )
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   assert_true(
     physical_equal(original, owner.effect_operation_controls.unwrap()),
   )
@@ -531,7 +541,12 @@ test "member capture and row constructor retain distinct original same Request r
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = owner.ledger.unwrap()
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   let before = @resources.ledger_usage(ledger)
   let capture_prefix = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, false, 0, 0, "capture",
@@ -587,7 +602,12 @@ test "ordinary prepaid Effect operation controls still observe current once for 
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
-  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  assert_true(
+    physical_equal(
+      begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap(),
+      plan,
+    ),
+  )
   let original = owner.effect_operation_controls.unwrap()
   let before = calls.val
   let operation = borrow_installed_effect_operation(
@@ -600,4 +620,51 @@ test "ordinary prepaid Effect operation controls still observe current once for 
   )
   assert_true(retire_installed_effect_operation(operation, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "Effect control initialization returns the original Plan after one current and preserves reuse" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let before = calls.val
+  let first = begin_installed_effect_operation_controls(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(physical_equal(first, plan))
+  let control = owner.effect_operation_controls.unwrap()
+  let debited = @resources.ledger_usage(owner.ledger.unwrap())
+  let before = calls.val
+  let again = begin_installed_effect_operation_controls(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(physical_equal(again, plan))
+  assert_true(
+    owner.effect_operation_controls is Some(original) &&
+    physical_equal(original, control),
+  )
+  assert_eq(@resources.ledger_usage(owner.ledger.unwrap()), debited)
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "zero Effect occurrences still retain the fixed control initialization frame" {
+  let capacity = installed_effect_operation_control_capacity(0).unwrap()
+  // Existing conservative Host-call upper:34 headers16 +145 refs8 +18 words8.
+  // This is the fixed call, not an invented operation or an attempt allowance.
+  let fixed_frame = 34L * 16L + 145L * 8L + 18L * 8L
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let execution = @execution.execution_capacity_execution_bytes(capacity)
+  assert_true(retained >= fixed_frame)
+  assert_true(execution >= retained)
 }

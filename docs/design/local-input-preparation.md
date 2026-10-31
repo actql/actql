@@ -3905,3 +3905,13 @@ new control returned afterwards cannot fund an earlier allocation. The normal
 prepaid-control entrance and the original Run prelude retain those separate
 construction obligations. Independent Plan reads and real external/I/O/await
 boundaries keep their own current checks.
+
+Control initialization uses the same closed original boundary without creating
+a dummy operation body. The existing controls entrance returns its same
+immutable Plan after reserving/reusing the original control; it does not issue
+current authority. This lets an immediate same-original caller consume that
+result without obtaining the same Plan again. An independent later read still
+uses its actual bound getter. Any intervening callback or I/O keeps its own
+currentness obligations and original-state fences; no prechecked-Plan cache is
+introduced. The same opening latch and fixed aggregate call envelope apply to
+control initialization and body borrowing, with no additional capacity phase.
