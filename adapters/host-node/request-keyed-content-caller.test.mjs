@@ -22,7 +22,7 @@ function method(file, name, ports) {
   return Function(...Object.keys(ports),`return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
-async function fixture({failurePhase,failure}={}) {
+async function fixture({failurePhase,failure,failKeyedRead}={}) {
   const prepared={},request={},sdkRequest={},parent={},input={},holder={},original={},value={},selected={},compilation={};
   const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
   const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
@@ -40,6 +40,11 @@ async function fixture({failurePhase,failure}={}) {
       assert.equal(state.contentPlan,selected);calls.push('compile');if(failurePhase==='compile')throw failure;return ok(compilation);},
     clientProgramInstalledManagedRunCheck(v,p,r){assert.deepEqual([v,p,r],[value,prepared,request]);return ok();},
     clientProgramInstalledManagedRunRetire(){assert.fail('Local child cannot retire its Host parent');},
+    clientProgramInstalledManagedKeyedSourceRead(v,k,r,d){
+      assert.deepEqual([v,k,d],[value,keyed,declaration]);calls.push('keyed-read');
+      if(failKeyedRead)throw failKeyedRead;return ok({originalRequest:r});
+    },
+    clientProgramInstalledKeyedSourceReadRetire(){calls.push('keyed-retire');return ok();},
     clientProgramNodeLocalContentRunPrepare(){assert.fail('No independent Content admission');},
     clientProgramInstalledManagedKeyedContentRunBegin(){assert.fail('No standalone Content begin');},
     clientProgramLocalFileTimestamp(){},clientProgramResourceReferenceIssuer:()=>({}),
@@ -101,7 +106,7 @@ async function fixture({failurePhase,failure}={}) {
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
     prepareKeyedManagedRun:(p,r,g,recipe)=>profile.prepareManagedContentRun(p,r,recipe,g),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
-  return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,
+  return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,
     child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
     compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
     bind:()=>content.prepareManagedKeyedRun({preparedProgram:prepared,request,plan,keyedAcquisition:keyed})};
@@ -165,4 +170,23 @@ test('actual planFor forwards its original keyed selection through adoption befo
   const planFor=Function(...Object.keys(ports),`return (${source.slice(selected.start,selected.end)});`)(...Object.values(ports));
   assert.equal(planFor({preparedProgram:f.prepared,requestId:'original-request'},undefined,f.request,f.keyed),f.plan);
   assert.deepEqual(f.calls,['prefix','selected','compile','complete','adopt','task-run']);await f.profile.close();
+});
+
+
+test('Local keyed reader closes its exact Core tuple once and leaves only a weak close tombstone',async()=>{
+  const f=await fixture();f.compile();
+  const original=f.localOptions.prepareKeyedSourceRead({checkedOwner:f.prepared,keyedAcquisition:f.keyed,request:{},declaration:f.declaration});
+  assert.deepEqual(await f.localOptions.closeKeyedSourceRead(original),{pending:false});
+  assert.deepEqual(await f.localOptions.closeKeyedSourceRead(original),{pending:false});
+  await assert.rejects(f.localOptions.closeSourceRead(original),{code:'ForeignLocalFilesSourcePreparation'});
+  await f.localOptions.site.close();await f.profile.close();
+  assert.equal(f.calls.filter(x=>x==='keyed-retire').length,1);
+});
+
+test('Local partial keyed reader keeps its original child without inventing a Core tuple or parent ACK',async()=>{
+  const primary=new Error('same original keyed read refusal'),f=await fixture({failKeyedRead:primary});f.compile();
+  const request={};assert.throws(()=>f.localOptions.prepareKeyedSourceRead({checkedOwner:f.prepared,keyedAcquisition:f.keyed,request,declaration:f.declaration}),e=>e===primary);
+  assert.throws(()=>f.localOptions.prepareKeyedSourceRead({checkedOwner:f.prepared,keyedAcquisition:f.keyed,request,declaration:f.declaration}),{code:'LocalFilesSourcePreparationMismatch'});
+  await f.localOptions.site.close();await f.profile.close();
+  assert.equal(f.calls.filter(x=>x==='keyed-read').length,1);assert.equal(f.calls.includes('keyed-retire'),false);
 });
