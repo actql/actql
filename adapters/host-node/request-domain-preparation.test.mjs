@@ -204,6 +204,7 @@ function adoptionFixture(family, failure) {
     {request(_originals, actual) {assert.equal(actual, prepared); return request;}}, {},
     actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result);
   return {state, model, plan, scope, value, calls, original, producer, runs, liveRuns, prepared,
+    adoptModel: actual => object[name](prepared, identity, plan, actual),
     adopt: () => family === 'model' ? object[name](prepared, identity, plan, model) : object[name](prepared, identity, plan)};
 }
 
@@ -230,4 +231,14 @@ test('keyed Content completion and adoption preserve the original parent and sel
   assert.throws(g.adopt, error => error === primary);
   assert.equal(g.state.contentPlan, g.plan); assert.throws(g.adopt, error => error === primary);
   assert.deepEqual(g.calls, ['complete']); assert.equal(g.producer.liveRuns, 0);
+});
+
+test('Model Scope cannot be acquired for a copied graph or accessor-owned cleanup carrier', () => {
+  const f = adoptionFixture('model');
+  const proxy = new Proxy(f.model, {get() {assert.fail('Proxy carrier must not be observed');}});
+  assert.throws(() => f.adoptModel(proxy), {code: 'ForeignInstalledSourceProducer'});
+  assert.throws(() => f.adoptModel({...f.model, graph: {}}), {code: 'ForeignInstalledSourceProducer'});
+  const accessor = {graph: f.model.graph, get scope() {assert.fail('Scope accessor must not be observed');}};
+  assert.throws(() => f.adoptModel(accessor), {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(f.calls, []); assert.equal(f.producer.liveRuns, 0);
 });

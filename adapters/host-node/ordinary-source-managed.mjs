@@ -841,11 +841,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const request = callbacks.request(originals, prepared);
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
-      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+      if (model === null || typeof model !== 'object' || types.isProxy(model) ||
+          state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
           state.modelCompilation === undefined || state.modelGraph !== model?.graph ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
-          liveRuns.size >= 4096 || model === null || typeof model !== 'object' || types.isProxy(model)) {
+          liveRuns.size >= 4096) {
         fail('ForeignInstalledSourceProducer');
       }
       // This is the existing physical caller's record, retained before entry.
