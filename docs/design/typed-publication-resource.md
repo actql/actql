@@ -101,8 +101,14 @@ make the execution free. Repeated notifications after currentness reentry
 preserve the first immutable completion, including its unreclaimed scratch.
 
 Reservation and holding identities advance independently of reusable inventory
-slots. Removing an expired record clears its actual reference; a scalar slot
-index is neither a new identity nor another grant. A closed reservation remains
+slots. The same owner's builtin ordered Map indexes original serials; removal
+still compares the actual token reference, so an equal key authenticates nothing.
+The scalar ordinal view is rebuilt only when a later indexed reader needs it.
+Appending or retiring tokens neither searches occupied slots nor shifts the
+remaining inventory. The last-holder count indexes only actual live holdings;
+consumed attempts, work and uncertainty never enter that count. Removing an
+expired record clears its actual reference; the index is neither a new identity
+nor another grant. A closed reservation remains
 in the live inventory while a retained output still needs its original binding.
 The last holding's retirement can remove that record, while the issuance cursor
 continues to exclude stale identities and fresh-prefix reuse.

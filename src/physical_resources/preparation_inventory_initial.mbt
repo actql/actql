@@ -1,10 +1,8 @@
 ///|
-/// Owned initial census representation: headers/reference slots/scalar words,
-/// not byte prices or an allocation grant. Resource owns these record/array
-/// shapes; its fixed consumer applies the existing common tariff once.
-/// Arrays reserve the supplied finite slot backing before use. Every live
-/// slot includes its Some, reference backing and scalar issuance-order slot.
-/// The returned DATA may be retained in the installed baseline before entry.
+/// Owned census representation, including builtin linked Map construction and
+/// growth, not byte prices or an allocation grant. The same consumer applies
+/// the existing common tariff once before construction/growth. Keys only index
+/// original tokens; live holding counts and scalar issuance order are DATA.
 pub fn preparation_inventory_initial_control_slots(
   max_reservations : Int,
   max_holdings : Int,
@@ -20,11 +18,35 @@ pub fn preparation_inventory_initial_control_slots(
   let slots = max_reservations.to_int64() +
     max_holdings.to_int64() +
     max_delegations.to_int64()
-  // Inventory1H6R8W (including original attempt offset), identity1H2R,
-  // three slot records3H6R,
-  // six array headers6H, ledger Some and returned identity Ok2H2R2W.
-  // Each possible live entry adds Some1H1R1W + backing1R + order1W.
-  Some((13L + slots, 16L + 2L * slots, 10L + 2L * slots))
+  // Inventory1H7R8W, identity1H2R, three slot records3H6R3W,
+  // ledger Some and returned identity Ok2H2R2W. Three scalar order arrays;
+  // three original-token Maps and one count Map with <=max_holdings entries.
+  guard @shape.collection_construction_extent({
+      records: 7L,
+      record_references: 17L,
+      record_words: 13L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 3L,
+      scalar_items: slots,
+      maps: 4L,
+      map_entries: slots + max_holdings.to_int64(),
+    })
+    is Some(body) else {
+    return None
+  }
+  // any/all holds one borrowed Map values iterator and one next result at a
+  // time. The existing generic pair recipe is an upper bound for value-only
+  // iteration. No iterator or ordinal cache survives an owning clear.
+  let iterator = @shape.reference_map_iterator_construction_extent()
+  let next = @shape.reference_map_iterator_next_construction_extent()
+  Some(
+    (
+      body.record_headers + iterator.record_headers + next.record_headers,
+      body.reference_slots + iterator.reference_slots + next.reference_slots,
+      body.scalar_words + iterator.scalar_words + next.scalar_words,
+    ),
+  )
 }
 
 ///|
@@ -144,6 +166,8 @@ pub fn[I, P] discard_unbound_preparation_capacity_inventory(
   value.holdings.shrink_to_fit()
   value.delegations.clear()
   value.delegations.shrink_to_fit()
+  value.holding_counts.clear()
+  value.holding_counts = Map([])
   owner.ledger.original_inventory = None
   Ok(())
 }

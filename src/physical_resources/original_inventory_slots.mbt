@@ -1,70 +1,85 @@
 ///|
-// Reusable control slots owned by the existing Ledger inventory. Vacated
-// references become None; index order preserves the live issuance inventory.
-// Neither array is an identity issuer, capacity grant or independent owner.
+// Same-Ledger serial DATA selects an original; it never authenticates one.
+// The builtin linked Map preserves live issuance order and unlinks by key.
+// Only the scalar ordinal view is rebuilt, once when an actual indexed reader
+// next needs it. No token array is shifted or searched during retirement.
 priv struct OriginalTokenSlots[T] {
-  slots : Array[T?]
+  mut values : Map[Int, T]
   order : Array[Int]
+  mut order_dirty : Bool
 }
 
 ///|
 fn[T] original_token_slots(capacity? : Int = 0) -> OriginalTokenSlots[T] {
-  { slots: Array(capacity~), order: Array(capacity~), }
+  { values: Map([]), order: Array(capacity~), order_dirty: false, }
 }
 
 ///|
-// The caller has already grown the SAME census's full logical backing.
-// Reserve its exact selected capacity now, so later push never silently grows
-// from the old six-slot buffer to a larger geometric spare allocation.
+// The SAME inventory's owner has already admitted full Map construction/growth
+// and this scalar backing. The builtin Map grows under that same envelope;
+// this method does not copy/reissue originals or publish a spare logical slot.
 fn[T] OriginalTokenSlots::reserve_capacity(
   self : OriginalTokenSlots[T],
   capacity : Int,
 ) -> Unit {
-  self.slots.reserve_capacity(capacity)
   self.order.reserve_capacity(capacity)
 }
 
 ///|
 fn[T] OriginalTokenSlots::length(self : OriginalTokenSlots[T]) -> Int {
-  self.order.length()
+  self.values.length()
 }
 
 ///|
 fn[T] OriginalTokenSlots::is_empty(self : OriginalTokenSlots[T]) -> Bool {
-  self.order.is_empty()
+  self.values.is_empty()
 }
 
 ///|
 #alias("_[_]")
 fn[T] OriginalTokenSlots::get(self : OriginalTokenSlots[T], index : Int) -> T {
-  self.slots[self.order[index]].unwrap()
-}
-
-///|
-fn[T] OriginalTokenSlots::push(self : OriginalTokenSlots[T], value : T) -> Unit {
-  for index in 0..<self.slots.length() {
-    if self.slots[index] is None {
-      self.slots[index] = Some(value)
-      self.order.push(index)
-      return
-    }
+  if self.order_dirty {
+    self.order.clear()
+    self.values.each(fn(serial, _) { self.order.push(serial) })
+    self.order_dirty = false
   }
-  let index = self.slots.length()
-  self.slots.push(Some(value))
-  self.order.push(index)
+  self.values[self.order[index]]
 }
 
 ///|
-fn[T] OriginalTokenSlots::remove(
+// Production serials are issued once by the SAME Ledger. White-box descriptor
+// fixtures use explicit occurrence keys so duplicate inputs remain duplicates.
+fn[T] OriginalTokenSlots::push(
   self : OriginalTokenSlots[T],
-  index : Int,
-) -> T {
-  let slot = self.order.remove(index)
-  let value = self.slots[slot].unwrap()
-  // Array.remove on non-JS backends retains an unused tail reference. Only
-  // scalar indices use it here; the actual token slot is explicitly cleared.
-  self.slots[slot] = None
-  value
+  value : T,
+  serial : Int,
+) -> Unit {
+  self.values[serial] = value
+  self.order_dirty = true
+}
+
+///|
+fn[T] OriginalTokenSlots::by_serial(
+  self : OriginalTokenSlots[T],
+  serial : Int,
+) -> T? {
+  self.values.get(serial)
+}
+
+///|
+// A matching DATA key alone cannot remove a copied or foreign token.
+fn[T] OriginalTokenSlots::remove_original(
+  self : OriginalTokenSlots[T],
+  serial : Int,
+  original : T,
+) -> Bool {
+  guard self.values.get(serial) is Some(value) &&
+    physical_equal(value, original) else {
+    return false
+  }
+  self.values.remove(serial)
+  self.order_dirty = true
+  true
 }
 
 ///|
@@ -72,8 +87,8 @@ fn[T] OriginalTokenSlots::any(
   self : OriginalTokenSlots[T],
   predicate : (T) -> Bool,
 ) -> Bool {
-  for index in 0..<self.length() {
-    if predicate(self[index]) {
+  for value in self.values.values() {
+    if predicate(value) {
       return true
     }
   }
@@ -98,16 +113,16 @@ fn[T, U] OriginalTokenSlots::map(
 
 ///|
 fn[T] OriginalTokenSlots::clear(self : OriginalTokenSlots[T]) -> Unit {
-  for index in 0..<self.slots.length() {
-    self.slots[index] = None
-  }
-  self.slots.clear()
-  self.slots.release_unused(placeholder=None)
+  // Map.clear clears every bucket and the head, dropping actual token refs.
+  self.values.clear()
   self.order.clear()
+  self.order_dirty = false
 }
 
 ///|
 fn[T] OriginalTokenSlots::shrink_to_fit(self : OriginalTokenSlots[T]) -> Unit {
-  self.slots.shrink_to_fit()
+  if self.values.is_empty() {
+    self.values = Map([])
+  }
   self.order.shrink_to_fit()
 }

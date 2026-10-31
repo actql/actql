@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
 }
 
 import {
@@ -11,6 +12,7 @@ import {
 
 options(
   targets: {
+    "original_inventory_index_js_wbtest.mbt": [ "js" ],
     "preparation_inventory_backing_nonjs_wbtest.mbt": [ "not", "js" ],
     "node_managed_run_admission.mbt": [ "js" ],
     "node_preparation_admission.mbt": [ "js" ],

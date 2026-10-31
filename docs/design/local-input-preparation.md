@@ -4516,10 +4516,11 @@ The Scope owner declares the representation of its original binding and Scope
 records. Resource separately owns the census-slot representation. The existing
 Request uses those two declarations and the common tariff to reserve only the
 new Scope records and the increase from its initial six-slot census, before
-binding either a Pure or Effect Model. The same Resource census reserves its
-exact selected array capacity after that debit, preserving token identities,
-issuance order and consumed history. Later pushes within that selected bound
-do not create an unquoted geometric spare allocation.
+binding either a Pure or Effect Model. The same Resource census reserves exact scalar order backing after that debit,
+while its builtin linked Maps grow under the same admitted construction envelope.
+It preserves token identities, live issuance order and consumed history. The
+Resource projection includes Map entries/buckets and their growth overlap;
+later pushes within that selected bound do not spend unquoted spare backing.
 
 The Request's fixed entrance separately prepays the quotation/return controls,
 its resident quote reference and the initial backing-array copy overlap. A

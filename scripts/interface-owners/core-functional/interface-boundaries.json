@@ -53655,14 +53655,14 @@
               },
               {
                 "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
-                "anchor": "test \"exact selected census backing avoids a later geometric allocation"
+                "anchor": "test \"exact scalar census backing and indexed originals"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "fa7f97ed7c0f77e6ab18a7667a8a4e4260bfea75b4a18fd25d26bd14d77acb0a"
+      "sha256": "11de5106db5bb6be2d639a6cc82e32d2872e9f32ab0efb4238c9ddabac6dc479"
     },
     {
       "module": "src/physical_resources/original_inventory_slots.mbt",
@@ -53672,14 +53672,74 @@
       "exports": [],
       "operations": [
         {
+          "name": "[T,U]OriginalTokenSlots::map",
+          "declaration": "[ T , U ] OriginalTokenSlots : : map ( self : OriginalTokenSlots [ T ] , f : ( T ) - > U , ) - > Array [ U ]"
+        },
+        {
+          "name": "[T]original_token_slots",
+          "declaration": "[ T ] original_token_slots ( capacity ? : Int"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::all",
+          "declaration": "[ T ] OriginalTokenSlots : : all ( self : OriginalTokenSlots [ T ] , predicate : ( T ) - > Bool , ) - > Bool"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::any",
+          "declaration": "[ T ] OriginalTokenSlots : : any ( self : OriginalTokenSlots [ T ] , predicate : ( T ) - > Bool , ) - > Bool"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::by_serial",
+          "declaration": "[ T ] OriginalTokenSlots : : by_serial ( self : OriginalTokenSlots [ T ] , serial : Int , ) - > T ?"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::clear",
+          "declaration": "[ T ] OriginalTokenSlots : : clear ( self : OriginalTokenSlots [ T ] ) - > Unit"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::get",
+          "declaration": "[ T ] OriginalTokenSlots : : get ( self : OriginalTokenSlots [ T ] , index : Int ) - > T"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::is_empty",
+          "declaration": "[ T ] OriginalTokenSlots : : is_empty ( self : OriginalTokenSlots [ T ] ) - > Bool"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::length",
+          "declaration": "[ T ] OriginalTokenSlots : : length ( self : OriginalTokenSlots [ T ] ) - > Int"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::push",
+          "declaration": "[ T ] OriginalTokenSlots : : push ( self : OriginalTokenSlots [ T ] , value : T , serial : Int , ) - > Unit"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::remove_original",
+          "declaration": "[ T ] OriginalTokenSlots : : remove_original ( self : OriginalTokenSlots [ T ] , serial : Int , original : T , ) - > Bool"
+        },
+        {
           "name": "[T]OriginalTokenSlots::reserve_capacity",
           "declaration": "[ T ] OriginalTokenSlots : : reserve_capacity ( self : OriginalTokenSlots [ T ] , capacity : Int , ) - > Unit"
+        },
+        {
+          "name": "[T]OriginalTokenSlots::shrink_to_fit",
+          "declaration": "[ T ] OriginalTokenSlots : : shrink_to_fit ( self : OriginalTokenSlots [ T ] ) - > Unit"
         }
       ],
       "contracts": [
         {
           "operations": [
-            "[T]OriginalTokenSlots::reserve_capacity"
+            "[T,U]OriginalTokenSlots::map",
+            "[T]OriginalTokenSlots::all",
+            "[T]OriginalTokenSlots::any",
+            "[T]OriginalTokenSlots::by_serial",
+            "[T]OriginalTokenSlots::clear",
+            "[T]OriginalTokenSlots::get",
+            "[T]OriginalTokenSlots::is_empty",
+            "[T]OriginalTokenSlots::length",
+            "[T]OriginalTokenSlots::push",
+            "[T]OriginalTokenSlots::remove_original",
+            "[T]OriginalTokenSlots::reserve_capacity",
+            "[T]OriginalTokenSlots::shrink_to_fit",
+            "[T]original_token_slots"
           ],
           "exports": [],
           "attributes": {
@@ -53744,14 +53804,14 @@
               },
               {
                 "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
-                "anchor": "test \"exact selected census backing avoids a later geometric allocation"
+                "anchor": "test \"exact scalar census backing and indexed originals"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "020ff6d6bc9d90c9e3cb0206fee44d444dc13eaef9b28b1b5c6a6c5de793d0c8"
+      "sha256": "6d113066910b46d8b40c99e99b0e2db1c00dbaa40c54c9ca010e56dfb142c6d7"
     },
     {
       "module": "src/run_publication_host/client_model_read_preparation.mbt",
