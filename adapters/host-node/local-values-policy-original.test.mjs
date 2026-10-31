@@ -48,3 +48,63 @@ test('original publication owner remains required, independent of row count',()=
   const plan=f.make(f.options);
   assert.equal(plan.outputLimits.maxRows,121);
 });
+
+
+function timedOriginalFixture(kind='values',retained=false){
+  const prepared={},request={},artifact={},time={},context={},opaque=new Proxy({}, {get(){assert.fail('opaque Core Option read');}}),calls=[];
+  const compilation={kind,admission:{},compiledPlan:{identity:'plan'},preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'}};
+  const header={created_at:'2026-10-31T00:00:00.000Z',valid_until:'2026-11-01T00:00:00.000Z'};
+  const wire=JSON.stringify(header),definition={wire};let samples=0,nowReads=0;
+  const choose=name=>ast.body.map(n=>n.type==='ExportNamedDeclaration'?n.declaration:n).find(n=>n?.type==='FunctionDeclaration'&&n.id.name===name);
+  const names=['prepareTimedClientInvocation','bindQueryInvocation','checkedOriginalQueryInvocation','checkedTaskRunAdmission'];
+  const declarations=names.map(name=>{const n=choose(name);assert(n,name);return source.slice(n.start,n.end);}).join('\n');
+  const globals={sampleOriginalQueryTime:()=>{samples++;return header.created_at;},instant:ms=>new Date(ms).toISOString(),randomUUID:()=> 'one-original-run',cid:()=> 'context',policyCid:()=> 'policy',valuesExecutionContextCid:()=> 'context',retainOriginalPlan:plan=>plan};
+  const functions=Function(...Object.keys(globals),declarations+';return {prepareTimedClientInvocation,checkedOriginalQueryInvocation,checkedTaskRunAdmission};')(...Object.values(globals));
+  const control={
+    prepareClientQueryTime(p,r,at){assert.equal(p,prepared);assert.equal(r,request);assert.equal(at,header.created_at);calls.push('time');return time;},
+    prepareCheckedClientCompiledRun(p,k,policy,graph,original){assert.equal(p,prepared);assert.equal(k,kind);assert.equal(graph,undefined);assert.equal(original,artifact);assert.equal(policy.expiresAt,header.valid_until);calls.push('issue-compiled');return compilation;},
+    defineCheckedClientCompiledRun(c,h){assert.equal(c,compilation);assert.equal(h.createdAt,header.created_at);assert.equal(h.validUntil,header.valid_until);assert.equal(h.retainedDefinitionWire,retained?wire:undefined);calls.push('define');return definition;},
+    bindClientQueryTime(q,p,c,d,r){assert.equal(q,time);assert.equal(p,prepared);assert.equal(c,compilation);assert.equal(d,definition);assert.equal(r,request);calls.push('bind');return context;},
+    restoreClientQueryTime(p,c,d,r){assert.equal(p,prepared);assert.equal(c,compilation);assert.equal(d,definition);assert.equal(r,request);calls.push('restore-original');return {queryTimePreparation:time,queryTime:context};},
+    clientQueryTimeInvocationOriginal(q,p){assert.equal(q,time);assert.equal(p,prepared);calls.push('original-option');return opaque;},
+    checkClientCompiledRunOwner(c,p){assert.equal(c,compilation);assert.equal(p,prepared);},
+    checkClientCompiledRunDefinition(c,d){assert.equal(c,compilation);assert.equal(d,definition);},
+  };
+  const options={control,preparedProgram:prepared,requestIdentity:request,compilationOriginal:artifact,kind,authorityScopeCid:'scope',namespaceId:'namespace',now:()=>{nowReads++;return header.created_at;},...(retained?{retainedDefinitionWire:wire}:{})};
+  let carrier;const build=()=>{carrier=functions.prepareTimedClientInvocation(options);return carrier.retained;};
+  return {functions,build,options,control,prepared,request,compilation,definition,time,context,opaque,calls,get samples(){return samples;},get nowReads(){return nowReads;},get carrier(){return carrier;}};
+}
+
+test('timed original construction binds one sample and first compilation before forwarding Core Option',()=>{
+  for(const kind of ['values','tasks']){
+    const f=timedOriginalFixture(kind),original=f.build();
+    assert.equal(f.carrier.original,f.opaque);assert.equal(Object.hasOwn(original,'invocationOriginal'),false);assert.equal(original.compiled,f.compilation);assert.equal(original.runDefinition,f.definition);
+    assert.equal(original.queryTimePreparation,f.time);assert.equal(original.queryTime,f.context);assert.equal(original.requestIdentity,f.request);assert(Object.isFrozen(original));
+    assert.equal(f.samples,1);assert.equal(f.nowReads,1);assert.deepEqual(f.calls,['time','issue-compiled','define','bind','original-option']);
+  }
+});
+
+test('timed original restoration retains original header without sampling another query time',()=>{
+  const f=timedOriginalFixture('tasks',true),original=f.build();
+  assert.equal(f.samples,0);assert.equal(f.nowReads,1);assert.equal(original.runDefinition,f.definition);assert.equal(f.carrier.original,f.opaque);assert.equal(Object.hasOwn(original,'invocationOriginal'),false);
+  assert.deepEqual(f.calls,['issue-compiled','define','restore-original','original-option']);
+});
+
+test('timed original downstream Task admission reuses first Run and never issues or samples again',()=>{
+  const f=timedOriginalFixture('tasks'),original=f.build(),before=f.calls.slice();
+  const actual=f.functions.checkedTaskRunAdmission({...f.options,publicationPreparation:{},invocationOriginal:original,now:()=>assert.fail('second clock')},'tasks');
+  assert.equal(actual.compiled,f.compilation);assert.equal(actual.runDefinition,f.definition);assert.equal(actual.queryTimePreparation,f.time);assert.equal(actual.queryTime,f.context);
+  assert.deepEqual(f.calls,before);assert.equal(f.samples,1);
+  for(const update of [{preparedProgram:{}},{requestIdentity:{}},{retainedDefinitionWire:'foreign'}])assert.throws(()=>f.functions.checkedTaskRunAdmission({...f.options,...update,invocationOriginal:original},'tasks'),/ForeignClientQueryInvocationOriginal/);
+  assert.deepEqual(f.calls,before);
+});
+
+test('timed original downstream Values publication preserves first Run and full publication duties',()=>{
+  const f=timedOriginalFixture(),original=f.build(),publicationOriginal={},seen=[];
+  const globals={checkedOriginalQueryInvocation:f.functions.checkedOriginalQueryInvocation,prepareQueryInvocation:()=>assert.fail('second time preparation'),bindQueryInvocation:()=>assert.fail('second bind'),instant:()=>assert.fail('second header'),randomUUID:()=>assert.fail('second Run'),policyCid:()=> 'policy',valuesExecutionContextCid:()=> 'context',limits:{},checkedLocalOutputLimits:(moon,p,v)=>{assert.equal(p,f.prepared);assert.equal(v,publicationOriginal);return {maxRows:10};},localPublicationPlan:value=>{seen.push('publication');return Object.freeze(value);},valuesAdmissions:new WeakMap(),retainOriginalPlan:(plan,compiled,p)=>{assert.equal(compiled,f.compilation);assert.equal(p,f.prepared);seen.push('retain');return plan;}};
+  const n=ast.body.find(x=>x.type==='ExportNamedDeclaration'&&x.declaration?.id?.name==='sourceFreeValuesPlan').declaration;
+  const make=Function(...Object.keys(globals),'return ('+source.slice(n.start,n.end)+');')(...Object.values(globals));
+  f.control.issueCheckedClientCompiledInvocation=(c,d)=>{assert.equal(c,f.compilation);assert.equal(d,f.definition);seen.push('issue-publication');return {observation:{},invocation:{}};};
+  const before=f.calls.slice(),value=make({...f.options,moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},publicationOriginal,publicationPreparation:{},invocationOriginal:original,now:()=>assert.fail('second clock')});
+  assert.equal(value.runDefinition,f.definition);assert.equal(value.queryTimePreparation,f.time);assert.deepEqual(f.calls,before);assert.deepEqual(seen,['issue-publication','publication','retain']);
+});

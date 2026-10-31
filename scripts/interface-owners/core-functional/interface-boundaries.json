@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "0c4596969d79923f724db0f8ee6351196c2a8aa6e2c4c6d5e3aa7c75c8a3fb80",
+      "sha256": "556e3858b33b0661ef361fb61a7012ff61f9c4e41715bdae15e10bbaef2669f6",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -2497,6 +2497,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientManagedQueryInvocationOriginal/init:checkedClientManagedQueryInvocationOriginal",
+          "parameters": [
+            "run",
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
           "parameters": [
             "prepared",
@@ -2675,6 +2684,14 @@
             "read",
             "readRetainedBytes",
             "readExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:clientQueryTimeInvocationOriginal/init:clientQueryTimeInvocationOriginal",
+          "parameters": [
+            "original",
+            "prepared"
           ],
           "async": false
         },
@@ -8191,7 +8208,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -8337,7 +8354,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -9396,6 +9413,123 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkedClientManagedQueryInvocationOriginal/init:checkedClientManagedQueryInvocationOriginal",
+            "publicationControl/init:clientQueryTimeInvocationOriginal/init:clientQueryTimeInvocationOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "clientQueryTimeInvocationOriginal(original, prepared)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "timed original adopted getter checks all first tokens and refuses retired or foreign projections"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual timed invocation module resolves its canonical projection with registered original compilation"
               }
             ]
           }

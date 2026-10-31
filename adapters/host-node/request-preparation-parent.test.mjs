@@ -1485,3 +1485,92 @@ test('Request Model refuses foreign input Run Plan and accessor carrier before S
   assert.equal(f.events.includes('scope'), false);
   await f.failedCleanup();
 });
+
+// Actual manager/Request/Resource parent with explicit Core phase ports.
+// The Option is deliberately opaque: JavaScript must only forward it.
+async function originalTimedRequest({captured=false, compilationFailure, invocationFailure, moduleFailure}={}) {
+  const f=await originalCapturedRequest(), artifact={}, option=new Proxy({}, {get(){assert.fail('opaque original Option inspected by JS');}});
+  f.moon.clientProgramAcquisitionCount=actual=>{assert.equal(actual,f.prepared);return captured?1:0;};
+  f.moon.clientProgramRequiresQueryTime=function(actual,nodes,work){assert.equal(this,f.moon);assert.equal(actual,f.prepared);assert.equal(nodes,100000);assert.equal(work,100000);f.events.push('requires-time');return ok(true);};
+  f.moon.clientProgramPrepareRequestProgramCompilation=function(parent,input,contracts,retained){
+    assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(input,f.receipt);
+    assert.equal(contracts,f.originals.installation.sequenceContractOriginal.admission);assert.equal(retained,false);
+    f.events.push('artifact');if(compilationFailure)throw compilationFailure;return ok(artifact);
+  };
+  const module=function(...args){
+    assert.equal(this,f.moon);assert.equal(args[0],f.parent);assert.equal(args[1],f.receipt);
+    if(captured){assert.equal(args[2],f.plan);assert.equal(args[3],option);assert.equal(args.length,4);}
+    else {assert.equal(args[2],f.originals.installation.sequenceContractOriginal.admission);assert.equal(args[3],false);assert.equal(args[4],option);assert.equal(args.length,5);}
+    f.events.push('timed-module');if(moduleFailure)throw moduleFailure;return ok(undefined);
+  };
+  f.moon[captured?'clientProgramPrepareRequestCaptureModuleBody':'clientProgramPrepareRequestProgramModuleBody']=module;
+  if(!captured)f.moon.clientProgramAdoptRequestProgramPreparation=function(parent,identity){assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(identity,f.identity);f.events.push('adopt');return ok(f.value);};
+  const construct=actual=>{assert.equal(actual,artifact);f.events.push('bind-original');if(invocationFailure)throw invocationFailure;return option;};
+  const adopt=callback=>captured?f.view.adoptCapturePreparation(f.prepared,f.request,f.identity,()=>{f.events.push('capture-plan');return f.plan;},callback):f.view.adoptPreparation(f.prepared,f.request,f.identity,callback);
+  return {...f,artifact,option,captured,construct,adopt};
+}
+
+test('timed Request original defers module through one borrower and forwards opaque invocation before adoption',async()=>{
+  for(const captured of [false,true]){
+    const f=await originalTimedRequest({captured});let run;
+    try{
+      for(let n=0;n<2;n++)assert.equal((await f.view.fundedPreparation(f.request,undefined)).prepared,f.prepared);
+      assert.deepEqual(f.events,['check','borrow','requires-time']);
+      run=f.adopt(actual=>{
+        assert.throws(()=>f.adopt(f.construct),{code:'ForeignInstalledSourceProducer'});
+        f.moon[captured?'clientProgramPrepareRequestCaptureModuleBody':'clientProgramPrepareRequestProgramModuleBody']=()=>assert.fail('replaced module');
+        if(captured)f.moon.clientProgramAdoptRequestCapturePreparation=()=>assert.fail('replaced adopt');
+        return f.construct(actual);
+      });
+      assert.equal(run.value,f.value);assert.equal(run.original,f.original);
+      assert.deepEqual(f.events,['check','borrow','requires-time','artifact','bind-original',...(captured?['capture-plan']:[]),'timed-module','adopt']);
+    }finally{if(run)await f.retireAdopted();else await f.failedCleanup();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});
+
+test('timed Request original retains compiler invocation and module failures without repeating construction',async()=>{
+  for(const captured of [false,true])for(const phase of ['compilationFailure','invocationFailure','moduleFailure']){
+    const failure=Object.assign(new Error(phase),{cleanupPending:true,cleanupHandle:{original:phase}}),f=await originalTimedRequest({captured,[phase]:failure});
+    try{
+      await f.view.fundedPreparation(f.request,undefined);
+      for(let n=0;n<2;n++)assert.throws(()=>f.adopt(f.construct),error=>error===failure);
+      assert.equal(f.events.filter(x=>x==='artifact').length,1);
+      assert.equal(f.events.filter(x=>x==='bind-original').length,phase==='compilationFailure'?0:1);
+      assert.equal(f.events.filter(x=>x==='timed-module').length,phase==='moduleFailure'?1:0);
+      assert(!f.events.includes('adopt'));
+    }finally{await f.failedCleanup();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});
+
+test('timed Request original refuses absent handoff or compiler before any module or adoption',async()=>{
+  for(const captured of [false,true])for(const missing of ['callback','compiler']){
+    const f=await originalTimedRequest({captured});
+    try{
+      await f.view.fundedPreparation(f.request,undefined);
+      if(missing==='compiler')f.moon.clientProgramPrepareRequestProgramCompilation=undefined;
+      assert.throws(()=>f.adopt(missing==='callback'?undefined:f.construct),{code:'NodeManagedRunRuntimeUnavailable'});
+      assert(!f.events.includes('artifact'));assert(!f.events.includes('bind-original'));assert(!f.events.includes('timed-module'));assert(!f.events.includes('adopt'));
+    }finally{await f.failedCleanup();}
+  }
+});
+
+test('timed Request original refuses malformed time requirement before selecting any module',async()=>{
+  const f=await originalTimedRequest();f.moon.clientProgramRequiresQueryTime=()=>ok('true');
+  try{await assert.rejects(f.view.fundedPreparation(f.request,undefined),{code:'InvalidHostRuntimeResult'});assert.deepEqual(f.events,['check','borrow']);}
+  finally{await f.failedCleanup();}
+});
+
+
+test('timed whole Source manager hands the same opaque invocation to Plan before Module and adoption',async()=>{
+  const f=await originalTimedRequest({captured:true});let run;
+  try{
+    await f.view.fundedPreparation(f.request,undefined);
+    run=f.view.adoptCapturePreparation(f.prepared,f.request,f.identity,invocation=>{
+      assert.equal(invocation,f.option);f.events.push('exact-timed-plan');return f.plan;
+    },f.construct);
+    assert.equal(run.value,f.value);
+    assert.deepEqual(f.events,['check','borrow','requires-time','artifact','bind-original','exact-timed-plan','timed-module','adopt']);
+  }finally{if(run)await f.retireAdopted();else await f.failedCleanup();}
+});

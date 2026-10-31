@@ -33,7 +33,7 @@ const factory = new Function('createHash', 'canonicalJson', 'checked', 'runtimeO
   statements.join('\n').replaceAll('import.meta.url', 'moduleUrl') + '\nreturn installPreparedProjectLocalFiles;');
 const ok = value => ({$tag: 1, _0: value});
 
-async function fixture({pendingClose = false, currentAfterRead = true, closeGate} = {}) {
+async function fixture({pendingClose = false, currentAfterRead = true, closeGate, expectedInvocation} = {}) {
   const prepared = {}, request = {}, managed = {}, declaration = {}, admission = {}, oldOriginal = {};
   const calls = [], scopeCid = 'sha256:' + 'a'.repeat(64), contextCid = 'sha256:' + 'b'.repeat(64);
   let options, valid = true, closeAllowed = !pendingClose;
@@ -73,9 +73,9 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
     () => assert.fail('No Native constructor selected'), mime);
   profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
     baseEnvironmentWire: '{}', authorizationFor: async () => ({context: {contextCid}, assertAccountCurrent() {}}),
-    prepareManagedRun(owner, intent, originalProfile) {
+    prepareManagedRun(owner, intent, originalProfile, invocation) {
       assert.strictEqual(owner, prepared); assert.strictEqual(intent, request);
-      assert.strictEqual(originalProfile, profile); calls.push('same-host-parent'); return managed;
+      assert.strictEqual(originalProfile, profile); assert.strictEqual(invocation, expectedInvocation); calls.push('same-host-parent'); return managed;
     }});
   return {profile, prepared, request, managed, declaration, calls, get options() {return options;},
     allowClose() {closeAllowed = true;}, prepareRead(originalRead = {}) {
@@ -371,4 +371,11 @@ test('Local duplicate installation retains the actual returned profile for origi
   await assert.rejects(install(runtime, '{}', () => {}), {code: 'InstalledSourcePreparationChanged'});
   assert.strictEqual(retained, profile);
   assert.strictEqual(record.managedSourceProfile, existing);
+});
+
+
+test('timed original Local wrapper forwards the same Host invocation constructor without invoking it',async()=>{
+  const original=()=>assert.fail('Local must not invoke the Host constructor');
+  const f=await fixture({expectedInvocation:original});f.profile.prepareManagedRun(f.prepared,f.request,original);
+  assert.deepEqual(f.calls,['same-host-parent']);await f.profile.close();
 });

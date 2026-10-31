@@ -298,6 +298,33 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     child.flight = work;
     try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
   }
+  function originalTimedInvocation(state, producer, prepared, construct, contracts) {
+    if (state.requiresQueryTime !== true) return undefined;
+    const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
+    const issue = moon.clientProgramRequestProgramModuleIssueCode;
+    if (typeof construct !== 'function' || typeof compile !== 'function' ||
+        typeof issue !== 'function' || contracts === undefined || contracts.moon !== moon) {
+      fail('NodeManagedRunRuntimeUnavailable');
+    }
+    const assertOriginal = () => {
+      current();
+      if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+          originals.installation.sequenceContractOriginal !== contracts || state.parent === undefined || state.holder === undefined ||
+          moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+    };
+    assertOriginal();
+    const artifact = checkedRequestProgramPreparation(moon,
+      Reflect.apply(compile, moon, [state.parent, producer.receipt,
+        contracts.admission, state.context.retainedRelationOutput]), issue);
+    assertOriginal();
+    // The typed bridge returns its original Option. Forward it unchanged;
+    // JavaScript does not construct or inspect a tuple representation.
+    const invocation = construct(artifact);
+    assertOriginal();
+    return invocation;
+  }
   const view = Object.freeze({
     assertCurrent: current,
     assertSourceSnapshotCurrent(receipt) {
@@ -584,7 +611,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
-            if (count === 0) {
+            const requiresTime = moon.clientProgramRequiresQueryTime;
+            state.requiresQueryTime = typeof requiresTime === 'function'
+              ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) : false;
+            if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
+            // A timed module needs the actual submission Request and first
+            // bound Run. Keep this SAME borrower until that adoption caller.
+            if (count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
                   producer.receipt, contracts.admission, state.context.retainedRelationOutput),
@@ -642,24 +675,50 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (original === undefined) fail('NodeManagedRunCompilationUnavailable');
       return original;
     },
-    adoptPreparation(prepared, request, identity) {
+    adoptPreparation(prepared, request, identity, constructInvocation) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined;
       if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
           state.acquisitionCount !== 0) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      const contracts = originals.installation.sequenceContractOriginal;
+      const module = moon.clientProgramPrepareRequestProgramModuleBody;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      const adopt = moon.clientProgramAdoptRequestProgramPreparation;
+      if (typeof adopt !== 'function' || state.requiresQueryTime &&
+          (typeof module !== 'function' || typeof issue !== 'function')) {
+        fail('NodeManagedRunRuntimeUnavailable');
+      }
       state.adopting = true;
-      const outcome = state.context.runtime.clientProgramAdoptRequestProgramPreparation(state.parent,identity);
-      if (runtimeIsError(outcome)) state.adopting = false;
-      const value = checked(outcome);
-      const run = {prepared,request,producer,purpose:'source-compute',model:undefined,
-        effectful:false,content:undefined,original:state.original,children:[],fileIdentity:undefined,value};
-      producer.liveRuns++;
-      runs.set(prepared,run);liveRuns.add(run);
-      return run;
+      try {
+        if (state.requiresQueryTime) {
+          const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
+          checkedRequestProgramPreparation(moon, Reflect.apply(module, moon,
+            [state.parent, producer.receipt, contracts.admission,
+              state.context.retainedRelationOutput, invocation]), issue);
+          current();
+          if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
+            fail('ForeignInstalledSourceProducer');
+          }
+        }
+        const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
+        const run = {prepared,request,producer,purpose:'source-compute',model:undefined,
+          effectful:false,content:undefined,original:state.original,children:[],fileIdentity:undefined,value};
+        producer.liveRuns++;
+        runs.set(prepared,run);liveRuns.add(run);
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        if (state.requiresQueryTime) {
+          state.preparationFailed = true; state.preparationFailure = cause;
+        }
+        throw cause;
+      }
     },
-    adoptCapturePreparation(prepared, request, identity, constructPlan) {
+    adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -671,6 +730,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
+      const contracts = originals.installation.sequenceContractOriginal;
       const prepareModule = moon.clientProgramPrepareRequestCaptureModuleBody;
       const projectIssue = moon.clientProgramRequestProgramModuleIssueCode;
       const adopt = moon.clientProgramAdoptRequestCapturePreparation;
@@ -684,7 +744,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // This private Host constructor uses its already retained Source
         // inventory, on the same input reservation. It is not a capacity or
         // authorization callback, and does not run for another purpose.
-        const plan = constructPlan();
+        const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
+        const plan = state.requiresQueryTime ? constructPlan(invocation) : constructPlan();
         state.capturePlan = plan;
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
@@ -694,7 +755,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // Construct/measure its original compilation before adoption; bare
         // completion would lose that artifact and force later re-preparation.
         checkedRequestProgramPreparation(moon,
-          Reflect.apply(prepareModule, moon, [state.parent, producer.receipt, plan]),
+          Reflect.apply(prepareModule, moon, state.requiresQueryTime
+            ? [state.parent, producer.receipt, plan, invocation] : [state.parent, producer.receipt, plan]),
           projectIssue);
         const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
         const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,

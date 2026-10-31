@@ -77652,7 +77652,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "fdca0b7432dc7e30a909713a5fcdb38e7858463c4096e8927ae192d1ad9086d5",
+      "sha256": "4d805e852f581ef972a54a4724708d0d4e97c8a6dd862757b0ba991c27ce3e29",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77763,6 +77763,22 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation",
+          "parameters": [
+            "state",
+            "producer",
+            "prepared",
+            "construct",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation/assertOriginal/assertOriginal",
           "parameters": [],
           "async": false
         },
@@ -77889,7 +77905,8 @@
             "prepared",
             "request",
             "identity",
-            "constructPlan"
+            "constructPlan",
+            "constructInvocation"
           ],
           "async": false
         },
@@ -77919,7 +77936,8 @@
           "parameters": [
             "prepared",
             "request",
-            "identity"
+            "identity",
+            "constructInvocation"
           ],
           "async": false
         },
@@ -78780,6 +78798,123 @@
         },
         {
           "operations": [
+            "prepareOrdinaryManagedInstallation/originalTimedInvocation",
+            "prepareOrdinaryManagedInstallation/originalTimedInvocation/assertOriginal/assertOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "function originalTimedInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "timed Request original defers module through one borrower and forwards opaque invocation before adoption"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "timed whole Source manager hands the same opaque invocation to Plan before Module and adoption"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "prepareOrdinaryManagedInstallation/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
@@ -79224,7 +79359,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "inputsOutputs": [
@@ -79234,7 +79369,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79248,7 +79383,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "ownership": [
@@ -79258,7 +79393,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "synchronization": [
@@ -79268,7 +79403,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "failure": [
@@ -79278,7 +79413,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "cancellation": [
@@ -79288,7 +79423,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "resources": [
@@ -79298,7 +79433,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "extension": [
@@ -79308,7 +79443,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan)"
+                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
               }
             ],
             "verification": [

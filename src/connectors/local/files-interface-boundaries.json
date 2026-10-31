@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df3d33bb8aa5a5eb994e5d0aff17a1d56a56cd86154cdf91c325e36fad8e2227",
+      "sha256": "7d3ccc68f9fd2db39392e69df470cd2ce3bf30ec7fea532a82a8079e7d5fbe9d",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -758,7 +758,8 @@
           "name": "installPreparedProjectLocalFiles/prepareRun",
           "parameters": [
             "prepared",
-            "request"
+            "request",
+            "prepareInvocation"
           ],
           "async": false
         },
@@ -1340,6 +1341,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
                 "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
               }
             ]
           }
@@ -1527,6 +1532,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
                 "anchor": "shared native Source never retires Core rows before original external cleanup acknowledgment"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-managed.test.mjs",
+                "anchor": "timed original Local wrapper forwards the same Host invocation constructor without invoking it"
               }
             ]
           }
