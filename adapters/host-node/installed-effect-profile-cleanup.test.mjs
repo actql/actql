@@ -7,7 +7,8 @@ import test from 'node:test';
 import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
-import {createInstalledHostServices, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
+import {createInstalledHostServices, retainInstalledHostServiceInstallation,
+  retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 
@@ -115,6 +116,110 @@ test('Effect load keeps the absent-service installer envelope unchanged', async 
   const {installationServices: _unused, ...options} = f.options;
   await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), error => error === f.stop);
   assert.equal(f.calls(), 1);
+});
+
+// Real shared Effect loader, initial-material service and physical file readers.
+// Resource/Core admission is explicit here; these counters do not supply a
+// real Ledger, Site, grant, Host close or ordinary installed acceptance.
+async function initialEffectFixture(t, {refuseReservation = false, suspended = false, undefinedFailure = false} = {}) {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-material-'));
+  t.after(() => fs.rm(root, {recursive: true, force: true}));
+  const version = 'actql-effect-initial-material-fixture/0.1', profilePath = join(root, 'profile.json');
+  const runtimePath = join(root, 'identity.mjs'), metadataPath = join(root, 'site.json');
+  const profileWire = JSON.stringify({version}), runtimeWire = 'export const original = true;\n';
+  const metadataWire = '{"original":"site metadata"}';
+  await fs.writeFile(profilePath, profileWire);await fs.writeFile(runtimePath, runtimeWire);await fs.writeFile(metadataPath, metadataWire);
+  const initial = {}, input = {}, unit = {}, capacity = {}, events = [], live = new Set();
+  const ok = value => ({$tag: 1, _0: value});
+  let transferred = 0n, loaded = 0, entered, release;
+  const enteredLoad = new Promise(done => {entered = done;}), hold = new Promise(done => {release = done;});
+  const refusal = new Error('original initial reservation refusal'), installerFailure = new Error('original installer failure');
+  const moon = {
+    clientProgramRowSourceRestoreRelationDeclaration() {assert.fail('No native declaration in this prefix unit');},
+    clientProgramRowSourceDeclarationJson() {assert.fail('No declaration output in this prefix unit');},
+    clientProgramTakeHostInitializationSourceCapacity(value) {
+      assert.equal(value, initial);events.push('take');return ok({_0: input, _1: unit});
+    },
+    clientProgramContinueInstalledSourceMaterial(value, original) {
+      assert.equal(value, unit);assert.equal(original, input);events.push('continue');return ok(capacity);
+    },
+    clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
+    clientProgramReserveInstalledSourceConstruction(value, original) {
+      assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
+      if (refuseReservation) throw refusal;return ok();
+    },
+    clientProgramReconcileInstalledSourceConstruction: () => ok(),
+    clientProgramCompleteInstalledSourceMaterial() {assert.fail('No completed installation in this prefix unit');},
+    clientProgramBorrowInstalledSourceMaterial() {assert.fail('No Request borrow in this prefix unit');},
+    clientProgramBorrowedInstalledSourceEnvironment() {assert.fail('No Request environment in this prefix unit');},
+    clientProgramReturnInstalledSourceMaterial() {assert.fail('No Request return in this prefix unit');},
+    clientProgramRetireInstalledSourceMaterial(value, original) {
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(live.size, 0);events.push('retire');return ok(true);
+    },
+    clientProgramAbortUncontinuedSourceMaterial() {assert.fail('The same material continued');},
+    clientProgramBeginInstalledSourceIo(value, original, bytes) {
+      assert.equal(value, capacity);assert.equal(original, input);assert(events.includes('reserve'));
+      const operation = {bytes};live.add(operation);events.push('begin');return ok(operation);
+    },
+    clientProgramChargeInstalledSourceIo(operation, bytes) {
+      assert(live.has(operation));transferred += bytes;return ok();
+    },
+    clientProgramMarkInstalledSourceIoTransferUncertain() {assert.fail('No uncertain file read');},
+    clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(live.delete(operation));events.push('file-close');return ok();},
+  };
+  const services = createInstalledHostServices({root, principalId: 'fixture', moon,
+    initialPreparation: initial, assertCurrent() {}});
+  const connectorTable = createInstalledConnectorTable([{name: 'effect_initial_fixture',
+    registration: 'effect_initial_fixture', revision: 'effect_initial_fixture/0.1', effect: {
+      profileVersion: version, load: async () => ({check: value => value,
+        identityParts() {assert.fail('Loading is not publication');},
+        async load(profile, options) {
+          loaded++;entered();
+          if (suspended) await hold;
+          else {
+            assert(events.includes('take'), 'original initial owner before profile/runtime work');
+            assert.equal(typeof options.configurationReader?.readJson, 'function');
+            assert.deepEqual(await options.configurationReader.readJson(metadataPath), {original: 'site metadata'});
+          }
+          throw undefinedFailure ? undefined : installerFailure;
+        },
+      }),
+    }}]);
+  const options = {root, principalId: 'fixture', moon, runtimeUrl: pathToFileURL(runtimePath),
+    baseEnvironmentWire: '{}', connectorTable, installationServices: services};
+  return {profilePath, options, services, events, live, refusal, installerFailure, enteredLoad, release,
+    counts: () => ({loaded, transferred}), expectedBytes: BigInt(Buffer.byteLength(profileWire + runtimeWire + metadataWire))};
+}
+
+test('Effect initial material owns profile runtime and installer metadata reads before native Site construction', async t => {
+  const f = await initialEffectFixture(t);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.installerFailure);
+  assert.deepEqual(f.events.slice(0, 3), ['take', 'continue', 'reserve']);
+  assert.equal(f.events.filter(value => value === 'begin').length, 3);
+  assert.equal(f.events.filter(value => value === 'file-close').length, 3);
+  assert.deepEqual(f.counts(), {loaded: 1, transferred: f.expectedBytes});assert.equal(f.live.size, 0);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect initial material reservation refusal precedes profile I/O and preserves the original failure', async t => {
+  const f = await initialEffectFixture(t, {refuseReservation: true});
+  await assert.rejects(loader.loadInstalledEffect(join(f.options.root, 'never-created-profile.json'), f.options), error => {
+    assert.equal(error.code, 'InvalidInstalledEffectProfile');assert.equal(error.cause, f.refusal);return true;
+  });
+  assert.deepEqual(f.events, ['take', 'continue', 'reserve']);assert.equal(f.counts().loaded, 0);assert.equal(f.live.size, 0);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect initial material remains live through installer await and thrown undefined without a second load', async t => {
+  const f = await initialEffectFixture(t, {suspended: true, undefinedFailure: true});
+  const observed = loader.loadInstalledEffect(f.profilePath, f.options).then(value => ({ok: true, value}), error => ({ok: false, error}));
+  await f.enteredLoad;
+  try {
+    assert.equal(retireInstalledSourceInitialization(f.services), false, 'same original load remains pending after its FD reads finish');
+    assert.equal(f.events.includes('retire'), false);
+  } finally {f.release();}
+  assert.deepEqual(await observed, {ok: false, error: undefined});assert.equal(f.counts().loaded, 1);assert.equal(f.live.size, 0);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
 });
 
 test('Effect false close remains in same initialization custody without a reread', async t => {
