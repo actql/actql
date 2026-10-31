@@ -135,3 +135,47 @@ test('terminal Content failed start retries only the same retained managed prefi
   assert.equal(starts,1);cleanupReady=true;assert.equal(await execution.cleanup(),true);assert.equal(cleanups,2);
   assert.equal(await execution.cleanup(),true);assert.equal(cleanups,2);assert.equal(starts,1);
 });
+
+test('Request Content runtime constructors unwrap only their registered graph, compiler, Definition and workspace originals',()=>{
+  const parent={},input={},graph={},rawGraph={},contracts={},artifact={},compiled={kind:'serialization'},rawCompiled={};
+  const definition={},rawDefinition={},request={},workspace={},rawWorkspace={},selected={},calls=[];
+  const limits={maxRows:11,maxWork:12,maxEntries:13,maxValueBytes:14,maxValueNodes:15,maxValueDepth:16,maxFrames:17};
+  const moon={clientProgramPrepareRequestSerializationCompilation(...args){
+    assert.equal(this,moon);assert.deepEqual(args,[parent,input,rawGraph,contracts]);calls.push('compile');return artifact;
+  },clientProgramPrepareRequestSerializationPlan(...args){assert.equal(this,moon);
+    assert.deepEqual(args,[parent,input,request,rawCompiled,rawDefinition,11,12,13,14,15,16,17,rawWorkspace]);
+    calls.push('plan');return selected;}};
+  const ports={moon,serializationPlanTokens:new WeakMap([[graph,rawGraph]]),compiledRunTokens:new WeakMap([[compiled,rawCompiled]]),
+    compiledRunResult:v=>v,checked:v=>v,token:d=>{if(d!==definition)throw new TypeError('Foreign Definition');return rawDefinition;}};
+  const compile=method('../host-common/runtime-core.mjs','prepareCheckedClientRequestSerializationCompilation',ports);
+  const plan=method('../host-common/runtime-core.mjs','prepareCheckedClientRequestSerializationPlan',ports);
+  const prepare=method('../host-common/runtime-core.mjs','prepareRequestPrefix',{
+    publications:{prepareCheckedClientRequestSerializationPlan:plan},workspaces:new WeakMap([[workspace,rawWorkspace]])});
+  assert.equal(compile(parent,input,graph,contracts),artifact);
+  assert.throws(()=>compile(parent,input,{...graph},contracts),/Foreign Content compilation graph/);
+  assert.equal(prepare(parent,input,request,compiled,definition,limits,workspace),selected);
+  assert.throws(()=>prepare(parent,input,request,{...compiled},definition,limits,workspace),/Foreign Client compiled Content/);
+  assert.throws(()=>prepare(parent,input,request,compiled,{...definition},limits,workspace),/Foreign Definition/);
+  assert.throws(()=>prepare(parent,input,request,compiled,definition,limits,{...workspace}),/Foreign Content workspace/);
+  assert.deepEqual(calls,['compile','plan']);
+});
+
+test('Request Content runtime retains original prefix start and cleanup without replacing a failed child',()=>{
+  const run={},program={},selected={},prefix={},prefixes=new WeakSet(),calls=[];
+  const primary=new Error('original-prefix-start');let replyLost=false,ready=false,fields=[0n,1n,0n,0n,7n,9n];
+  const moon={clientProgramPreparedInstalledSerializationPrefixRequirements:s=>{assert.equal(s,selected);return fields;},
+    clientProgramInstalledManagedSerializationPrefixStart(r,p,s){assert.equal(this,moon);assert.deepEqual([r,p,s],[run,program,selected]);
+      calls.push('start');if(replyLost)throw primary;return prefix;},
+    clientProgramInstalledManagedSerializationPrefixCleanup(r,s){assert.equal(this,moon);assert.deepEqual([r,s],[run,selected]);calls.push('cleanup');return ready;}};
+  const ports={moon,prefixes,checked:v=>v};
+  const capacity=method('../host-common/runtime-core.mjs','requestPrefixCapacity',ports),
+    start=method('../host-common/runtime-core.mjs','startRequestPrefix',ports),
+    cleanup=method('../host-common/runtime-core.mjs','cleanupRequestPrefix',ports);
+  assert.deepEqual(capacity(selected),{retainedBytes:7n,executionBytes:9n});
+  fields=[0n,2n,0n,0n,7n,9n];assert.throws(()=>capacity(selected),/Invalid Content prefix requirements/);
+  fields=[0n,1n,0n,0n,-1n,9n];assert.throws(()=>capacity(selected),/Invalid Content prefix requirements/);
+  assert.equal(start(run,program,selected),prefix);assert(prefixes.has(prefix));
+  replyLost=true;assert.throws(()=>start(run,program,selected),e=>e===primary);
+  assert.equal(cleanup(run,selected),false);ready=true;assert.equal(cleanup(run,selected),true);
+  assert.deepEqual(calls,['start','start','cleanup','cleanup']);
+});
