@@ -1,11 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 
 const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
 const failure = code => Object.assign(new Error(code), {code});
+
+test('writer open failure stays observed before the payload caller resumes', () => {
+  // The payload reader may yield before its first writer operation. Exercise
+  // the actual owner in another process so an unobserved rejection cannot be
+  // hidden by the test runner's rejection listener. These are operation ports,
+  // not real Store, FD or Resource admission evidence.
+  const moduleUrl = new URL('./object-writer-owner.mjs', import.meta.url).href;
+  for (const primitive of [false, true]) {
+    execFileSync(process.execPath, ['--unhandled-rejections=strict', '--input-type=module', '-e', `
+      import assert from 'node:assert/strict';
+      import {createObjectWriterOwner} from ${JSON.stringify(moduleUrl)};
+      const original = ${primitive ? 'undefined' : "Object.freeze(new Error('OriginalOpenFailure'))"};
+      let held = true, opens = 0, releases = 0;
+      const reservation = {get held() { return held; }, release() {
+        assert.equal(held, true); held = false; releases++; return true;
+      }};
+      const writer = createObjectWriterOwner(1, false, reservation, {
+        stagingDirectory: '/not-opened',
+        async open() { opens++; throw original; },
+        fail(code) { throw Object.assign(new Error(code), {code}); },
+      });
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(writer.status().finished, true);
+      assert.equal(writer.status().reservationHeld, false);
+      assert.equal(writer.status().cleanupPending, false);
+      await assert.rejects(writer.seal(), cause => cause === original);
+      await assert.rejects(writer.append('x'), {code: 'PublicationObjectWriterClosed'});
+      assert.equal(await writer.cancel(), false);
+      assert.equal(await writer.cancel(), false);
+      assert.equal(opens, 1); assert.equal(releases, 1);
+    `], {encoding: 'utf8', stdio: 'pipe'});
+  }
+});
 
 test('a fresh successful seal retires its redundant staging alias without another directory ACK',async()=>{
   const {writer,counts}=fixture();
