@@ -595,13 +595,43 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
               state.parent, producer.receipt));
           } else if (state.compilationKind === 'effect_free') {
-            // Pure includes captured Source Programs. Retain the original
-            // constructor input before selecting its installed Plan; a Pure
-            // compiler result alone is not a Source-free module witness.
+            // This first borrow exposes only the SAME checked inventory. An
+            // effect-free compiler result is not an ordinary Module witness:
+            // INFER and Serialization retain their own construction inputs.
             state.holder = checked(moon.clientProgramBorrowRequestProgramPlanInput(
               state.parent, producer.receipt));
             const prepared = moon.clientProgramPreparationBorrowRead(state.holder);
             if (prepared === undefined) fail('ForeignInstalledSourceProducer');
+            const inferOccurrences = moon.clientProgramComposedInferOccurrences;
+            const serializationOccurrences = moon.clientProgramSerializationOccurrences;
+            if (typeof inferOccurrences !== 'function' || typeof serializationOccurrences !== 'function') {
+              fail('NodeManagedRunRuntimeUnavailable');
+            }
+            const infers = checked(Reflect.apply(inferOccurrences, moon, [prepared]));
+            const serializations = Reflect.apply(serializationOccurrences, moon, [prepared]);
+            if (!Array.isArray(infers) || !Array.isArray(serializations)) fail('InvalidHostRuntimeResult');
+            if (infers.length !== 0 && serializations.length !== 0) fail('NodeManagedRunPlanUnavailable');
+            state.compilationFamily = infers.length !== 0 ? 'model'
+              : serializations.length !== 0 ? 'content' : 'pure';
+            if (state.compilationFamily !== 'pure') {
+              const select = moon[state.compilationFamily === 'model'
+                ? 'clientProgramBorrowRequestModelPlanInput' : 'clientProgramBorrowRequestContentPlanInput'];
+              if (typeof select !== 'function' || typeof moon.clientProgramPreparationBorrowReturn !== 'function') {
+                fail('NodeManagedRunRuntimeUnavailable');
+              }
+              const selected = checked(Reflect.apply(select, moon, [state.parent, producer.receipt]));
+              // Keep BOTH actual borrows before a read/return can fail. The
+              // existing Request retirement owns a failed inventory return.
+              state.inventoryHolder = state.holder;
+              state.holder = selected;
+              if (moon.clientProgramPreparationBorrowRead(selected) !== prepared) {
+                fail('ForeignInstalledSourceProducer');
+              }
+              if (checked(moon.clientProgramPreparationBorrowReturn(state.inventoryHolder)) !== true) {
+                fail('InstalledSourceRunCleanupPending');
+              }
+              state.inventoryHolder = undefined;
+            }
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
@@ -611,7 +641,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
             // A timed module needs the actual submission Request and first
             // bound Run. Keep this SAME borrower until that adoption caller.
-            if (count === 0 && !state.requiresQueryTime) {
+            if (state.compilationFamily === 'pure' && count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
                   producer.receipt, contracts.admission, state.context.retainedRelationOutput),
@@ -676,7 +706,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined;
       if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
-          state.acquisitionCount !== 0) fail('ForeignInstalledSourceProducer');
+          state.compilationFamily !== 'pure' || state.acquisitionCount !== 0) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
       const contracts = originals.installation.sequenceContractOriginal;
       const module = moon.clientProgramPrepareRequestProgramModuleBody;
@@ -718,7 +748,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined; // Other purposes retain their existing owner.
       if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
-          state.compilationKind !== 'effect_free' || !(state.acquisitionCount > 0) ||
+          state.compilationKind !== 'effect_free' || state.compilationFamily !== 'pure' || !(state.acquisitionCount > 0) ||
           runs.has(prepared) || producer.liveRuns === Number.MAX_SAFE_INTEGER ||
           liveRuns.size >= 4096 || typeof constructPlan !== 'function') {
         fail('ForeignInstalledSourceProducer');

@@ -165,22 +165,29 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   const retirementStarted = holder => borrow===undefined
     ? moon.clientProgramPreparationBorrowRetirementStarted(holder)
     : borrow.clientProgramEffectPreparationInputRetirementStarted(holder);
-  if(state.holder!==undefined && state.parent!==undefined) {
+  if((state.holder!==undefined || state.inventoryHolder!==undefined) && state.parent!==undefined) {
     // The same generic Request retains failed construction and every borrow.
     // Only the original retirement phase permits the selected holder return.
     try {checked(moon.clientProgramAbortRequestPreparation(state.parent));}
     catch(cause) {
-      if(retirementStarted(state.holder)!==true) throw cause;
+      if([state.holder,state.inventoryHolder].some(holder => holder!==undefined && retirementStarted(holder)!==true)) throw cause;
     }
-    if(retirementStarted(state.holder)!==true) invalid();
+    if([state.holder,state.inventoryHolder].some(holder => holder!==undefined && retirementStarted(holder)!==true)) invalid();
     if(state.prepared!==undefined) {
       if(typeof retireInitialPreparation!=='function') invalid();
       retireInitialPreparation(state.prepared);
     }
     state.prepared=state.parametersCursor=undefined;
-    const holder=state.holder;state.holder=undefined;
-    checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
-      : borrow.clientProgramEffectPreparationInputReturn(holder));
+    // A failed family selection handoff can retain its original inventory
+    // borrower as well. Return each SAME holder only after acknowledged
+    // retirement, and clear its alias only after its own return succeeds.
+    for(const field of ['inventoryHolder','holder']) {
+      const holder=state[field];
+      if(holder===undefined) continue;
+      if(checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
+        : borrow.clientProgramEffectPreparationInputReturn(holder))!==true) invalid();
+      state[field]=undefined;
+    }
   }
   if(state.parent!==undefined) {
     checked(moon.clientProgramAbortRequestPreparation(state.parent));
@@ -194,6 +201,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
+  state.compilationFamily=undefined;
   state.capturePlan=state.acquisitionCount=undefined;
   state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;
