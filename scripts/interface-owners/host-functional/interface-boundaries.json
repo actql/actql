@@ -48051,7 +48051,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "db0219260704d87a8c2953348efe66483e34a1dd52261cb62e9cc34bbc508762",
+      "sha256": "577a8a4538a62527d2c9921af5dbcd5e64ebe09c1b67c5bd6801ac960b9463ad",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -48081,7 +48081,8 @@
             "sourceManaged",
             "baseEnvironmentWire",
             "authorizationFor",
-            "readAsset"
+            "readAsset",
+            "prepareManagedModelRun"
           ],
           "async": true
         },
@@ -48257,6 +48258,18 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockSources/prepareManagedMockModelRun/model/init:releaseAliases/init:releaseAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/prepareManagedMockModelRun/model/init:releaseAliases/init:releaseAliases/init:releaseAliases",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/prepareManagedRun",
           "parameters": [
             "prepared",
@@ -48365,13 +48378,13 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./infer-operation.mjs",
-        "./installed-check-environment.mjs",
-        "./installed-host-cleanup.mjs",
-        "./installed-project-configuration.mjs",
-        "./installed-project-connections.mjs",
-        "./installed-row-source.mjs",
-        "./local-account-config.mjs",
+        "../host-node/infer-operation.mjs",
+        "../host-node/installed-check-environment.mjs",
+        "../host-node/installed-host-cleanup.mjs",
+        "../host-node/installed-project-configuration.mjs",
+        "../host-node/installed-project-connections.mjs",
+        "../host-node/installed-row-source.mjs",
+        "../host-node/local-account-config.mjs",
         "./mock-churn-risk-catalogue.mjs",
         "node:path"
       ],
@@ -48383,7 +48396,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "fail/fail",
             "installedMockRequestRealization",
             "prepareInstalledProjectMock",
@@ -48589,6 +48601,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -48599,12 +48615,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -48615,12 +48639,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -48631,12 +48663,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -48647,12 +48687,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -48663,6 +48711,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               }
             ]
           }
@@ -48746,6 +48798,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -48756,12 +48812,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -48772,12 +48836,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -48788,12 +48860,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -48804,12 +48884,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -48820,6 +48908,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               }
             ]
           }
@@ -48834,6 +48926,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -48844,12 +48940,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -48860,12 +48964,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -48876,12 +48988,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -48892,12 +49012,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -48908,6 +49036,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               }
             ]
           }
@@ -48922,6 +49054,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -48936,6 +49072,10 @@
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
                 "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -48946,6 +49086,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -48956,12 +49100,20 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -48972,12 +49124,20 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -48992,6 +49152,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "For a checked source-free Program, the same connection has no Source children"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -49002,6 +49166,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -49016,6 +49184,115 @@
               {
                 "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
                 "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockSources/prepareManagedMockModelRun/model/init:releaseAliases/init:releaseAliases",
+            "installPreparedProjectMockSources/prepareManagedMockModelRun/model/init:releaseAliases/init:releaseAliases/init:releaseAliases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "  function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Local Model pending Sources"
               }
             ]
           }
@@ -77601,7 +77878,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "7e1fc6b31de91a25d3b42a581270f7600a05aead083218a7196a1bbad65baa74",
+      "sha256": "72759dda9021524766e652d1ccdcb0dc2f91e517b46d374b11e4ae8338526294",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -78162,19 +78439,22 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun",
-          "parameters": [
-            "prepared",
-            "model"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
             "request",
             "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "model",
+            "constructPlan"
           ],
           "async": false
         },
@@ -78328,7 +78608,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "assertOrdinarySourcePreparationCurrent",
             "fail/fail",
             "fileIdentity/fileIdentity",
@@ -78877,8 +79156,7 @@
             "prepareOrdinaryManagedInstallation/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-            "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2"
           ],
           "exports": [],
           "attributes": {
@@ -80383,6 +80661,110 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "Model handoff retains the original Scope before completion"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Model manager hands the same parent"
               }
             ]
           }
@@ -84681,7 +85063,7 @@
     },
     {
       "module": "adapters/host-node/local-preparation-registry.mjs",
-      "sha256": "8a0c04fd7abbae2533fe514326a75893d56183c79f5bcd25030d3b98e8aa86cf",
+      "sha256": "eee76a63f27af9fb68d176a40e7404a51acca31aeff2f09016cba3e5af7840f6",
       "exports": [
         "installLocalPreparationRegistry"
       ],
@@ -84840,7 +85222,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "installLocalPreparationRegistry",
             "installLocalPreparationRegistry/adopt/adopt",
             "installLocalPreparationRegistry/bindPayload/bindPayload",
@@ -84875,6 +85256,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Responsibility and scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -84885,6 +85270,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -84895,6 +85284,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -84905,6 +85298,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -84915,6 +85312,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -84925,6 +85326,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -84935,6 +85340,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -84945,6 +85354,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Work and storage units"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -84955,12 +85368,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Extension boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/local-preparation-registry.test.mjs",
                 "anchor": "Core handler and dispatch tokens return only after their JS payload slots are severed"
+              },
+              {
+                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "anchor": "Request registry cannot select a domain body"
               }
             ]
           }

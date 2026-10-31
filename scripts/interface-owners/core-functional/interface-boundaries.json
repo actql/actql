@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "a85b128020e637f7743abd03829f24cc870cda0a11342a0e9804c32ce0d45202",
+      "sha256": "afa74bc7ce43f70f5767d1d3650ec08432069c889a75769e9fe896d88ef3c3f9",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1987,6 +1987,18 @@
             "compiled",
             "execution",
             "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
+          "parameters": [
+            "original",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
           ],
           "async": false
         },
@@ -4099,6 +4111,19 @@
             "graph",
             "scope",
             "budget"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan",
+          "parameters": [
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
           ],
           "async": false
         },
@@ -7384,7 +7409,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "contentCaptureControl",
             "contentCaptureControl/args/args",
             "contentCaptureControl/args/args/args",
@@ -10592,6 +10616,111 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual timed invocation module resolves its canonical projection with registered original compilation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
+            "publicationControl/init:prepareCheckedClientMockModelSourceFreePlan/init:prepareCheckedClientMockModelSourceFreePlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientMockModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model Plan bindings retain module"
               }
             ]
           }
