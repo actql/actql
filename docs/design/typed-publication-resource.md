@@ -156,7 +156,9 @@ remains a present row with a null field, preserving the original integrity
 refusal instead of becoming a missing record. UTF8 databases use the existing
 byte ceiling; UTF16 databases use the corresponding native text-backing ceiling
 so valid ASCII and Unicode are preserved. The original exact UTF8 check and
-physical digest admission remain after projection. Physical digests, canonical
+physical digest admission remain after projection. Paged metadata uses that
+same native per-entry ceiling; its separate aggregate page budget retains the
+existing native-column byte metric. Physical digests, canonical
 admission, claim/CAS, reply-loss recovery and the original database close owner
 remain independent obligations.
 

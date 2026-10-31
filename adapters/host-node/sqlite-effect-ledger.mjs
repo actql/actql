@@ -997,7 +997,7 @@ export function openSqliteEffectLedger(root, {
           ORDER BY h.logical_item_locator_cid ASC LIMIT ?`).all(scopeCid,after ?? '',maxItems+1);
         const selected=rows.slice(0,maxItems);
         if (selected.some(row=>!cid(row.logical_item_locator_cid) || !cid(row.entry_cid) ||
-            !count(row.revision) || row.revision < 1 || !count(row.wire_bytes) || row.wire_bytes > maxEntryBytes)) {
+            !count(row.revision) || row.revision < 1 || !count(row.wire_bytes) || row.wire_bytes > nativeTextBytes)) {
           fail('EffectLedgerIntegrityFailed');
         }
         if (selected.reduce((total,row)=>total+row.wire_bytes,0) > maxWireBytes) {
@@ -1058,8 +1058,8 @@ export function openSqliteEffectLedger(root, {
         `).all(locatorCid, position, pageEntries);
         if (rows.length !== Math.min(pageEntries, head.revision - position) ||
             rows.some((row, index) => row.revision !== position + index + 1 ||
-              !cid(row.entry_cid) || !count(row.wire_bytes) || row.wire_bytes > maxEntryBytes) ||
-            previous !== null && (!count(previous.wire_bytes) || previous.wire_bytes > maxEntryBytes)) {
+              !cid(row.entry_cid) || !count(row.wire_bytes) || row.wire_bytes > nativeTextBytes) ||
+            previous !== null && (!count(previous.wire_bytes) || previous.wire_bytes > nativeTextBytes)) {
           fail('EffectLedgerIntegrityFailed');
         }
         const bytes = rows.reduce((total, row) => total + row.wire_bytes,
