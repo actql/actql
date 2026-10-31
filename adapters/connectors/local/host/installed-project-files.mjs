@@ -228,6 +228,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   };
   const sameRun=prepared=>{
     current();const run=sharedRuns.get(prepared);
+    if(run?.retired)fail('LocalFilesPreparationRetired');
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
     checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,run.request));return run;
@@ -244,17 +245,35 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior===undefined)sharedRuns.set(prepared,{prepared,request,value,effectful:false,reads:new Map()});
     current();
   }
-  function prepareContentRun(prepared,request,recipe,graph){
+  function releaseContentAliases(managed,inputHolder){
+    const run=this;if(run.retired===true)return;
+    if(sharedRuns.get(run.prepared)!==run||run.contentPreparation?.localPreparation!==run)
+      fail('ForeignLocalFilesContentPreparation');
+    if(managed!==undefined){
+      if(run.hostRun!==managed||managed.retiringContent!==true||managed.prepared!==run.prepared||managed.request!==run.request)
+        fail('LocalFileCleanupPending');
+    }else if(run.hostRun?.value!==undefined||inputHolder===undefined||run.inputHolder!==inputHolder||
+        moon.clientProgramPreparationBorrowRead(inputHolder)!==run.prepared||
+        moon.clientProgramPreparationBorrowRetirementStarted(inputHolder)!==true)fail('LocalFileCleanupPending');
+    for(const read of run.reads.values())if(read!==undefined&&!read.closed)fail('LocalFileCleanupPending');
+    for(const key of Object.keys(run))run[key]=undefined;
+    run.retired=true;
+  }
+  function prepareContentRun(prepared,request,recipe,graph,contentPreparation){
     current();
     if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
     const prior=sharedRuns.get(prepared);
     if(prior!==undefined){
-      if(prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
+      if(prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
       sameRun(prepared);
       checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return prior.hostRun;
     }
+    if(contentPreparation?.prepared!==prepared||contentPreparation.inputHolder===undefined||contentPreparation.localPreparation!==undefined)
+      fail('ForeignLocalFilesContentPreparation');
     const run={prepared,request,effectful:false,recipe,graph,hostRun:undefined,original:undefined,value:undefined,
-      reads:new Map(),failed:false,failure:undefined};
+      inputHolder:contentPreparation.inputHolder,contentPreparation,reads:new Map(),retired:false,failed:false,failure:undefined};
+    Object.defineProperty(run,'releaseAliases',{value:releaseContentAliases});
+    contentPreparation.localPreparation=run;
     sharedRuns.set(prepared,run);
     try{
       run.hostRun=Reflect.apply(prepareManagedContentRun,undefined,[prepared,request,graph,recipe,()=>{
@@ -285,7 +304,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           recipe.registry,recipe.values,recipe.fragment,recipe.ordered,recipe.task,recipe.step,
           recipe.prefixRetainedBytes,recipe.prefixExecutionBytes));
         return run.selected;
-      }]);
+      },contentPreparation]);
       if(run.hostRun===undefined||run.hostRun.selectedKeyed!==run.selected||run.hostRun.value===undefined)
         fail('LocalFilesContentPreparationUnavailable');
       run.original=run.hostRun.original;run.value=run.hostRun.value;

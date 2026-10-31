@@ -3227,14 +3227,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparedRunRequired: preparation !== undefined,
     assertRunCurrent: preparation === undefined ? undefined
       : preparation.assertContentRunCurrent.bind(preparation),
+    retainPreparation: preparation === undefined ? undefined
+      : (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
     prepareSerializationManagedRun: preparation === undefined ? undefined
-      : (prepared, request, plan, limits, workspace) => preparation.prepareManagedSerializationRun(
-        moon, prepared, request, plan, limits, workspace),
-    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, graph, recipe) => {
+      : (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
+        moon, prepared, request, plan, limits, workspace, original),
+    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, graph, recipe, original) => {
       if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
-      return sourceProfile.prepareManagedContentRun(prepared, request, recipe, graph);
+      return sourceProfile.prepareManagedContentRun(prepared, request, recipe, graph, original);
     },
     borrowKeyedManagedLedger: preparation === undefined ? undefined : (prepared, request, recipe,
       direct, keyed, capacity) => {
@@ -5838,7 +5840,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked});
     },
-    prepareManagedKeyedContentRun(runtime, prepared, request, graph, recipe, constructPlan) {
+    retainManagedContentPreparation(runtime, prepared, contentPreparation) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || typeof manager?.retainContentPreparation !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.retainContentPreparation(prepared,
+        originalSourceManagedHostRequest(originals, prepared), contentPreparation);
+    },
+    prepareManagedKeyedContentRun(runtime, prepared, request, graph, recipe, constructPlan, contentPreparation) {
       const manager = sourceManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareKeyedContentRun !== 'function' ||
           record.managedSourceProfile === undefined || typeof constructPlan !== 'function') {
@@ -5859,6 +5871,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const run = {runtime, prepared, request, manager, contentGraph: graph, contentRecipe: recipe,
         preparationKind: 'keyed-content-plan', original: undefined, value: undefined,
         selectedKeyed: undefined, contentCompilation: undefined, closed: false, selecting: true};
+      if (contentPreparation?.prepared !== prepared || contentPreparation.inputHolder === undefined ||
+          typeof Object.getOwnPropertyDescriptor(contentPreparation, 'releaseAliases')?.value !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      run.contentPreparation = contentPreparation;
+      run.releaseContentAliases = contentPreparation.releaseAliases;
+      contentPreparation.managed = run;
+      if (contentPreparation.localPreparation !== undefined) contentPreparation.localPreparation.hostRun = run;
       runs.set(prepared, run); liveRuns.add(run);
       try {
         run.retire = runtime.clientProgramInstalledManagedRunRetire;
@@ -5877,7 +5897,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.contentCompilation = control.prepareCheckedClientRequestKeyedSerializationCompilation(
               parent, input, selected, originalGraph);
             return run.contentCompilation;
-          });
+          }, contentPreparation);
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         assertSourceManagedInstallationCurrent(manager, originals);
@@ -5885,7 +5905,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
     },
-    prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace) {
+    prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace, contentPreparation) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareSerializationRun !== 'function' ||
           plan.kind !== 'serialization') throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -5909,6 +5929,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
         original: undefined, value: undefined, serialization: undefined, serializationCleaned: false,
         closed: false, selecting: true};
+      if (contentPreparation?.prepared !== prepared || contentPreparation.inputHolder === undefined ||
+          typeof Object.getOwnPropertyDescriptor(contentPreparation, 'releaseAliases')?.value !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      run.contentPreparation = contentPreparation;
+      run.releaseContentAliases = contentPreparation.releaseAliases;
+      contentPreparation.managed = run;
+      if (contentPreparation.localPreparation !== undefined) contentPreparation.localPreparation.hostRun = run;
       runs.set(prepared, run); liveRuns.add(run);
       try {
         run.retire = runtime.clientProgramInstalledManagedRunRetire;
@@ -5923,7 +5951,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.serialization = content.prepareRequestPrefix(parent, input, request,
               plan.compiled, plan.runDefinition, limits, workspace);
             return run.serialization;
-          });
+          }, contentPreparation);
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run;
@@ -6074,78 +6102,94 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
-      if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
-      if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
-        // No prefix start can precede an adopted Run. The original Request
-        // still owns its partial constructor and aborts it on existing cleanup.
-        record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
-        for (const key of Object.keys(run)) run[key] = undefined;
-        run.closed = true; return;
-      }
-      if (run.preparationKind === 'model-plan' && run.value === undefined) {
-        // Construction unwound; a Scope can predate a refused completion.
-        // This failed preparation has entered neither dispatch nor a read.
-        const model = run.model;
-        if (model.taken || model.read !== undefined) throw clientOperationError('InstalledMockModelCleanupPending');
-        if (model.scope !== undefined && model.scopeFinished !== true) {
-          if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
-            model.runDefinition, model.graph, model.scope, true) !== true) {
-            throw clientOperationError('InstalledMockModelCleanupPending');
-          }
-          model.scopeFinished = true;
+      const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan';
+      if (contentRetirement && run.retiringContent) throw clientOperationError('InstalledContentRunCleanupPending');
+      if (contentRetirement) run.retiringContent = true;
+      try {
+        if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
+        if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
+          // No prefix start can precede an adopted Run. The original Request
+          // still owns its partial constructor and aborts it on existing cleanup.
+          record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
+          for (const key of Object.keys(run)) run[key] = undefined;
+          run.closed = true; return;
         }
-        Reflect.apply(run.releaseModelAliases, model, []);
-        record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
-        for (const key of Object.keys(run)) run[key] = undefined;
+        if (run.preparationKind === 'model-plan' && run.value === undefined) {
+          // Construction unwound; a Scope can predate a refused completion.
+          // This failed preparation has entered neither dispatch nor a read.
+          const model = run.model;
+          if (model.taken || model.read !== undefined) throw clientOperationError('InstalledMockModelCleanupPending');
+          if (model.scope !== undefined && model.scopeFinished !== true) {
+            if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+              model.runDefinition, model.graph, model.scope, true) !== true) {
+              throw clientOperationError('InstalledMockModelCleanupPending');
+            }
+            model.scopeFinished = true;
+          }
+          Reflect.apply(run.releaseModelAliases, model, []);
+          record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
+          for (const key of Object.keys(run)) run[key] = undefined;
+          run.closed = true;
+          return;
+        }
+        finishInstalledEffectModelScope(run, true, checked);
+        if (run.preparationFunded) {
+          if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
+            if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
+              throw clientOperationError('InstalledContentRunCleanupPending');
+            }
+            // Spend only this original prefix's ACK before parent retirement
+            // can sever its payload or a consumed borrow return can throw.
+            run.serializationCleaned = true;
+          }
+          const sameValue = run.value, sameRequest = run.request, sameOriginal = run.original;
+          try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
+          catch (cause) {
+            if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
+          }
+          if (contentRetirement && !run.contentAliasesReleased) {
+            if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
+                run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal ||
+                run.contentPreparation?.managed !== run || typeof run.releaseContentAliases !== 'function') {
+              throw clientOperationError('ForeignInstalledContentRun');
+            }
+            Reflect.apply(run.releaseContentAliases, run.contentPreparation, [run]);
+            run.contentAliasesReleased = true;
+            run.releaseContentAliases = run.contentPreparation = undefined;
+          }
+          // The Scope's census has acknowledged physical retirement. Cut its
+          // raw compiler/definition/graph aliases before returning the original
+          // typed preparation borrower and completing that same parent debit.
+          if (run.preparationKind === 'model-plan' && !run.modelAliasesReleased) {
+            // The original receiver must survive its own alias release. Spend
+            // that managed retirement before returning a consumed parent borrow.
+            Reflect.apply(run.releaseModelAliases, run.model, []);
+            run.modelAliasesReleased = true;
+          }
+          run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+          run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
+          run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
+          run.manager.severPreparation(prepared,run.original);
+          run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
+          run.prepared=undefined;run.closed=true;
+          run.queryInvocation=run.queryTimePreparation=undefined;
+          // Keep a weak-key tombstone but no Prepared in this continuation.
+          // Returning registry/handler holders may now complete the same debit.
+          run.finishRetirement = managedPreparationRetirementContinuation(run,record);
+          return run.finishRetirement;
+        }
+        finishInstalledEffectModelScope(run, true, checked);
+        if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
+        else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+        // A failed same-Request Model constructor has no adopted manager Run.
+        // Its existing producer/input cleanup owns that original initial parent.
+        if (run.original !== undefined && !(run.preparationKind === 'effect-plan' &&
+            run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun(prepared, run.original);
         run.closed = true;
-        return;
-      }
-      finishInstalledEffectModelScope(run, true, checked);
-      if (run.preparationFunded) {
-        if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
-          if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
-            throw clientOperationError('InstalledContentRunCleanupPending');
-          }
-          // Spend only this original prefix's ACK before parent retirement
-          // can sever its payload or a consumed borrow return can throw.
-          run.serializationCleaned = true;
-        }
-        try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
-        catch (cause) {
-          if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
-        }
-        // The Scope's census has acknowledged physical retirement. Cut its
-        // raw compiler/definition/graph aliases before returning the original
-        // typed preparation borrower and completing that same parent debit.
-        if (run.preparationKind === 'model-plan' && !run.modelAliasesReleased) {
-          // The original receiver must survive its own alias release. Spend
-          // that managed retirement before returning a consumed parent borrow.
-          Reflect.apply(run.releaseModelAliases, run.model, []);
-          run.modelAliasesReleased = true;
-        }
-        run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
-        run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
-        run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
-        run.manager.severPreparation(prepared,run.original);
-        run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
-        run.prepared=undefined;run.closed=true;
-        run.queryInvocation=run.queryTimePreparation=undefined;
-        // Keep a weak-key tombstone but no Prepared in this continuation.
-        // Returning registry/handler holders may now complete the same debit.
-        run.finishRetirement = managedPreparationRetirementContinuation(run,record);
-        return run.finishRetirement;
-      }
-      finishInstalledEffectModelScope(run, true, checked);
-      if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
-      else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
-      // A failed same-Request Model constructor has no adopted manager Run.
-      // Its existing producer/input cleanup owns that original initial parent.
-      if (run.original !== undefined && !(run.preparationKind === 'effect-plan' &&
-          run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun(prepared, run.original);
-      run.closed = true;
-      record.computeRuns.delete(prepared);
-      record.computeLiveRuns.delete(run);
-      for (const key of Object.keys(run)) run[key] = undefined;
+        record.computeRuns.delete(prepared);
+        record.computeLiveRuns.delete(run);
+        for (const key of Object.keys(run)) run[key] = undefined;
+      } finally {if (contentRetirement) run.retiringContent = false;}
     },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
       const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;
@@ -6285,8 +6329,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // is the same one required by that service's original identity fence.
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
-        prepareManagedContentRun(prepared, request, graph, recipe, constructPlan) {
-          return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan);
+        prepareManagedContentRun(prepared, request, graph, recipe, constructPlan, contentPreparation) {
+          return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan, contentPreparation);
         },
         prepareManagedRun(prepared, request, profile, prepareInvocation) {
           return Reflect.apply(prepare, preparation, prepareInvocation === undefined

@@ -935,13 +935,29 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
-    prepareKeyedContentRun(prepared, request, identity, graph, constructPlan, compileOriginal) {
+    retainContentPreparation(prepared, request, contentPreparation) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
+          state.holder === undefined || state.adopting || state.preparing ||
+          contentPreparation?.prepared !== prepared || contentPreparation.retired ||
+          typeof Object.getOwnPropertyDescriptor(contentPreparation, 'releaseAliases')?.value !== 'function' ||
+          state.contentPreparation !== undefined && state.contentPreparation !== contentPreparation ||
+          state.context.runtime.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      // No fallible callback follows taking this original record. Failed
+      // construction keeps it until the same Request's abort fence below.
+      state.contentPreparation = contentPreparation;
+      contentPreparation.inputHolder = state.holder;
+    },
+    prepareKeyedContentRun(prepared, request, identity, graph, constructPlan, compileOriginal, contentPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.contentGraph !== undefined ||
+          state.preparing || state.contentGraph !== undefined || state.contentPreparation !== contentPreparation ||
           typeof constructPlan !== 'function' || typeof compileOriginal !== 'function') {
         fail('ForeignInstalledSourceProducer');
       }
@@ -963,13 +979,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       finally {state.preparing = false;}
       return view.adoptContentPreparation(prepared, identity, state.contentPlan);
     },
-    prepareSerializationRun(prepared, request, identity, constructPlan) {
+    prepareSerializationRun(prepared, request, identity, constructPlan, contentPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'content' ||
           state.contentCompilation === undefined || state.holder === undefined || state.adopting ||
-          state.preparing || typeof constructPlan !== 'function') fail('ForeignInstalledSourceProducer');
+          state.preparing || state.contentPreparation !== contentPreparation || typeof constructPlan !== 'function') fail('ForeignInstalledSourceProducer');
       state.preparing = true;
       let selected;
       try {selected = Reflect.apply(constructPlan, undefined, [state.parent, producer.receipt]);}
@@ -1120,6 +1136,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.effectBorrowMethods.clientProgramEffectPreparationInputRetirementStarted(state.holder) === true;
       if (state.prepared !== prepared || severed !== true) {
         fail('ForeignInstalledSourceProducer');
+      }
+      if (state.contentPreparation !== undefined) {
+        if (state.contentPreparation.retired !== true) fail('InstalledContentRunCleanupPending');
+        state.contentPreparation = undefined;
       }
       // Original membership/currentness depends only on this receipt/state,
       // not the heavy request after retirement has fenced new operations.

@@ -177,6 +177,11 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
       if(typeof retireInitialPreparation!=='function') invalid();
       retireInitialPreparation(state.prepared);
     }
+    if (state.contentPreparation !== undefined) {
+      const original = state.contentPreparation;
+      Reflect.apply(original.releaseAliases, original, [undefined, state.holder]);
+      state.contentPreparation = undefined;
+    }
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory
     // borrower as well. Core consumes each holder before attempting owner
