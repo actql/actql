@@ -646,6 +646,8 @@ pub fn client_program_check_infer_original_pre_restore_origin(@run_publication_h
 
 pub fn client_program_check_logical_map_binding(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_check_original_composed_infer_preparation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> String
@@ -767,6 +769,8 @@ pub fn client_program_complete_request_model_preparation(@client_local_host.Clie
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
+
+pub fn client_program_composed_infer_retained_limits(@client_infer_host.Limits) -> Array[Int64]
 
 pub fn client_program_confirmed_cancelled_unpublished_run_state(String, String, Array[String], Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
 
@@ -2659,6 +2663,8 @@ pub fn client_program_prepare_source_computation_in_public_environment(String, S
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_prepared_composed_infer_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_infer_host.Limits, @client_infer_host.Issue]
 
 pub fn client_program_prepared_installed_managed_model_requirements(@client_local_host.ClientInstalledManagedModelPlan) -> Array[Int64]
 
