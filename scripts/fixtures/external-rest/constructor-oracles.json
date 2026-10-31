@@ -1,0 +1,14 @@
+{
+  "case": "actual duplicate binding construction failure after completed valid Source objects",
+  "expectedDuplicateBindingMessage": "InstalledSourceBindingAmbiguous",
+  "expectedPublicWrapper": "InstalledHostInitializationFailed",
+  "expectedSourceProfiles": 2,
+  "distinctAbsolutePathsIdenticalValidProfileBytes": true,
+  "expectedClientReturned": false,
+  "expectedPublicSubmissions": 0,
+  "expectedProviderRequests": [],
+  "expectedSecretResolutions": 0,
+  "noKnownOwnerNonacceptanceClaim": true,
+  "noFakeFirstCloseAckWhenNoClient": true,
+  "physicalObservation": "Actual existing scopes numeric/cwd-inclusive existing lsof exactempty; absent roots retained as absence, not FD0. Public cleanupPending true is a failure even if actualFDs empty."
+}

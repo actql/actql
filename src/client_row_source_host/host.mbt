@@ -19,6 +19,9 @@ pub(all) enum RowHostIssue {
   Physical(@resources.LedgerIssue)
   Residual(@connector.FixedComputeIssue)
   ResidualWork(@local.ManagedProviderWorkIssue)
+  InputValidationWork(@bounded.Issue)
+  InputKeys(@execution.InputKeyIssue)
+  InputScores(@execution.InputScoreIssue)
   InvalidState
 }
 
@@ -160,6 +163,27 @@ fn admit_contract(body : String) -> @identity.CanonicalValue? {
 }
 
 ///|
+/// Admit the same protocol bodies once under the installing Source's original
+/// constructor reservation. This immutable DATA is neither an acquisition nor
+/// a read grant; the Source material retains its actual backing across Requests.
+pub fn admit_row_acquisition_contracts(
+  query_contract_body : String,
+  evidence_contract_body : String,
+) -> Result[@planning.QueryEvidenceContracts, RowHostIssue] {
+  guard admit_contract(query_contract_body) is Some(query_contract) &&
+    admit_contract(evidence_contract_body) is Some(evidence_contract) &&
+    @planning.admit_query_evidence_contracts(
+      query_contract,
+      evidence_contract,
+      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    )
+    is Ok(contracts) else {
+    return Err(InvalidContracts)
+  }
+  Ok(contracts)
+}
+
+///|
 pub fn prepare_row_acquisition(
   declaration : RowDeclaration,
   requirement : @planning.QueryRequirement,
@@ -195,17 +219,43 @@ pub fn prepare_declared_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Source(issue))
   }
-  let requirement = preparation.requirement
-  guard admit_contract(query_contract_body) is Some(query_contract) &&
-    admit_contract(evidence_contract_body) is Some(evidence_contract) &&
-    @planning.admit_query_evidence_contracts(
-      query_contract,
-      evidence_contract,
-      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
-    )
-    is Ok(contracts) else {
-    return Err(InvalidContracts)
+  let contracts = match
+    admit_row_acquisition_contracts(query_contract_body, evidence_contract_body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  prepare_row_acquisition_owned(
+    preparation, connector_registration, contracts, listing_rows,
+  )
+}
+
+///|
+/// Consume the retained admitted protocol original. Selection, listing policy,
+/// candidate, Source evidence and later physical/current checks are unchanged.
+pub fn prepare_declared_row_acquisition_with_contracts(
+  preparation : RowSourcePreparation,
+  connector_registration : String,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowAcquisition, RowHostIssue] {
+  let listing_rows = match
+    resolve_row_listing_rows(preparation, listing_policy) {
+    Ok(value) => value
+    Err(issue) => return Err(Source(issue))
+  }
+  prepare_row_acquisition_owned(
+    preparation, connector_registration, contracts, listing_rows,
+  )
+}
+
+///|
+fn prepare_row_acquisition_owned(
+  preparation : RowSourcePreparation,
+  connector_registration : String,
+  contracts : @planning.QueryEvidenceContracts,
+  listing_rows : RowListingRows?,
+) -> Result[RowAcquisition, RowHostIssue] {
+  let requirement = preparation.requirement
   guard @connector.prepare_capability_registry(
       [
         {
@@ -405,6 +455,7 @@ struct RowRun {
 ///|
 priv enum RowRunConfiguration {
   DirectConfiguration(RowHostConfiguration)
+  InputConfiguration(RowInputAcquisition)
   KeyedConfiguration(RowKeyedAcquisition)
   // Same Row owner and payload shape; only this checked receiver installs
   // original Scope liveness that must be detached after actual physical close.
@@ -414,6 +465,7 @@ priv enum RowRunConfiguration {
 ///|
 priv enum RowRunIssuer {
   DirectIssuer(RowIssuer)
+  InputIssuer(RowInputIssuer)
   KeyedIssuer(RowKeyedIssuer)
 }
 
@@ -623,6 +675,11 @@ pub fn begin_row_run_with_page_limits(
 ) -> Result[Unit, RowHostIssue] {
   if run.closed {
     return Err(InvalidState)
+  }
+  if run.configuration is InputConfiguration(acquisition) {
+    return begin_input_row_run(
+      run, acquisition, page_limits, max_capture_rows, reference_issuer,
+    )
   }
   if run.physical is Some(physical) &&
     page_limits.max_bytes.to_int64() > physical.execution_scratch {
@@ -894,7 +951,11 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
   }
   match finished {
     Ok(scan) => {
-      run.attempt.state = AwaitingCleanup(scan)
+      run.attempt.state = if run.configuration is InputConfiguration(_) {
+        InputAwaitingCleanup(scan, read.input)
+      } else {
+        AwaitingCleanup(scan)
+      }
       Ok(())
     }
     Err(issue) => {
@@ -925,6 +986,8 @@ pub fn close_row_run(run : RowRun) -> Unit {
     abort_row_run(run)
     match run.issuer {
       DirectIssuer(issuer) =>
+        @planning.close_query_evidence_registration(issuer.registration)
+      InputIssuer(issuer) =>
         @planning.close_query_evidence_registration(issuer.registration)
       KeyedIssuer(issuer) =>
         @planning.close_query_evidence_registration(issuer.registration)
@@ -1017,12 +1080,21 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 /// One exact completed observation and its live captured source.
 struct RowSourceCapture {
   run : RowRun
-  observation : RowObservation
+  observation : RowCaptureObservation
   source : @query.CapturedInputSource
 }
 
 ///|
+priv enum RowCaptureObservation {
+  QueryObservation(RowObservation)
+  InputObservation(RowInputObservation)
+}
+
+///|
 pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
+  if run.configuration is InputConfiguration(_) {
+    return capture_input_row_run(run)
+  }
   guard !run.closed &&
     run.issuer is DirectIssuer(issuer) &&
     run.configuration is DirectConfiguration(configuration) else {
@@ -1092,7 +1164,7 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
       Err(issue) => return Err(issue)
     }
   }
-  Ok({ run, observation, source, })
+  Ok({ run, observation: QueryObservation(observation), source, })
 }
 
 ///|
@@ -1140,6 +1212,13 @@ pub fn row_capture_source(
 pub fn row_capture_original_read(
   capture : RowSourceCapture,
 ) -> @execution.SuppliedRelationRead? {
+  if capture.observation is InputObservation(original) {
+    return if row_capture_source(capture) is Ok(_) {
+      Some(original.read)
+    } else {
+      None
+    }
+  }
   guard row_capture_source(capture) is Ok(_) &&
     capture.run.residual is Some(residual) &&
     capture.run.configuration is DirectConfiguration(configuration) else {

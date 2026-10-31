@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {releaseVersion} from './release-version.mjs';
-import {observeReleaseSet} from './release-registry.mjs';
+import {observeReleaseSet, observePythonReleaseTarget, observeNpmReleaseTarget} from './release-registry.mjs';
 import {runRelease} from './release.mjs';
 
 const sha = body => createHash('sha256').update(body).digest('hex');
@@ -56,7 +56,7 @@ async function fixture(t) {
   await writeFile(join(directory, 'release-set.sha256'), `${digest}  release-set.json\n`);
   const urls = ['https://registry.npmjs.org/%40actql%2Fnode/0.0.7-rc.1',
     'https://registry.npmjs.org/@actql/node/-/node-0.0.7-rc.1.tgz',
-    'https://pypi.org/pypi/actql-sdk/0.0.7rc1/json',
+    `https://pypi.org/pypi/${names[1]}/0.0.7rc1/json`,
     `https://files.pythonhosted.org/packages/aa/${files[1]}`];
   const npm = {name: names[0], version, dist: {integrity: artifacts[0].integrity, tarball: urls[1]}};
   const python = {info: {name: names[1], version: '0.0.7rc1'}, urls: [{filename: files[1],
@@ -86,6 +86,34 @@ test('registry observation: actual npm identity owner and bounded remote bytes f
   assert.equal(result.requests.length, 4);
   assert.deepEqual(result.requests.filter(item => item.url === f.urls[1] || item.url === f.urls[3]).map(item => item.sha256),
     f.artifacts.map(item => item.sha256));
+  assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
+});
+
+test('registry observation: selected Python consumer reuses original public byte owner without observing unrelated npm targets', async t => {
+  const f = await fixture(t), before = await readFile(join(f.directory, 'release-set.json'));
+  const observe = () => observePythonReleaseTarget(f.directory, f.digest, 'python', {fetchResponse: f.fetchResponse});
+  const result = await observe();
+  assert.deepEqual(result.observations.map(value => value.state), ['present']);
+  assert.deepEqual(f.calls.map(value => value.url), f.urls.slice(2));
+  f.routes.set(f.urls[3], () => new Response(Buffer.alloc(f.artifacts[1].bytes, 65)));
+  assert.equal((await observe()).observations[0].state, 'conflict');
+  f.routes.set(f.urls[2], () => new Response('', {status: 404}));
+  assert.equal((await observe()).observations[0].state, 'absent');
+  assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
+});
+
+test('registry observation: selected Native Host consumer reuses complete original npm target without unrelated PyPI reads', async t => {
+  const f = await fixture(t), before = await readFile(join(f.directory, 'release-set.json'));
+  const observe = () => observeNpmReleaseTarget(f.directory, f.digest, 'node', {fetchResponse: f.fetchResponse});
+  assert.equal((await observe()).observations[0].state, 'present');
+  assert.deepEqual(f.calls.map(value => value.url), f.urls.slice(0, 2));
+  f.routes.set(f.urls[1], () => new Response(Buffer.alloc(f.artifacts[0].bytes, 65)));
+  assert.equal((await observe()).observations[0].state, 'conflict');
+  f.routes.set(f.urls[0], () => new Response('', {status: 403}));
+  assert.equal((await observe()).observations[0].state, 'unknown');
+  assert(f.calls.every(value => value.url.startsWith('https://registry.npmjs.org/')));
+  await assert.rejects(observeNpmReleaseTarget(f.directory, undefined, 'node', {fetchResponse: f.fetchResponse}));
+  await assert.rejects(observeNpmReleaseTarget(f.directory, f.digest, 'python', {fetchResponse: f.fetchResponse}));
   assert.deepEqual(await readFile(join(f.directory, 'release-set.json')), before);
 });
 
@@ -205,4 +233,14 @@ test('registry observation: positive public CLI dispatch composes exact fixed by
   assert.deepEqual(result.plan.plan.map(item => item.action), ['reuse-identical', 'reuse-identical']);
   assert.equal(f.calls.length, 4);
   assert.equal(result.plan.blocked, false);
+});
+
+test('registry observation: official npm HTTP metadata upgrades only to HTTPS without following redirects', async t => {
+  const f = await fixture(t); f.npm.dist.tarball = f.urls[1].replace('https:', 'http:');
+  const result = await f.observe(); assert.equal(result.plan.blocked, false);
+  assert.equal(f.calls.some(value => value.url.startsWith('http:')), false);
+  assert.equal(result.requests.find(value => value.url === f.urls[1]).sha256, f.artifacts[0].sha256);
+  f.npm.dist.tarball = 'http://other.invalid/foreign.tgz';
+  assert.equal((await f.observe()).observations[0].state, 'unknown');
+  assert.equal(f.calls.some(value => value.url.includes('other.invalid')), false);
 });

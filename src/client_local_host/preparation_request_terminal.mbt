@@ -54,6 +54,7 @@ pub fn[I] finish_request_computation_check(
     physical_equal(original, input) &&
     owner.program_check is Some(child) &&
     !child.busy &&
+    child.policy_subject_work is None &&
     owner.computation_limits is Some(_) else {
     return Err(Preparation(WrongPhase))
   }

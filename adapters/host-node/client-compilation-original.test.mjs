@@ -107,3 +107,66 @@ test('barrier profiles retain their original graph requirements without an artif
  }
  assert.equal(compiles,0);assert.equal(issues,0);
 });
+
+
+test('timed original projection forwards the Core Option without a JavaScript tuple constructor',()=>{
+ const q={},prepared={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
+ const moon={clientProgramQueryTimeInvocationOriginal:function(...args){assert.equal(this,moon);assert.deepEqual(args,[q,prepared]);return opaque;}};
+ const project=method('../host-common/runtime-core.mjs','clientQueryTimeInvocationOriginal',{moon});
+ assert.equal(project(q,prepared),opaque);moon.clientProgramQueryTimeInvocationOriginal=undefined;assert.throws(()=>project(q,prepared),/unavailable/);
+});
+
+test('timed original adopted getter checks all first tokens and refuses retired or foreign projections',()=>{
+ const run={},prepared={},request={},q={},context={},compiled={},compiledToken={},definition={},definitionToken={},compiledRunTokens=new WeakMap([[compiled,compiledToken]]);
+ const expected={preparedProgram:prepared,requestIdentity:request,queryTimePreparation:q,queryTime:context,compiled,runDefinition:definition};
+ let output={_0:q,_1:request,_2:compiledToken,_3:definitionToken},checks=0;
+ const moon={clientProgramInstalledManagedRunInvocationOriginal:function(r,p){assert.equal(this,moon);assert.equal(r,run);assert.equal(p,prepared);return output;},clientProgramQueryTimeContext:actual=>{assert.equal(actual,q);return context;}};
+ const control={checkClientCompiledRunOwner(c,p){assert.equal(c,compiled);assert.equal(p,prepared);checks++;}};
+ const get=method('../host-common/runtime-core.mjs','checkedClientManagedQueryInvocationOriginal',{moon,compiledRunTokens,token:d=>{assert.equal(d,definition);return definitionToken;},runtimeOptionalField:(v,i)=>v?.['_'+i],control});
+ assert.equal(get(run,prepared,expected),expected);assert.equal(checks,1);
+ const valid=output;
+ for(let i=0;i<4;i++){output={...valid,['_'+i]:{}};assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}
+ for(const value of [undefined,{$tag:0},{$tag:1,_0:valid}]){output=value;assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}
+ output=valid;assert.throws(()=>get(run,prepared,{...expected,queryTime:{}}),/Foreign Client original/);assert.equal(checks,1);
+});
+
+
+// Import the whole product module. The extracted tests above intentionally
+// isolate methods and cannot establish their module-level lexical bindings.
+const {runtimeCore: actualRuntimeCore} = await import('../host-common/runtime-core.mjs');
+
+test('actual timed invocation module resolves its canonical projection with registered original compilation',()=>{
+ const prepared={},request={},run={},compiledToken={},definitionToken={},artifact={},q={},context={};
+ const projectedRead=Error('original projection read boundary'),primary=Error('original getter failure');
+ let mode='read',reads=0,issuers=0,definitions=0,projections=0;
+ // Existing pinned Result ports only. No opaque Option or tuple layout is
+ // manufactured here: the read probe refuses on any property access.
+ const ok=value=>({$tag:1,_0:value});
+ const readProbe=new Proxy(Object.create(null),{get(){reads++;throw projectedRead;}});
+ const moon={
+  strategyRemoteManagedOutputEvidenceKind:()=> 'unused-component-remote-kind',
+  clientProgramIssueOriginalValuesCompiledRun(p,a){assert.equal(p,prepared);assert.equal(a,artifact);issuers++;return ok(compiledToken);},
+  clientProgramCompiledRunTemplate:()=>({}),clientProgramCompiledRunPlan:()=>({}),
+  clientProgramCompiledRunPrepared:()=>({}),clientProgramCompiledRunAuthorization:()=>({}),clientProgramCompiledRunAdmission:()=>({}),
+  strategyRunEvidenceName:()=> 'component-evidence',strategyRunEvidenceIdentity:()=> 'component-identity',strategyRunEvidenceJson:()=> '{}',
+  strategyPublicationContractName:()=> 'run_definition',strategyPublicationContractIdentityField:()=> 'run_id',
+  strategyPublicationContractIdentity:()=> 'component-run',strategyPublicationContractJson:()=> '{}',
+  clientProgramIssueCompiledRunDefinition(value){assert.equal(value,compiledToken);definitions++;return ok(definitionToken);},
+  clientProgramInstalledManagedRunInvocationOriginal(r,p){assert.equal(r,run);assert.equal(p,prepared);projections++;if(mode==='failure')throw primary;return mode==='none'?undefined:readProbe;},
+  clientProgramQueryTimeContext:()=>context,
+  clientProgramCompiledRunMatches(value,p){assert.equal(value,compiledToken);return p===prepared;},
+ };
+ const control=actualRuntimeCore(moon).publicationControl;
+ const compiled=control.prepareCheckedClientCompiledRun(prepared,'values',{},undefined,artifact);
+ const runDefinition=control.defineCheckedClientCompiledRun(compiled,{});
+ const original={preparedProgram:prepared,requestIdentity:request,queryTimePreparation:q,queryTime:context,compiled,runDefinition};
+ assert.throws(()=>control.checkedClientManagedQueryInvocationOriginal(run,prepared,original),e=>e===projectedRead);
+ assert.equal(reads,1);assert.equal(issuers,1);assert.equal(definitions,1);
+ // Retired/missing and copied originals refuse through the same real module;
+ // no injected helper, recompilation or inferred valid new Common ABI.
+ mode='none';assert.throws(()=>control.checkedClientManagedQueryInvocationOriginal(run,prepared,original),/Foreign Client original/);
+ mode='read';assert.throws(()=>control.checkedClientManagedQueryInvocationOriginal(run,prepared,{...original,compiled:{...compiled}}),/Foreign Client original/);
+ assert.equal(reads,1);
+ mode='failure';assert.throws(()=>control.checkedClientManagedQueryInvocationOriginal(run,prepared,original),e=>e===primary);
+ assert.equal(projections,4);assert.equal(issuers,1);assert.equal(definitions,1);
+});

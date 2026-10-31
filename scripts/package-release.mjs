@@ -56,9 +56,13 @@ export function releasePackageMetadata(original, name, cohort) {
   return manifest;
 }
 
-export async function inventory(directory, prefix = '') {
+export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
+  assert.equal(typeof ignoreInstalledDependencies, 'boolean');
   const files = [];
   for (const name of (await readdir(directory)).sort()) {
+    // Only the public consumer asks to separate npm's installed dependency
+    // subtree from this package's own frozen payload. Archive checks never do.
+    if (ignoreInstalledDependencies && prefix === '' && name === 'node_modules') continue;
     const path = join(directory, name), relative = prefix + name;
     const stat = await lstat(path);
     assert(!stat.isSymbolicLink(), `Release payload symlink: ${relative}`);
@@ -72,11 +76,15 @@ export async function inventory(directory, prefix = '') {
   return files;
 }
 
-export async function unpack(archive, destination) {
+export async function unpack(archive, destination, {rootName = 'package'} = {}) {
+  assert(typeof rootName === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(rootName) && rootName === rootName.trim(),
+    'Archive root must be one literal directory name');
   const names = run('tar', ['-tzf', archive]);
   assert(names.length < 4 * 1024 * 1024, 'Archive inventory exceeds limit');
-  for (const name of names.trimEnd().split('\n')) {
-    assert(name.startsWith('package/') && !name.split('/').some(v => v === '..') &&
+  const entries = names.trimEnd().split('\n');
+  assert.equal(new Set(entries).size, entries.length, 'Duplicate archive entries are not release payloads');
+  for (const name of entries) {
+    assert(name.startsWith(`${rootName}/`) && !name.split('/').some(v => v === '..') &&
       !name.includes('\\') && !/[\u0000-\u001f\u007f]/u.test(name), `Unsafe archive entry: ${name}`);
   }
   for (const line of run('tar', ['-tvzf', archive]).trimEnd().split('\n')) {
@@ -84,7 +92,7 @@ export async function unpack(archive, destination) {
   }
   await mkdir(destination, {recursive: true});
   run('tar', ['-xzf', archive, '-C', destination]);
-  return join(destination, 'package');
+  return join(destination, rootName);
 }
 
 export async function stagePackage({archive, destination, name, cohort, license}) {

@@ -81,6 +81,25 @@ pub fn checking_environment_with_request_value_policies(
 }
 
 ///|
+/// Exact original evidence DATA already selected on this immutable checking
+/// configuration. Equal wire/CID values or reconstructed proofs do not match.
+/// This observes no Host currentness and supplies no verification authority.
+pub fn checking_environment_request_value_policies_match(
+  value : CheckEnvironment,
+  evidence : Array[HostRequestValuePolicyEvidence],
+) -> Bool {
+  if value.request_value_policies.length() != evidence.length() {
+    return false
+  }
+  for index in 0..<evidence.length() {
+    if !physical_equal(value.request_value_policies[index], evidence[index]) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Return the exact admitted Check Environment selected for this checker.
 /// This CID is preparation evidence, not a later Host execution decision.
 pub fn checking_environment_cid(value : CheckEnvironment) -> String {

@@ -29,6 +29,13 @@ path under a metadata-only reservation. Store-loaded originals use their own
 admission and validation path. No historical Run rewrite or compatibility
 migration is implied.
 
+Validating a restored Definition against a live compiled Run performs the full
+existing binding check. When the restored contract has the same CID, successful
+validation preserves the issued Definition and its original binding. The restored
+contract does not become the live publication original. A compiler with no
+binding can retain its admitted Definition, and an explicitly issued different
+Definition follows the existing replacement path.
+
 ## Ownership and handoff
 
 Existing manager and dispatch holders preserve the preparation while publication
@@ -159,6 +166,22 @@ activation. The plain recipe must not silently fund those routes merely because
 they share a type. Preparation/execution generalization and complete cross-backend
 migration remain explicit completion work; valid existing routes must not be
 rejected just to make an obsolete-path count reach zero.
+
+## Logical Result selection across physical graph views
+
+A Result transformation retains its original checked Program and Result
+occurrence. A retained-input graph view can change physical targets and input
+slots while preserving those originals. Selection checks the same checked
+Program, the original Result occurrence and the exact Result index. Equal CIDs
+or another occurrence do not establish that correspondence.
+
+This check grants no execution or output custody. The existing captured Result
+borrow, managed completion, live re-admission bridge, output occurrence, limits
+and retirement checks still apply before an export can proceed.
+
+A whole Source input can supply a physical graph view with new target and
+input-slot vectors. Those vectors supply neither a fallback export nor another
+publication owner.
 
 ## Verification
 

@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
@@ -3107,6 +3107,28 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramBindQueryTime(original, prepared, value, token(definition), request));
     },
+    clientQueryTimeInvocationOriginal(original, prepared) {
+      const project = moon.clientProgramQueryTimeInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      // Opaque Option from the matching Core; never synthesize a JS tuple.
+      return Reflect.apply(project, moon, [original, prepared]);
+    },
+    checkedClientManagedQueryInvocationOriginal(run, prepared, original) {
+      const project = moon.clientProgramInstalledManagedRunInvocationOriginal;
+      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
+      const retained = Reflect.apply(project, moon, [run, prepared]);
+      const compiled = compiledRunTokens.get(original.compiled);
+      if (compiled === undefined || original.preparedProgram !== prepared ||
+          runtimeOptionalField(retained, 0) !== original.queryTimePreparation ||
+          runtimeOptionalField(retained, 1) !== original.requestIdentity ||
+          runtimeOptionalField(retained, 2) !== compiled ||
+          runtimeOptionalField(retained, 3) !== token(original.runDefinition) ||
+          moon.clientProgramQueryTimeContext(original.queryTimePreparation) !== original.queryTime) {
+        throw new TypeError('Foreign Client original query-time invocation');
+      }
+      control.checkClientCompiledRunOwner(original.compiled, prepared);
+      return original;
+    },
     restoreClientQueryTime(prepared, compiled, definition, request) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || typeof moon.clientProgramRestoreQueryTimePreparation !== 'function') {
@@ -3145,7 +3167,32 @@ function publicationControl(moon) {
         if (publicationPreparation === undefined || preparedProgram === undefined || compiled.kind !== 'tasks' ||
             !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
             sources.some(({captured}) => captured?.capture === undefined || captured?.identity === undefined ||
-              captured?.requirement === undefined || captured?.logicalInput === undefined)) {
+              captured?.logicalInput === undefined)) {
+          throw new TypeError('Invalid original publication invocation profile');
+        }
+        // The adopted original Plan selects the semantic input boundary.
+        // A missing/copy/foreign capture cannot fall back to a Query ABI.
+        const kind = checked(moon.clientProgramInstalledManagedPublicationSourceKind(
+          publicationPreparation, preparedProgram));
+        if (kind === 'whole-input') {
+          if (sources.length !== 1 || source.keyedObservation !== undefined) {
+            throw new TypeError('Invalid original publication invocation profile');
+          }
+          const {captured, sourceEvidence} = sources[0], capture = captured.capture;
+          const original = Object.getOwnPropertyDescriptor(capture, 'originalWholeInput');
+          if (original === undefined || !Object.hasOwn(original, 'value') || typeof original.value !== 'function') {
+            throw new TypeError('Invalid original whole Source capture');
+          }
+          const issued = compiledRunResult(moon.clientProgramIssueWholeSourcePublicationInvocation(
+            publicationPreparation, preparedProgram, value, token(definition),
+            Reflect.apply(original.value, capture, []), captured.identity,
+            evidenceToken(sourceEvidence), captured.logicalInput,
+            source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+          return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+            invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+        }
+        if (kind !== 'query' || sources.some(({captured}) => captured.requirement === undefined)) {
           throw new TypeError('Invalid original publication invocation profile');
         }
         const issued = compiledRunResult(moon.clientProgramIssueCapturedPublicationInvocation(

@@ -6,6 +6,8 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {ownInvocationContext,ownInvocationAuthorization,invocationBindingsMatch,invokeScopedCredentialOperation}
   from '../../../host-common/owned-invocation-context.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {prepareNotionUserListPages} from '../site/user-list-read.mjs';
 
 // Execute the actual caller declarations with only HTTPS replaced by an
 // explicit transport port. Common provider methods are the original compiled
@@ -13,6 +15,15 @@ import {requestTarget} from '../../../host-common/http-exchange.mjs';
 const provider=await import(process.env.ACTQL_TEST_NOTION_URL??
   new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
 const usersOperation='notion:users:list',queryOperation='notion:data-sources:query';
+const managedReaders = new Set();
+test.afterEach(() => {
+  for (const {reader, factory} of managedReaders) {
+    reader.requestStop();
+    assert.equal(reader.observe().cleanupConfirmed, true);
+    assert.equal(factory.retire(), true);
+  }
+  managedReaders.clear();
+});
 function caller(file,name,transport){
   const text=readFileSync(new URL('../site/'+file,import.meta.url),'utf8');
   const declarations=parse(text,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(node=>{
@@ -57,8 +68,23 @@ function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false,names=[
     requests.push(request);assert(requests.length<=bodies.length);
     return{accepted:true,statusCode:200,body:bodies[requests.length-1]};
   };
-  const create=caller(family==='users'?'user-list-read.mjs':'data-source-read.mjs',
-    family==='users'?'createNotionUserListReader':'createNotionDataSourceReader',transport);
+  const create=family==='users'?options=>{
+    // Real shared Host owner with explicit Credential/transport/close ports;
+    // the unchanged original Common namespace still checks Notion page meaning.
+    const site={referenceCurrent(){return true;},authorizationPurpose(){return{kind:'read'};},
+      bindRunAcquisition(){return{credential:options.credential,close(){return'closed';},retire(){return true;}};},
+      callResource:transport};
+    const factory=createInstalledCredentialSourceReader({capacity:{},originalSite:site,
+      assertCurrent(){},operation:usersOperation,maxResponses:options.limits.maxPages,
+      maxResponseBytes:options.limits.maxResponseBytes,maxSecretBytes:128,
+      preparePageReader({columns},apply){return prepareNotionUserListPages({moon:provider,
+        names:columns,limits:options.limits},apply);}});
+    const reader=factory.prepare({resource:'users',columns:options.names,
+      verifyRead:()=>options.current(usersOperation),
+      authorizationFor:index=>options.authorizationFor({operation:usersOperation,index}),
+      chargePage:options.chargeResponse,consumePage:options.consumePage});
+    managedReaders.add({reader,factory});return reader;
+  }:caller('data-source-read.mjs','createNotionDataSourceReader',transport);
   const reader=create({moon:provider,...(family==='users'?{names}:queryOriginals()),
     initialAuthorization:{grant:{},scope,useId:'original'},credential:{binding:{}},limits:{...bounds,maxTotalRows},
     current:verify,authorizationFor(input){grants.push(input);return{grant:{},scope,useId:'page-'+input.index};},

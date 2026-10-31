@@ -112,6 +112,35 @@ fn selected_source_evidence_facts(
 }
 
 ///|
+/// General Source input selection uses the same checked Catalog facts. It
+/// neither derives a Query residual nor issues Query process evidence.
+pub fn source_acquisition_evidence_facts(
+  acquisition : @acquisition.SourceAcquisition,
+) -> QuerySourceEvidenceFacts? {
+  selected_source_evidence_facts(
+    @acquisition.mode_input(@acquisition.source_acquisition_mode(acquisition)),
+  )
+}
+
+///|
+pub fn source_acquisition_evidence_members(
+  acquisition : @acquisition.SourceAcquisition,
+) -> Result[
+  @environment.ConnectorSourceEvidenceMembers,
+  @environment.SourceEvidenceMemberIssue,
+] {
+  guard source_acquisition_evidence_facts(acquisition) is Some(facts) else {
+    return Err(@environment.ContractMismatch("checked_source"))
+  }
+  selected_source_evidence_members(
+    @acquisition.selected_contract(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(acquisition)),
+    ),
+    facts,
+  )
+}
+
+///|
 pub fn query_source_evidence_fact_values(
   facts : QuerySourceEvidenceFacts,
 ) -> Array[String] {

@@ -8294,7 +8294,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "c40d77cb047c742a707397980de2f9453a8d2a0759e400926e8d99ccfb9c3e0d",
+      "sha256": "14e886f3bc62e5ce5627d1461de0ad51f9c5829e81ba17f8d44aec539a9b5dbb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -8319,7 +8319,8 @@
             "capacity",
             "keyed",
             "originalRead",
-            "originalKeyedRead"
+            "originalKeyedRead",
+            "wholeInput"
           ],
           "async": false
         },
@@ -8333,6 +8334,11 @@
         },
         {
           "name": "startInstalledRowRun/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/cleanup/cleanup",
           "parameters": [],
           "async": true
         },
@@ -8386,6 +8392,11 @@
             "dag",
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -8472,27 +8483,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/run/run#11",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run#2",
-          "parameters": [],
+          "parameters": [
+            "attempt"
+          ],
           "async": false
         },
         {
           "name": "startInstalledRowRun/run/run#3",
-          "parameters": [
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "startInstalledRowRun/run/run#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/run/run#5",
+          "name": "startInstalledRowRun/run/run#4",
           "parameters": [
             "attempt"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#5",
+          "parameters": [],
           "async": false
         },
         {
@@ -8583,10 +8601,10 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/readProvider",
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
-            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
@@ -8648,6 +8666,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
@@ -8662,6 +8684,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
@@ -8672,6 +8698,10 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -8700,6 +8730,10 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -8728,6 +8762,322 @@
               {
                 "path": "adapters/host-node/installed-row-run.test.mjs",
                 "anchor": "original Source evidence is issued once then consumed from the same live capture without wire admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/cleanup/cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#10"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#11"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
               }
             ]
           }
@@ -8862,7 +9212,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead}) {"
+                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {"
               }
             ],
             "identity": [
@@ -8914,114 +9264,6 @@
               }
             ]
           }
-        },
-        {
-          "operations": [
-            "startInstalledRowRun/run/run#10"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "fail('InstalledSourceReadUnavailable')"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "fail('InstalledSourceReadUnavailable')"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "export function startInstalledRowRun"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before Request adoption and remains the same execution scope"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ]
-          }
         }
       ],
       "imports": [
@@ -9037,6 +9279,1606 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "sha256": "87ac1b1dbefe45ab709aaaac708ad61b680311179e279550c1f2b10a44ab80fb",
+      "operations": [
+        {
+          "name": "byCid/byCid",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "byCid/byCid/byCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "byCid/byCid/byCid#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource",
+          "parameters": [
+            "moon",
+            "declaration",
+            "declared",
+            "environmentWire",
+            "environment",
+            "sourceInitialization",
+            "connectorId",
+            "connectorRegistration",
+            "connectorRevision",
+            "site",
+            "authorization",
+            "readOperation",
+            "physicalTarget",
+            "readPages",
+            "bindingCid",
+            "limits",
+            "referenceIssuer",
+            "listingPolicy",
+            "captureContent",
+            "listingReportCapacity",
+            "prepareAcquisition",
+            "directReadIdentity",
+            "prepareRead",
+            "grantBeforeBegin",
+            "originalSourceAccess",
+            "providerReader",
+            "prepareSourceRead",
+            "closeSourceRead",
+            "prepareKeyedSourceRead",
+            "closeKeyedSourceRead",
+            "originalKeyedTransport",
+            "readAsset",
+            "originalPageLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire",
+          "parameters": [
+            "state",
+            "preparedProgram",
+            "preparedEffect",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access",
+            "signal",
+            "preparedSource",
+            "retainedRelationOutput",
+            "occurrence",
+            "ledger",
+            "originalOperationScope",
+            "captureOnly"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/complete/complete",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/original/original",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+          "parameters": [
+            "childOperation",
+            "index",
+            "occurrence"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
+          "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#10",
+          "parameters": [
+            "resource",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#7",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#8",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#9",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/currentRead/currentRead",
+          "parameters": [
+            "prepared",
+            "access",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/decideRead/decideRead",
+          "parameters": [
+            "prepared",
+            "access",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+          "parameters": [
+            "keyedAcquisition",
+            "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/installedSource/installedSource",
+          "parameters": [
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/invalidReaderField",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/keyedRecoveryBinding",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/managedProviderCaptureCapacity",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/managedWholeSourceCapacity",
+          "parameters": [
+            "preparedProgram",
+            "sourceSelection",
+            "installedContracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/open",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openCapture",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "keyedAcquisition",
+            "request",
+            "ledger",
+            "signal",
+            "preparedKeyed",
+            "chargeVerification",
+            "capturedResourcePath",
+            "keyedContent",
+            "access"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/observedMs/observedMs",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#10",
+          "parameters": [
+            "lookup"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#2",
+          "parameters": [
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#3",
+          "parameters": [
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#4",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#5",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#6",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#7",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "keyedAcquisition",
+            "left",
+            "ledger",
+            "signal",
+            "preparedKeyed",
+            "originalCapture",
+            "keyedContent",
+            "access",
+            "maxWork",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
+          "parameters": [
+            "authorityScopeCid",
+            "observedAt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "retainedRelationOutput"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
+          "parameters": [
+            "verifyRead",
+            "activeSignal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyedLookup/stop/stop",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/operationBindings/operationBindings",
+          "parameters": [
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepare",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access",
+            "queryTimePreparation",
+            "requestIdentity",
+            "managedRun",
+            "occurrence"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/prepare/prepare",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepare/prepare#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareKeyed",
+          "parameters": [
+            "preparedProgram",
+            "keyedAcquisition",
+            "requestIdentity",
+            "access"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareOriginalAcquisition",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/resources/resources",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/sourceRefs/sourceRefs",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/verifyKeyedRead",
+          "parameters": [
+            "preparedProgram",
+            "keyedAcquisition",
+            "preparedKeyed",
+            "access",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowCredentialOperationSite",
+          "parameters": [
+            "credential"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRowSourceAuthorization",
+          "parameters": [
+            "accountConfiguration",
+            "principalId",
+            "root",
+            "connectorRegistration",
+            "originalContext",
+            "gateOptions"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization#2",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization#3",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRowSourceAuthorization/own/own",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadRowSourceCredentialCustody",
+          "parameters": [
+            "openCredentialJournal",
+            "options",
+            "caPath",
+            "prepareResolver",
+            "invalidCode"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledRowSite",
+          "parameters": [
+            "root",
+            "principalId",
+            "commonMoon",
+            "installation",
+            "runtimeBundleCid",
+            "accountConfiguration",
+            "originalContext",
+            "connection",
+            "profile",
+            "resolveSecret",
+            "ca",
+            "responseHeaders",
+            "admitsApprovalTarget",
+            "admitsEffectTargetRead",
+            "runAcquisitionLimits",
+            "assertCurrent",
+            "receiver",
+            "configurationReader"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledRowSite/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledRowSite/openInstalledRowSite",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody",
+          "parameters": [
+            "profile",
+            "principalId",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "privateKey",
+            "resolveSecret",
+            "ca",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal",
+            "credentialFacts",
+            "runAcquisitionLimits",
+            "closedCode",
+            "grantCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/authorizationPurpose",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent",
+          "parameters": [
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialCustody/checkGrantRequest",
+          "parameters": [
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses",
+            "taskAttempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/close/close",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/closeRunBindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition",
+          "parameters": [
+            "request",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding",
+          "parameters": [
+            "authorization",
+            "assertCurrent",
+            "observeCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "childAuthorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/sign",
+          "parameters": [
+            "operation",
+            "runInvocationCid",
+            "taskAttempt",
+            "dispatchRequestCid",
+            "maxUses",
+            "issuerPurpose"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
+          "parameters": [
+            "metadataControl",
+            "scope",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite",
+          "parameters": [
+            "profile",
+            "principalId",
+            "authorization",
+            "connection",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "resolveSecret",
+            "ca",
+            "admitsApprovalTarget",
+            "admitsEffectTargetRead",
+            "installationMetadata",
+            "runAcquisitionLimits",
+            "configurationReader",
+            "ownAuthorization",
+            "responseHeaders",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialSite/bindingWire/bindingWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/callResource/callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/currentEffectRead",
+          "parameters": [
+            "approved"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "decision",
+            "physicalBinding",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "subjectCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ownCredentialAcquisitionLimits",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialSecretPresentation",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/account/account",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
+          "parameters": [
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "target",
+            "metadataOccurrenceId",
+            "useId",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/pair/pair",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite",
+          "parameters": [
+            "site",
+            "custody",
+            "identity",
+            "enabled"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite#2",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite#3",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment",
+          "parameters": [
+            "baseWire",
+            "declared",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceMapping",
+          "parameters": [
+            "moon",
+            "declaration",
+            "writesJson",
+            "resource",
+            "sources"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "valueCid/valueCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "exports": [
+        "createInstalledRowSource",
+        "installRowSourceAuthorization",
+        "installedRowCredentialOperationSite",
+        "loadRowSourceCredentialCustody",
+        "openInstalledRowSite",
+        "openRowSourceCredentialCustody",
+        "openRowSourceCredentialSite",
+        "rowSourceCheckEnvironment",
+        "rowSourceMapping"
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/checkpoint-approval.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/owned-invocation-context.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "../site-node/remote-credential-signature.mjs",
+        "../site-node/sqlite-credential-journal.mjs",
+        "./client-source-operation.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
+        "./installed-row-listing.mjs",
+        "./installed-row-run.mjs",
+        "./installed-source.mjs",
+        "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs",
+        "./original-query-preparation.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:perf_hooks",
+        "node:timers/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
@@ -9066,9 +10908,6 @@
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/decideRead/decideRead",
-            "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
-            "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
-            "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
@@ -9144,7 +10983,6 @@
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
             "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
             "openRowSourceCredentialCustody/retainRunBinding",
-            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
             "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/bindingWire/bindingWire",
@@ -9340,6 +11178,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
@@ -9389,11 +11231,19 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));"
+                "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
@@ -9436,6 +11286,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "issued.state = 'failed'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -9532,6 +11386,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -9652,6 +11510,46 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-source-credential-constructor.test.mjs",
+                "anchor": "Source signer uses the original existing native grant constructor and signed scope"
+              },
+              {
+                "path": "adapters/host-node/installed-source-credential-constructor.test.mjs",
+                "anchor": "Source signer re-admission keeps the original signed-scope durable use budget"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -9801,6 +11699,26 @@
               {
                 "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
                 "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -10271,7 +12189,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const originalRead = planned !== undefined ? runtimeField(planned, 0)"
+                "anchor": "const originalRead = planned !== undefined ? plannedRead"
               }
             ],
             "inputsOutputs": [
@@ -10311,7 +12229,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "clientProgramInstalledSourceReadCheckCurrent(originalRead)"
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               }
             ],
             "failure": [
@@ -10358,13 +12280,36 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#11",
             "createInstalledRowSource/openKeyed/cleanup/cleanup",
             "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
             "createInstalledRowSource/openKeyed/init:close/init:close",
@@ -10383,7 +12328,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
               }
             ],
             "identity": [
@@ -10396,18 +12345,30 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const rowRecovery = state.recovery;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "cancellation": [
@@ -10420,6 +12381,10 @@
               {
                 "path": "src/client_local_host/installed_managed_keyed_content.mbt",
                 "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
               }
             ],
             "extension": [
@@ -10432,81 +12397,36 @@
               {
                 "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
                 "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#12"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const rowRecovery = state.recovery;"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const closeOriginal = async () => {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
-                "anchor": "pub fn check_installed_keyed_source_read_ledger("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "other unsupported backend shapes remain separate connections, not language"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
-                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/managedProviderCaptureCapacity",
             "createInstalledRowSource/prepareOriginalAcquisition"
           ],
@@ -10610,6 +12530,30 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
@@ -10732,1436 +12676,456 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
+            "createInstalledRowSource/installedSource/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:close/init:close/init:close",
+            "createInstalledRowSource/installedSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+            "createInstalledRowSource/installedSource/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledRowSource/installedSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+            "createInstalledRowSource/installedSource/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/installedSource/installedSource",
+            "createInstalledRowSource/invalidReaderField",
+            "openRowSourceCredentialCustody/readChildCredential",
+            "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+            "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+            "retainCredentialOperationSite/retainCredentialOperationSite#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/managedWholeSourceCapacity",
+            "createInstalledRowSource/prepare/prepare#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
+            "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
+            "createInstalledRowSource/acquire/recovery/init:close/init:close",
+            "createInstalledRowSource/acquire/recovery/recovery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
+            "createInstalledRowSource/acquire/original/original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
         }
-      ],
-      "sha256": "12c05c0bdc6c5a4f9b42f7fe34d42e3ee90bcbb5be7be6dc6fa274df8225df1b",
-      "operations": [
-        {
-          "name": "byCid/byCid",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "byCid/byCid/byCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "byCid/byCid/byCid#2",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource",
-          "parameters": [
-            "moon",
-            "declaration",
-            "declared",
-            "environmentWire",
-            "connectorId",
-            "connectorRegistration",
-            "connectorRevision",
-            "site",
-            "authorization",
-            "readOperation",
-            "physicalTarget",
-            "readPages",
-            "bindingCid",
-            "limits",
-            "referenceIssuer",
-            "listingPolicy",
-            "captureContent",
-            "listingReportCapacity",
-            "prepareAcquisition",
-            "directReadIdentity",
-            "prepareRead",
-            "grantBeforeBegin",
-            "originalSourceAccess",
-            "providerReader",
-            "prepareSourceRead",
-            "prepareKeyedSourceRead",
-            "closeKeyedSourceRead",
-            "originalKeyedTransport",
-            "readAsset",
-            "originalPageLimits"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire",
-          "parameters": [
-            "state",
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "signal",
-            "preparedSource",
-            "retainedRelationOutput",
-            "occurrence",
-            "ledger",
-            "originalOperationScope",
-            "captureOnly"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/complete/complete",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
-          "parameters": [
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#10",
-          "parameters": [
-            "resource",
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#11",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#12",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#4",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#5",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#6",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#7",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#8",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#9",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/currentRead/currentRead",
-          "parameters": [
-            "prepared",
-            "access",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/decideRead/decideRead",
-          "parameters": [
-            "prepared",
-            "access",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
-          "parameters": [
-            "keyedAcquisition",
-            "maxWork"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/keyedRecoveryBinding",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/managedProviderCaptureCapacity",
-          "parameters": [
-            "requirement"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/open",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openCapture",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "keyedAcquisition",
-            "request",
-            "ledger",
-            "signal",
-            "preparedKeyed",
-            "chargeVerification",
-            "capturedResourcePath",
-            "keyedContent",
-            "access"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/cleanup/cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/observedMs/observedMs",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#10",
-          "parameters": [
-            "lookup"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#11",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#12",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#2",
-          "parameters": [
-            "bytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#3",
-          "parameters": [
-            "bytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#4",
-          "parameters": [
-            "body"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#5",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#6",
-          "parameters": [
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#7",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#9",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "keyedAcquisition",
-            "left",
-            "ledger",
-            "signal",
-            "preparedKeyed",
-            "originalCapture",
-            "keyedContent",
-            "access",
-            "maxWork",
-            "quantum"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/close/close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
-          "parameters": [
-            "authorityScopeCid",
-            "observedAt"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "retainedRelationOutput"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
-          "parameters": [
-            "verifyRead",
-            "activeSignal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/recovery/recovery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/stop/stop",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/operationBindings/operationBindings",
-          "parameters": [
-            "resource"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/ordinaryRecoveryBinding",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepare",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "queryTimePreparation",
-            "requestIdentity",
-            "managedRun",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepare/prepare",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareKeyed",
-          "parameters": [
-            "preparedProgram",
-            "keyedAcquisition",
-            "requestIdentity",
-            "access"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareOriginalAcquisition",
-          "parameters": [
-            "requirement"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/resources/resources",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceRefs/sourceRefs",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/verifyKeyedRead",
-          "parameters": [
-            "preparedProgram",
-            "keyedAcquisition",
-            "preparedKeyed",
-            "access",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowCredentialOperationSite",
-          "parameters": [
-            "credential"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRowSourceAuthorization",
-          "parameters": [
-            "accountConfiguration",
-            "principalId",
-            "root",
-            "connectorRegistration",
-            "originalContext",
-            "gateOptions"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization#2",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization#3",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/own/own",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadRowSourceCredentialCustody",
-          "parameters": [
-            "openCredentialJournal",
-            "options",
-            "caPath",
-            "prepareResolver",
-            "invalidCode"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledRowSite",
-          "parameters": [
-            "root",
-            "principalId",
-            "commonMoon",
-            "installation",
-            "runtimeBundleCid",
-            "accountConfiguration",
-            "originalContext",
-            "connection",
-            "profile",
-            "resolveSecret",
-            "ca",
-            "responseHeaders",
-            "admitsApprovalTarget",
-            "admitsEffectTargetRead",
-            "runAcquisitionLimits",
-            "assertCurrent",
-            "receiver"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledRowSite/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledRowSite/openInstalledRowSite",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody",
-          "parameters": [
-            "profile",
-            "principalId",
-            "connectorRegistration",
-            "connectorRevision",
-            "runtimeBundleCid",
-            "commonMoon",
-            "privateKey",
-            "resolveSecret",
-            "ca",
-            "now",
-            "grantLifetimeMs",
-            "openCredentialJournal",
-            "credentialFacts",
-            "runAcquisitionLimits",
-            "closedCode",
-            "grantCode"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/authorizationPurpose",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/bindRunAcquisition",
-          "parameters": [
-            "authorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent",
-          "parameters": [
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialCustody/checkGrantRequest",
-          "parameters": [
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses",
-            "taskAttempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/close/close",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/closeRunBindings",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition",
-          "parameters": [
-            "request",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding",
-          "parameters": [
-            "authorization",
-            "assertCurrent",
-            "observeCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "taskAttempt",
-            "dispatchRequestCid",
-            "maxUses",
-            "issuerPurpose"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
-          "parameters": [
-            "metadataControl",
-            "scope",
-            "expiresUnixMilliseconds",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite",
-          "parameters": [
-            "profile",
-            "principalId",
-            "authorization",
-            "connection",
-            "connectorRegistration",
-            "connectorRevision",
-            "runtimeBundleCid",
-            "commonMoon",
-            "resolveSecret",
-            "ca",
-            "admitsApprovalTarget",
-            "admitsEffectTargetRead",
-            "installationMetadata",
-            "runAcquisitionLimits",
-            "ownAuthorization",
-            "responseHeaders",
-            "now",
-            "grantLifetimeMs",
-            "openCredentialJournal"
-          ],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialSite/bindingWire/bindingWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/callResource/callResource",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/currentEffectRead",
-          "parameters": [
-            "approved"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-          "parameters": [
-            "decision",
-            "physicalBinding",
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
-          "parameters": [
-            "operation",
-            "decision",
-            "resource",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "subjectCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
-          "parameters": [
-            "operation",
-            "decision",
-            "resource",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/synchronous",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/synchronous/synchronous",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "ownCredentialAcquisitionLimits",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownCredentialSecretPresentation",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/account/account",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/current/current",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data/data",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data/data#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
-          "parameters": [
-            "originalCustody"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
-          "parameters": [
-            "target",
-            "metadataOccurrenceId",
-            "useId",
-            "expiresUnixMilliseconds",
-            "maxUses"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/pair/pair",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite",
-          "parameters": [
-            "site",
-            "custody",
-            "identity",
-            "enabled"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite/retainCredentialOperationSite",
-          "parameters": [
-            "authorization",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite/retainCredentialOperationSite#2",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment",
-          "parameters": [
-            "baseWire",
-            "declared",
-            "mappings"
-          ],
-          "async": false
-        },
-        {
-          "name": "rowSourceMapping",
-          "parameters": [
-            "moon",
-            "declaration",
-            "writesJson",
-            "resource",
-            "sources"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "valueCid/valueCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
-      "exports": [
-        "createInstalledRowSource",
-        "installRowSourceAuthorization",
-        "installedRowCredentialOperationSite",
-        "loadRowSourceCredentialCustody",
-        "openInstalledRowSite",
-        "openRowSourceCredentialCustody",
-        "openRowSourceCredentialSite",
-        "rowSourceCheckEnvironment",
-        "rowSourceMapping"
-      ],
-      "imports": [
-        "../../packages/sdk/host-port.mjs",
-        "../host-common/acquisition-outcome.mjs",
-        "../host-common/authorization-gate.mjs",
-        "../host-common/checkpoint-approval.mjs",
-        "../host-common/compiler-binding.generated.mjs",
-        "../host-common/runtime-core.mjs",
-        "../host-common/runtime-result.mjs",
-        "../site-node/https-credential-resource.mjs",
-        "../site-node/remote-credential-signature.mjs",
-        "../site-node/sqlite-credential-journal.mjs",
-        "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
-        "./installed-row-listing.mjs",
-        "./installed-row-run.mjs",
-        "./installed-source.mjs",
-        "./local-account-config.mjs",
-        "./ordinary-source-binding.mjs",
-        "./original-query-preparation.mjs",
-        "./source-profile-json.mjs",
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "node:perf_hooks",
-        "node:timers/promises",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
+      ]
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",

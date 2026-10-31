@@ -156,6 +156,8 @@ pub fn installed_managed_run_invocation_original(
 
 ///|
 pub(all) enum ClientInstalledManagedRunIssue {
+  SourceAcquisition(@publication_host.ClientSourceAcquisitionIssue)
+  SourceRoute(@sourceviews.SourceAcquisitionRouteIssue)
   ForeignOriginal
   Unsupported
   AlreadyBound
@@ -993,6 +995,7 @@ pub fn begin_installed_managed_run_source_read(
     declaration: None,
     requirement: None,
     acquisition: None,
+    whole_input: None,
     run: None,
     started: false,
   }
@@ -1421,6 +1424,16 @@ pub fn installed_managed_publication_limits(
   if value.captured_preparation is Some(plan) {
     if !physical_equal(plan.prepared, prepared) {
       return None
+    }
+    if plan.whole_input is Some(_) {
+      guard plan.capacity_plan.graph is Some(graph) &&
+        physical_equal(graph, plan.graph) else {
+        return None
+      }
+      return client_node_publication_limits_original(
+        max_payload_bytes,
+        plan.capacity_plan,
+      )
     }
     return client_node_publication_limits(
       prepared,

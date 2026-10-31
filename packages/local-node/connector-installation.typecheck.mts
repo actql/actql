@@ -1,5 +1,5 @@
 import {
-  checked, createInstalledRowEffect, createInstalledRowSource,
+  checked, createInstalledRestSource, createInstalledRowEffect, createInstalledRowSource,
   installRowSourceAuthorization, invokeScopedCredentialOperation,
   openRowSourceCredentialSite, retainInstalledHostInitializationFailure,
   rowSourceCheckEnvironment, rowSourceMapping,
@@ -9,6 +9,7 @@ import type {
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
   RowEffectDriver, RowEffectRequestChild,
+  RestSourceInstallationDefinition, RestSourceTransform,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from './host-policy.js';
 
@@ -331,3 +332,25 @@ const invalidScopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver
   recoverMemberRequests: () => ({requests: [['request-cid']]}),
 };
 void [scopedRecoveryDriver, invalidScopedRecoveryDriver];
+
+declare const originalRestDefinition: RestSourceInstallationDefinition;
+const pureRestTransform: RestSourceTransform = (page, context) => {
+  const wire: string = page.rowsWire;
+  const column: string | undefined = context.columns[0];
+  void column;
+  return {rowsWire: wire};
+};
+const restFacade = createInstalledRestSource(originalRestDefinition, {decodePage: pureRestTransform});
+const checkedRestProfile = restFacade.checkProfile({});
+const restSitePath: string = checkedRestProfile.siteProfilePath;
+// @ts-expect-error An author transform is pure and synchronous, not a reader.
+const asyncRestTransform: RestSourceTransform = async () => ({rowsWire: '[]'});
+// @ts-expect-error Host services are not an author facade option.
+createInstalledRestSource(originalRestDefinition, {installationServices: {}});
+// @ts-expect-error A factory cannot accept caller-issued capacity as authority.
+createInstalledRestSource(originalRestDefinition, {capacity: providerReaderCapacity});
+// @ts-expect-error Generated declaration wire is required, never reconstructed at load.
+const missingRestOriginal: RestSourceInstallationDefinition = {registration: 'acme', revision: 'acme/0.1',
+  profileVersion: 'actql-installed-acme-rest-source/0.1', origin: 'https://api.acme.invalid',
+  auth: {kind: 'bearer'}, sources: []};
+void [restSitePath, asyncRestTransform, missingRestOriginal];

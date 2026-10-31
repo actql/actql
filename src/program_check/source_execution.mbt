@@ -71,6 +71,7 @@ fn prepare_source_execution(
   identity : @context.ProgramSourceIdentity,
   budget : IdentityBudget,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  original? : Array[SourceExecution]? = None,
 ) -> Array[SourceExecution] raise UnitBuildFailure {
   let producer = @context.preparation_sources(
     @context.operation_profiles_preparation(
@@ -88,6 +89,7 @@ fn prepare_source_execution(
   )
   let remaining = IdentityBudget::{ ..budget, }
   let result : Array[SourceExecution] = []
+  let mut original_offset = 0
   let stages = @context.program_identity_stage_count(identity)
   identity_charge(remaining, stages)
   for stage in 0..<stages {
@@ -107,12 +109,29 @@ fn prepare_source_execution(
         @sourceviews.Direct(mode, _) => @sourceviews.mode_input(mode)
         @sourceviews.Keyed(mode, _) => @sourceviews.keyed_mode_input(mode)
       }
-      let response_policy = prepare_source_response_policy(source)
-      let policy_writer = identity_writer(remaining)
-      emit_source_response_policy(response_policy, policy_writer) catch {
-        e => raise Encoding(e)
+      // A policy-only continuation retains the original response/authority
+      // admission. It does not serialize/hash the same response policy again.
+      let prior = original.map(checks => checks[original_offset].subject)
+      let (response_policy, response_policy_cid) = match prior {
+        Some(subject) => {
+          guard physical_equal(subject.owner, identity) &&
+            subject.stage == stage &&
+            subject.input == input &&
+            physical_equal(subject.source, source) else {
+            raise ForeignOwner
+          }
+          (subject.response_policy, subject.response_policy_cid)
+        }
+        None => {
+          let policy = prepare_source_response_policy(source)
+          let writer = identity_writer(remaining)
+          emit_source_response_policy(policy, writer) catch {
+            e => raise Encoding(e)
+          }
+          (policy, identity_finish(remaining, writer))
+        }
       }
-      let response_policy_cid = identity_finish(remaining, policy_writer)
+      original_offset += 5
       let request_value_policy = select_request_value_policy(
         identity, stage, input, request, response_policy, request_value_policies,
         remaining,
@@ -138,7 +157,10 @@ fn prepare_source_execution(
             )
           @sourceviews.Keyed(_, _) => None
         },
-        authority: prepare_source_authority(source),
+        authority: match prior {
+          Some(subject) => subject.authority
+          None => prepare_source_authority(source)
+        },
       }
       let host = SourceExecution::{
         subject,
@@ -207,15 +229,29 @@ fn prepare_source_execution(
         physical_equal(request, @sourceviews.keyed_join_request(join)) else {
         raise ForeignOwner
       }
-      let binding = KeyedExecution::{
-        owner: producer,
-        stage,
-        index,
-        join,
-        bounds,
-        counts: @sourceviews.lookup_bounds_at(bounds, index).unwrap(),
-        producer: membership,
+      let binding = match original {
+        Some(checks) => {
+          guard checks[original_offset].kind is KeyedRequest(binding) &&
+            physical_equal(binding.owner, producer) &&
+            physical_equal(binding.join, join) &&
+            binding.stage == stage &&
+            binding.index == index else {
+            raise ForeignOwner
+          }
+          binding
+        }
+        None =>
+          KeyedExecution::{
+            owner: producer,
+            stage,
+            index,
+            join,
+            bounds,
+            counts: @sourceviews.lookup_bounds_at(bounds, index).unwrap(),
+            producer: membership,
+          }
       }
+      original_offset += 4
       let request_check = SourceExecution::{
         subject: host.subject,
         kind: KeyedRequest(binding),

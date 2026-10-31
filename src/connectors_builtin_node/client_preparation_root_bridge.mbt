@@ -734,8 +734,17 @@ pub fn client_program_finish_request_computation(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
-) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.finish_request_computation_preparation(parent, input)
+  environment : @program_check.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_checked_computation(
+    parent, input, environment, publication,
+  ).map(kind => {
+    match kind {
+      @client_local_host.Pure => "effect_free"
+      @client_local_host.Effect => "effectful"
+    }
+  })
 }
 
 ///|
@@ -773,6 +782,20 @@ pub fn client_program_prepare_request_program_compilation(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output~,
     provider_factory=installed_client_family_providers,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramReserveRequestQueryTimeInvocation")
+pub fn client_program_reserve_request_query_time_invocation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  compilation : @publication_host.ClientRunCompilation,
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.reserve_request_query_time_invocation(
+    parent, input, compilation,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -1049,8 +1072,8 @@ pub fn client_program_prepare_request_native_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_computation_check(
     parent,
     input,
     captured,
@@ -1068,12 +1091,7 @@ pub fn client_program_prepare_request_native_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
 }
 
 ///|
@@ -1112,8 +1130,8 @@ pub fn client_program_prepare_request_source_computation(
   environment : @program_check.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
-) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_source_computation(
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_native_source_computation_check(
     parent,
     input,
     captured,
@@ -1131,12 +1149,72 @@ pub fn client_program_prepare_request_source_computation(
     } else {
       Some(parameters)
     },
-  ).map(kind => {
-    match kind {
-      @client_local_host.Pure => "effect_free"
-      @client_local_host.Effect => "effectful"
-    }
-  })
+  )
+}
+
+///|
+// SAME original Request after semantic check, before compiler/Plan selection.
+#export_name("clientProgramPrepareRequestPolicySubjects")
+pub fn client_program_prepare_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Int, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.prepare_request_computation_policy_subjects(
+    parent,
+    input,
+    environment,
+    client_request_value_policy_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramReadRequestPolicySubject")
+pub fn client_program_read_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+) -> Result[String, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.request_computation_policy_subject(
+    parent, input, environment, index,
+  )
+}
+
+///|
+// Invoke once per original descriptor, including an explicit verifier decline.
+#export_name("clientProgramBindRequestPolicySubject")
+pub fn client_program_bind_request_policy_subject(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  index : Int,
+  policy_cid : String?,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.bind_request_computation_policy_subject(
+    parent, input, environment, index, policy_cid,
+  )
+}
+
+///|
+// Finish work and supplement this SAME child; no selected Environment escapes.
+#export_name("clientProgramFinishRequestPolicySubjects")
+pub fn client_program_finish_request_policy_subjects(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_policy_subjects(
+    parent, input, environment,
+  )
 }
 
 ///|

@@ -20,7 +20,7 @@ test "normal actual intent finish retains the original SQL compiler continuation
   client_program_prepare_request_submitted_intent(parent, receipt, captured).unwrap()
   |> ignore
   client_program_finish_request_submitted_intent(parent, receipt).unwrap()
-  let result = client_program_prepare_request_source_computation(
+  let checked = client_program_prepare_request_source_computation(
     parent,
     receipt,
     source,
@@ -29,6 +29,13 @@ test "normal actual intent finish retains the original SQL compiler continuation
     publication,
     None,
   )
+  let result = match checked {
+    Ok(_) =>
+      client_program_finish_request_computation(
+        parent, receipt, environment, publication,
+      )
+    Err(issue) => Err(issue)
+  }
   match result {
     Err(@client_local_host.QuerySyntax(@client_local_host.Request(issue))) =>
       println(
@@ -74,7 +81,7 @@ test "normal native Program after original intent keeps typed preparation and or
   |> ignore
   client_program_finish_request_submitted_intent(parent, receipt).unwrap()
   let intent = client_program_request_submitted_intent_original(parent, receipt).unwrap()
-  let result = client_program_prepare_request_native_computation(
+  let checked = client_program_prepare_request_native_computation(
     parent,
     receipt,
     request_diagnostic_test_json(document),
@@ -83,6 +90,13 @@ test "normal native Program after original intent keeps typed preparation and or
     publication,
     None,
   )
+  let result = match checked {
+    Ok(_) =>
+      client_program_finish_request_computation(
+        parent, receipt, environment, publication,
+      )
+    Err(issue) => Err(issue)
+  }
   let same_intent = client_program_request_submitted_intent_original(
     parent, receipt,
   )

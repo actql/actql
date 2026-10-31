@@ -44,6 +44,8 @@ pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C,
 
 pub fn[P, C, R] backed_execution_live_state(BackedExecutionLiveProjection[P, C, R], R) -> Result[BackedExecutionLiveState, BackedExecutionIssue]
 
+pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
+
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
@@ -1026,6 +1028,8 @@ pub(all) enum PreparationWorkPhase {
   LowerAndGraph
   ExecutionPlan
   PublicationProof
+  RequestValuePolicyCheck
+  RequestPolicySubjectPreparation
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {

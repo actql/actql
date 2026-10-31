@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat, open, readFile, readdir} from 'node:fs/promises';
 import {isAbsolute, join, resolve} from 'node:path';
+import {releaseVersion} from './release-version.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 // Match the pinned compiler driver's one original-source spelling adjustment.
@@ -52,7 +53,8 @@ async function jsonMember(path, maximum) {
   } finally {await fd.close();}
 }
 
-export async function admitCompletedNativeLocalProvider(destination, source, repository, moonHome) {
+export async function admitCompletedNativeLocalProvider(destination, source, repository, moonHome, {packageVersion} = {}) {
+  const selectedVersion = packageVersion === undefined ? undefined : releaseVersion(packageVersion).version;
   assert.match(source, /^[a-f0-9]{40}$/u);
   destination = resolve(destination);
   const directory = await lstat(destination);
@@ -79,6 +81,14 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   const plan = await jsonMember(join(provider, 'cc-plan.json'), 4 * 1024 * 1024);
   assert(Array.isArray(plan.steps) && plan.steps.length > 0 && plan.steps.length <= 256);
   assert.equal(receipt.completed_c_steps, plan.steps.length);
+  if (selectedVersion !== undefined) {
+    assert.equal(receipt.package_version, selectedVersion, 'Completed provider has another or no explicit package version');
+    const steps = plan.steps.filter(step => step.original.some(value =>
+      value.endsWith('src/cmd/native_client/version_stub.c')));
+    assert.equal(steps.length, 1);
+    assert.deepEqual(steps[0].selected.filter(value => value.startsWith('-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION')),
+      [`-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION=${JSON.stringify(selectedVersion)}`]);
+  }
   const executed = new Set();
   for (const step of plan.steps) {
     assert(Array.isArray(step.selected) && commandSignatures.has(JSON.stringify(step.selected)));
@@ -108,6 +118,9 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
     join(moonHome, 'bin/moon'), join(moonHome, 'bin/moonc'), join(moonHome, 'installed.json')]) {
     assert(paths.has(path), 'Completed provider is missing a required original input');
   }
+  if (selectedVersion !== undefined) for (const path of ['scripts/release-version.mjs', 'scripts/python_release_cohort.py',
+    'src/cmd/native_client/version_stub.c'])
+    assert(paths.has(join(repository, path)), 'Completed versioned provider lacks its original version projection');
   const recipe = await readFile(join(repository, 'packages/python-local-runtime/native/pre-root/scoped-read-source.json'));
   assert.equal(receipt.allocator.recipe_sha256, digest(recipe));
   const parsed = JSON.parse(recipe.toString('utf8'));

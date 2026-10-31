@@ -5,6 +5,7 @@ import {mkdtemp, mkdir, readFile, writeFile, rm, cp, rename, symlink} from 'node
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import test, {before, after} from 'node:test';
+import {writeInertPythonReleaseCohort} from './fixtures/release-python-wheels.mjs';
 import {admitCohort, stagePackage} from './package-release.mjs';
 import {freezeReleaseSet, verifyReleaseSet, resumeReleaseSet, releaseSetSummary} from './release-set.mjs';
 import {runRelease} from './release.mjs';
@@ -53,26 +54,9 @@ before(async () => {
     sourceSha: source, preparedAt: '2000-01-01T00:00:00.000Z', cohort,
     recipeSha256: 'b'.repeat(64), cohortSha256: 'c'.repeat(64), toolchain: {fixture: true},
     generation: 'normal-prepack-then-metadata-and-license-only', packages}));
-  // Real wheel containers, independently authored metadata. They contain NO
-  // engine/image: this exercises the existing metadata verifier, not runtime.
-  pythonDirectory = join(scratch, 'original-python'); await mkdir(pythonDirectory);
-  execFileSync('python3', ['-c', `
-import pathlib,zipfile,json,hashlib
-p=pathlib.Path(__import__('sys').argv[1]);w=p/'wheels';w.mkdir();records=[]
-for name in ['actql-sdk','actql-local-runtime','actql']:
- tag='py3-none-macosx_11_0_arm64' if name=='actql-local-runtime' else 'py3-none-any'
- version='0.0.7rc1';stem=name.replace('-','_');path=w/(stem+'-'+version+'-'+tag+'.whl');info=stem+'-'+version+'.dist-info/'
- deps={'actql':['actql-sdk=='+version,'actql-local-runtime=='+version],'actql-sdk':['httpx==0.28.1','rfc8785==0.1.4'],'actql-local-runtime':['wasmtime==38.0.0']}[name]
- with zipfile.ZipFile(path,'w') as z:
-  z.writestr(info+'METADATA','Metadata-Version: 2.4\\nName: '+name+'\\nVersion: '+version+'\\n'+''.join('Requires-Dist: '+v+'\\n' for v in deps))
-  z.writestr(info+'WHEEL','Wheel-Version: 1.0\\nTag: '+tag+'\\n')
-  z.writestr(info+'RECORD','')
-  if name=='actql':
-   for n in ['__init__.py','__init__.pyi','py.typed']:z.writestr('actql/'+n,'')
- records.append(dict(distribution=name,file=path.name,bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
-cohort=dict(source_sha='a'*40,package_version='0.0.7rc1',artifact_sha256='b'*64,platform='darwin-arm64',core_abi=1,module_sha256='c'*64,duckdb_sha256='d'*64,image_sha256='e'*64,engine_recipe_sha256='f'*64,host_capacity_sha256=None,wheels=records,runtime_executed=False,public_local_accepted=False,recovery_accepted=False,published=False)
-(p/'cohort.json').write_text(json.dumps(cohort))
-`, pythonDirectory], {encoding: 'utf8', stdio: 'pipe'});
+  // Same original independently authored metadata; no engine or image.
+  pythonDirectory = join(scratch, 'original-python');
+  await writeInertPythonReleaseCohort(pythonDirectory, 'python3');
 });
 after(async () => {if (scratch) await rm(scratch, {recursive: true, force: true});});
 
@@ -174,11 +158,11 @@ test('same-bytes resume classification distinguishes confirmed, absent, unknown 
   observations[0].identity.sha256 = 'f'.repeat(64); assert.throws(() => resumeReleaseSet(fixed, observations), /differs/u);
 });
 
-test('unsupported Linux Python and standalone Native paths cannot inherit another verifier', async () => {
+test('unsupported Linux Python and unverified Native archives cannot inherit another verifier', async () => {
   const value = request(true); value.targets[0].platforms = ['manylinux_2_28_x86_64'];
   await assert.rejects(freezeReleaseSet({request: value, policy, cohorts: [descriptor(true)], destination: join(scratch, 'no-linux')}));
   const native = request(); native.targets[0] = {...native.targets[0], ecosystem: 'native', destination: 'https://github.com/actql/actql'};
-  await assert.rejects(freezeReleaseSet({request: native, policy, cohorts: [{...descriptor(false), kind: 'standalone-native'}], destination: join(scratch, 'no-standalone')}), /standalone Native/u);
+  await assert.rejects(freezeReleaseSet({request: native, policy, cohorts: [{...descriptor(false), kind: 'native-standalone'}], destination: join(scratch, 'no-standalone')}), /native-standalone[.]json/u);
 });
 
 test('human summary comes from the fixed manifest and new external CLI operations stay unavailable', async t => {

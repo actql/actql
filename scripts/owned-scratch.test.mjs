@@ -15,13 +15,13 @@ const helper = pathToFileURL(new URL('./owned-scratch.mjs', import.meta.url)
 
 // Run a child that creates an owned scratch in `parent`, writes a tarball and
 // a nested file, then does `body` (JavaScript source using `scratch`).
-function child(parent, body, env = {}) {
+function child(parent, body, env = {}, options = {}) {
   const source = `
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createOwnedScratch} from ${JSON.stringify(helper)};
 const scratch = await createOwnedScratch({parent: ${JSON.stringify(parent)},
-  prefix: 'owned-', label: 'probe', digests: () => ['probe.tgz']});
+  prefix: 'owned-', label: 'probe', digests: () => ['probe.tgz'], ...${JSON.stringify(options)}});
 console.log('PATH=' + scratch.path);
 writeFileSync(join(scratch.path, 'probe.tgz'), 'tarball');
 mkdirSync(join(scratch.path, 'nested'));
@@ -90,6 +90,19 @@ test('preservation keeps a passed test\'s scratch', t => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(existsSync(result.path), true);
   assert.match(result.stderr, /preservation requested; scratch kept: /u);
+});
+
+test('explicit original-state preservation keeps passed files without a blanket removal instruction', t => {
+  const result = child(parent(t), 'scratch.passed();', {}, {preserve: true});
+  assert.equal(result.status, 0, result.stderr); assert.equal(existsSync(result.path), true);
+  assert.equal(existsSync(join(result.path, 'nested/state')), true);
+  assert.match(result.stderr, /preservation requested; scratch kept:/u); assert.doesNotMatch(result.stderr, /rm -rf/u);
+});
+
+test('explicit original-state preservation does not acknowledge an unconfirmed child end', t => {
+  const result = child(parent(t), '', {}, {preserve: true});
+  assert.equal(result.status, 1); assert.equal(existsSync(result.path), true);
+  assert.match(result.stderr, /did not confirm that its processes ended/u); assert.doesNotMatch(result.stderr, /rm -rf/u);
 });
 
 test('an end without confirmation keeps the scratch and fails', t => {

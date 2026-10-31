@@ -8,6 +8,7 @@ export function bindInstalledManagedSources(profile, runFor) {
   const sources = originals.map(source => {
     const prepare = source.prepare, capacity = source.ledgerCapacity;
     const captureCapacity = source.managedCaptureCapacity;
+    const wholeCapacity = source.managedWholeSourceCapacity;
     if (![prepare, capacity, captureCapacity].every(value => typeof value === 'function')) {
       throw new TypeError('InstalledManagedSourceUnavailable');
     }
@@ -21,6 +22,12 @@ export function bindInstalledManagedSources(profile, runFor) {
     }
     const preparations = new WeakMap();
     return Object.freeze({...source, ...forwarded,
+      ...(wholeCapacity === undefined ? {} : {
+        managedWholeSourceCapacity(facts) {
+          if (typeof wholeCapacity !== 'function') throw new TypeError('InstalledManagedSourceUnavailable');
+          return Reflect.apply(wholeCapacity, source, [facts]);
+        },
+      }),
       managedCaptureCapacity(requirement) {
         return Reflect.apply(captureCapacity, source, [requirement]);
       },

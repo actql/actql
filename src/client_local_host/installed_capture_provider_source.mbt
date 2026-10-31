@@ -1,5 +1,5 @@
 ///|
-/// Borrow the original provider acquisition retained by this Pure Plan. The
+/// Borrow the original Row acquisition retained by this Pure Plan. The
 /// existing Run owns admission/current/cleanup; this tuple creates no query,
 /// declaration, provider quote, permission or replacement resource owner.
 pub fn begin_installed_managed_capture_source_read(
@@ -30,12 +30,19 @@ pub fn begin_installed_managed_capture_source_read(
     physical_equal(plan.request, request) &&
     plan.captures.get(occurrence) is Some(capacity) &&
     capacity.original_input &&
-    capacity.acquisition is Some(acquisition) &&
-    capacity.provider is Some((selected, provider)) &&
-    physical_equal(selected, acquisition) &&
-    installed_provider_row_capture_capacity_matches(
-      capacity, acquisition, provider,
-    ) else {
+    capacity.acquisition is Some(acquisition) else {
+    return Err(ForeignOriginal)
+  }
+  // A base Row Plan retains its actual acquisition without an extra provider
+  // recipe. When a provider was selected, keep its original binding in full;
+  // absence cannot replace a selected recipe or manufacture physical backing.
+  if capacity.provider is Some((selected, provider)) &&
+    (
+      !physical_equal(selected, acquisition) ||
+      !installed_provider_row_capture_capacity_matches(
+        capacity, acquisition, provider,
+      )
+    ) {
     return Err(ForeignOriginal)
   }
   let requirement = capacity.requirement

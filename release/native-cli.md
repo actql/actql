@@ -10,7 +10,8 @@ Build from a clean fixed HEAD with the repository-pinned MoonBit compiler,
 under the existing local heavy guard. On each actual candidate platform:
 
 ```sh
-node scripts/native-cli-artifact.mjs .artifacts/native-cli-<platform>-<sha>
+node scripts/native-cli-artifact.mjs .artifacts/native-cli-<platform>-<sha> \
+  --package-version "$ACTQL_VERSION"
 ```
 
 The producer records the source SHA, compiler/toolchain pin, generated C
@@ -20,6 +21,40 @@ must be disclosed. Host-side package-selection simulation is not acceptance.
 Set `MOON_HOME` to the pinned toolchain. Each binary package preserves its
 Core license/notice files verbatim, checked against that compiler's installed
 Core and bound to the artifact record.
+Set `ACTQL_VERSION` to the complete explicitly selected candidate version before
+this build. The shared package-version parser is the only grammar owner; the
+Native literal has a 128-character initial-control bound. No source package
+number, environment variable at runtime, argv value or adjacent metadata file
+chooses the compiled banner. Unselected diagnostic builds display
+`0.0.0-development` and have no release-version observation.
+
+The existing argparse command retains its original help/version/error parsing
+and no-Host-acquisition behavior. Its version text comes from one bounded
+ordinary managed String containing immutable compiled DATA. The original
+Command constructor copies it into the retained initial parser graph; no Read,
+physical holding, Owner or permission is created by that text.
+
+The ordinary explicit-version producer uses a fresh target directory and an
+isolated compiler shim that changes only the original version stub's literal.
+The scoped Local producer adds the same explicit literal to its existing exact
+C plan. Completed-provider adoption checks that original C step, helpers and
+source before consuming the existing completion; it cannot relabel an older
+provider or start a replacement compilation. Compiler flags, allocator, ABI,
+engine settings, physical/current and cleanup protocols otherwise stay selected
+by their original owners.
+
+Before writing a version-bound artifact receipt, the producer executes that
+same binary's `--version` with no runtime/Node path and requires the exact
+selected banner, exit0 and no stderr. It binds the observation to the original
+binary length/SHA256 and version-build input digest. Historical artifacts remain
+readable in their old byte-only scope. New npm preparation, standalone staging,
+fixed-set admission and npm staging require the matching observed version;
+metadata-only renaming cannot supply it. Inert observation records are only
+component fixtures, never evidence that a real command ran.
+
+Protect the Native version helper/stub, artifact readers and both compiler
+connections alongside the existing version/policy/publisher controls. These
+source checks do not configure that protection or establish owner approval.
 The executable's greatest required GLIBC symbol version is its minimum bound,
 not a guarantee for arbitrary separately installed libcurl/transitive libraries.
 The tested OS/glibc/library set and an older untested bound are distinct.
@@ -71,3 +106,229 @@ version stops publication; choose a reviewed new cohort rather than overwrite.
 No workflow or install hook publishes anything. See the
 [SDK/Node procedure](README.md) for partial publication and erroneous-release
 handling. No unpublish, tag correction or public release is automatic.
+
+## Standalone archive preparation
+
+```sh
+node scripts/native-standalone-release.mjs prepare <request.json> <native-target-id> <verified-native-npm-cohort> <new-directory>
+node scripts/native-standalone-release.mjs verify <directory>
+```
+
+Preparation calls the existing complete Native npm cohort verifier first. It
+uses only the selected original OS-package tarballs, with the same source and
+explicit package version. It does not compile or patch an executable. The
+standalone `actql-<version>-<platform>.tar.gz` contains the original payload at
+unchanged relative paths, bytes and modes, plus `build-info.json`,
+`STANDALONE.md` and `CONTENTS.sha256`. The direct executable is
+`bin/actql-native-client`. The original `package.json` is provenance DATA; it
+is not a Node dependency or an installation lifecycle script.
+
+Build information records the package version, actual binary/source/toolchain
+and ABI identities and original npm cohort/package hashes. It does not put
+the archive's final digest inside its own body. `CONTENTS.sha256` covers the
+other members; the external final `SHA256SUMS` covers all archives. An existing
+destination/archive cannot be overwritten. Verification reopens the archives,
+checks every original member and exact generated metadata/checksum inventory,
+and reuses the original Native artifact/Local metadata readers. Its cold
+packaging/source-byte scope is separate from the full original producer gate.
+
+The request target uses ecosystem `native`, the exact selected platforms and
+requested profiles. Its package identities are `actql-<platform>` in platform
+order followed by `actql-checksums`; these identify GitHub archive assets, not
+new npm names. Feed the result to the upper fixed release set as
+`{targetId, kind: "native-standalone", directory}`. Both archives and
+`SHA256SUMS` are fixed artifacts, while the complete original Native npm
+manifest stays bound as raw provenance in `native-standalone.json`.
+
+Requested profiles are not accepted profiles. A Local request requires the
+original admitted runtime material and the existing darwin-arm64 producer
+route. Linux Remote packaging does not qualify Linux Local. The separate
+Native installation/bootstrap connection, actual CLI/README entry, real
+`--version`, successful Local/Remote behavior, close/failure handling and a
+Node-free environment must be accepted from the actual selected artifacts.
+Packaging does not rewrite the executable. Its matching build-time version
+observation remains distinct from the actual Node-free installed command,
+Local/Remote behavior and cleanup acceptance. Local asset presence does not
+supply a new bootstrap or fallback engine.
+
+This wrapper does not perform signing, notarization or publication. If signing
+is selected, the final signed input bytes and their verification must precede
+the fixed release set and owner approval. Real GitHub Draft/immutable release,
+asset reobservation, attestation, public download and Latest remain separate
+executor/acceptance duties. Header-only fixtures or an archive check never
+establish those outcomes.
+
+
+## Exact-byte Native Draft publication protocol
+
+```sh
+node scripts/release.mjs native-publish-plan <fixed-directory> <externally-retained-SHA256> <native-target-id>
+```
+
+This command verifies the complete original standalone archive/ABI inventory
+and matching compiled-version record, then shows the exact proposed Draft and
+asset set. It remains `execution: unavailable`. The fixed review must bind the
+proposed publication scope. Declared `passed` evidence remains supplied DATA,
+not an accepted installation, permission or owner approval.
+
+The existing publisher Owner exposes `publishNativeRelease` only for a separate
+protected executor. There is no default mutation runner, credential discovery,
+executable publish CLI or workflow. The executor must independently establish
+owner approval of the exact upper digest, trusted immutable validator/policy,
+real accepted install evidence, permitted recovery, credential separation and
+one exclusive current execution across repositories. GETs and local receipts
+are not a lock or registry compare-and-swap.
+
+Its separate owner API read port must actually see **all** drafts and releases
+and have Administration-read permission for the immutable-release setting.
+The reader requires enabled immutability before and after each observation,
+complete paginated release/asset inventories, one selected release id, exact
+tag/source and the fixed candidate's exact title/body/prerelease metadata.
+An anonymous 404 cannot supply absence. Disabled/unavailable settings, duplicate
+drafts, wrong source or presentation, foreign/partial assets and different bytes
+block the operation. No repository setting is enabled or changed by this code.
+
+API asset reads and their signed-CDN continuation use separate ports. API
+credentials must remain inside the protected API-only reader; the CDN gets only
+the normal public byte request. Signed query strings are not retained in
+receipts. Every existing asset is checked through the original finite actual
+length/SHA256 reader and its complete inventory is reobserved afterward.
+
+The selected Draft's original `upload_url` template must match the exact
+GitHub upload origin/repository/release id and remain unchanged across the
+read window. Each asset request expands only that validated original template.
+Missing or different templates refuse; no arbitrary upload destination is used.
+
+The sequence creates a Draft only after complete owner-visible absence,
+uploads only absent original assets, then publishes that same Draft id only
+after all selected archives and `SHA256SUMS` match. Original immutable files
+are copied to private mode-0400 request payloads; synced intent precedes each
+mutation. The exact `make_latest: "false"` is explicit at creation and
+publication. Final Latest/channel promotion and public consumer acceptance
+remain separate owner-controlled duties. A complete existing immutable release
+is reused without another send. A published incomplete or mutable release is
+never repaired by adding, renaming, deleting or replacing assets.
+
+The supplied mutation runner must settle only when its **original** request/job
+is terminal. Lost live observation retains that same external handle. A thrown,
+malformed or failed terminal reply leaves the synced intent Unknown and stops;
+it is not absence and does not trigger an in-process retry. A later separately
+authorized same-digest recovery reobserves the complete actual state and does
+not resend a confirmed Draft or asset. If the original scope did not include
+same-byte recovery, a later attempt refuses. Failed receipts and private original
+payloads remain at their original paths. Missing/tampered fixed artifacts never
+cause a rebuild or version bump.
+
+After publication the reader requires the actual release's immutable flag,
+actual Git tag commit and all original asset bytes. This is byte/settings
+readback, **not** verification of a GitHub attestation, platform signature,
+notarization, public runtime or complete release acceptance. Those evidence
+and actual production trust/settings checks remain separate requirements.
+Inert archive and injected API tests do not establish any real publication.
+
+## Public standalone Remote consumer
+
+After the owner has published the exact fixed set, use its externally retained
+SHA256 and two original target IDs:
+
+```sh
+node scripts/test-native-standalone-install.mjs <fixed-directory> <release-set-SHA256> <native-target-id> <host-node-target-id> <new-external-consumer-directory>
+```
+
+This consumer downloads the original standalone target through the existing
+anonymous GitHub release reader. It requires the exact immutable tag/source,
+complete asset inventory, bounded public bytes and identical identities before
+and after download. The same checked byte stream is written exclusively to its
+fresh directory. Interrupted, missing, oversized or conflicting downloads keep
+incomplete files and a failed receipt; they cannot become an install input or
+trigger a retry, local archive substitution or rebuild.
+
+Extraction reuses the full standalone verifier, original archive reader and
+complete installed file/mode/ABI checks. Direct Native children have an empty
+PATH and fresh HOME, without Node/npm, loader injection, profiles or credentials.
+The same executable must display the exact version, help, and argument refusal.
+Missing executable and changed-byte controls never select an alternative engine.
+
+For Remote behavior the harness installs only the exact public `@actql/node`
+entry of the separately selected original Node target, with isolated npm/HOME
+and full public-byte/installed-payload audits. That process is the external test
+Host, not a Native dependency. The unchanged Remote fixture submits once, saves
+its original reference before wait, checks Result/lookup/delivery/cancellation
+and prevents a second Compute. Native commands are independent direct processes.
+The test Host's explicit client/Host close calls must return before an observation
+of zero scoped state descriptors in that same still-live process, followed by
+its acknowledgement. Native process exit is not promoted to a Host close ACK.
+
+The receipt covers only actually completed operations on that platform. It does
+not qualify Local bootstrap/execution/approval, the standard Project/README CLI,
+other platforms, npm-launcher installation or the full fault matrix. Those
+remain separate required acceptance. Component HTTP/inert-file and own-process
+observation tests do not establish a real public Native install. This launcher
+has no publication/owner-approval or credentials path, and retains its entire
+fresh state on success or failure.
+
+## Exact Native Latest finalization
+
+The existing channel/review/publisher owners connect the standalone
+`native-public-install` receipt to a separate post-freeze Native Latest plan.
+The original upper digest, artifact bytes and earlier acceptance stay unchanged.
+The receipt adapter preserves the actual Remote-only consumer scope and every
+original unverified item; it cannot qualify Local/Project, other platforms,
+Native-npm installation or independent owner authority.
+
+`observeNativeLatestTarget` requires the separate complete owner reader and
+the original immutable published candidate. It reuses the existing full
+settings, presentation, source-tag, asset inventory and actual-byte reader,
+then fences complete release inventory and Latest identity. Drafts and
+prereleases cannot become Latest. Unknown, changed or incomplete readings stop.
+
+For an existing Latest, `nativeLatestPromotionPlan` binds the explicit prior
+release ID and tag, parses its version with the shared version owner and
+rejects rollback to an older maintenance version. A different fresh pointer
+is not overwritten by a historical plan.
+
+First publication has a distinct bounded case. A Latest 404 remains unresolved;
+it is **not** an absence proof. Only a fresh complete owner inventory containing
+the exact published candidate as the sole eligible non-Draft/non-prerelease
+release can support an explicit `unassigned-or-selected` initialization plan.
+The possible pointer is confined to unassigned or that same candidate. Any
+other eligible full release, missing candidate, duplicate/incomplete inventory
+or later change refuses. This historical DATA supplies no approval or CAS.
+
+The read-only plan command is:
+
+```sh
+node scripts/release.mjs native-latest-plan \
+  <fixed-directory> <upper-SHA256> <explicit-native-move.json> <original-latest-report.json>
+```
+
+The move is exactly `{targetId, before}`, where `before` is the complete
+original observed tuple: `{state:"present",releaseId,tag}` or the explicitly
+bounded `{state:"unassigned-or-selected",releaseId}`. Prepare and cold-verify
+the separate promotion-review bundle through the existing commands in
+[release preparation](README.md#separate-post-freeze-promotion-evidence).
+The Native plan, report and exact Native consumer receipt remain raw bound DATA.
+
+`promoteNativeReleaseLatest` has no default mutation runner, credentials or
+executable CLI route. The protected independent owner executor must accept the
+actual consumer evidence, approve both digests and the exact transition, and
+hold exclusive execution across every read/send/readback. It supplies separate
+owner API, public/CDN and mutation ports. A callback, 404, JSON status, merge or
+repository-scoped concurrency name establishes none of those properties.
+
+The protocol checks the full original standalone archive and all public
+fixed-set bytes, including the separately selected Host. It writes a synced
+private intent before the sole permitted request: a PATCH to the exact
+original release ID with only `{make_latest:"true"}`. It does not change a tag,
+asset, title, notes, Draft/prerelease flag, version or source. Complete bytes,
+settings, source, presentation, inventory and current pointer are reobserved.
+Post-command confirmation always requires a positive Latest response naming
+the exact original ID and tag; another 404/conditional reading is Unknown.
+
+A lost/nonzero/malformed reply or failed readback stops without rollback or
+automatic retry. Distinct original attempts retain Unknown and cleanup duties.
+A separately authorized same-digest recovery reobserves the actual originals
+and skips a positively confirmed identical Latest. It does not reuse a success
+flag as currentness or reuse revoked/completed authority. Actual owner/settings,
+first publication, public install, Latest mutation and full release acceptance
+remain unexecuted until their independent prerequisites and approval exist.

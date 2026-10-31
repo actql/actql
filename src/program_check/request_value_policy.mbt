@@ -173,6 +173,29 @@ fn request_value_policy_subject_body(
   let writer = @encode.writer(budget.bytes, budget.nodes, budget.depth) catch {
     e => raise Encoding(e)
   }
+  emit_request_value_policy_subject(check, request_cid, origins, budget, writer)
+  let (body, bytes, nodes, _) = @encode.finish_text_usage(writer) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  body
+}
+
+///|
+// One descriptor meaning for legacy emission and the same-parent staged
+// constructor. Retained request identity/origins are immutable DATA, not a
+// verifier answer, policy decision or provider permission.
+fn emit_request_value_policy_subject(
+  check : SourceExecution,
+  request_cid : String,
+  origins : Array[(String, RequestValuePolicyOrigin)],
+  budget : IdentityBudget,
+  writer : @encode.Writer,
+) -> Unit raise UnitBuildFailure {
+  let subject = check.subject
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "input")
@@ -236,14 +259,6 @@ fn request_value_policy_subject_body(
   } catch {
     e => raise Encoding(e)
   }
-  let (body, bytes, nodes, _) = @encode.finish_text_usage(writer) catch {
-    e => raise Encoding(e)
-  }
-  identity_charge(budget, bytes)
-  identity_charge(budget, nodes)
-  budget.bytes -= bytes
-  budget.nodes -= nodes
-  body
 }
 
 ///|
@@ -264,6 +279,23 @@ pub fn bind_host_verified_request_value_policy_cid(
     nodes: max_nodes,
     depth: max_depth,
   }
+  let policy = request_value_policy_for_cid(check, policy_cid, budget)
+  bind_host_verified_request_value_policy(
+    check,
+    policy,
+    budget.work,
+    budget.bytes,
+    budget.nodes,
+    budget.depth,
+  )
+}
+
+///|
+fn request_value_policy_for_cid(
+  check : SourceExecution,
+  policy_cid : String,
+  budget : IdentityBudget,
+) -> @environment.SourceDataPolicy raise UnitBuildFailure {
   let policies = source_data_policies(check.subject.source)
   let count = @environment.data_policy_usage(policies).1
   identity_charge(budget, count)
@@ -277,14 +309,7 @@ pub fn bind_host_verified_request_value_policy_cid(
         budget,
       ) ==
       0 {
-      return bind_host_verified_request_value_policy(
-        check,
-        policy,
-        budget.work,
-        budget.bytes,
-        budget.nodes,
-        budget.depth,
-      )
+      return policy
     }
   }
   raise ForeignOwner
@@ -307,6 +332,26 @@ pub fn bind_host_verified_request_value_policy(
     raise BudgetExceeded
   }
   let subject = check.subject
+  let environment = request_value_policy_environment(check, policy)
+  let budget = IdentityBudget::{
+    work: max_work,
+    bytes: max_bytes,
+    nodes: max_nodes,
+    depth: max_depth,
+  }
+  let request_cid = request_value_identity(subject.request, budget)
+  let origins = request_value_origins(subject.request, budget)
+  bind_request_value_policy_facts(
+    check, policy, environment, request_cid, origins,
+  )
+}
+
+///|
+fn request_value_policy_environment(
+  check : SourceExecution,
+  policy : @environment.SourceDataPolicy,
+) -> @environment.WireEnvironment raise UnitBuildFailure {
+  let subject = check.subject
   let environment = @environment.member_environment(
     @environment.contract_member(
       @environment.data_policy_envelope(
@@ -324,14 +369,18 @@ pub fn bind_host_verified_request_value_policy(
     ) {
     raise ForeignOwner
   }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let request_cid = request_value_identity(subject.request, budget)
-  let origins = request_value_origins(subject.request, budget)
+  environment
+}
+
+///|
+fn bind_request_value_policy_facts(
+  check : SourceExecution,
+  policy : @environment.SourceDataPolicy,
+  environment : @environment.WireEnvironment,
+  request_cid : String,
+  origins : Array[(String, RequestValuePolicyOrigin)],
+) -> HostRequestValuePolicyEvidence {
+  let subject = check.subject
   {
     environment,
     program_cid: @context.program_identity_definition_cid(subject.owner),

@@ -20,6 +20,14 @@ const pending = value => {
 };
 const fileIdentity = stat => [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs];
 
+function immutablePolicySubject(value) {
+  if (value !== null && typeof value === 'object') {
+    for (const item of Object.values(value)) immutablePolicySubject(item);
+    Object.freeze(value);
+  }
+  return value;
+}
+
 export function assertOrdinarySourcePreparationCurrent(view, originals, source) {
   const state = installations.get(view);
   if (state === undefined || state.originals !== originals || state.source !== source) {
@@ -47,11 +55,89 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   const liveRuns = new Set();
   const retiredRuns = new WeakMap();
   const retireInitialPreparation = prepared => callbacks.retireInitialPreparation(originals, prepared);
+  const borrowSourceInitialization = callbacks.borrowSourceInitializationMaterial;
+  function captureSourceMaterialMethod(record, name) {
+    const field = Object.getOwnPropertyDescriptor(record.view, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
+      fail('InstalledSourceInitializationMethodUnavailable');
+    }
+    return field.value;
+  }
+  function joinSourceMaterialComputation(record, value) {
+    // Unexpected async protocol results remain in this SAME producer inventory.
+    // Their settlement permits another original return, never acknowledges it.
+    record.computation = value;
+    const native = types.isPromise(value), then = native ? undefined : value?.then;
+    if (!native && typeof then !== 'function') return;
+    record.pending = true;
+    const settled = () => {record.pending = false;record.computation = undefined;};
+    const rejected = cause => {record.failure ??= cause;settled();};
+    if (native) {
+      Reflect.apply(Promise.prototype.then,value,[settled,rejected]);
+      void value.then;
+    } else {
+      const pending = new Promise((resolve,reject) => Reflect.apply(then,value,[resolve,reject]));
+      void pending.then(settled,rejected);
+    }
+  }
+  function retainSourceInitializationMaterial(producer) {
+    if (closing || closed || producer.finished || receipts.get(producer.receipt) !== producer ||
+        producer.sourceInitialization !== undefined) fail('ForeignInstalledSourceProducer');
+    if (borrowSourceInitialization === undefined) return undefined;
+    try {
+      if (typeof borrowSourceInitialization !== 'function') fail('InstalledSourceInitializationUnavailable');
+      const view = Reflect.apply(borrowSourceInitialization,callbacks,[originals]);
+      if (view === undefined) return undefined; // This original Host has no Source material.
+      const record = {view, environment:undefined, release:undefined, originalEnvironment:undefined,
+        computation:undefined, pending:false, failure:undefined};
+      producer.sourceInitialization = record; // Retain before any fallible observation.
+      record.release = captureSourceMaterialMethod(record,'release');
+      record.environment = captureSourceMaterialMethod(record,'environment');
+      const environment = Reflect.apply(record.environment,record.view,[]);
+      if (types.isPromise(environment) || typeof environment?.then === 'function') {
+        joinSourceMaterialComputation(record,environment);
+        fail('InstalledSourceInitializationNotSynchronous');
+      }
+      if (environment === undefined) fail('InstalledSourceInitializationUnavailable');
+      if (closing || closed || producer.finished || receipts.get(producer.receipt) !== producer) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      record.originalEnvironment = environment;
+      return environment;
+    } catch (cause) {
+      // The SDK may never receive its receipt. Existing close still owns this
+      // same unreturned producer and its original Source material borrow.
+      producer.finished = true;
+      throw cause;
+    }
+  }
+  function returnSourceInitializationMaterial(producer) {
+    const record = producer.sourceInitialization;
+    if (record === undefined) return true;
+    if (record.pending) return false;
+    record.release ??= captureSourceMaterialMethod(record,'release');
+    const returned = Reflect.apply(record.release,record.view,[]);
+    // Both Bool values acknowledge this borrow's return. False only says the
+    // parent itself is still live; neither value is a Source/Run/physical ACK.
+    if (typeof returned !== 'boolean') {
+      joinSourceMaterialComputation(record,returned);
+      fail('InstalledSourceInitializationNotSynchronous');
+    }
+    record.view = record.release = record.environment = record.originalEnvironment = record.computation = undefined;
+    producer.sourceInitialization = undefined;
+    return true;
+  }
   const releaseFinishedProducer = producer => {
     if (producer.finished && producer.liveRuns === 0) {
+      // Retain a failed return even after its last original Run left liveRuns.
+      producers.add(producer);
+      if (producer.preparation !== undefined || !returnSourceInitializationMaterial(producer)) return false;
       producer.request = undefined;
       producer.snapshotPublication = undefined;
+      producers.delete(producer);
+      return true;
     }
+    return false;
   };
   const producerForRequest = request => {
     for (const producer of producers) if (producer.request === request && !producer.finished) return producer;
@@ -212,6 +298,37 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     child.flight = work;
     try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
   }
+  function originalTimedInvocation(state, producer, prepared, construct, contracts) {
+    if (state.requiresQueryTime !== true) return undefined;
+    const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
+    const issue = moon.clientProgramRequestProgramModuleIssueCode;
+    const reserve = moon.clientProgramReserveRequestQueryTimeInvocation;
+    if (typeof construct !== 'function' || typeof compile !== 'function' ||
+        typeof reserve !== 'function' || typeof issue !== 'function' || contracts === undefined || contracts.moon !== moon) {
+      fail('NodeManagedRunRuntimeUnavailable');
+    }
+    const assertOriginal = () => {
+      current();
+      if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+          originals.installation.sequenceContractOriginal !== contracts || state.parent === undefined || state.holder === undefined ||
+          moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+    };
+    assertOriginal();
+    const artifact = checkedRequestProgramPreparation(moon,
+      Reflect.apply(compile, moon, [state.parent, producer.receipt,
+        contracts.admission, state.context.retainedRelationOutput]), issue);
+    assertOriginal();
+    checkedRequestProgramPreparation(moon,
+      Reflect.apply(reserve, moon, [state.parent, producer.receipt, artifact]), issue);
+    assertOriginal();
+    // The typed bridge returns its original Option. Forward it unchanged;
+    // JavaScript does not construct or inspect a tuple representation.
+    const invocation = construct(artifact);
+    assertOriginal();
+    return invocation;
+  }
   const view = Object.freeze({
     assertCurrent: current,
     assertSourceSnapshotCurrent(receipt) {
@@ -249,6 +366,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
       receipts.set(receipt, producer); producers.add(producer);
+      const sourceEnvironment = retainSourceInitializationMaterial(producer);
       // The same Request precedes every SDK snapshot, independent of options.
       // Original Program and Parameters continue to their checked compiler
       // module; no shape scan selects a second preparation protocol.
@@ -257,6 +375,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           prepared: undefined, holder: undefined, adopting: false};
         producer.preparation = state;
         try {
+          if (sourceEnvironment !== undefined &&
+              Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
+            fail('ForeignInstalledSourceProducer');
+          }
           const assertOriginalCurrent = () => {
             // Cleanup may continue while the manager is closing. Exact
             // membership/current installation, not raw Prepared, is retained.
@@ -271,13 +393,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               fail('ForeignInstalledSourceProducer');
             }
           };
-          const accepted = beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent);
+          // The same initial Root survives Run adoption. Observe physical
+          // children on its existing producer/Run inventory, rather than
+          // freezing a no-children answer before those children can exist.
+          const childrenPending = () => {
+            for (const run of liveRuns) if (run.producer === producer &&
+                run.children.some(child => child.flight !== undefined || !child.closed)) return true;
+            return false;
+          };
+          const accepted = beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent, childrenPending);
           if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
         } catch (cause) {
           producer.finished = true;
           try {
             cleanupRequestInput(state);
-            producer.preparation = undefined; producers.delete(producer);
+            producer.preparation = undefined;
+            releaseFinishedProducer(producer);
           } catch (cleanupCause) {
             throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
               {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
@@ -356,14 +487,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (intent === undefined) fail('ForeignInstalledSourceProducer');
       return intent;
     },
-    async fundedPreparation(request, environment) {
+    async fundedPreparation(request, environment, originalVerifier, signal) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
       if (state === undefined) return undefined;
       if (!requestPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
       if (state.context.environment !== environment || state.adopting || state.preparing ||
-          state.parent === undefined) {
+          state.parent === undefined ||
+          originalVerifier !== undefined && typeof originalVerifier !== 'function' ||
+          state.policyVerifierSelected &&
+            (state.policyVerifier !== originalVerifier || state.policySignal !== signal)) {
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
@@ -377,18 +511,73 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state.holder === undefined) {
         const contracts = originals.installation.sequenceContractOriginal;
         if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
+        const parent = state.parent;
+        const assertPreparingOriginal = () => {
+          if (closing || closed || producer.finished || producer.preparation !== state ||
+              producer.request !== request || state.parent !== parent ||
+              state.policyVerifier !== originalVerifier || state.policySignal !== signal) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          signal?.throwIfAborted();
+        };
+        state.policyVerifier = originalVerifier; state.policySignal = signal;
+        state.policyVerifierSelected = true;
         state.preparing = true;
         try {
           if (state.compilationKind === undefined) {
+            const prepareCheck = moon[producer.kind === 'program'
+              ? 'clientProgramPrepareRequestNativeComputation' : 'clientProgramPrepareRequestSourceComputation'];
+            const finishComputation = moon.clientProgramFinishRequestComputation;
+            const projectIssue = moon.clientProgramRequestPreparationIssueCode;
+            const policyMethods = originalVerifier === undefined ? [] : [
+              'clientProgramPrepareRequestPolicySubjects', 'clientProgramReadRequestPolicySubject',
+              'clientProgramBindRequestPolicySubject', 'clientProgramFinishRequestPolicySubjects',
+            ].map(name => moon[name]);
+            if ([prepareCheck, finishComputation, ...policyMethods].some(method => typeof method !== 'function')) {
+              fail('NodeManagedRunRuntimeUnavailable');
+            }
+            assertPreparingOriginal();
             const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
-            const result = producer.kind === 'program'
-              ? moon.clientProgramPrepareRequestNativeComputation(
-                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment, valuesMaxRows)
-              : moon.clientProgramPrepareRequestSourceComputation(
-                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
-                environment, state.context.preparedEnvironment, valuesMaxRows);
-            state.compilationKind = checkedRequestProgramPreparation(moon, result);
+            checkedRequestProgramPreparation(moon, Reflect.apply(prepareCheck, moon, [
+              parent, producer.receipt, producer.body.input, producer.body.parameters,
+              environment, state.context.preparedEnvironment, valuesMaxRows,
+            ]), projectIssue);
+            assertPreparingOriginal();
+            if (originalVerifier !== undefined) {
+              const [prepareSubjects, readSubject, bindSubject, finishSubjects] = policyMethods;
+              const count = checkedRequestProgramPreparation(moon, Reflect.apply(prepareSubjects, moon,
+                [parent, producer.receipt, environment]), projectIssue);
+              if (!Number.isSafeInteger(count) || count < 0 || count > 1024) fail('ClientProgramPreparationFailure');
+              let wireBytes = 0;
+              for (let index = 0; index < count; index++) {
+                assertPreparingOriginal();
+                const wire = checkedRequestProgramPreparation(moon, Reflect.apply(readSubject, moon,
+                  [parent, producer.receipt, environment, index]), projectIssue);
+                if (typeof wire !== 'string' || (wireBytes += Buffer.byteLength(wire)) > 1048576) {
+                  fail('ClientProgramPreparationFailure');
+                }
+                const subject = immutablePolicySubject(JSON.parse(wire));
+                const policyCid = await originalVerifier(subject, {signal});
+                assertPreparingOriginal();
+                if (policyCid !== undefined &&
+                    (typeof policyCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(policyCid))) {
+                  fail('ClientProgramPreparationFailure');
+                }
+                // Core rechecks the original current capacity after the Host
+                // await. An explicit decline still consumes this SAME index.
+                checkedRequestProgramPreparation(moon, Reflect.apply(bindSubject, moon,
+                  [parent, producer.receipt, environment, index, policyCid]), projectIssue);
+                assertPreparingOriginal();
+              }
+              checkedRequestProgramPreparation(moon, Reflect.apply(finishSubjects, moon,
+                [parent, producer.receipt, environment]), projectIssue);
+              assertPreparingOriginal();
+            }
+            // The supplemented Environment stays inside this SAME check child.
+            // Finish still receives the original external Environment/publication.
+            state.compilationKind = checkedRequestProgramPreparation(moon, Reflect.apply(finishComputation, moon,
+              [parent, producer.receipt, environment, state.context.preparedEnvironment]), projectIssue);
+            assertPreparingOriginal();
           }
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different
@@ -426,7 +615,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
-            if (count === 0) {
+            const requiresTime = moon.clientProgramRequiresQueryTime;
+            state.requiresQueryTime = typeof requiresTime === 'function'
+              ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) : false;
+            if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
+            // A timed module needs the actual submission Request and first
+            // bound Run. Keep this SAME borrower until that adoption caller.
+            if (count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
                   producer.receipt, contracts.admission, state.context.retainedRelationOutput),
@@ -484,24 +679,50 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (original === undefined) fail('NodeManagedRunCompilationUnavailable');
       return original;
     },
-    adoptPreparation(prepared, request, identity) {
+    adoptPreparation(prepared, request, identity, constructInvocation) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined;
       if (state.prepared !== prepared || state.holder === undefined || state.adopting ||
           state.acquisitionCount !== 0) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      const contracts = originals.installation.sequenceContractOriginal;
+      const module = moon.clientProgramPrepareRequestProgramModuleBody;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      const adopt = moon.clientProgramAdoptRequestProgramPreparation;
+      if (typeof adopt !== 'function' || state.requiresQueryTime &&
+          (typeof module !== 'function' || typeof issue !== 'function')) {
+        fail('NodeManagedRunRuntimeUnavailable');
+      }
       state.adopting = true;
-      const outcome = state.context.runtime.clientProgramAdoptRequestProgramPreparation(state.parent,identity);
-      if (runtimeIsError(outcome)) state.adopting = false;
-      const value = checked(outcome);
-      const run = {prepared,request,producer,purpose:'source-compute',model:undefined,
-        effectful:false,content:undefined,original:state.original,children:[],fileIdentity:undefined,value};
-      producer.liveRuns++;
-      runs.set(prepared,run);liveRuns.add(run);
-      return run;
+      try {
+        if (state.requiresQueryTime) {
+          const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
+          checkedRequestProgramPreparation(moon, Reflect.apply(module, moon,
+            [state.parent, producer.receipt, contracts.admission,
+              state.context.retainedRelationOutput, invocation]), issue);
+          current();
+          if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
+            fail('ForeignInstalledSourceProducer');
+          }
+        }
+        const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
+        const run = {prepared,request,producer,purpose:'source-compute',model:undefined,
+          effectful:false,content:undefined,original:state.original,children:[],fileIdentity:undefined,value};
+        producer.liveRuns++;
+        runs.set(prepared,run);liveRuns.add(run);
+        return run;
+      } catch (cause) {
+        state.adopting = false;
+        if (state.requiresQueryTime) {
+          state.preparationFailed = true; state.preparationFailure = cause;
+        }
+        throw cause;
+      }
     },
-    adoptCapturePreparation(prepared, request, identity, constructPlan) {
+    adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -513,6 +734,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
+      const contracts = originals.installation.sequenceContractOriginal;
       const prepareModule = moon.clientProgramPrepareRequestCaptureModuleBody;
       const projectIssue = moon.clientProgramRequestProgramModuleIssueCode;
       const adopt = moon.clientProgramAdoptRequestCapturePreparation;
@@ -526,7 +748,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // This private Host constructor uses its already retained Source
         // inventory, on the same input reservation. It is not a capacity or
         // authorization callback, and does not run for another purpose.
-        const plan = constructPlan();
+        const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
+        const plan = state.requiresQueryTime ? constructPlan(invocation) : constructPlan();
         state.capturePlan = plan;
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
@@ -536,7 +759,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // Construct/measure its original compilation before adoption; bare
         // completion would lose that artifact and force later re-preparation.
         checkedRequestProgramPreparation(moon,
-          Reflect.apply(prepareModule, moon, [state.parent, producer.receipt, plan]),
+          Reflect.apply(prepareModule, moon, state.requiresQueryTime
+            ? [state.parent, producer.receipt, plan, invocation] : [state.parent, producer.receipt, plan]),
           projectIssue);
         const value = checked(Reflect.apply(adopt, moon, [state.parent, identity]));
         const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
@@ -686,6 +910,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.preparation=undefined;
       state.parent=state.admission=state.original=state.context=undefined;
       state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
+      state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
       run.value=run.producer=undefined;
       releaseFinishedProducer(producer);
     },
@@ -759,9 +984,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       run.children = [];
       releaseFinishedProducer(producer);
     },
-    prepareRun(prepared) {
+    // Project ordinary Sources adopt their existing Request. Their view no
+    // longer exports the detached Source-compute Root preparation entrance.
+    ...(project ? {} : {prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
-    },
+    }}),
     prepareContentRun(prepared, selected) {
       if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
       return prepareRun(prepared, 'local-content', undefined, selected);
@@ -773,7 +1000,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
       const index = project ? occurrence?.task : declared;
-      if (declared === undefined || declared < 0 || run.original !== originalRun ||
+      const expectedRun = run.producer.preparation === undefined ? run.original : run.value;
+      if (declared === undefined || declared < 0 || run.prepared !== prepared ||
+          expectedRun === undefined || expectedRun !== originalRun ||
           project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
             occurrence.stage !== index || occurrence.input !== 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');
@@ -827,11 +1056,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // A failed before-snapshot call may not have returned its receipt to
         // the SDK. This installed owner still retains and retries that exact
         // initial child, rather than stranding it behind the producer gate.
-        for (const producer of producers) if (producer.finished && producer.liveRuns === 0 &&
-            producer.preparation !== undefined) {
-          cleanupRequestInput(producer.preparation, retireInitialPreparation);
-          producer.preparation = undefined;
-          producers.delete(producer);
+        for (const producer of producers) if (producer.finished && producer.liveRuns === 0) {
+          if (producer.preparation !== undefined) {
+            cleanupRequestInput(producer.preparation, retireInitialPreparation);
+            producer.preparation = undefined;
+          }
           releaseFinishedProducer(producer);
         }
         if (producers.size !== 0) return status();
@@ -853,11 +1082,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           const producer = run.producer;
           if (producer.liveRuns < 1) fail('ForeignInstalledSourceProducer');
           producer.liveRuns--;
+          liveRuns.delete(run);
           run.prepared = run.request = run.producer = undefined;
           run.model = run.content = run.required = run.fileIdentity = undefined;
           run.children = [];
           releaseFinishedProducer(producer);
         }
+        if (producers.size !== 0) return status();
         bundle = undefined; liveRuns.clear(); closed = true; return status();
       });
       flight = work;

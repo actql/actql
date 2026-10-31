@@ -234,6 +234,8 @@ pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutput
 
 pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
+pub fn bind_completed_source_input_operation(@lowering_relation.BoundPrepared, Int, Int, CompletedOutput, SuppliedRelationRead) -> Result[BoundProducerInput, ProducerBindingIssue]
+
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -357,6 +359,8 @@ pub fn cancel_row_wire_order(RowWireOrderPreparation) -> Bool
 pub fn capture(@value_admission.Value) -> Value
 
 pub fn capture_input(@lowering_relation.BoundPrepared, Int, Array[@decode_core.Cursor], max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
+
+pub fn capture_supplied_source_input(RegisteredRelationContracts, @lowering_relation.PreparedSequence, SuppliedRelationRead, Int, Int) -> Result[CompletedOutput, TrustedOutputIssue]
 
 pub fn capture_values(@lowering_relation.BoundPrepared, Int, max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
 
@@ -577,6 +581,8 @@ pub fn completed_result_export_preparation_retains_original_row(CompletedResultR
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
 pub fn completed_row_count(CompletedOutput) -> Int
+
+pub fn completed_source_input_matches_read(CompletedOutput, SuppliedRelationRead) -> Bool
 
 pub fn completed_table_input_export_preparation_matches_owner(CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence, CompletedOutput) -> Bool
 
@@ -1079,6 +1085,8 @@ pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWir
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+
+pub fn prepare_completed_source_input_relation_export(CompletedOutput, SuppliedRelationRead, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 

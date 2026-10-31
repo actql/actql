@@ -592,3 +592,212 @@ test "Query input controls fence same parent cleanup and replacement during nati
   assert_true(parent.native_query_declarations is None)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "native policy boundary finishes the same checked input without native reads" {
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(native_driver_program)
+  let reads = Ref(0)
+  let reader = {
+    ..native_json_reader,
+    field: fn(value, key) {
+      reads.val += 1
+      (native_json_reader.field)(value, key)
+    },
+  }
+  prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(native_driver_program),
+    reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+    supplied=Some(request_native_test_value("{\"n\":9}")),
+  ).unwrap()
+  let child = parent.program_check.unwrap()
+  let program = parent.held_program.unwrap()
+  let parameters = parent.native_parameters.unwrap()
+  let capacity = parent.capacity
+  assert_true(child.phase == SemanticCheckComplete)
+  assert_true(
+    parent.compiled_program is None && parent.program_capacity is None,
+  )
+  let before_reads = reads.val
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    physical_equal(
+      supplement_request_computation_policies(parent, input, environment, []).unwrap(),
+      environment,
+    ),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  assert_eq(reads.val, before_reads)
+  assert_true(child.phase == Transferred && parent.program_check is None)
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  assert_true(physical_equal(parent.native_parameters.unwrap(), parameters))
+  assert_true(physical_equal(parent.capacity, capacity))
+  let compiled = parent.compiled_program.unwrap()
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let holder = borrow_request_program_preparation(parent).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      compiled,
+    ),
+  )
+  assert_eq(reads.val, before_reads)
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "native policy boundary preserves all Source formats before one same-input finish" {
+  let (environment, publication) = request_query_publication_fixture()
+  for
+    (document, format) in [
+      (native_driver_program, "json"),
+      (native_driver_program, "aql-json"),
+      (request_document_yaml, "yaml"),
+      (request_document_yaml, "aql-yaml"),
+      ("SELECT '日本語😀' AS label", "sql"),
+      (
+        "WITH seed AS (SELECT '日本語😀' AS label) FROM seed |> SELECT label",
+        "aql-text",
+      ),
+    ] {
+    let (parent, input) = native_driver_parent(document)
+    let reads = Ref(0)
+    let reader = {
+      ..native_json_reader,
+      field: fn(value, key) {
+        reads.val += 1
+        (native_json_reader.field)(value, key)
+      },
+    }
+    prepare_request_native_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, format),
+      reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let child = parent.program_check.unwrap()
+    let program = parent.held_program.unwrap()
+    let syntax = parent.query_syntax
+    assert_true(child.phase == SemanticCheckComplete)
+    assert_true(
+      parent.compiled_program is None && parent.program_capacity is None,
+    )
+    let before_reads = reads.val
+    assert_eq(
+      finish_request_checked_computation(
+        parent, input, environment, publication,
+      ).unwrap(),
+      Pure,
+    )
+    assert_eq(reads.val, before_reads)
+    assert_true(physical_equal(parent.held_program.unwrap(), program))
+    match syntax {
+      Some(original) =>
+        assert_true(physical_equal(parent.query_syntax.unwrap(), original))
+      None => assert_true(parent.query_syntax is None)
+    }
+    assert_true(child.phase == Transferred)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "native policy boundary rejects another installation before finishing original policies" {
+  let environment = request_policy_supplement_environment()
+  let (parent, input) = request_policy_supplement_fixture(
+    environment,
+    supplied=true,
+  )
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let child = parent.program_check.unwrap()
+  // Equal installation DATA is not the Catalog original retained by checking.
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    finish_request_checked_computation(parent, input, environment, publication)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(physical_equal(parent.program_check.unwrap(), child))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "native policy boundary compiles selected evidence with the original publication" {
+  let environment = request_policy_supplement_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, input) = native_driver_parent(policy_supplement_program)
+  prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(policy_supplement_program),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+    supplied=Some(request_native_test_value("{\"key\":1}")),
+  ).unwrap()
+  let child = parent.program_check.unwrap()
+  let program = parent.held_program.unwrap()
+  let parameters = parent.native_parameters.unwrap()
+  let selected = supplement_request_computation_policies(
+    parent,
+    input,
+    environment,
+    [request_policy_supplement_evidence(parent)],
+  ).unwrap()
+  assert_false(physical_equal(selected, environment))
+  assert_true(physical_equal(parent.program_check.unwrap(), child))
+  assert_true(child.phase == SemanticCheckComplete)
+  assert_true(
+    parent.compiled_program is None && parent.program_capacity is None,
+  )
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  assert_true(child.phase == Transferred)
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  assert_true(physical_equal(parent.native_parameters.unwrap(), parameters))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
