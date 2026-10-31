@@ -16,7 +16,7 @@ pub fn[I] borrow_request_content_plan_input(
     owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
-    owner.program_model_compilation_inputs is Some(_) ||
+    owner.program_domain_compilation_inputs is Some(_) ||
     owner.program_body_attempted {
     return Err(WrongPhase)
   }
@@ -66,6 +66,98 @@ pub fn[I] borrow_request_content_plan_input(
     previous_phase
   }
   result.map_err(issue => Capacity(issue))
+}
+
+///|
+/// Compile the existing source-free terminal serialization purpose on this
+/// Request. The same checked component, contracts, artifact and work receipt
+/// survive a declined grow. The caller retains its Content construction borrow
+/// and funds the complete component/output frame before this constructor.
+pub fn[I] prepare_request_serialization_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  component : @publication_host.ClientSerializationPlanGraph,
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.phase == ContentPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(component.owner, prepared) &&
+    owner.program_compilation is None &&
+    owner.program_keyed is None &&
+    !owner.program_body_attempted &&
+    owner.program_artifact_work is None &&
+    owner.program_artifact_work_issue is None else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+    @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() &&
+    @publication_host.prepared_client_serialization_occurrences(prepared) ==
+    [(component.task, component.step)] else {
+    return Err(Installed(Unsupported))
+  }
+  match owner.program_domain_compilation_inputs {
+    Some(
+      RequestSerializationCompilation(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        old_component
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(old_component, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+    }
+    Some(_) => return Err(Preparation(ForeignOriginal))
+    None =>
+      owner.program_domain_compilation_inputs = Some(
+        RequestSerializationCompilation(
+          manifests, compilation_limits, contracts, component,
+        ),
+      )
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          contracts.original.value.ordered_contract,
+        ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
+      match
+        prepare_request_compilation_owned(
+          owner, input, prepared, manifests, compilation_limits,
+        ) {
+        Ok(@publication_host.Tasks(compilation)) => {
+          owner.phase = ContentPlanReserved
+          Ok(compilation)
+        }
+        Err(issue) => Err(issue)
+        _ => Err(Preparation(ForeignOriginal))
+      }
+    },
+    () => {
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
+  )
 }
 
 ///|

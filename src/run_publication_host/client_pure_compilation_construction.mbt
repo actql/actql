@@ -386,6 +386,60 @@ fn measure_prepared_client_compilation_construction_owned(
         graph_edges.push(@encode.finish_measurement_usage(writer))
       }
     }
+    measure_client_compilation_final_construction(
+      value,
+      manifests,
+      max_facts,
+      max_witnesses,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      tasks,
+      fragments,
+      borrowed_inputs,
+      results,
+      projections,
+      names,
+      result_cids,
+      graph_nodes,
+      graph_edges,
+      graph_roots,
+      if components.is_empty() {
+        []
+      } else {
+        client_multi_infer_required_profiles(())
+      },
+    )
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+// Shared final measurement for the actual compiler. The caller supplies its
+// already checked original component geometry; no source classification,
+// graph admission, parser or capacity issuer is introduced here.
+fn measure_client_compilation_final_construction(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  tasks : Bool,
+  fragments : Array[ClientTaskFragmentConstruction],
+  borrowed_inputs : Array[(Int, Int, Int)],
+  results : Array[(Int, Int, Int)],
+  projections : Array[ClientResultGraphConstruction],
+  names : Array[String],
+  result_cids : Array[Unit],
+  graph_nodes : Array[(Int, Int, Int)],
+  graph_edges : Array[(Int, Int, Int)],
+  graph_roots : Array[(Int, Int, Int)],
+  required_profiles : Array[(String, Unit)],
+) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
+  try {
     let nodes = measure_client_compilation_array(graph_nodes)
     let edges = measure_client_compilation_array(graph_edges)
     let roots = measure_client_compilation_array(graph_roots)
@@ -482,11 +536,7 @@ fn measure_prepared_client_compilation_construction_owned(
         roots,
         material_value: material,
         manifest_cid: (),
-        required_profiles: if components.is_empty() {
-          []
-        } else {
-          client_multi_infer_required_profiles(())
-        },
+        required_profiles,
       },
       Some(()),
       (value, writer) => @encode.emit_measurement(writer, value),

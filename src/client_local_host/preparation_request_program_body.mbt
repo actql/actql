@@ -275,12 +275,7 @@ pub fn[I] prepare_request_program_compilation(
       }
       match
         prepare_request_compilation_owned(
-          owner,
-          input,
-          prepared,
-          manifests,
-          compilation_limits,
-          None,
+          owner, input, prepared, manifests, compilation_limits,
         ) {
         Err(issue) => Err(issue)
         Ok(artifact) => {
@@ -385,6 +380,7 @@ fn[I] retain_request_program_module_inputs(
   ClientRequestProgramPlanIssue,
 ] {
   if owner.program_model is Some(_) ||
+    owner.program_domain_compilation_inputs is Some(_) ||
     owner.program_body_attempted ||
     owner.program_artifact_work is Some(_) ||
     owner.program_artifact_work_issue is Some(_) {
@@ -566,12 +562,7 @@ fn[I] prepare_request_program_module_body_owned(
       }
       let artifact = match
         prepare_request_compilation_owned(
-          owner,
-          input,
-          prepared,
-          manifests,
-          compilation_limits,
-          None,
+          owner, input, prepared, manifests, compilation_limits,
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
@@ -598,7 +589,7 @@ fn[I] prepare_request_program_module_body_owned(
         owner.program_artifact_quote = None
         owner.program_artifact_inputs = None
         owner.program_compilation = None
-        owner.program_model_compilation_inputs = None
+        owner.program_domain_compilation_inputs = None
       }
       completed.map_err(issue => Preparation(issue))
     },
@@ -623,7 +614,6 @@ fn[I] prepare_request_compilation_owned(
   prepared : @publication_host.PreparedClientProgram,
   manifests : @publication_host.ClientCompilationManifests,
   compilation_limits : @publication_host.ClientPureCompilationLimits,
-  model : @publication_host.ClientInferPlanGraph?,
 ) -> Result[
   @publication_host.ClientRunCompilation,
   ClientRequestProgramPlanIssue,
@@ -632,6 +622,12 @@ fn[I] prepare_request_compilation_owned(
     return Ok(original)
   }
   let limits = compilation_limits
+  let domain = owner.program_domain_compilation_inputs
+  let continuation_phase = match domain {
+    Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
+    Some(RequestSerializationCompilation(_, _, _, _)) => ContentPlanReserved
+    None => ProgramPlanReserved
+  }
   let sequence = @publication_host.prepared_client_values_sequence_limits(
     prepared,
   )
@@ -645,12 +641,16 @@ fn[I] prepare_request_compilation_owned(
           // This is the actual measurement's variable returned storage,
           // not codec headroom, fixed call wrappers or its nested helpers.
           let units = match
-            (match model {
-              Some(graph) =>
+            (match domain {
+              Some(RequestModelCompilation(_, _, _, graph)) =>
                 @publication_host.prepared_client_model_measurement_storage(
                   prepared,
                   [graph],
                   limits,
+                )
+              Some(RequestSerializationCompilation(_, _, _, component)) =>
+                @publication_host.prepared_client_serialization_measurement_storage(
+                  prepared, component, limits,
                 )
               None =>
                 @publication_host.prepared_client_pure_measurement_storage(
@@ -680,18 +680,14 @@ fn[I] prepare_request_compilation_owned(
       match
         @resources.reserve_working_preparation_phase(capacity, input, r, e) {
         Err(issue) => {
-          owner.phase = if model is Some(_) {
-            ModelPlanReserved
-          } else {
-            ProgramPlanReserved
-          }
+          owner.phase = continuation_phase
           return Err(Preparation(Capacity(issue)))
         }
         Ok(_) => ()
       }
       match
-        (match model {
-          Some(graph) =>
+        (match domain {
+          Some(RequestModelCompilation(_, _, _, graph)) =>
             @publication_host.measure_prepared_client_model_compilation_construction(
               prepared,
               [graph],
@@ -702,6 +698,10 @@ fn[I] prepare_request_compilation_owned(
               limits.max_wire_bytes,
               limits.max_nodes,
               limits.max_depth,
+            )
+          Some(RequestSerializationCompilation(_, _, _, component)) =>
+            @publication_host.measure_prepared_client_serialization_compilation_construction(
+              prepared, component, manifests, limits,
             )
           None =>
             @publication_host.measure_prepared_client_pure_compilation_construction(
@@ -747,11 +747,7 @@ fn[I] prepare_request_compilation_owned(
     Err(issue) => {
       // The original module, immutable measurement and absolute quote
       // survive a declined grow. Never repeat its factory on continuation.
-      owner.phase = if model is Some(_) {
-        ModelPlanReserved
-      } else {
-        ProgramPlanReserved
-      }
+      owner.phase = continuation_phase
       return Err(Preparation(Capacity(issue)))
     }
     Ok(_) => ()
@@ -773,12 +769,26 @@ fn[I] prepare_request_compilation_owned(
   let attempted : Result[
     @publication_host.ClientRunCompilation,
     ClientRequestProgramPlanIssue,
-  ] = if model is Some(graph) {
+  ] = if domain is Some(RequestModelCompilation(_, _, _, graph)) {
     @publication_host.observe_prepared_client_multi_infer_plan_encoding(
       prepared,
       [graph],
       manifests,
       sequence,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      nodes_out=owner.program_artifact_plan_encoding_nodes,
+    )
+    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+    .map_err(issue => TaskCompilation(issue))
+  } else if domain is Some(RequestSerializationCompilation(_, _, _, component)) {
+    @publication_host.observe_prepared_client_serialization_plan_encoding(
+      prepared,
+      component,
+      manifests,
       limits.max_facts,
       limits.max_witnesses,
       limits.max_wire_bytes,
@@ -930,7 +940,7 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_artifact_quote = None
       owner.program_artifact_inputs = None
       owner.program_compilation = None
-      owner.program_model_compilation_inputs = None
+      owner.program_domain_compilation_inputs = None
       owner.program_source_free = None
       owner.native_parameters = None
       owner.native_query_declarations = None

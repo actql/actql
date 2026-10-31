@@ -30,6 +30,25 @@ priv enum ClientRequestPreparationPhase {
 } derive(Eq)
 
 ///|
+// Replace the former four-field Model input tuple in its existing resident
+// slot. Both selected compiler inputs have the same four original fields;
+// no additional parent, phase, retained controller or parameter cache exists.
+priv enum ClientRequestDomainCompilationInputs {
+  RequestModelCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientInferPlanGraph
+  )
+  RequestSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientSerializationPlanGraph
+  )
+}
+
+///|
 /// Request bootstrap on the original Node preparation child, before an output
 /// body type is selected. Unit is never completed or interpreted as a body.
 /// This record owns no second Ledger, byte allowance, parser or serializer.
@@ -87,12 +106,7 @@ struct ClientRequestPreparation[I] {
     Bool,
     (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
   )?
-  mut program_model_compilation_inputs : (
-    @publication_host.ClientCompilationManifests,
-    @publication_host.ClientPureCompilationLimits,
-    ClientInstalledSequenceContracts,
-    @publication_host.ClientInferPlanGraph,
-  )?
+  mut program_domain_compilation_inputs : ClientRequestDomainCompilationInputs?
   // One existing resident output slot for either ordinary or Model emission.
   // Its original sum is moved to the selected Plan, never a parallel cache.
   mut program_compilation : @publication_host.ClientRunCompilation?
@@ -210,7 +224,10 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // or B initial recipe is represented by these caller-only controls.
     // Shared compiler caller controls: original input tuple/Some, selected
     // argument/artifact carriers, component Array/backing and closures.
-    // This is 11H21R9W, not recursive measurement or provider backing.
+    // The closed domain variant replaces its former four-field tuple, adding
+    // one scalar tag. Keep it in this existing common fixed caller allowance,
+    // rather than introduce a per-domain control reservation.
+    // This is 11H21R10W, not recursive measurement or provider backing.
     record_headers: 11L +
     inventory_headers +
     js_headers +
@@ -236,7 +253,7 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: 9L +
+    scalar_words: 10L +
     inventory_words +
     js_words +
     import_words +
@@ -346,7 +363,7 @@ pub fn[I] begin_request_preparation(
     program_artifact_plan_encoding_nodes: Ref(0L),
     program_artifact_work_issue: None,
     program_artifact_inputs: None,
-    program_model_compilation_inputs: None,
+    program_domain_compilation_inputs: None,
     program_compilation: None,
     program_source_free: None,
     program_captured: None,
@@ -656,7 +673,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_quote = None
   owner.program_artifact_inputs = None
   owner.program_compilation = None
-  owner.program_model_compilation_inputs = None
+  owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model = None

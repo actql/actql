@@ -13,6 +13,43 @@ pub struct ClientSerializationPlanGraph {
   policy : @publication.CapturedEffectDependencyBody
   max_rows : Int
   max_bytes : Int
+  // Keep the issuer's immutable component parts for the same Request compiler.
+  // They are not reconstructed from saved wire or a copied Graph holder.
+  priv original_graph : ClientTaskPlanGraph
+  priv graph_nodes : Array[@canonical.CanonicalValue]
+  priv graph_edges : Array[@canonical.CanonicalValue]
+  priv graph_roots : Array[@canonical.CanonicalValue]
+  priv graph_wire_bytes : Int
+  priv graph_wire_nodes : Int
+  priv graph_wire_depth : Int
+}
+
+///|
+// The same immutable original read used by the Model component. This is DATA
+// for compiler construction, not current authority or physical backing. The
+// constructor caller retains the complete component before using these parts.
+fn client_serialization_graph_original_parts(
+  value : ClientSerializationPlanGraph,
+  owner : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+  Array[@canonical.CanonicalValue],
+)? {
+  if !physical_equal(value.owner, owner) ||
+    !physical_equal(value.graph, value.original_graph) ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 ||
+    value.graph_wire_bytes > max_wire_bytes ||
+    value.graph_wire_nodes > max_nodes ||
+    value.graph_wire_depth > max_depth {
+    return None
+  }
+  Some((value.graph_nodes, value.graph_edges, value.graph_roots))
 }
 
 ///|
@@ -734,6 +771,15 @@ fn issue_client_serialization_plan_graph_with_policy(
     @encode.key(writer, "root_refs")
     client_plan_emit_array(writer, roots, @canonical.emit_value)
     @encode.end_object(writer)
+    let (wire, graph_wire_bytes, graph_wire_nodes, graph_wire_depth) = @encode.finish_text_usage(
+      writer,
+    )
+    let original_graph : ClientTaskPlanGraph = {
+      wire,
+      transformations,
+      result_plans,
+      standard_progress_keys: None,
+    }
     Ok({
       owner,
       task,
@@ -741,15 +787,17 @@ fn issue_client_serialization_plan_graph_with_policy(
       barrier,
       input: input.unwrap_or(output),
       output,
-      graph: {
-        wire: @encode.finish(writer),
-        transformations,
-        result_plans,
-        standard_progress_keys: None,
-      },
+      graph: original_graph,
       policy,
       max_rows: rows,
       max_bytes: bytes,
+      original_graph,
+      graph_nodes: nodes,
+      graph_edges: edges,
+      graph_roots: roots,
+      graph_wire_bytes,
+      graph_wire_nodes,
+      graph_wire_depth,
     })
   } catch {
     _ => Err(Encoding)

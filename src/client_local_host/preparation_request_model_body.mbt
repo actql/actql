@@ -14,7 +14,7 @@ pub fn[I] borrow_request_model_plan_input(
     owner.program_source_free is Some(_) ||
     owner.program_captured is Some(_) ||
     owner.program_artifact_inputs is Some(_) ||
-    owner.program_model_compilation_inputs is Some(_) ||
+    owner.program_domain_compilation_inputs is Some(_) ||
     owner.program_body_attempted {
     return Err(WrongPhase)
   }
@@ -86,18 +86,27 @@ pub fn[I] prepare_request_model_compilation(
   if !installed_managed_run_shape_supported(prepared, true) {
     return Err(Installed(Unsupported))
   }
-  if owner.program_model_compilation_inputs
-    is Some((old_manifests, old_limits, old_contracts, old_model)) {
-    guard physical_equal(old_manifests, manifests) &&
-      old_limits == compilation_limits &&
-      physical_equal(old_contracts, contracts) &&
-      physical_equal(old_model, graph) else {
-      return Err(Preparation(ForeignOriginal))
+  match owner.program_domain_compilation_inputs {
+    Some(
+      RequestModelCompilation(
+        old_manifests,
+        old_limits,
+        old_contracts,
+        old_model
+      )
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        physical_equal(old_model, graph) else {
+        return Err(Preparation(ForeignOriginal))
+      }
     }
-  } else {
-    owner.program_model_compilation_inputs = Some(
-      (manifests, compilation_limits, contracts, graph),
-    )
+    Some(_) => return Err(Preparation(ForeignOriginal))
+    None =>
+      owner.program_domain_compilation_inputs = Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph),
+      )
   }
   owner.phase = Selecting
   preparation_module_call(
@@ -111,12 +120,7 @@ pub fn[I] prepare_request_model_compilation(
         Ok(_) => ()
       }
       let result = prepare_request_compilation_owned(
-        owner,
-        input,
-        prepared,
-        manifests,
-        compilation_limits,
-        Some(graph),
+        owner, input, prepared, manifests, compilation_limits,
       )
       match result {
         Err(issue) => return Err(issue)
@@ -246,7 +250,7 @@ pub fn[I] complete_request_model_preparation(
     // The selected module/Plan owns this SAME artifact; no sizing inventory
     // has a later consumer. Keep the peak debit until construction unwinds.
     owner.program_compilation = None
-    owner.program_model_compilation_inputs = None
+    owner.program_domain_compilation_inputs = None
     owner.program_artifact_geometry = None
     owner.program_artifact_quote = None
     owner.program_measurement_quote = None
@@ -314,7 +318,7 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_captured = None
       owner.program_model = None
       owner.program_compilation = None
-      owner.program_model_compilation_inputs = None
+      owner.program_domain_compilation_inputs = None
       owner.program_artifact_inputs = None
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None

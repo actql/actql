@@ -3812,3 +3812,20 @@ combined requirement consumer uses this same projection; Model Ledger totals
 are separate from these consumer allowances. The projection returns DATA and
 does not admit a physical frame. The prepared bounds getter already requires
 the original Infer Plan graph, so it cannot fund that graph's first construction.
+
+### Request-owned terminal serialization compilation
+
+The source-free terminal Serialization compiler uses the original Content
+construction borrow, checked component and installed sequence contracts. It
+continues the same Request measurement, absolute growth and observed compiler
+work receipt used by ordinary and Model compilation. The original Task
+compilation remains in that Request's existing artifact slot. Completion and
+Run adoption must retain that same artifact rather than start another Ledger.
+
+Model and Serialization compiler inputs occupy one closed private choice in
+the former four-field input slot. This adds no second parent or phase. The
+serialization issuer retains its original component arrays and completed
+writer facts; measurement borrows them without reparsing Graph wire or
+fabricating an Infer/keyed component. Their actual retained data and complete
+constructor/output coexistence must be backed before construction. These
+immutable facts do not provide current authority or physical cleanup.

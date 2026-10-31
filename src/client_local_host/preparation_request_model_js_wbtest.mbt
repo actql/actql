@@ -743,8 +743,10 @@ test "Model compiler original input and current reentry cannot switch a selected
   let (parent, input, prepared) = request_model_input_fixture(current=() => {
     if active.val is Some(parent) &&
       parent.phase == Selecting &&
-      parent.program_model_compilation_inputs
-      is Some((manifests, compilation_limits, contracts, graph)) {
+      parent.program_domain_compilation_inputs
+      is Some(
+        RequestModelCompilation(manifests, compilation_limits, contracts, graph)
+      ) {
       assert_true(
         prepare_request_model_compilation(
           parent,
@@ -862,7 +864,7 @@ test "Model Scope refuses an independently compiled equivalent instead of replac
   complete_request_model_preparation(parent, input, plan).unwrap()
   assert_true(
     parent.program_compilation is None &&
-    parent.program_model_compilation_inputs is None &&
+    parent.program_domain_compilation_inputs is None &&
     parent.program_artifact_geometry is None,
   )
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
