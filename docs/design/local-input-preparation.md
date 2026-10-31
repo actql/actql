@@ -3853,3 +3853,24 @@ and post-callback preparation/lifetime fences precede the existing reservation
 mutation. No checked token or reusable current permission is returned. A stop,
 foreign preparation or changed original observed there refuses before a new
 reservation commits; all ordinary quota and original-inventory checks remain.
+
+### Run-owned Effect operation coordinates
+
+The existing operation-control slot retains its original capacity reservation
+and a private index from the declared member/row/operation coordinates to an
+append-only slot. A live slot holds the exact original operation view. Membership
+compares that original at its stable position, including after the Run's current
+callback, rather than scanning every earlier operation.
+
+Only actual same-child cleanup and settlement clear a live slot. The lightweight
+coordinate remains spent until Run retirement; releasing a body does not refill
+attempts, work or its logical occurrence. A later operation appends a new slot
+and cannot make an old handle current again. Pending or uncertain cleanup keeps
+the original view and its backing. The Run's existing retirement gate clears
+the index only after all original children have acknowledged cleanup.
+
+The selected Plan retains one conservative per-occurrence control bound and
+uses the common collection representation owner for its index and growth.
+The same control reservation precedes index construction. Its count comes from
+the checked Plan and original implementation inventory, without another profile,
+per-wrapper phase, numerical policy, Resource owner or provider-authored recipe.

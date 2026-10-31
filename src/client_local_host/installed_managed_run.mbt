@@ -36,10 +36,10 @@ struct ClientInstalledManagedRun {
   mut content : ClientInstalledContentPreparation
   mut serialization_prefix : ClientSerializationPrefix?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
-  effect_operations : Array[ClientInstalledEffectOperationBorrow]
+  effect_operations : Array[ClientInstalledEffectOperationBorrow?]
   mut effect_operation_opening : Bool
   mut effect_operation_closing : Bool
-  mut effect_operation_controls : @resources.CapacityReservation?
+  mut effect_operation_controls : ClientEffectOperationControls?
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut captured_preparation : ClientInstalledManagedCapturePlan?
   mut preparation_retirement : ClientManagedPreparationCustody?
@@ -1316,7 +1316,7 @@ pub fn retire_installed_managed_run(
     }
   }
   for operation in value.effect_operations {
-    if !operation.retired {
+    if operation is Some(operation) && !operation.retired {
       return Err(CleanupPending)
     }
   }
@@ -1327,8 +1327,11 @@ pub fn retire_installed_managed_run(
     value.effect_operation_closing = true
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
-      match @resources.settle_capacity(ledger, control) {
-        Ok(_) => value.effect_operation_controls = None
+      match @resources.settle_capacity(ledger, control.reservation) {
+        Ok(_) => {
+          control.coordinates.clear()
+          value.effect_operation_controls = None
+        }
         Err(issue) => return Err(Ledger(issue))
       }
     }

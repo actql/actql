@@ -11,10 +11,7 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv mut original : ClientInstalledEffectOperationBorrow?
   priv mut owner : ClientInstalledManagedRun?
   priv mut ledger : @resources.Ledger?
-  priv member_index : Int
-  priv per_row : Bool
-  priv operation_index : Int
-  priv row_index : Int
+  priv slot : Int
   priv mut backing : ClientEffectOperationBacking?
   priv mut started : Bool
   priv mut retired : Bool
@@ -34,43 +31,32 @@ fn installed_effect_operation_control_capacity(
     return None
   }
   let count = children.to_int64()
-  // Per selected occurrence: view(1H,4R,6W), original/owner/ledger/backing Some
-  // (4H,4R,4W), backing variant(1H,1R,1W), original B Reservation
-  // (1H,5R,8W), observed-quantity tuple(1H,0R,3W), and the pure branch's
-  // CapacityReservation wrapper(1H,1R). Co-count the pure wrapper for every
-  // physical alternative. No quantity/output holders are constructed here.
-  // Shared original control reservation/wrapper/observed tuple/Some adds
-  // (4H,7R,12W); one appended array backing adds (1H,slotsR). The existing
-  // fixed Host/Run prelude and B original-inventory owner are not re-quoted.
-  // The actual JS request child also survives body settlement in the SAME
-  // capture retry inventory, so its controls belong HERE, not in provider body
-  // capacity. Co-count this branch for every occurrence: child factory frame (including per-row/member selection)
-  // (1H15R4W), current/drain/prepare/status closures(4H4R), child(1H4R),
-  // original RSE context(1H11R1W), options(1H7R3W), constructor closure(1H2R),
-  // capture retainer frame(1H3R2W), two wrappers(2H4R), captured methods(1H4R),
-  // six drain/retry/async-finally closures(6H6R), four invalid-thenable join
-  // callbacks(4H4R), and two live status snapshots(2H2W): 25H64R12W.
-  // Three original Reflect.apply argument vectors have9+3+2 entries. Use the
-  // pinned array representation; Promise engine backing stays opaque runtime
-  // support, as in managed_cleanup_control_inventory, not a guessed RSS price.
+  // One shared conservative per-occurrence bound co-counts the existing
+  // ordinary request controls and both physical/construction alternatives.
+  // The original Host bound below is unchanged, including its three actual
+  // argument vectors. Add only the coordinate and live stable-slot carriers;
+  // retain the former larger view allowance after removing its coordinates.
+  // Map buckets/nodes/growth come from their existing collection owner.
   guard @shape.collection_construction_extent({
-      records: 25L,
-      record_references: 64L,
-      record_words: 12L,
-      reference_arrays: 3L,
-      reference_items: 14L,
+      records: 25L * count,
+      record_references: 64L * count,
+      record_words: 12L * count,
+      reference_arrays: 3L * count,
+      reference_items: 14L * count,
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 0L,
-      map_entries: 0L,
+      maps: 1L,
+      map_entries: count,
     })
-    is Some(host) else {
+    is Some(shared) else {
     return None
   }
+  // The existing fixed setup plus one control/index record and the bounded
+  // transient lookup/result carriers. Charge this once, never per wrapper.
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 5L + (9L + host.record_headers) * count,
-    reference_slots: 7L + slots + (15L + host.reference_slots) * count,
-    scalar_words: 12L + (22L + host.scalar_words) * count,
+    record_headers: 9L + shared.record_headers + 11L * count,
+    reference_slots: 11L + slots + shared.reference_slots + 17L * count,
+    scalar_words: 19L + shared.scalar_words + 28L * count,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -162,14 +148,19 @@ fn borrow_installed_effect_operation_original(
     Ok(extent) => extent
     Err(issue) => return Err(issue)
   }
-  for prior in owner.effect_operations {
-    record_effect_operation_lookup_probe(lookup_probes)
-    if prior.member_index == member_index &&
-      prior.per_row == per_row &&
-      prior.operation_index == operation_index &&
-      prior.row_index == row_index {
+  if owner.effect_operation_controls is Some(control) {
+    let coordinate : ClientEffectOperationCoordinate = {
+      member_index,
+      per_row,
+      operation_index,
+      row_index,
+      lookup_probes,
+    }
+    if control.coordinates.get(coordinate) is Some(_) {
       return Err(AlreadyBound)
     }
+  } else if !owner.effect_operations.is_empty() {
+    return Err(Retired)
   }
   let retained = @execution.execution_capacity_retained_bytes(extent.capacity)
   let execution = @execution.execution_capacity_execution_bytes(extent.capacity)
@@ -180,6 +171,9 @@ fn borrow_installed_effect_operation_original(
   match ensure_installed_effect_operation_controls(owner, ledger, plan) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  guard owner.effect_operation_controls is Some(control) else {
+    return Err(Retired)
   }
   let backing : ClientEffectOperationBacking = if extent.physical_attempt {
     match
@@ -202,16 +196,19 @@ fn borrow_installed_effect_operation_original(
     original: None,
     owner: Some(owner),
     ledger: Some(ledger),
-    member_index,
-    per_row,
-    operation_index,
-    row_index,
+    slot: owner.effect_operations.length(),
     backing: Some(backing),
     started: false,
     retired: false,
   }
   value.original = Some(value)
-  owner.effect_operations.push(value)
+  owner.effect_operations.push(Some(value))
+  // The retained key owns only coordinates, never this transient work output
+  // or a settled operation view. Its slot remains spent until Run retirement.
+  control.coordinates.set(
+    { member_index, per_row, operation_index, row_index, lookup_probes: None, },
+    value.slot,
+  )
   Ok(value)
 }
 
@@ -225,15 +222,30 @@ fn require_installed_effect_operation(
   }
   guard !value.retired &&
     value.owner is Some(owner) &&
-    owner.effect_operations.any(prior => {
-      record_effect_operation_lookup_probe(lookup_probes)
-      physical_equal(prior, value)
-    }) &&
     value.ledger is Some(original_ledger) else {
     return Err(Retired)
   }
+  record_effect_operation_lookup_probe(lookup_probes)
+  guard owner.effect_operations.get(value.slot) is Some(Some(original)) &&
+    physical_equal(original, value) else {
+    return Err(Retired)
+  }
   match require_installed_managed_run(owner) {
-    Ok(ledger) if physical_equal(ledger, original_ledger) => Ok(ledger)
+    Ok(ledger) if physical_equal(ledger, original_ledger) => {
+      // The original current callback may retire this operation while leaving
+      // its Run live. Inspect the SAME stable slot again without another I/O.
+      record_effect_operation_lookup_probe(lookup_probes)
+      guard !value.retired &&
+        value.owner is Some(original_owner) &&
+        physical_equal(original_owner, owner) &&
+        value.ledger is Some(current_ledger) &&
+        physical_equal(current_ledger, ledger) &&
+        owner.effect_operations.get(value.slot) is Some(Some(original)) &&
+        physical_equal(original, value) else {
+        return Err(Retired)
+      }
+      Ok(ledger)
+    }
     Ok(_) => Err(ForeignOriginal)
     Err(issue) => Err(issue)
   }
@@ -337,6 +349,11 @@ pub fn retire_installed_effect_operation(
   match result {
     Err(issue) => Err(Ledger(issue))
     Ok(_) => {
+      if value.owner is Some(owner) &&
+        owner.effect_operations.get(value.slot) is Some(Some(original)) &&
+        physical_equal(original, value) {
+        owner.effect_operations[value.slot] = None
+      }
       value.backing = None
       value.owner = None
       value.ledger = None
@@ -365,7 +382,10 @@ fn ensure_installed_effect_operation_controls(
     Ok(original) => original
     Err(issue) => return Err(Ledger(issue))
   }
-  owner.effect_operation_controls = Some(original)
+  owner.effect_operation_controls = Some({
+    reservation: original,
+    coordinates: Map([]),
+  })
   Ok(())
 }
 
