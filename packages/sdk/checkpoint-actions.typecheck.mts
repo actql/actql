@@ -1,3 +1,5 @@
+import {connectInProcess as rootConnectInProcess} from '@actql/sdk';
+import {connectInProcess as hostConnectInProcess} from '@actql/sdk/host-port';
 import type {CheckpointSigner, Client, Execution, RunState} from '@actql/sdk';
 import type {InProcessHostPort} from '@actql/sdk/host-port';
 import type {WireRunState} from '@actql/client-wire';
@@ -32,3 +34,19 @@ if (port.answerCheckpoint && projected.checkpoint) {
   // @ts-expect-error A Run reference is not the original full Summary.
   await port.answerCheckpoint(projected.checkpoint, 'approved');
 }
+
+// Both intentional public aliases consume the same existing Host-port type.
+// This file is compile-only; it constructs no Host or Client at runtime.
+const rootHostPortEntry: typeof hostConnectInProcess = rootConnectInProcess;
+const hostPortRootEntry: typeof rootConnectInProcess = hostConnectInProcess;
+declare const originalLocalOptions: Parameters<typeof hostConnectInProcess>[0];
+const rootConnected: ReturnType<typeof hostConnectInProcess> =
+  rootHostPortEntry(originalLocalOptions, port);
+const hostConnected: ReturnType<typeof rootConnectInProcess> =
+  hostPortRootEntry(originalLocalOptions, port);
+void [rootConnected, hostConnected];
+
+// @ts-expect-error The root alias retains the existing local-only Host contract.
+rootConnectInProcess({mode: 'remote', owner: 'remote'}, port);
+// @ts-expect-error An original in-process Host port remains required.
+rootConnectInProcess(originalLocalOptions);

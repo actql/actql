@@ -5723,7 +5723,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8b3fbac77fe46f98dc1d49b401d9d003da155aa746592376e58e1183e6c2798e",
+      "sha256": "9041dd7cef0b0adbedf14554f910379787d8590962d43e49c27f488a8fd59a9d",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -5806,6 +5806,7 @@
         "SubmissionReference",
         "TextCheckOptions",
         "connect",
+        "connectInProcess",
         "createCheckDocumentSession",
         "createCheckSupplementationSession",
         "equalCheckRequirementFrontiers",
@@ -6629,6 +6630,7 @@
       ],
       "imports": [
         "./check-reason-catalog.generated.js",
+        "./host-port.js",
         "./standard-schema.js",
         "@actql/client-wire"
       ],
@@ -6824,6 +6826,7 @@
             "SubmissionReference",
             "TextCheckOptions",
             "connect",
+            "connectInProcess",
             "createCheckDocumentSession",
             "createCheckSupplementationSession",
             "equalCheckRequirementFrontiers",
