@@ -2535,7 +2535,21 @@ class InstalledLocalHost:
             progress = observation.advance(16)
             if not progress.ready:
                 return None
-            return observation.finish()
+            action = observation.finish()
+            if (action == 'adopt_committed_index'
+                    and self._pending_publication_write is projection):
+                publisher = self._pending_publication_publisher
+                if publisher is None or observation._publisher is not publisher:
+                    raise ValueError('Foreign original publication attempt retirement')
+                # The action alone is not acknowledgement. Re-export the full
+                # admitted original index under its actual File/Store/current
+                # and publisher checks before retiring this transient blocker.
+                # The observation, publisher and attempted ticket stay owned;
+                # this never permits replay of the original publication.
+                observation.project_observed_index(lambda _identity, _body: None)
+                self._pending_publication_write = None
+                self._pending_publication_publisher = None
+            return action
 
     def _project_original_observed_index(self, projection: OriginalCommitProjection,
                                          consume: Callable[[bytes, bytes], object]) -> None:

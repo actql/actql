@@ -2825,6 +2825,15 @@ This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
 
+After a publication has been attempted, its Host-wide pending-write routing
+pair blocks another write until the same original observation admits and
+re-exports the complete stored index under the actual File, Store, current and
+publisher checks. Only that transient routing pair is then retired. The
+observation, original publisher, Core loans and per-publication attempted ticket
+remain retained, so the original publication cannot be replayed. Unknown,
+missing or refused index exports preserve the pending pair. The observation
+action alone is neither acknowledgement nor a public RunState observation.
+
 ### Saved Run observations and Result reads
 
 A durable Client reference identifies saved originals, rather than a process-local
