@@ -191,5 +191,10 @@ test "source-free dispatch reads its retained Request Plan without a captured So
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(after_current, before_current)
   assert_eq(after_usage, before_usage)
-  assert_eq(placement, Ok(false))
+  match placement {
+    Ok(false) => ()
+    Ok(true) => fail("Values Result must not require acquisition publication")
+    Err(ForeignOriginal) => fail("RetainedSourceFreePlanRefusedAsForeignOriginal")
+    Err(_) => fail("UnexpectedSourceFreeResultPlacementIssue")
+  }
 }
