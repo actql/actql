@@ -1688,6 +1688,16 @@ complete selected physical recipe must fund all of them on the same Plan
 before allocation. A nonempty constructor quantity alone never enables an
 ordinary physical call or upgrades a provider response into an applied Effect.
 
+The Credential receiver and the Effect response constructor share the original
+Node process's HTTP header limit; the physical request explicitly selects that
+same value. Initial headers and trailers have separate parser counters and can
+coexist with the body. Their raw and normalized forms, duplicate-value join
+prefixes and selected header views therefore compose with the body buffer
+inventory through the existing representation fold. A body-only extent fails
+the same pre-borrow check. This response quantity does not include the separate
+request, secret, provider projection or saved/failed holdings and does not
+change the existing header or transfer policy.
+
 The standard CREATE declaration can express a read check as fixed `http`
 method/path/headers/bounds plus synchronous `body` and Unit `project`
 callbacks. These callbacks receive original provider request/response DATA

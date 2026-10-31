@@ -3,6 +3,7 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createServer} from 'node:https';
+import {maxHeaderSize} from 'node:http';
 import test from 'node:test';
 import {fixtureCertificates} from './https-exchange-fixture.mjs';
 import * as resource from './https-credential-resource.mjs';
@@ -215,4 +216,51 @@ test('an empty original response closes without fabricating a zero-byte observat
   const result=await f.call({observeResponseBytes:n=>{lengths.push(n);}});
   assert.equal(result.statusCode,204);assert.equal(result.body.byteLength,0);assert.deepEqual(lengths,[]);
   assert.equal(f.claims(),1);assert.equal(resource.closeHttpsCredentialBinding(f.binding),'closed');
+});
+
+test('original HTTP header and trailer bounds retain exact body observations and original cleanup', async t => {
+  assert.equal(resource.httpsCredentialResponseHeaderByteLimit, maxHeaderSize);
+  const f = await fixture(t, (request, response) => {
+    response.writeHead(200, {'x-initial': 'a'.repeat(256), trailer: 'x-final'});
+    response.write('{}'); response.addTrailers({'x-final': 'b'.repeat(256)}); response.end();
+  });
+  const charges = [];
+  const result = await f.call({observeResponseBytes: n => {charges.push(n);}});
+  assert.equal(result.body.toString(), '{}');
+  assert.equal(charges.reduce((a, b) => a + b, 0), 2);
+  assert.deepEqual(f.outcomes, ['succeeded']); assert.equal(f.claims(), 1);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+test('original HTTP overflow in either header block stays Unknown without another claim', async t => {
+  for (const trailers of [false, true]) {
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++;
+      if (trailers) {
+        response.writeHead(200, {trailer: 'x-overflow'}); response.write('{}');
+        response.addTrailers({'x-overflow': 'x'.repeat(maxHeaderSize)}); response.end();
+      } else {
+        response.writeHead(200, {'x-overflow': 'x'.repeat(maxHeaderSize)}); response.end('{}');
+      }
+    });
+    const charges = [];
+    await assert.rejects(f.call({observeResponseBytes: n => {charges.push(n);}}),
+      {code: 'HPE_HEADER_OVERFLOW'});
+    assert(charges.reduce((a, b) => a + b, 0) <= 2);
+    assert.equal(requests, 1); assert.equal(f.claims(), 1);
+    assert.deepEqual(f.outcomes, ['unknown']);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+  }
+});
+
+test('original repeated headers preserve the selected normalized value without another response copy', async t => {
+  const f = await fixture(t, (request, response) => {
+    response.writeHead(200, {'x-repeated': ['one', 'two', 'three']}); response.end('{}');
+  });
+  const result = await f.call({operations: new Map([['create', {method: 'POST', path: '/create',
+    body: '{}', responseHeaders: ['x-repeated']}]])});
+  assert.deepEqual(result.headers, [['x-repeated', 'one, two, three']]);
+  assert.equal(result.body.toString(), '{}'); assert.equal(f.claims(), 1);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
 });

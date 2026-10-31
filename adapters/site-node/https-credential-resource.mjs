@@ -1,4 +1,5 @@
 import {request as httpsRequest} from 'node:https';
+import {maxHeaderSize} from 'node:http';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest}
@@ -19,6 +20,10 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
+
+// The original Node process's existing default, also passed to its actual
+// parser below. This is an implementation bound, never a caller allowance.
+export const httpsCredentialResponseHeaderByteLimit = maxHeaderSize;
 
 // Acquisition custody stays in the Credential Owner, not in Connector-visible
 // fields. Scope equality is only identity; each operation still claims and
@@ -723,6 +728,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       port,
       path,
       method,
+      maxHeaderSize: httpsCredentialResponseHeaderByteLimit,
       ca,
       cert,
       key,

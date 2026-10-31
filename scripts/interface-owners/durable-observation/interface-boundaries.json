@@ -6371,6 +6371,7 @@
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
+        "httpsCredentialResponseHeaderByteLimit",
         "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
@@ -6983,6 +6984,7 @@
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
             "exchangeHttpsCredentialAuthentication",
+            "httpsCredentialResponseHeaderByteLimit",
             "openHttpsCredentialBinding",
             "prepareHttpsCredentialAuthenticationMaterial"
           ],
@@ -7281,6 +7283,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -7397,6 +7403,14 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
@@ -7468,6 +7482,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -7496,6 +7514,14 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "representation on the original fenced acquisition"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
@@ -7597,6 +7623,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -7621,6 +7651,14 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
@@ -7925,6 +7963,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader resources:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -8041,12 +8083,20 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
         }
       ],
-      "sha256": "ec5bee93d8351fb4294139e0fd99a4e856960cf978e827879f683361495fb83e",
+      "sha256": "5cf07d972b46171c239a1f7024e50cf727e8bcc1557f678bf6489bf615a93b70",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
@@ -8056,6 +8106,7 @@
         "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
         "node:crypto",
+        "node:http",
         "node:https",
         "node:util"
       ],

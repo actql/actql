@@ -122,9 +122,21 @@ pub fn client_program_installed_effect_response_buffer_construction_capacity(
 pub fn client_program_installed_effect_operation_response_backing_fits(
   original : @client_local_host.ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
+  max_header_bytes : Int,
 ) -> Bool {
   @client_local_host.installed_effect_operation_response_backing_fits(
-    original, max_response_bytes,
+    original, max_response_bytes, max_header_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectHttpResponseConstructionCapacity")
+pub fn client_program_installed_effect_http_response_construction_capacity(
+  max_response_bytes : Int,
+  max_header_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_effect_http_response_construction_capacity(
+    max_response_bytes, max_header_bytes,
   )
 }
 

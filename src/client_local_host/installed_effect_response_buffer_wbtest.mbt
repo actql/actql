@@ -23,13 +23,25 @@ test "Effect response buffer backing composes pinned Array growth and retains fa
 
 ///|
 test "Effect response buffer backing checks exact original extent before an occurrence can use it" {
-  let capacity = installed_effect_response_buffer_construction_capacity(64).unwrap()
+  let capacity = installed_effect_http_response_construction_capacity(64, 32).unwrap()
   let selected = prepare_installed_effect_operation_extent(
     "read", capacity, 65L, true,
   ).unwrap()
-  assert_true(installed_effect_operation_response_backing_fits(selected, 64))
-  assert_false(installed_effect_operation_response_backing_fits(selected, 65))
-  assert_false(installed_effect_operation_response_backing_fits(selected, 0))
+  assert_true(
+    installed_effect_operation_response_backing_fits(selected, 64, 32),
+  )
+  assert_false(
+    installed_effect_operation_response_backing_fits(selected, 65, 32),
+  )
+  assert_false(
+    installed_effect_operation_response_backing_fits(selected, 64, 33),
+  )
+  assert_false(
+    installed_effect_operation_response_backing_fits(selected, 0, 32),
+  )
+  assert_false(
+    installed_effect_operation_response_backing_fits(selected, 64, 0),
+  )
   let retained = @execution.execution_capacity_retained_bytes(capacity)
   let execution = @execution.execution_capacity_execution_bytes(capacity)
   let short = @execution.execution_capacity(retained - 1L, execution).unwrap()
@@ -37,14 +49,48 @@ test "Effect response buffer backing checks exact original extent before an occu
     "read", short, 65L, true,
   ).unwrap()
   assert_false(
-    installed_effect_operation_response_backing_fits(short_extent, 64),
+    installed_effect_operation_response_backing_fits(short_extent, 64, 32),
   )
   let pure = prepare_installed_effect_operation_extent(
     "read", capacity, 0L, false,
   ).unwrap()
-  assert_false(installed_effect_operation_response_backing_fits(pure, 64))
+  assert_false(installed_effect_operation_response_backing_fits(pure, 64, 32))
   // There is no borrow, binding, request, transfer debit or permission here.
   // Native capacity correspondence is a necessary component, not a full Plan.
+}
+
+///|
+test "HTTP response inventory retains initial headers and trailers beside the original body" {
+  let body = installed_effect_response_buffer_construction_capacity(64).unwrap()
+  let original = prepare_installed_effect_operation_extent(
+    "read", body, 65L, true,
+  ).unwrap()
+  // A funded body alone cannot fund either header block. This same original
+  // check runs before any borrow; no physical ACK or allowance is inferred.
+  assert_false(
+    installed_effect_operation_response_backing_fits(original, 64, 1),
+  )
+  let fields = installed_effect_response_headers_representation(32).unwrap()
+  assert_eq(fields.owned_utf16_units, 640L)
+  assert_eq(fields.owned_wire_bytes, 128L)
+  assert_true(fields.reference_slots > 2L * 32L)
+  let full = installed_effect_http_response_construction_capacity(64, 32).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(full) >
+    @execution.execution_capacity_retained_bytes(body),
+  )
+  assert_true(
+    installed_effect_http_response_construction_capacity(64, 0) is None,
+  )
+  assert_true(
+    installed_effect_http_response_construction_capacity(0, 32) is None,
+  )
+  // Int32 rejection bounds still fold to checked Int64 logical units. This
+  // does not allocate the described representation or grant its capacity.
+  assert_true(
+    installed_effect_http_response_construction_capacity(2147483647, 2147483647)
+    is Some(_),
+  )
 }
 
 ///|

@@ -15136,7 +15136,7 @@
       "module": "adapters/host-node/installed-effect-plan.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
@@ -15548,7 +15548,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f1dfad2a8b46382170f54b64376bc611d586f40f428e0347cc7c2bf416ab2996",
+      "sha256": "5221503d6795c7470938924949cecf7568cb5f022abd45df916a1e8ddb190d36",
       "contracts": [
         {
           "operations": [
@@ -15664,6 +15664,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
               }
             ],
             "extension": [
@@ -15684,6 +15688,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
               }
             ]
           }
@@ -15694,7 +15706,7 @@
       "module": "adapters/connectors/kintone/site/kintone-create-execution.mjs",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "createMappedKintoneCreateWrite",
         "prepareMappedKintoneCreate",

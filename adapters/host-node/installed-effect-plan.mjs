@@ -2,7 +2,8 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {httpsCredentialResponseWindowBytes} from '../site-node/https-credential-resource.mjs';
+import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit}
+  from '../site-node/https-credential-resource.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
@@ -308,8 +309,9 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
     fail('InsufficientInstalledEffectOperationTransfer');
   }
-  if(maxResponseBytes>2147483647 ||
-      Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes])!==true) {
+  if(maxResponseBytes>2147483647 || !Number.isSafeInteger(httpsCredentialResponseHeaderByteLimit) ||
+      httpsCredentialResponseHeaderByteLimit<1 || httpsCredentialResponseHeaderByteLimit>2147483647 ||
+      Reflect.apply(responseBackingFits,runtime,[extent,maxResponseBytes,httpsCredentialResponseHeaderByteLimit])!==true) {
     fail('InsufficientInstalledEffectResponseBacking');
   }
   let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
