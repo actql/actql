@@ -281,7 +281,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "98dc5f3a52742c8dabc2ce5036a01c0639defb94b0cccec546f14ac6d51916eb",
+      "sha256": "5a3ff6e8452e9a6732db33f0d991e294f6a96469963c3d7b71a7611a1202f7a2",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -5966,6 +5966,25 @@
           "parameters": [
             "record",
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteSiteControl/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody",
+          "parameters": [
+            "record",
+            "expectedRevision",
+            "sourceRequestCid",
+            "sourceWire",
+            "materialGeneration",
+            "sourceMeasurementCid",
+            "measurement",
+            "sourceOwner",
+            "sourceGeneration",
+            "processRequestCid",
+            "processMaterialGeneration",
+            "processOwner",
+            "processGeneration"
           ],
           "async": false
         },
@@ -11892,6 +11911,78 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "remoteSiteControl/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "The existing `RemoteRuntimeCustody` owns historical resource duties separately"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "observed Common record revision. It binds that request/revision to the existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "the same request, material and owner generation. No Source is reread and no new"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Restoration retains all three unresolved output, holding and bundle duties."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "not an independently numbered storage revision. Physical observers and durable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "retain the same obligations; absence of a lost process-local handle is not ACK."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "including after resources have been returned. Cleanup remains bound to the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "The selected controller checks exercise original binding, pending stop,"
+              },
+              {
+                "path": "scripts/workers-composition.test.mjs",
+                "anchor": "test('failed partial controller"
               }
             ]
           }

@@ -61,6 +61,17 @@ struct RemoteRuntimeCustody {
   mut stop_confirmed : Bool
   mut cancelled : Bool
   mut completed_restoration : (String, Int, String, String, String)?
+  // Request/revision, original Source wire/material/measurement, process owner.
+  // This marker is permanent: returning resources never permits success.
+  mut partial_restoration : (
+    String,
+    Int,
+    String,
+    String,
+    String,
+    String,
+    String,
+  )?
 }
 
 ///|
@@ -78,6 +89,7 @@ pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody {
     stop_confirmed: true,
     cancelled: false,
     completed_restoration: None,
+    partial_restoration: None,
   }
 }
 
@@ -164,6 +176,94 @@ pub fn restore_remote_runtime_completed_custody(
     ),
   )
   Ok(custody)
+}
+
+///|
+/// Restore only known failed-partial cleanup obligations. The trusted adapter
+/// supplies its original admitted Source metadata and measurement, plus the
+/// independently observed process owner's exact generation. It must check
+/// current authority and the original physical target before calling and at
+/// each later physical boundary; these borrowed facts grant no permission.
+/// Reader EOF or a returned Host scope cannot supply the process observation.
+/// No Source is reread, no completed output/evidence is issued, and no resource
+/// handle is recreated. Stop and each original release remain unconfirmed.
+pub fn restore_remote_runtime_failed_partial_custody(
+  record : DispatchRecord,
+  expected_revision : Int,
+  source_request_cid : String,
+  source_wire : String,
+  material_generation : String,
+  source_measurement_cid : String,
+  measurement : RemoteManagedOutputMeasurement,
+  source_owner : String,
+  source_generation : String,
+  process_request_cid : String,
+  process_material_generation : String,
+  process_owner : String,
+  process_generation : String,
+) -> Result[RemoteRuntimeCustody, DispatchIssue] {
+  if record.revision != expected_revision ||
+    record.execution != NativeSettled ||
+    record.evidence != NoEvidence ||
+    record.cleanup != CleanupUnknown ||
+    record.material_available ||
+    record.quarantined_capacity {
+    return Err(InvalidTransition)
+  }
+  if source_wire.is_empty() ||
+    material_generation.is_empty() ||
+    source_owner.is_empty() ||
+    source_generation.is_empty() {
+    return Err(InvalidDispatch)
+  }
+  if source_request_cid != record.request.dispatch_request_cid ||
+    process_request_cid != source_request_cid ||
+    process_material_generation != material_generation ||
+    process_owner != source_owner ||
+    process_generation != source_generation ||
+    source_measurement_cid != measurement.measurement_cid {
+    return Err(DispatchIdentityMismatch)
+  }
+  let custody = create_remote_runtime_custody()
+  // NativeSettled proves historical settlement. The selected original sealed
+  // Source exists only after output and holding acquisition; its same bundle
+  // remains owed. These are unresolved obligations, never new acquisitions or
+  // fabricated physical handles. A process exit is not their release ACK.
+  custody.operation_acquired = true
+  custody.operation_settled = true
+  custody.output_acquired = true
+  custody.holding_acquired = true
+  custody.bundle_acquired = true
+  custody.stop_required = true
+  custody.stop_confirmed = false
+  custody.partial_restoration = Some(
+    (
+      source_request_cid, expected_revision, source_wire, material_generation, source_measurement_cid,
+      source_owner, source_generation,
+    ),
+  )
+  Ok(custody)
+}
+
+///|
+fn partial_runtime_cleanup_matches(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  guard custody.partial_restoration is Some((request, revision, _, _, _, _, _)) else {
+    return false
+  }
+  request == record.request.dispatch_request_cid &&
+  record.revision >= revision &&
+  record.execution == NativeSettled &&
+  record.evidence == NoEvidence &&
+  !record.material_available &&
+  !record.quarantined_capacity &&
+  (
+    record.cleanup == CleanupUnknown ||
+    record.cleanup == CleanupReleasing ||
+    record.cleanup == CleanupReleased
+  )
 }
 
 ///|
@@ -460,7 +560,8 @@ pub fn prepare_remote_runtime_success(
   record : DispatchRecord,
   custody : RemoteRuntimeCustody,
 ) -> Result[RemoteRuntimeSuccessAction, DispatchIssue] {
-  if custody.completed_restoration is Some(_) {
+  if custody.completed_restoration is Some(_) ||
+    custody.partial_restoration is Some(_) {
     return Err(MaterialUnavailable)
   }
   if record.cleanup != CleanupActive ||
@@ -704,6 +805,9 @@ pub fn prepare_owned_remote_runtime_failure(
   record : DispatchRecord,
   custody : RemoteRuntimeCustody,
 ) -> Result[RemoteRuntimeStep, DispatchIssue] {
+  if custody.partial_restoration is Some(_) {
+    return Err(InvalidTransition)
+  }
   prepare_remote_runtime_failure(
     record,
     custody.cancelled,
@@ -788,6 +892,10 @@ pub fn prepare_owned_remote_runtime_cleanup(
   // are being reconstructed. Absence of an attached handle is not cleanup.
   if custody.completed_restoration is Some(_) {
     return Err(MaterialUnavailable)
+  }
+  if custody.partial_restoration is Some(_) &&
+    !partial_runtime_cleanup_matches(record, custody) {
+    return Err(DispatchIdentityMismatch)
   }
   prepare_remote_runtime_cleanup(
     record,

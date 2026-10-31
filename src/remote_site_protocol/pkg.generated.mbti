@@ -842,6 +842,8 @@ pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Resu
 
 pub fn restore_remote_runtime_completed_custody(DispatchRecord, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[RemoteRuntimeCustody, DispatchIssue]
 
+pub fn restore_remote_runtime_failed_partial_custody(DispatchRecord, Int, String, String, String, String, RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> Result[RemoteRuntimeCustody, DispatchIssue]
+
 pub fn site_dispatch_binding_json(SiteDispatchJournal) -> Result[String, DispatchIssue]
 
 pub fn site_dispatch_generation(SiteDispatchJournal) -> Int

@@ -4960,6 +4960,8 @@ pub fn strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.Dispatch
 
 pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
+pub fn strategy_remote_runtime_restore_failed_partial_custody(@remote_site_protocol.DispatchRecord, Int, String, String, String, String, @remote_site_protocol.RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> @remote_site_protocol.RemoteRuntimeCustody raise NodeHostFailure
+
 pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
 
 pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int

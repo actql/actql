@@ -1005,6 +1005,15 @@ function remoteSiteControl(moon) {
     runtimeAdmission: moon.strategyRemoteRuntimeAdmission,
     runtimeStartable: moon.strategyRemoteRuntimeStartable,
     createRuntimeCustody: moon.strategyRemoteRuntimeCustodyCreate,
+    restoreFailedPartialRuntimeCustody(record, expectedRevision, sourceRequestCid,
+      sourceWire, materialGeneration, sourceMeasurementCid, measurement,
+      sourceOwner, sourceGeneration, processRequestCid, processMaterialGeneration,
+      processOwner, processGeneration) {
+      return checked(moon.strategyRemoteRuntimeRestoreFailedPartialCustody(record,
+        expectedRevision, sourceRequestCid, sourceWire, materialGeneration,
+        sourceMeasurementCid, measurement, sourceOwner, sourceGeneration,
+        processRequestCid, processMaterialGeneration, processOwner, processGeneration));
+    },
     runtimeCustodyAcquireOperation:
       moon.strategyRemoteRuntimeCustodyAcquireOperation,
     runtimeCustodySettleOperation:

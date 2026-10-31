@@ -6421,6 +6421,34 @@ pub fn strategy_remote_runtime_custody_create() -> @remote.RemoteRuntimeCustody 
 }
 
 ///|
+#export_name("strategyRemoteRuntimeRestoreFailedPartialCustody")
+pub fn strategy_remote_runtime_restore_failed_partial_custody(
+  record : @remote.DispatchRecord,
+  expected_revision : Int,
+  source_request_cid : String,
+  source_wire : String,
+  material_generation : String,
+  source_measurement_cid : String,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+  source_owner : String,
+  source_generation : String,
+  process_request_cid : String,
+  process_material_generation : String,
+  process_owner : String,
+  process_generation : String,
+) -> @remote.RemoteRuntimeCustody raise NodeHostFailure {
+  match
+    @remote.restore_remote_runtime_failed_partial_custody(
+      record, expected_revision, source_request_cid, source_wire, material_generation,
+      source_measurement_cid, measurement, source_owner, source_generation, process_request_cid,
+      process_material_generation, process_owner, process_generation,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteRuntimeCustodyAcquireOperation")
 pub fn strategy_remote_runtime_custody_acquire_operation(
   custody : @remote.RemoteRuntimeCustody,
