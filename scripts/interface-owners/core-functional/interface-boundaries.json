@@ -29438,7 +29438,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "42186f375bda5aaa2268f4bc704343800757c7b32e46b4f6f3f05a5b450d5f16",
+      "sha256": "a652378731b79e7f866859e2f222e952ff0b61a01818e0f5c121e7ad6efa3dc6",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -33251,7 +33251,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c1a3e8e286593d2d2de8eda5a1584fe4499e31fd4b19998cf2d7c9ebc3c28e6c",
+      "sha256": "a4e8ca51e0cd2f3e2861ec6d3d277bc330682ca6960554a1fa86642658544b4e",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -54252,7 +54252,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "d2325299589f824f57506383bce76657cd8022c48061a6a52b19babd6f294bc0"
+      "sha256": "aba5365f8a57018e55b9a9df31698d0195ed7bfd584f95aaf74d95418366a059"
     },
     {
       "module": "src/client_local_host/preparation_request_model_scope.mbt",

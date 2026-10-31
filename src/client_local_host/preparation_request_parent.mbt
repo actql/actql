@@ -100,7 +100,9 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
-  mut model_scope_quote : (Int64, Int64)?
+  // Model Scope and Content Plan are exclusive domain constructors. Retain
+  // their absolute target in the same prepaid slot across a declined grow.
+  mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
   mut program_invocation_quote : (Int64, Int64)?
@@ -373,7 +375,7 @@ pub fn[I] begin_request_preparation(
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
-    model_scope_quote: None,
+    program_domain_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
     program_invocation_quote: None,
@@ -689,7 +691,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
-  owner.model_scope_quote = None
+  owner.program_domain_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_invocation_quote = None

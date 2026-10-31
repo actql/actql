@@ -4058,6 +4058,14 @@ adopted Run. It neither recompiles the graph nor constructs a scalar Ledger.
 The six stored prefix requirements describe that prefix alone, not the complete
 Host, generation, Store, output or failed-child backing.
 
+The selected serialization Plan's record and its Ledger limits are reserved on
+that same Request before the prefix constructor. Their field inventory is
+separate from the compiler artifact and from the provider, output and physical
+Store domains. Model Scope and Content construction are mutually exclusive and
+share the Request's existing absolute-quote slot. A declined grow preserves
+that target; continuing it does not add the record again. Reentry cannot select
+another constructor or retire the parent while the original grow is active.
+
 The installed Content cleanup retains physical writer/holding duties before
 settling its original prefix. A failed prefix start remains reachable through
 the same adopted Run even if no prefix returned to JavaScript. The Host spends

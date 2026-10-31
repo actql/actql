@@ -168,13 +168,13 @@ pub fn[I] prepare_request_effect_model_read_scope(
       (
         owner.phase == EffectPlanReserved &&
         owner.effect_plan is None &&
-        owner.model_scope_quote is None
+        owner.program_domain_quote is None
       ) ||
       (
         quoted &&
         owner.effect_plan is Some(selected_plan) &&
         physical_equal(selected_plan, plan) &&
-        owner.model_scope_quote is Some(_)
+        owner.program_domain_quote is Some(_)
       )
     ) &&
     owner.effect_capacity is Some(capacity) &&
@@ -204,9 +204,9 @@ pub fn[I] prepare_request_effect_model_read_scope(
     // Keep the original Plan and absolute quote before current can fail.
     // A retry consumes this same quote, never another relative increment.
     owner.effect_plan = Some(plan)
-    owner.model_scope_quote = Some(quote)
+    owner.program_domain_quote = Some(quote)
   }
-  let (r, e) = owner.model_scope_quote.unwrap()
+  let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
   // The original six input/borrower slots already exist. Growing this same
   // census retains their backing and the selected Model maxima; it never
@@ -233,7 +233,7 @@ pub fn[I] prepare_request_effect_model_read_scope(
         physical_equal(original_capacity, capacity) &&
         owner.effect_plan is Some(original_plan) &&
         physical_equal(original_plan, plan) &&
-        owner.model_scope_quote is Some(current_quote) &&
+        owner.program_domain_quote is Some(current_quote) &&
         current_quote.0 == r &&
         current_quote.1 == e else {
         if owner.phase == Selecting {
@@ -256,7 +256,7 @@ pub fn[I] prepare_request_effect_model_read_scope(
     }
   }
   if result is Ok(_) {
-    owner.model_scope_quote = None
+    owner.program_domain_quote = None
   }
   owner.phase = if result is Ok(_) {
     EffectPlanReserved

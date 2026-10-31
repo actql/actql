@@ -7,15 +7,25 @@ let request_serialization_document : String =
 ///|
 // Real checker/compiler and Local prefix, with an explicit original Resource
 // admission. This is not a standard Host, Store or public Content fixture.
-fn request_serialization_preparation_fixture(
+// Private component fixture, never a Host ABI or a physical admission.
+struct RequestSerializationPlanFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  input : Array[Int]
+  prepared : @publication_host.PreparedClientProgram
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ]
+  request : @publication_host.ClientRequestIdentity
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  execution : @execution.SequenceExecutionLimits
+  measurement : @execution.FixedInputGuardMeasureLimits
+}
+
+///|
+fn request_serialization_plan_fixture(
   current? : () -> Bool = () => true,
-) -> (
-  ClientRequestPreparation[Array[Int]],
-  Array[Int],
-  @publication_host.PreparedClientProgram,
-  ClientInstalledManagedSerializationPreparation,
-  @publication_host.ClientRequestIdentity,
-) raise {
+) -> RequestSerializationPlanFixture raise {
   let (parent, child, _, input) = registration_parent_fixture(
     text=request_serialization_document,
     current~,
@@ -82,18 +92,217 @@ fn request_serialization_preparation_fixture(
     "same-request-serialization",
   ).unwrap()
   let (_, execution, measurement) = client_local_execution_limits(max_rows=2)
-  let selected = prepare_request_serialization_plan(
+  {
     parent,
     input,
+    prepared,
+    holder,
     request,
     compiled,
     definition,
     execution,
     measurement,
-    None,
-  ).unwrap()
+  }
+}
+
+///|
+fn request_serialization_preparation_fixture(
+  current? : () -> Bool = () => true,
+  before_plan? : (ClientRequestPreparation[Array[Int]], Array[Int]) -> Unit = (
+    _,
+    _,
+  ) => (),
+  construct_plan? : (
+    () -> Result[
+      ClientInstalledManagedSerializationPreparation,
+      ClientInstalledManagedRunIssue,
+    ],
+  ) -> ClientInstalledManagedSerializationPreparation raise = construct => {
+    construct().unwrap()
+  },
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  @publication_host.PreparedClientProgram,
+  ClientInstalledManagedSerializationPreparation,
+  @publication_host.ClientRequestIdentity,
+) raise {
+  let fixture = request_serialization_plan_fixture(current~)
+  let {
+    parent,
+    input,
+    prepared,
+    holder,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+  } = fixture
+  before_plan(parent, input)
+  let selected = construct_plan(() => {
+    prepare_request_serialization_plan(
+      parent,
+      input,
+      request,
+      compiled,
+      definition,
+      execution,
+      measurement,
+      None,
+    )
+  })
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   (parent, input, prepared, selected, request)
+}
+
+///|
+test "Content Plan retains its own record and limits only after both same-parent byte bounds admit them" {
+  // Actual selected record: one header and ten original references. Actual
+  // LedgerLimits: one header and six scalar words. Domain links were already
+  // admitted by borrow_request_content_plan_input; no second link charge.
+  let added = 2L * 16L + 10L * 8L + 6L * 8L
+  for retention in [true, false] {
+    let owner : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+    let original_input : Ref[Array[Int]?] = Ref(None)
+    let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+    let before : Ref[(Int64, Int64)] = Ref((0L, 0L))
+    let spent = Ref(0L)
+    let (parent, input, _, selected, _) = request_serialization_preparation_fixture(
+      before_plan=(parent, input) => {
+        owner.val = Some(parent)
+        original_input.val = Some(input)
+        let capacity = parent.program_capacity.unwrap()
+        let extents = @resources.preparation_capacity_working_extents(
+          capacity, input,
+        ).unwrap()
+        before.val = extents
+        spent.val = parent.program_artifact_work_spent
+        let limits = @resources.ledger_limits(parent.ledger)
+        blocker.val = Some(
+          @resources.reserve_capacity(
+            parent.ledger,
+            if retention {
+              limits.retained_bytes - extents.0 - added + 1L
+            } else {
+              0L
+            },
+            if retention {
+              0L
+            } else {
+              limits.execution_bytes - extents.1 - added + 1L
+            },
+          ).unwrap(),
+        )
+      },
+      construct_plan=construct => {
+        let parent = owner.val.unwrap()
+        let input = original_input.val.unwrap()
+        let result = construct()
+        assert_true(
+          if retention {
+            result is Err(Preparation(Resource(RetentionLimit)))
+          } else {
+            result is Err(Preparation(Resource(ExecutionLimit)))
+          },
+        )
+        assert_true(parent.program_content is NoContent)
+        assert_true(parent.program_content_request is None)
+        assert_true(parent.phase == ContentPlanReserved)
+        assert_eq(parent.program_artifact_work_spent, spent.val)
+        assert_eq(
+          @resources.preparation_capacity_working_extents(
+            parent.program_capacity.unwrap(),
+            input,
+          ),
+          Ok(before.val),
+        )
+        @resources.settle_capacity(parent.ledger, blocker.val.unwrap()).unwrap()
+        let selected = construct().unwrap()
+        assert_eq(
+          @resources.preparation_capacity_working_extents(
+            parent.program_capacity.unwrap(),
+            input,
+          ),
+          Ok((before.val.0 + added, before.val.1 + added)),
+        )
+        assert_eq(parent.program_artifact_work_spent, spent.val)
+        selected
+      },
+    )
+    assert_true(
+      parent.program_content is SerializationContent(original) &&
+      physical_equal(original, selected),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_true(physical_equal(original_input.val.unwrap(), input))
+  }
+}
+
+///|
+test "Content Plan growth fences original-current reentry and retains its failed original for cleanup" {
+  let armed = Ref(false)
+  let entered = Ref(false)
+  let fenced = Ref(false)
+  let owner : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let reenter : Ref[
+    (() -> Result[
+      ClientInstalledManagedSerializationPreparation,
+      ClientInstalledManagedRunIssue,
+    ])?,
+  ] = Ref(None)
+  let fixture = request_serialization_plan_fixture(current=() => {
+    if armed.val {
+      if !entered.val {
+        entered.val = true
+        let parent = owner.val.unwrap()
+        fenced.val = parent.phase == Selecting &&
+          reenter.val.unwrap()() is Err(ForeignOriginal) &&
+          abort_request_preparation_after_cleanup(parent) is Err(WrongPhase)
+      }
+      false
+    } else {
+      true
+    }
+  })
+  let parent = fixture.parent
+  owner.val = Some(parent)
+  let construct = () => {
+    prepare_request_serialization_plan(
+      parent,
+      fixture.input,
+      fixture.request,
+      fixture.compiled,
+      fixture.definition,
+      fixture.execution,
+      fixture.measurement,
+      None,
+    )
+  }
+  let before = request_preparation_accounting(parent)
+  reenter.val = Some(construct)
+  armed.val = true
+  assert_true(construct() is Err(Preparation(_)))
+  armed.val = false
+  assert_true(entered.val && fenced.val)
+  assert_true(parent.phase == ContentPlanReserved)
+  assert_true(parent.program_content is NoContent)
+  let absolute = parent.program_domain_quote.unwrap()
+  assert_eq(absolute, (before.4 + 160L, before.5 + 160L))
+  assert_eq(request_preparation_accounting(parent), before)
+  // The original resource failure is sticky; a later true callback cannot
+  // authorize construction or erase it. Retain the same quote for cleanup.
+  assert_true(construct() is Err(Preparation(_)))
+  assert_eq(parent.program_domain_quote, Some(absolute))
+  assert_true(parent.program_content is NoContent)
+  assert_eq(request_preparation_accounting(parent), before)
+  reenter.val = None
+  assert_false(
+    @resources.return_preparation_body_borrow(fixture.holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|

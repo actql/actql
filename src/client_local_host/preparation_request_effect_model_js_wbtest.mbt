@@ -153,7 +153,7 @@ test "Effect Scope one-short growth retains one absolute quote and original Plan
       prepare_request_effect_model_read_scope(parent, input, plan)
       is Err(Preparation(Resource(_))),
     )
-    let quote = parent.model_scope_quote
+    let quote = parent.program_domain_quote
     assert_eq(quote, Some((before.0 + increment, before.1 + increment)))
     assert_true(parent.phase == EffectModelScopeQuoted)
     assert_true(
@@ -176,10 +176,10 @@ test "Effect Scope one-short growth retains one absolute quote and original Plan
       prepare_request_effect_model_read_scope(parent, input, plan)
       is Err(Preparation(Resource(_))),
     )
-    assert_eq(parent.model_scope_quote, quote)
+    assert_eq(parent.program_domain_quote, quote)
     @resources.settle_capacity(parent.ledger, block).unwrap()
     let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
-    assert_true(parent.model_scope_quote is None)
+    assert_true(parent.program_domain_quote is None)
     assert_eq(
       @resources.preparation_capacity_working_extents(capacity, input),
       Ok((before.0 + increment, before.1 + increment)),
@@ -215,7 +215,7 @@ test "Effect Scope one-short growth retains one absolute quote and original Plan
   @resources.settle_capacity(parent.ledger, block).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
   abort_request_preparation_after_cleanup(parent).unwrap()
-  assert_true(parent.model_scope_quote is None && parent.effect_plan is None)
+  assert_true(parent.program_domain_quote is None && parent.effect_plan is None)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 

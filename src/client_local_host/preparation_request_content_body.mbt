@@ -336,7 +336,61 @@ pub fn[I] prepare_request_serialization_plan(
     owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
     owner.program_domain_compilation_inputs
     is Some(RequestSerializationCompilation(_, _, contracts, component)) &&
+    owner.program_capacity is Some(capacity) &&
     !owner.program_body_attempted else {
+    return Err(ForeignOriginal)
+  }
+  // The selected record owns ten original references; its LedgerLimits owns
+  // six scalar words. Plan/Request/compiler link carriers were admitted at
+  // the Content input borrow. Compiler, sequence/provider and output backing
+  // are separate domains: do not count them as supplied by this fixed packet.
+  // Reuse the mutually exclusive Model/Content quote slot, already backed by
+  // the Request constructor. Keep the absolute target across a refused grow.
+  if owner.program_domain_quote is None {
+    guard @execution.preparation_representation_cost({
+        record_headers: 2L,
+        reference_slots: 10L,
+        scalar_words: 6L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+      is Some(bytes) else {
+      return Err(InsufficientCapacity)
+    }
+    let (r, e) = match
+      @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(extents) => extents
+    }
+    guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+      return Err(InsufficientCapacity)
+    }
+    owner.program_domain_quote = Some((r, e))
+  }
+  let (r, e) = owner.program_domain_quote.unwrap()
+  owner.phase = Selecting
+  let grown = @resources.reserve_working_preparation_phase(
+    capacity, input, r, e,
+  )
+  if grown is Err(issue) {
+    if owner.phase == Selecting {
+      owner.phase = ContentPlanReserved
+    }
+    return Err(Preparation(issue))
+  }
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.program_capacity is Some(original_capacity) &&
+    physical_equal(original_capacity, capacity) &&
+    owner.compiled_program is Some(original_prepared) &&
+    physical_equal(original_prepared, prepared) &&
+    owner.program_content is NoContent &&
+    owner.program_domain_quote == Some((r, e)) else {
+    if owner.phase == Selecting {
+      owner.phase = ContentPlanReserved
+    }
     return Err(ForeignOriginal)
   }
   let selected = match
@@ -344,13 +398,18 @@ pub fn[I] prepare_request_serialization_plan(
       prepared, request, compiled, definition, component, compilation, contracts,
       execution, measurement, workspace,
     ) {
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      owner.phase = ContentPlanReserved
+      return Err(issue)
+    }
     Ok(selected) => selected
   }
   // This constructor is closed Local DATA and invokes no current/I/O port.
   // Retain its original before any later completion callback can fail.
   owner.program_content = SerializationContent(selected)
   owner.program_content_request = Some(request)
+  owner.program_domain_quote = None
+  owner.phase = ContentPlanReserved
   Ok(selected)
 }
 

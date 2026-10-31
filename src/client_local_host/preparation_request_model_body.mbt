@@ -158,13 +158,13 @@ pub fn[I] prepare_request_model_read_scope(
       (
         owner.phase == ModelPlanReserved &&
         owner.program_model is None &&
-        owner.model_scope_quote is None
+        owner.program_domain_quote is None
       ) ||
       (
         quoted &&
         owner.program_model is Some(selected_plan) &&
         physical_equal(selected_plan, plan) &&
-        owner.model_scope_quote is Some(_)
+        owner.program_domain_quote is Some(_)
       )
     ) &&
     owner.program_capacity is Some(capacity) &&
@@ -202,9 +202,9 @@ pub fn[I] prepare_request_model_read_scope(
       Ok(value) => value
     }
     owner.program_model = Some(plan)
-    owner.model_scope_quote = Some(quote)
+    owner.program_domain_quote = Some(quote)
   }
-  let (r, e) = owner.model_scope_quote.unwrap()
+  let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
   let result : Result[
     @publication_host.ClientModelReadScope,
@@ -228,7 +228,7 @@ pub fn[I] prepare_request_model_read_scope(
         physical_equal(original_capacity, capacity) &&
         owner.program_model is Some(original_plan) &&
         physical_equal(original_plan, plan) &&
-        owner.model_scope_quote is Some(current_quote) &&
+        owner.program_domain_quote is Some(current_quote) &&
         current_quote.0 == r &&
         current_quote.1 == e else {
         if owner.phase == Selecting {
@@ -251,7 +251,7 @@ pub fn[I] prepare_request_model_read_scope(
     }
   }
   if result is Ok(_) {
-    owner.model_scope_quote = None
+    owner.program_domain_quote = None
   }
   owner.phase = if result is Ok(_) {
     ModelPlanReserved

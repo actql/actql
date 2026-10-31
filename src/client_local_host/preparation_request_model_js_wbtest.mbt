@@ -283,7 +283,7 @@ test "Pure Scope one-short keeps its original absolute quote and cannot complete
     )
     assert_true(parent.phase == ModelScopeQuoted)
     assert_eq(
-      parent.model_scope_quote,
+      parent.program_domain_quote,
       Some((before.0 + increment, before.1 + increment)),
     )
     assert_true(
@@ -301,7 +301,7 @@ test "Pure Scope one-short keeps its original absolute quote and cannot complete
       @resources.preparation_capacity_working_extents(capacity, input),
       Ok((before.0 + increment, before.1 + increment)),
     )
-    assert_true(parent.model_scope_quote is None)
+    assert_true(parent.program_domain_quote is None)
     complete_request_model_preparation(parent, input, plan).unwrap()
     @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
     let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
