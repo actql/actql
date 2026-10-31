@@ -66480,7 +66480,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "00010a124069b93d81587b9ba2b2a08ca82de52d781bad2e3423a4a5d82e6237",
+      "sha256": "fac7f4acb6dccd645225c03a0bd2b77a01dbae02df4c6b55e4943bf53891754b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -69461,10 +69461,10 @@
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings#2"
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -69605,13 +69605,18 @@
             "createRowEffectStage/canonicalRows/canonicalRows/inventory/inventory",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage#5",
-            "createRowEffectStage/captureStage/captureStage#6",
-            "createRowEffectStage/captureStage/captureStage#8",
-            "createRowEffectStage/captureStage/captureStage#9",
+            "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/captureStage#11",
             "createRowEffectStage/captureStage/captureStage#12",
+            "createRowEffectStage/captureStage/captureStage#3",
+            "createRowEffectStage/captureStage/captureStage#4",
+            "createRowEffectStage/captureStage/captureStage#5",
+            "createRowEffectStage/captureStage/captureStage#6",
+            "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/captureStage#9",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
@@ -69621,21 +69626,16 @@
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/context/context",
-            "createRowEffectStage/captureStage/captureStage#7",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
+            "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
+            "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
-            "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/rows/rows",
-            "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
-            "createRowEffectStage/captureStage/init:onProposalRow/init:onProposalRow",
-            "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/checkRows/checkRows",
             "createRowEffectStage/checkSubject/checkSubject",
@@ -69684,6 +69684,17 @@
             "createRowEffectStage/prepareRecovered",
             "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
             "createRowEffectStage/prepareRecovered/dispatches/dispatches",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
@@ -69721,18 +69732,7 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
-            "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
-            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
-            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2"
+            "createRowEffectStage/settle/settle"
           ],
           "exports": [],
           "attributes": {
@@ -72574,54 +72574,90 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Standard CREATE declaration"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "function deriveInstalledRowWrite(write, connectorRegistration)"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "'actql-installed-row-write-request/0.1'"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "const originals = new WeakMap();"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "prepareRequest(context) {"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "InvalidInstalledRowWrite"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Advanced conditional"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "verification": [
@@ -72648,6 +72684,14 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "standard saved request bounds real JSON material"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               }
             ]
           }
@@ -72684,54 +72728,90 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "verification": [
@@ -72746,6 +72826,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               }
             ]
           }
@@ -72836,6 +72924,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "inputsOutputs": [
@@ -72846,6 +72938,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "identity": [
@@ -72856,6 +72952,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "ownership": [
@@ -72866,6 +72966,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "synchronization": [
@@ -72876,6 +72980,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "failure": [
@@ -72886,6 +72994,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "cancellation": [
@@ -72896,6 +73008,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "resources": [
@@ -72906,6 +73022,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "extension": [
@@ -72916,6 +73036,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "verification": [
@@ -72930,6 +73054,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               }
             ]
           }

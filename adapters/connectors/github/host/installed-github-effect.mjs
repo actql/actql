@@ -24,8 +24,9 @@ import {createInstalledRowEffect} from
   '../../../host-node/installed-row-effect.mjs';
 import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
-import {GITHUB_COMMENT_CREATE_OPERATION, checkGitHubCommentSubject,
-  prepareGitHubCommentRequest, projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
+import {GITHUB_COMMENT_CREATE_OPERATION, prepareGitHubCommentSubjectRequest,
+  projectGitHubCommentSubjectResponse, prepareGitHubCommentRequest,
+  projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../site/github-issue-graphql-read.mjs';
 import {openGitHubSite, publishGitHubRepository, readGitHubPublication,
@@ -213,10 +214,17 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
             body: comment.body});
         },
         check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION,
-          request: ({request, authorization, credential, callResource,
-          signal}) => checkGitHubCommentSubject({moon: providerMoon,
-          subjectId: request.subjectId, repository, authorization,
-            credential, callResource, limits: commentLimits, signal})},
+          http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
+            headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
+            responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
+            maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
+          body: ({request}) => prepareGitHubCommentSubjectRequest({moon: providerMoon,
+            subjectId: request.subjectId, repository, limits: commentLimits}),
+          project({request, observation, headers, accepted}) {
+            projectGitHubCommentSubjectResponse({moon: providerMoon,
+              subjectId: request.subjectId, repository, limits: commentLimits,
+              response: {accepted, ...observation, headers}});
+          }},
         classify: ({request, observation, headers}) => commentOutcome(
           projectGitHubCommentObservation({moon: providerMoon, observation,
             headers, limits: commentLimits, subjectId: request.subjectId})),

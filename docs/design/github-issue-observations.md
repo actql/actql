@@ -116,3 +116,14 @@ JavaScript mapping/parsing/hash and saved request bodies, credentials, HTTP
 request/response storage, returned provider observations and failed-child
 overlap. Returning constructor DATA or a request String does not retire those
 owners, consume a physical attempt, authorize a write or acknowledge cleanup.
+
+The standard comment subject check declares its fixed HTTP request to the same
+Host as the write. Its provider hooks only construct the original subject body
+and interpret the already-accounted status, body and declared headers. The
+transport's original `accepted` value is forwarded as DATA, including false;
+it is never synthesized from a successful await or HTTP status. Repository and
+Issue correspondence, documented semantic refusals, rate-limit uncertainty and
+unclassified failures keep their existing provider meanings. The direct Site
+helper composes these same pure hooks for its existing callers; the standard
+installed path does not retain a second Provider-owned HTTP callback. Neither
+projection nor a returned subject retires the physical read or its failed child.

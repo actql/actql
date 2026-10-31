@@ -474,6 +474,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
             responseHeaders: readResponseHeaders, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, signal});
           signal?.throwIfAborted();
           const projected = Reflect.apply(project, check, [Object.freeze({resource, value: mappedValue, request,
+            accepted: observed.accepted,
             observation: Object.freeze({useCid: observed.useCid, statusCode: observed.statusCode, body: observed.body}),
             ...(Object.hasOwn(observed, 'headers') ? {headers: observed.headers} : {})})]);
           if (projected !== undefined) {await projected; fail();}

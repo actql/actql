@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0df88e913c7f745deea7fc03c50bd976d6141346544fa332a29a9f80225dea62",
+      "sha256": "965e089713d80f35016d754a8e1111e2c88a7dd3db739e06c598e6657d0233c8",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5847,6 +5847,16 @@
           "async": false
         },
         {
+          "name": "loadInstalledGitHubEffect/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation",
+            "headers",
+            "accepted"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledGitHubEffect/init:request/init:request",
           "parameters": [
             "resource",
@@ -5864,11 +5874,7 @@
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
           "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
+            "request"
           ],
           "async": false
         },
@@ -5945,6 +5951,8 @@
             "installedGitHubEffectIdentityParts",
             "loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/environment/environment",
+            "loadInstalledGitHubEffect/init:project/init:project",
+            "loadInstalledGitHubEffect/init:request/init:request",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
@@ -5953,8 +5961,7 @@
             "publishInstalledGitHubEffect",
             "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
             "sameKeys/sameKeys",
-            "text/text",
-            "loadInstalledGitHubEffect/init:request/init:request"
+            "text/text"
           ],
           "exports": [
             "INSTALLED_GITHUB_EFFECT_VERSION",
@@ -5968,48 +5975,80 @@
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "provider-neutral installed row Effect"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "loadInstalledGitHubEffect"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "installedGitHubEffectIdentityParts"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
-                "anchor": "checkGitHubCommentSubject"
+                "anchor": "prepareGitHubCommentSubjectRequest"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "unknown"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
-                "anchor": "signal"
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/github/host/installed-github-effect.mjs",
                 "anchor": "commentLimits"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "extension": [
@@ -6020,6 +6059,10 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "verification": [
@@ -6042,6 +6085,14 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "Effect Site uses the same Host factory and provider binding"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               }
             ]
           }
@@ -6417,7 +6468,7 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc2d9263f1abdd5a9a99dde1ef4e88c6f20f1b4b6b63c0d09eeb9a118f98e718",
+      "sha256": "44c26084ec1d8d38108033984d5e98129b057bacfdf23e67539da89f1f33fb05",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
@@ -6427,7 +6478,9 @@
         "finalizeGitHubCommentRequest",
         "prepareGitHubCommentLogicalRequest",
         "prepareGitHubCommentRequest",
+        "prepareGitHubCommentSubjectRequest",
         "projectGitHubCommentObservation",
+        "projectGitHubCommentSubjectResponse",
         "sendGitHubIssueComment"
       ],
       "operations": [
@@ -6444,14 +6497,6 @@
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "checkGitHubCommentSubject/refuse/refuse",
-          "parameters": [
-            "code",
-            "details"
-          ],
-          "async": false
         },
         {
           "name": "checkLimits",
@@ -6560,6 +6605,16 @@
           "async": false
         },
         {
+          "name": "prepareGitHubCommentSubjectRequest",
+          "parameters": [
+            "moon",
+            "subjectId",
+            "repository",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "projectGitHubCommentObservation",
           "parameters": [
             "moon",
@@ -6567,6 +6622,25 @@
             "headers",
             "limits",
             "subjectId"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectGitHubCommentSubjectResponse",
+          "parameters": [
+            "moon",
+            "subjectId",
+            "repository",
+            "response",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectGitHubCommentSubjectResponse/refuse/refuse",
+          "parameters": [
+            "code",
+            "details"
           ],
           "async": false
         },
@@ -6589,7 +6663,6 @@
           "operations": [
             "<module>",
             "checkGitHubCommentSubject",
-            "checkGitHubCommentSubject/refuse/refuse",
             "checkLimits",
             "count/count",
             "exchange",
@@ -6597,11 +6670,16 @@
             "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
+            "prepareGitHubCommentSubjectRequest",
+            "projectGitHubCommentSubjectResponse",
+            "projectGitHubCommentSubjectResponse/refuse/refuse",
             "sendGitHubIssueComment"
           ],
           "exports": [
             "GITHUB_COMMENT_CREATE_OPERATION",
             "checkGitHubCommentSubject",
+            "prepareGitHubCommentSubjectRequest",
+            "projectGitHubCommentSubjectResponse",
             "sendGitHubIssueComment"
           ],
           "attributes": {
@@ -6609,54 +6687,90 @@
               {
                 "path": "src/connectors/github/catalog/comment.mbt",
                 "anchor": "classify_comment_response"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "prepareGitHubCommentRequest"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "exactRequestCid"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "common Effect owner"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "invokeScopedCredentialOperation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "projectGitHubCommentObservation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/github/site/github-comment-create.mjs",
                 "anchor": "checkLimits"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/github/catalog/comment.mbt",
                 "anchor": "add_comment_mutation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               }
             ],
             "verification": [
@@ -6667,6 +6781,14 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-create.test.mjs",
                 "anchor": "a lost reply leaves a possible dispatch that is never resent"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               }
             ]
           }
@@ -6814,7 +6936,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./github-issue-graphql-read.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",

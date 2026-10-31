@@ -121,12 +121,13 @@ test('standard declaration captures callbacks and preserves the independent read
 
 test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA',async()=>{
   let bodyCalls=0,projectCalls=0,reads=0;
-  const nativeObservation=Object.freeze({useCid:providerCid,statusCode:200,body:Buffer.from('{"revision":"7"}'),headers:[]});
+  const nativeObservation=Object.freeze({accepted:false,useCid:providerCid,statusCode:200,body:Buffer.from('{"revision":"7"}'),headers:[]});
   const check={resource:'forms',operation:'fixture:form',beforeSend:true,
     http:{origin,method:'POST',path:'/form',headers:[['x-http-method-override','GET']],maxRequestBytes:200,maxResponseBytes:400},
     body(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request']);assert(Object.isFrozen(context));
       assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);bodyCalls++;return '{"app":"12"}';},
-    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request','observation','headers']);
+    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request','accepted','observation','headers']);
+      assert.equal(context.accepted,nativeObservation.accepted);
       assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);assert.equal(context.observation.body,nativeObservation.body);
       assert.equal(context.observation.statusCode,200);assert.equal(context.headers,nativeObservation.headers);assert(Object.isFrozen(context));projectCalls++;}};
   const driver=deriveInstalledRowWrite(declaration({check}),'fixture');
@@ -334,17 +335,20 @@ test('standard GitHub subject read keeps cancellation and the original transport
 // with explicit native codec/check/classifier DATA ports. No Common, Account,
 // grant issuer, real provider or normal installed execution is substituted.
 test('GitHub normal declaration keeps original GraphQL request, sender envelope and read-before-write check', async () => {
+  let checks = 0;
   const providerMoon = {githubAddCommentRequestJson: (subject, body) => JSON.stringify({body: JSON.stringify({subject, body})}),
     githubCommentOutcomeJson() {}, githubRequestHeadersJson: () => '[["accept","application/json"]]',
-    githubResponseHeadersJson: () => '["x-ratelimit-remaining"]'};
-  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository'});
-  let checks = 0;
+    githubResponseHeadersJson: () => '["x-ratelimit-remaining"]',
+    githubCommentSubjectRequestJson: () => '{"body":"original-subject-request"}',
+    githubCommentSubjectJson() {checks++;return '{"subject":{"node_id":"I_original","number":7}}';}};
+  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository',databaseId:7,nameWithOwner:'owner/original'});
   const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
     GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
-    site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
+    site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000,maxNodes:10_000,maxDepth:32},
     prepareGitHubCommentRequest, commentValue: (_resource, value) => value,
+    prepareGitHubCommentSubjectRequest:githubComment.prepareGitHubCommentSubjectRequest,
+    projectGitHubCommentSubjectResponse:githubComment.projectGitHubCommentSubjectResponse,
     fail: code => {throw Object.assign(new Error(code), {code});},
-    checkGitHubCommentSubject(context) {checks++; assert.equal(context.repository, repository); return 'checked';},
     projectGitHubCommentObservation: () => ({kind: 'typed-success-response'}),
     commentOutcome: () => ({kind: 'provider-response'}),
   });
@@ -354,7 +358,8 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id, body: value.body});
   assert.deepEqual(prepared.request, old); assert.equal(prepared.requestCid, old.requestCid);
   assert.equal(driver.requestFacts(prepared.request).value, value);
-  assert.equal(driver.checkRequest({request: prepared.request}), 'checked'); assert.equal(checks, 1);
+  assert.equal(await driver.checkRequest({request: prepared.request,authorization:authorization(GITHUB_GRAPHQL_READ_OPERATION),
+    credential:{},callResource:()=>({...response,statusCode:200})}), undefined); assert.equal(checks, 1);
   const calls = [], context = {request: prepared.request, authorization: authorization(GITHUB_COMMENT_CREATE_OPERATION),
     credential: {}, callResource: args => {calls.push(args); return response;}};
   const actual = await driver.send(context);
