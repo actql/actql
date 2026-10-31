@@ -179,3 +179,25 @@ test('Request Content runtime retains original prefix start and cleanup without 
   assert.equal(cleanup(run,selected),false);ready=true;assert.equal(cleanup(run,selected),true);
   assert.deepEqual(calls,['start','start','cleanup','cleanup']);
 });
+
+test('Request Content custody selects only terminal source-free Serialization and keeps keyed and mixed purposes separate',()=>{
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');let selected;
+  const walk=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id?.name==='localPreparationCustody')selected=node.init.arguments[0];
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
+  walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
+  const values=new WeakMap(),moon={clientProgramPreparationBorrowSibling(){},
+    clientProgramSerializationOccurrences:p=>values.get(p).serializations,
+    clientProgramComposedInferOccurrences:p=>({$tag:1,_0:values.get(p).infers}),
+    clientProgramAcquisitionCount:p=>values.get(p).acquisitions};
+  const select=Function('preparation','prepareSubmit','moon','runtimeIsOk','runtimeField',
+    `return (${source.slice(selected.start,selected.end)});`)(
+    {canRetireManagedPreparation:()=>true,managesInstalledSources:()=>true},
+    {kindOf:p=>values.get(p).kind},moon,v=>v.$tag===1,(v,i)=>v['_'+i]);
+  const base={kind:'effect_free',serializations:[{}],infers:[],acquisitions:0};
+  const prepared={};values.set(prepared,base);assert.equal(select(prepared),true);
+  for(const change of [{acquisitions:1},{infers:[{}]},{serializations:[{},{}]},{kind:'effectful'}]){
+    const p={};values.set(p,{...base,...change});assert.equal(select(p),false);
+  }
+  moon.clientProgramPreparationBorrowSibling=undefined;assert.equal(select(prepared),false);
+});
