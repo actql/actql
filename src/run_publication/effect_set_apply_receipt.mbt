@@ -344,6 +344,19 @@ pub fn effect_set_apply_receipt_disposition(
 }
 
 ///|
+/// Presentation of the same admitted Set outcome. No parsing, row admission,
+/// current permission or publication observation is performed by this getter.
+pub fn effect_set_apply_receipt_run_status(
+  value : EffectSetApplyReceiptEvidence,
+) -> String {
+  match value.disposition {
+    0 => "succeeded"
+    1 => "needs_reconciliation"
+    _ => "failed"
+  }
+}
+
+///|
 /// Every actual admitted row is unattempted; no current authority or whole-Run
 /// stop follows from this immutable partition. Empty row inventories are vacuous.
 pub fn effect_set_apply_receipt_all_unattempted(

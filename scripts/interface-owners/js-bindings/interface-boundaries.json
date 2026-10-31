@@ -108977,7 +108977,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
+      "sha256": "e7e8cf8a09618526dda7e5911a91fb515763b11330de546d73fa670fce3990e6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -108985,7 +108985,9 @@
         "admitCompletedSourceObservation",
         "admitEffectPreviewIdentity",
         "admitEffectRunMaterials",
+        "admitEffectfulFinalRunEvidence",
         "admitEnvironment",
+        "admitOriginalResultOccurrenceEvidence",
         "admitProfileSelection",
         "admitPublicationContract",
         "admitRequestFields",
@@ -109028,6 +109030,8 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunOutcome",
+        "effectfulFinalRunReconciliationState",
         "executionShape",
         "inspectCanonicalResultRows",
         "inspectEffectTaskProgress",
@@ -109193,6 +109197,14 @@
           "async": false
         },
         {
+          "name": "admitEffectfulFinalRunEvidence",
+          "parameters": [
+            "evidence",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "admitEffectPreviewIdentity",
           "parameters": [
             "wire",
@@ -109220,6 +109232,25 @@
             "body",
             "evidenceBundleCid",
             "profiles"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOriginalResultOccurrenceEvidence",
+          "parameters": [
+            "definition",
+            "artifact",
+            "derivation",
+            "ordering",
+            "retention",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOriginalResultOccurrenceEvidence/fields/fields",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -109649,6 +109680,36 @@
           "name": "effectExecutionShape/effectExecutionShape",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectFinalOriginals",
+          "parameters": [
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectFinalOriginals/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunOutcome",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunReconciliationState",
+          "parameters": [
+            "receipt",
+            "updatedAt",
+            "limits"
           ],
           "async": false
         },
@@ -110553,7 +110614,8 @@
             "admission",
             "definition",
             "observedAt",
-            "observations"
+            "observations",
+            "effectFinalReceipt"
           ],
           "async": false
         },
@@ -110594,6 +110656,34 @@
         },
         {
           "name": "issueSucceededRunStateWire/wire/wire#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#8",
           "parameters": [
             "value"
           ],
@@ -111939,6 +112029,13 @@
           "async": false
         },
         {
+          "name": "retainedEffectFinal",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "retainedInputCurrentEnvelope",
           "parameters": [
             "query"
@@ -112328,6 +112425,14 @@
           "async": false
         },
         {
+          "name": "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "validatePublicationChain",
           "parameters": [
             "runDefinition",
@@ -112402,10 +112507,16 @@
         {
           "operations": [
             "admitCapturedResultSnapshot",
-            "admitCapturedResultSnapshot/admitCapturedResultSnapshot"
+            "admitCapturedResultSnapshot/admitCapturedResultSnapshot",
+            "admitOriginalResultOccurrenceEvidence",
+            "admitOriginalResultOccurrenceEvidence/fields/fields"
           ],
           "exports": [
-            "admitCapturedResultSnapshot"
+            "admitCapturedResultSnapshot",
+            "admitEffectfulFinalRunEvidence",
+            "admitOriginalResultOccurrenceEvidence",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState"
           ],
           "attributes": {
             "responsibility": [
@@ -112631,7 +112742,8 @@
         },
         {
           "operations": [
-            "admitEffectRunMaterials"
+            "admitEffectRunMaterials",
+            "admitEffectfulFinalRunEvidence"
           ],
           "exports": [
             "admitEffectRunMaterials"
@@ -116617,7 +116729,11 @@
         },
         {
           "operations": [
-            "effectCompilationFor"
+            "effectCompilationFor",
+            "effectFinalOriginals",
+            "effectFinalOriginals/own/own",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState"
           ],
           "exports": [],
           "attributes": {
@@ -122107,7 +122223,11 @@
             "issueSucceededRunStateWire/wire/wire",
             "issueSucceededRunStateWire/wire/wire#2",
             "issueSucceededRunStateWire/wire/wire#3",
-            "issueSucceededRunStateWire/wire/wire#4"
+            "issueSucceededRunStateWire/wire/wire#4",
+            "issueSucceededRunStateWire/wire/wire#5",
+            "issueSucceededRunStateWire/wire/wire#6",
+            "issueSucceededRunStateWire/wire/wire#7",
+            "issueSucceededRunStateWire/wire/wire#8"
           ],
           "exports": [
             "issueSucceededRunStateWire"
@@ -128794,7 +128914,8 @@
         },
         {
           "operations": [
-            "retainedInputCurrentEnvelope"
+            "retainedInputCurrentEnvelope",
+            "retainedEffectFinal"
           ],
           "exports": [
             "retainedInputCurrentEnvelope"
@@ -133641,7 +133762,8 @@
         },
         {
           "operations": [
-            "validateEffectfulPublicationCommit"
+            "validateEffectfulPublicationCommit",
+            "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit"
           ],
           "exports": [
             "validateEffectfulPublicationCommit"

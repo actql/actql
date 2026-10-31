@@ -419,6 +419,8 @@ pub fn client_effect_allowed_run_authorization(ClientEffectAllowedRun) -> @run_p
 
 pub fn client_effect_allowed_run_prepared(ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_allowed_run_result_names(ClientEffectAllowedRun) -> Array[String]
+
 pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool

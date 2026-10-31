@@ -84,6 +84,8 @@ pub fn admit_result_material_holds(String) -> Result[ResultMaterialHolds, Result
 
 pub fn admit_result_material_row(ResultMaterialSchema, String) -> Result[ResultMaterialRow, ResultMaterialIssue]
 
+pub fn admit_retained_effectful_final_run_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue]
+
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
@@ -438,6 +440,8 @@ pub fn effect_set_apply_receipt_check_limits(EffectSetApplyReceiptEvidence, Int,
 
 pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
 
+pub fn effect_set_apply_receipt_run_status(EffectSetApplyReceiptEvidence) -> String
+
 pub fn effect_set_receipt_run_disposition(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[Int, EffectSetApplyReceiptBindingIssue]
 
 pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, String) -> String?
@@ -445,6 +449,14 @@ pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, S
 pub fn effect_source_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
 
 pub fn effect_table_input_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
+
+pub fn effectful_final_run_evidence_matches_definition(EffectfulFinalRunEvidence, PublicationContract) -> Bool
+
+pub fn effectful_final_run_evidence_outcomes(EffectfulFinalRunEvidence) -> EffectSetApplyReceiptEvidence
+
+pub fn effectful_final_run_evidence_receipt(EffectfulFinalRunEvidence) -> PublicationContract
+
+pub fn effectful_final_run_evidence_reconciliation_state(EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -487,6 +499,8 @@ pub fn installation_publication_storage_binding_cid(InstallationPublicationStora
 pub fn installation_publication_storage_binding_fields(InstallationPublicationStorageBinding) -> (String, String)
 
 pub fn installation_publication_storage_binding_wire(InstallationPublicationStorageBinding) -> String
+
+pub fn issue_admitted_effect_reconciliation_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn issue_captured_content_reference(CapturedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
@@ -1084,6 +1098,8 @@ pub fn validate_result_occurrence_ordering_for_producer(String, PublicationContr
 
 pub fn validate_result_schema_wire(String, String, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
 
+pub fn validate_retained_effectful_publication_commit(EffectfulFinalRunEvidence, Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, EffectfulPublicationCommitIssue]
+
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
@@ -1672,6 +1688,10 @@ pub(all) enum EffectfulFinalReferenceIssue {
   ForeignFinalReference(String)
   ChangedComputationEvidence
 } derive(@debug.Debug)
+
+pub struct EffectfulFinalRunEvidence {
+  // private fields
+}
 
 pub(all) enum EffectfulPublicationCommitIssue {
   ResultEvidence(ResultEvidenceSetIssue)

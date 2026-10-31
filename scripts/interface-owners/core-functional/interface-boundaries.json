@@ -21221,14 +21221,16 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
+      "sha256": "e7e8cf8a09618526dda7e5911a91fb515763b11330de546d73fa670fce3990e6",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
         "admitEffectPreviewIdentity",
         "admitEffectRunMaterials",
+        "admitEffectfulFinalRunEvidence",
         "admitEnvironment",
+        "admitOriginalResultOccurrenceEvidence",
         "admitProfileSelection",
         "admitPublicationContract",
         "admitRequestFields",
@@ -21271,6 +21273,8 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunOutcome",
+        "effectfulFinalRunReconciliationState",
         "executionShape",
         "inspectCanonicalResultRows",
         "inspectEffectTaskProgress",
@@ -21436,6 +21440,14 @@
           "async": false
         },
         {
+          "name": "admitEffectfulFinalRunEvidence",
+          "parameters": [
+            "evidence",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "admitEffectPreviewIdentity",
           "parameters": [
             "wire",
@@ -21463,6 +21475,25 @@
             "body",
             "evidenceBundleCid",
             "profiles"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOriginalResultOccurrenceEvidence",
+          "parameters": [
+            "definition",
+            "artifact",
+            "derivation",
+            "ordering",
+            "retention",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOriginalResultOccurrenceEvidence/fields/fields",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -21892,6 +21923,36 @@
           "name": "effectExecutionShape/effectExecutionShape",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectFinalOriginals",
+          "parameters": [
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectFinalOriginals/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunOutcome",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectfulFinalRunReconciliationState",
+          "parameters": [
+            "receipt",
+            "updatedAt",
+            "limits"
           ],
           "async": false
         },
@@ -22796,7 +22857,8 @@
             "admission",
             "definition",
             "observedAt",
-            "observations"
+            "observations",
+            "effectFinalReceipt"
           ],
           "async": false
         },
@@ -22837,6 +22899,34 @@
         },
         {
           "name": "issueSucceededRunStateWire/wire/wire#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueSucceededRunStateWire/wire/wire#8",
           "parameters": [
             "value"
           ],
@@ -24182,6 +24272,13 @@
           "async": false
         },
         {
+          "name": "retainedEffectFinal",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "retainedInputCurrentEnvelope",
           "parameters": [
             "query"
@@ -24567,6 +24664,14 @@
             "attempt",
             "indexEntry",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit",
+          "parameters": [
+            "item",
+            "index"
           ],
           "async": false
         },
@@ -25015,7 +25120,20 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
+            "admitEffectfulFinalRunEvidence",
+            "admitOriginalResultOccurrenceEvidence",
+            "admitOriginalResultOccurrenceEvidence/fields/fields",
+            "effectFinalOriginals",
+            "effectFinalOriginals/own/own",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState",
+            "issueSucceededRunStateWire/wire/wire#5",
+            "issueSucceededRunStateWire/wire/wire#6",
+            "issueSucceededRunStateWire/wire/wire#7",
+            "issueSucceededRunStateWire/wire/wire#8",
+            "retainedEffectFinal",
+            "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -25181,7 +25299,11 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "admitEffectfulFinalRunEvidence",
+            "admitOriginalResultOccurrenceEvidence",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState"
           ],
           "attributes": {
             "responsibility": [
@@ -55639,6 +55761,761 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effectful_final_receipt.mbt",
+      "sha256": "284035ab2d7a7ac3a36ad0294f00cad76de63ed7bfff5a1be578b1714768c9f8",
+      "operations": [
+        {
+          "name": "admit_effectful_final_receipt_evidence",
+          "declaration": "admit_effectful_final_receipt_evidence ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( PublicationContract , EffectSetApplyReceiptEvidence ) , EffectfulFinalReferenceIssue , ]"
+        },
+        {
+          "name": "admit_effectful_final_receipt_references",
+          "declaration": "admit_effectful_final_receipt_references ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalReferenceIssue ]"
+        },
+        {
+          "name": "admit_effectful_final_run_evidence_chain",
+          "declaration": "admit_effectful_final_run_evidence_chain ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalChainIssue ]"
+        },
+        {
+          "name": "admit_effectful_final_run_evidence_with_outcomes",
+          "declaration": "admit_effectful_final_run_evidence_with_outcomes ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( PublicationContract , EffectSetApplyReceiptEvidence ) , EffectfulFinalChainIssue , ]"
+        },
+        {
+          "name": "admit_retained_effectful_final_run_evidence",
+          "declaration": "admit_retained_effectful_final_run_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ EffectfulFinalRunEvidence , EffectfulPublicationCommitIssue ]"
+        },
+        {
+          "name": "effectful_final_run_evidence_matches_definition",
+          "declaration": "effectful_final_run_evidence_matches_definition ( value : EffectfulFinalRunEvidence , definition : PublicationContract , ) - > Bool"
+        },
+        {
+          "name": "effectful_final_run_evidence_outcomes",
+          "declaration": "effectful_final_run_evidence_outcomes ( value : EffectfulFinalRunEvidence , ) - > EffectSetApplyReceiptEvidence"
+        },
+        {
+          "name": "effectful_final_run_evidence_receipt",
+          "declaration": "effectful_final_run_evidence_receipt ( value : EffectfulFinalRunEvidence , ) - > PublicationContract"
+        },
+        {
+          "name": "effectful_final_run_evidence_reconciliation_state",
+          "declaration": "effectful_final_run_evidence_reconciliation_state ( value : EffectfulFinalRunEvidence , updated_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
+        },
+        {
+          "name": "issue_effectful_final_run_receipt",
+          "declaration": "issue_effectful_final_run_receipt ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalReceiptIssuanceIssue ]"
+        },
+        {
+          "name": "validate_effectful_publication_commit",
+          "declaration": "validate_effectful_publication_commit ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , EffectfulPublicationCommitIssue ]"
+        },
+        {
+          "name": "validate_effectful_publication_commit_with_result_evidence",
+          "declaration": "validate_effectful_publication_commit_with_result_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , bindings : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , EffectfulPublicationCommitIssue ]"
+        },
+        {
+          "name": "validate_retained_effectful_publication_commit",
+          "declaration": "validate_retained_effectful_publication_commit ( value : EffectfulFinalRunEvidence , bindings : Array [ PublicationContract ] , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , ) - > Result [ Unit , EffectfulPublicationCommitIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing complete publication evidence, Set outcome, Result and original Effect compilation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_effectful_final_receipt_evidence",
+            "admit_effectful_final_receipt_references",
+            "admit_effectful_final_run_evidence_chain",
+            "admit_effectful_final_run_evidence_with_outcomes",
+            "admit_retained_effectful_final_run_evidence",
+            "effectful_final_run_evidence_matches_definition",
+            "effectful_final_run_evidence_outcomes",
+            "effectful_final_run_evidence_receipt",
+            "effectful_final_run_evidence_reconciliation_state",
+            "issue_effectful_final_run_receipt",
+            "validate_effectful_publication_commit",
+            "validate_effectful_publication_commit_with_result_evidence",
+            "validate_retained_effectful_publication_commit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Complete immutable admission"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_final_receipt.mbt",
+                "anchor": "pub fn admit_retained_effectful_final_run_evidence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Original Result occurrences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing publication owner admits the complete computation/captured chain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "clears that association before any fallible work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "failed and unattempted rows do not become Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "callbacks, actual Store outputs and failed cleanup keep their existing owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Representation and lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing raw admission/issuance profiles remain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/effectful_final_receipt_test.mbt",
+                "anchor": "test \"retained public Effect evidence snapshots the admitted chain without reissuing originals\""
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('retained public full-chain evidence performs one full admission"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effect_set_apply_receipt.mbt",
+      "sha256": "82751c0454f18a518620dd5ca79b2103431c59788b2b771bebbe54304a823ff7",
+      "operations": [
+        {
+          "name": "admit_effect_set_apply_receipt_evidence",
+          "declaration": "admit_effect_set_apply_receipt_evidence ( preview : EffectPreviewIdentity , set_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ EffectSetApplyReceiptEvidence , EffectSetApplyReceiptBindingIssue ]"
+        },
+        {
+          "name": "admit_effect_set_apply_receipt_references",
+          "declaration": "admit_effect_set_apply_receipt_references ( preview : EffectPreviewIdentity , set_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectSetApplyReceiptBindingIssue ]"
+        },
+        {
+          "name": "effect_receipt_has_state",
+          "declaration": "effect_receipt_has_state ( receipt : PublicationContract , state : String , ) - > Bool"
+        },
+        {
+          "name": "effect_receipt_member_state",
+          "declaration": "effect_receipt_member_state ( receipt : PublicationContract ) - > String"
+        },
+        {
+          "name": "effect_set_apply_receipt_all_unattempted",
+          "declaration": "effect_set_apply_receipt_all_unattempted ( value : EffectSetApplyReceiptEvidence , ) - > Bool"
+        },
+        {
+          "name": "effect_set_apply_receipt_check_limits",
+          "declaration": "effect_set_apply_receipt_check_limits ( value : EffectSetApplyReceiptEvidence , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , PublicationContractIssue ]"
+        },
+        {
+          "name": "effect_set_apply_receipt_disposition",
+          "declaration": "effect_set_apply_receipt_disposition ( value : EffectSetApplyReceiptEvidence , ) - > Int"
+        },
+        {
+          "name": "effect_set_apply_receipt_run_status",
+          "declaration": "effect_set_apply_receipt_run_status ( value : EffectSetApplyReceiptEvidence , ) - > String"
+        },
+        {
+          "name": "effect_set_receipt_run_disposition",
+          "declaration": "effect_set_receipt_run_disposition ( preview : EffectPreviewIdentity , set_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Int , EffectSetApplyReceiptBindingIssue ]"
+        },
+        {
+          "name": "effect_set_receipt_status",
+          "declaration": "effect_set_receipt_status ( receipts : Array [ PublicationContract ] ) - > String"
+        },
+        {
+          "name": "issue_effect_set_apply_receipt_from_members",
+          "declaration": "issue_effect_set_apply_receipt_from_members ( preview : EffectPreviewIdentity , member_receipts : Array [ PublicationContract ] , replayed : Array [ Bool ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectSetApplyReceiptIssuanceIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing complete publication evidence, Set outcome, Result and original Effect compilation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_effect_set_apply_receipt_evidence",
+            "admit_effect_set_apply_receipt_references",
+            "effect_receipt_has_state",
+            "effect_receipt_member_state",
+            "effect_set_apply_receipt_all_unattempted",
+            "effect_set_apply_receipt_check_limits",
+            "effect_set_apply_receipt_disposition",
+            "effect_set_apply_receipt_run_status",
+            "effect_set_receipt_run_disposition",
+            "effect_set_receipt_status",
+            "issue_effect_set_apply_receipt_from_members"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Complete immutable admission"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_final_receipt.mbt",
+                "anchor": "pub fn admit_retained_effectful_final_run_evidence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Original Result occurrences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing publication owner admits the complete computation/captured chain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "clears that association before any fallible work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "failed and unattempted rows do not become Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "callbacks, actual Store outputs and failed cleanup keep their existing owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Representation and lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing raw admission/issuance profiles remain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/effectful_final_receipt_test.mbt",
+                "anchor": "test \"retained public Effect evidence snapshots the admitted chain without reissuing originals\""
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('retained public full-chain evidence performs one full admission"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effect_run_state.mbt",
+      "sha256": "814cb3d7f049a241bc1e1474c02d23b317f205f98eca0aa6d7bc964d4aa55af9",
+      "operations": [
+        {
+          "name": "issue_admitted_effect_reconciliation_run_state_wire",
+          "declaration": "issue_admitted_effect_reconciliation_run_state_wire ( outcomes : EffectSetApplyReceiptEvidence , run_id : String , updated_at : String , declared_results : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
+        },
+        {
+          "name": "issue_effect_reconciliation_run_state_wire",
+          "declaration": "issue_effect_reconciliation_run_state_wire ( preview : EffectPreviewIdentity , set_wire : String , member_receipt_wires : Array [ String ] , run_id : String , updated_at : String , declared_results : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
+        },
+        {
+          "name": "reconciliation_run_state_from_set",
+          "declaration": "reconciliation_run_state_from_set ( set : PublicationContract , run_id : String , updated_at : String , declared_results : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RunStateIssue ]"
+        },
+        {
+          "name": "reconciliation_run_state_inputs",
+          "declaration": "reconciliation_run_state_inputs ( run_id : String , updated_at : String , ) - > Result [ Unit , RunStateIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing complete publication evidence, Set outcome, Result and original Effect compilation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "issue_admitted_effect_reconciliation_run_state_wire",
+            "issue_effect_reconciliation_run_state_wire",
+            "reconciliation_run_state_from_set",
+            "reconciliation_run_state_inputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Complete immutable admission"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_final_receipt.mbt",
+                "anchor": "pub fn admit_retained_effectful_final_run_evidence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Original Result occurrences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing publication owner admits the complete computation/captured chain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "clears that association before any fallible work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "failed and unattempted rows do not become Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "callbacks, actual Store outputs and failed cleanup keep their existing owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Representation and lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing raw admission/issuance profiles remain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/effectful_final_receipt_test.mbt",
+                "anchor": "test \"retained public Effect evidence snapshots the admitted chain without reissuing originals\""
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('retained public full-chain evidence performs one full admission"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_effect_compilation.mbt",
+      "sha256": "b102e73796816cc16b1a8bb38d31a5e3e2133288681f7ce11f22a6e3e7f40829",
+      "operations": [
+        {
+          "name": "admit_client_effect_allowed_run",
+          "declaration": "admit_client_effect_allowed_run ( compilation : ClientEffectCompilation , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , ) - > Result [ ClientEffectAllowedRun , ClientEffectCompiledRunIssue ]"
+        },
+        {
+          "name": "admit_prepared_client_effect_compilation",
+          "declaration": "admit_prepared_client_effect_compilation ( owner : PreparedClientEffectComputation , plan_wire : String , fact_manifest_wire : String , template_wire : String , compiled_plan_wire : String , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer ? : ClientInferPlanGraph ?"
+        },
+        {
+          "name": "admit_source_free_result_policy_body",
+          "declaration": "admit_source_free_result_policy_body ( cid : String , wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . CapturedEffectDependencyBody , ClientCompiledRunIssue ]"
+        },
+        {
+          "name": "bind_client_effect_compiled_run",
+          "declaration": "bind_client_effect_compiled_run ( owner : PreparedClientEffectComputation , allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectCompiledRunIssue ]"
+        },
+        {
+          "name": "client_effect_allowed_component_run",
+          "declaration": "client_effect_allowed_component_run ( value : ClientEffectAllowedRun , source_free_result_policy : @ publication . CapturedEffectDependencyBody ? , ) - > ClientCompiledRun"
+        },
+        {
+          "name": "client_effect_allowed_infer_run",
+          "declaration": "client_effect_allowed_infer_run ( value : ClientEffectAllowedRun , ) - > Result [ ClientCompiledRun , ClientCompiledRunIssue ]"
+        },
+        {
+          "name": "client_effect_allowed_infer_run_with_policy_body",
+          "declaration": "client_effect_allowed_infer_run_with_policy_body ( value : ClientEffectAllowedRun , policy_cid : String ? , policy_wire : String ? , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientCompiledRun , ClientCompiledRunIssue ]"
+        },
+        {
+          "name": "client_effect_allowed_run_admission",
+          "declaration": "client_effect_allowed_run_admission ( value : ClientEffectAllowedRun , ) - > @ publication . RunPublicationAdmission"
+        },
+        {
+          "name": "client_effect_allowed_run_authorization",
+          "declaration": "client_effect_allowed_run_authorization ( value : ClientEffectAllowedRun , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_effect_allowed_run_prepared",
+          "declaration": "client_effect_allowed_run_prepared ( value : ClientEffectAllowedRun , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_effect_allowed_run_result_names",
+          "declaration": "client_effect_allowed_run_result_names ( value : ClientEffectAllowedRun , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_effect_allowed_serialization_run",
+          "declaration": "client_effect_allowed_serialization_run ( value : ClientEffectAllowedRun , ) - > Result [ ClientCompiledRun , ClientCompiledRunIssue ]"
+        },
+        {
+          "name": "client_effect_compilation_compiled_plan",
+          "declaration": "client_effect_compilation_compiled_plan ( value : ClientEffectCompilation , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_effect_compilation_infer_original",
+          "declaration": "client_effect_compilation_infer_original ( value : ClientEffectCompilation , ) - > ( ClientInferPlanGraph , ClientInferOccurrence ) ?"
+        },
+        {
+          "name": "client_effect_compilation_owner",
+          "declaration": "client_effect_compilation_owner ( value : ClientEffectCompilation , ) - > PreparedClientEffectComputation"
+        },
+        {
+          "name": "client_effect_compilation_plan",
+          "declaration": "client_effect_compilation_plan ( value : ClientEffectCompilation , ) - > ClientTaskExecutablePlan"
+        },
+        {
+          "name": "client_effect_compilation_result_names",
+          "declaration": "client_effect_compilation_result_names ( value : ClientEffectCompilation , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_effect_compilation_result_transformation",
+          "declaration": "client_effect_compilation_result_transformation ( value : ClientEffectCompilation , owner : PreparedClientEffectComputation , result : Int , ) - > Result [ ClientResultTransformation ? , ClientEffectCompilationAdmissionIssue ]"
+        },
+        {
+          "name": "client_effect_compilation_template",
+          "declaration": "client_effect_compilation_template ( value : ClientEffectCompilation , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_effect_compilation_unit_id",
+          "declaration": "client_effect_compilation_unit_id ( value : ClientEffectCompilation , ) - > String"
+        },
+        {
+          "name": "client_effect_run_start_current",
+          "declaration": "client_effect_run_start_current ( allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , at : String , ) - > Bool"
+        },
+        {
+          "name": "issue_client_effect_allowed_run",
+          "declaration": "issue_client_effect_allowed_run ( compilation : ClientEffectCompilation , execution_context_cid : String , host_policy_cid : String , expires_at : String , ) - > Result [ ClientEffectAllowedRun , ClientEffectCompiledRunIssue ]"
+        },
+        {
+          "name": "issue_client_effect_compilation_internal",
+          "declaration": "issue_client_effect_compilation_internal ( owner : PreparedClientEffectComputation , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , normalization_profile : ClientEffectNormalizationInventory ? , infer ? : ClientInferPlanGraph ?"
+        },
+        {
+          "name": "issue_client_effect_run_definition",
+          "declaration": "issue_client_effect_run_definition ( allowed : ClientEffectAllowedRun , scope_id : String , run_id : String , created_at : String , valid_until : String , ) - > Result [ @ publication . PublicationContract , ClientEffectCompiledRunIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_effect_compilation",
+          "declaration": "issue_prepared_client_effect_compilation ( owner : PreparedClientEffectComputation , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer ? : ClientInferPlanGraph ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing complete publication evidence, Set outcome, Result and original Effect compilation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_client_effect_allowed_run",
+            "admit_prepared_client_effect_compilation",
+            "admit_source_free_result_policy_body",
+            "bind_client_effect_compiled_run",
+            "client_effect_allowed_component_run",
+            "client_effect_allowed_infer_run",
+            "client_effect_allowed_infer_run_with_policy_body",
+            "client_effect_allowed_run_admission",
+            "client_effect_allowed_run_authorization",
+            "client_effect_allowed_run_prepared",
+            "client_effect_allowed_run_result_names",
+            "client_effect_allowed_serialization_run",
+            "client_effect_compilation_compiled_plan",
+            "client_effect_compilation_infer_original",
+            "client_effect_compilation_owner",
+            "client_effect_compilation_plan",
+            "client_effect_compilation_result_names",
+            "client_effect_compilation_result_transformation",
+            "client_effect_compilation_template",
+            "client_effect_compilation_unit_id",
+            "client_effect_run_start_current",
+            "issue_client_effect_allowed_run",
+            "issue_client_effect_compilation_internal",
+            "issue_client_effect_run_definition",
+            "issue_prepared_client_effect_compilation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Complete immutable admission"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_final_receipt.mbt",
+                "anchor": "pub fn admit_retained_effectful_final_run_evidence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Original Result occurrences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing publication owner admits the complete computation/captured chain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "clears that association before any fallible work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "failed and unattempted rows do not become Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "callbacks, actual Store outputs and failed cleanup keep their existing owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Representation and lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing raw admission/issuance profiles remain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/effectful_final_receipt_test.mbt",
+                "anchor": "test \"retained public Effect evidence snapshots the admitted chain without reissuing originals\""
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('retained public full-chain evidence performs one full admission"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_values_host_abi/effect_publication.mbt",
+      "sha256": "ad921244f8b8ef8fe810aba7cd6bc19e6e8a53139871ae5ebfb7bfaf38917c49",
+      "operations": [
+        {
+          "name": "client_values_host_admit_effect_checkpoint_preview",
+          "declaration": "client_values_host_admit_effect_checkpoint_preview ( original : @ checkpoint . SealedCheckpoint , allowed : @ host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , stored_wire : String , preview_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . EffectPreviewIdentity , @ host . ClientEffectCheckpointReconciliationIssue , ]"
+        },
+        {
+          "name": "client_values_host_admit_effect_preview_identity",
+          "declaration": "client_values_host_admit_effect_preview_identity ( preview_wire : String , expected_run_identity_cid : String , expected_authoring_context_cid : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . EffectPreviewIdentity , @ publication . EffectPreviewIdentityIssue , ]"
+        },
+        {
+          "name": "client_values_host_admit_effectful_final_run_evidence",
+          "declaration": "client_values_host_admit_effectful_final_run_evidence ( run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , computation_receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . EffectfulFinalRunEvidence , @ publication . EffectfulPublicationCommitIssue , ]"
+        },
+        {
+          "name": "client_values_host_admit_original_result_occurrence_evidence",
+          "declaration": "client_values_host_admit_original_result_occurrence_evidence ( definition : @ publication . PublicationContract , artifact : @ publication . PublicationContract , derivation : @ publication . PublicationContract , ordering : @ publication . PublicationContract , retention : @ publication . PublicationContract , logical_value_cid : String , result_schema_cid : String , effective_data_policy_cid : String , ) - > Result [ @ publication . ResultOrderingEvidence , ClientValuesHostOriginalResultOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_values_host_effect_preview_member_count",
+          "declaration": "client_values_host_effect_preview_member_count ( preview : @ publication . EffectPreviewIdentity , ) - > Int"
+        },
+        {
+          "name": "client_values_host_effect_preview_semantic_identity",
+          "declaration": "client_values_host_effect_preview_semantic_identity ( preview : @ publication . EffectPreviewIdentity , ) - > String"
+        },
+        {
+          "name": "client_values_host_effectful_final_run_all_unattempted",
+          "declaration": "client_values_host_effectful_final_run_all_unattempted ( value : @ publication . EffectfulFinalRunEvidence , ) - > Bool"
+        },
+        {
+          "name": "client_values_host_effectful_final_run_receipt",
+          "declaration": "client_values_host_effectful_final_run_receipt ( value : @ publication . EffectfulFinalRunEvidence , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_values_host_effectful_final_run_reconciliation_state",
+          "declaration": "client_values_host_effectful_final_run_reconciliation_state ( value : @ publication . EffectfulFinalRunEvidence , updated_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ publication . RunStateIssue ]"
+        },
+        {
+          "name": "client_values_host_effectful_final_run_status",
+          "declaration": "client_values_host_effectful_final_run_status ( value : @ publication . EffectfulFinalRunEvidence , ) - > String"
+        },
+        {
+          "name": "client_values_host_issue_effect_succeeded_run_state_wire",
+          "declaration": "client_values_host_issue_effect_succeeded_run_state_wire ( prepared : @ host . PreparedClientEffectComputation , allowed : @ host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , evidence : @ publication . EffectfulFinalRunEvidence , observed_at : String , names : Array [ String ] , states : Array [ String ] , reasons : Array [ String ] , result_observed_at : Array [ String ] , ) - > String ?"
+        },
+        {
+          "name": "client_values_host_issue_effectful_final_run_receipt",
+          "declaration": "client_values_host_issue_effectful_final_run_receipt ( run_definition : @ publication . PublicationContract , computation_receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , @ publication . EffectfulFinalReceiptIssuanceIssue , ]"
+        },
+        {
+          "name": "client_values_host_validate_effectful_publication_commit",
+          "declaration": "client_values_host_validate_effectful_publication_commit ( run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , computation_receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index_entry : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ publication . EffectfulPublicationCommitIssue ]"
+        },
+        {
+          "name": "client_values_host_validate_retained_effectful_publication_commit",
+          "declaration": "client_values_host_validate_retained_effectful_publication_commit ( value : @ publication . EffectfulFinalRunEvidence , bindings : Array [ @ publication . PublicationContract ] , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index_entry : @ publication . PublicationContract , ) - > Result [ @ publication . PublicationContract , @ publication . EffectfulPublicationCommitIssue , ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing complete publication evidence, Set outcome, Result and original Effect compilation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_values_host_admit_effect_checkpoint_preview",
+            "client_values_host_admit_effect_preview_identity",
+            "client_values_host_admit_effectful_final_run_evidence",
+            "client_values_host_admit_original_result_occurrence_evidence",
+            "client_values_host_effect_preview_member_count",
+            "client_values_host_effect_preview_semantic_identity",
+            "client_values_host_effectful_final_run_all_unattempted",
+            "client_values_host_effectful_final_run_receipt",
+            "client_values_host_effectful_final_run_reconciliation_state",
+            "client_values_host_effectful_final_run_status",
+            "client_values_host_issue_effect_succeeded_run_state_wire",
+            "client_values_host_issue_effectful_final_run_receipt",
+            "client_values_host_validate_effectful_publication_commit",
+            "client_values_host_validate_retained_effectful_publication_commit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Complete immutable admission"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_final_receipt.mbt",
+                "anchor": "pub fn admit_retained_effectful_final_run_evidence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Original Result occurrences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing publication owner admits the complete computation/captured chain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "clears that association before any fallible work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "failed and unattempted rows do not become Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "callbacks, actual Store outputs and failed cleanup keep their existing owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "## Representation and lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-publication-evidence.md",
+                "anchor": "The existing raw admission/issuance profiles remain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/effectful_final_receipt_test.mbt",
+                "anchor": "test \"retained public Effect evidence snapshots the admitted chain without reissuing originals\""
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('retained public full-chain evidence performs one full admission"
               }
             ]
           }

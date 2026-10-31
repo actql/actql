@@ -55,6 +55,131 @@ fn partition_test_member(
 }
 
 ///|
+test "retained admitted Effect partition uses the existing Unknown writer without raw receipt admission" {
+  let preview = effect_receipt_test_preview()
+  for
+    (state, expected) in [
+      ("unattempted", "failed"),
+      ("failed", "failed"),
+      ("rolled_back", "failed"),
+      ("unknown", "needs_reconciliation"),
+      ("applied", "succeeded"),
+      ("accepted", "succeeded"),
+    ] {
+    let member_receipt = partition_test_member(preview, 0, state)
+    let set = issue_effect_set_apply_receipt_from_members(
+      preview,
+      [member_receipt],
+      [false],
+      16384,
+      512,
+      16,
+    ).unwrap()
+    let original = admit_effect_set_apply_receipt_evidence(
+      preview,
+      set.wire,
+      [member_receipt.wire],
+      16384,
+      512,
+      16,
+    ).unwrap()
+    assert_eq(effect_set_apply_receipt_run_status(original), expected)
+    let projected = issue_admitted_effect_reconciliation_run_state_wire(
+      original,
+      "original-run",
+      "2026-09-18T00:00:00.000Z",
+      ["answer"],
+      16384,
+      512,
+      16,
+    )
+    if state == "unknown" {
+      assert_eq(
+        projected.unwrap(),
+        "{\"next_action\":{\"effects\":[\"WriteOne\"],\"kind\":\"reconcile\"}," +
+        "\"result_availability\":{\"answer\":{\"observed_at\":\"2026-09-18T00:00:00.000Z\"," +
+        "\"reason\":\"not_published\",\"state\":\"unavailable\"}},\"result_available\":false," +
+        "\"run_id\":\"original-run\",\"status\":\"needs_reconciliation\"," +
+        "\"updated_at\":\"2026-09-18T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"}",
+      )
+    } else {
+      assert_true(projected is Err(ActionStatusMismatch))
+    }
+  }
+}
+
+///|
+test "existing raw Effect reconciliation retains complete member validation and the same writer" {
+  let preview = effect_receipt_test_preview()
+  let member_receipt = partition_test_member(preview, 0, "unknown")
+  let set = issue_effect_set_apply_receipt_from_members(
+    preview,
+    [member_receipt],
+    [false],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  let admitted = admit_effect_set_apply_receipt_evidence(
+    preview,
+    set.wire,
+    [member_receipt.wire],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  let raw = issue_effect_reconciliation_run_state_wire(
+    preview,
+    set.wire,
+    [member_receipt.wire],
+    "original-run",
+    "2026-09-18T00:00:00.000Z",
+    ["answer"],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  let retained = issue_admitted_effect_reconciliation_run_state_wire(
+    admitted,
+    "original-run",
+    "2026-09-18T00:00:00.000Z",
+    ["answer"],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_eq(raw, retained)
+  assert_true(
+    issue_effect_reconciliation_run_state_wire(
+      preview,
+      set.wire,
+      [],
+      "original-run",
+      "2026-09-18T00:00:00.000Z",
+      ["answer"],
+      16384,
+      512,
+      16,
+    )
+    is Err(EffectSetMismatch),
+  )
+  assert_true(
+    issue_effect_reconciliation_run_state_wire(
+      preview,
+      set.wire,
+      [],
+      "",
+      "invalid-time",
+      ["answer"],
+      16384,
+      512,
+      16,
+    )
+    is Err(InvalidRunId),
+  )
+}
+
+///|
 test "admitted Set outcomes distinguish unattempted from every entered state" {
   let preview = effect_receipt_test_preview()
   for

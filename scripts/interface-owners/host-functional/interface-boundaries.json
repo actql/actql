@@ -98031,7 +98031,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a29c64053900688d6202e7c84ed516ec109da2a40a95c7c6ed2f6b978e22526f",
+      "sha256": "2530c7bacd2340348f7a16c8764a1e4bd62acf5a375c186da0797fbe3c438dca",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -98098,7 +98098,9 @@
         "admitCompletedSourceObservation",
         "admitEffectPreviewIdentity",
         "admitEffectRunMaterials",
+        "admitEffectfulFinalRunEvidence",
         "admitEnvironment",
+        "admitOriginalResultOccurrenceEvidence",
         "admitProfileSelection",
         "admitPublicationContract",
         "admitRequestFields",
@@ -98141,6 +98143,8 @@
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
         "effectTaskKeys",
+        "effectfulFinalRunOutcome",
+        "effectfulFinalRunReconciliationState",
         "executionShape",
         "inspectCanonicalResultRows",
         "inspectEffectTaskProgress",
@@ -98286,6 +98290,14 @@
           "result": "string"
         },
         {
+          "name": "admitEffectfulFinalRunEvidence",
+          "parameters": [
+            "evidence: Omit<EffectfulPublicationCommitEvidence,'durableBindings'>",
+            "limits: PublicationLimits"
+          ],
+          "result": "PublicationContract"
+        },
+        {
           "name": "admitEffectPreviewIdentity",
           "parameters": [
             "wire: string",
@@ -98315,6 +98327,18 @@
             "profiles: ProfileSelection"
           ],
           "result": "CheckEnvironment"
+        },
+        {
+          "name": "admitOriginalResultOccurrenceEvidence",
+          "parameters": [
+            "definition: PublicationContract",
+            "artifact: PublicationContract",
+            "derivation: PublicationContract",
+            "ordering: PublicationContract",
+            "retention: PublicationContract",
+            "facts: Readonly<{logicalValueCid: string; resultSchemaCid: string;\n    effectiveDataPolicyCid: string}>"
+          ],
+          "result": "ResultOccurrenceEvidence"
         },
         {
           "name": "admitProfileSelection",
@@ -98555,6 +98579,22 @@
             "compilation: EffectCompilation"
           ],
           "result": "Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>"
+        },
+        {
+          "name": "effectfulFinalRunOutcome",
+          "parameters": [
+            "finalReceipt: PublicationContract"
+          ],
+          "result": "Readonly<{\n  status: 'succeeded' | 'needs_reconciliation' | 'failed'; allUnattempted: boolean}>"
+        },
+        {
+          "name": "effectfulFinalRunReconciliationState",
+          "parameters": [
+            "finalReceipt: PublicationContract",
+            "updatedAt: string",
+            "limits: PublicationLimits"
+          ],
+          "result": "string"
         },
         {
           "name": "effectPreviewIdentityCid",
@@ -99083,7 +99123,20 @@
             "admission: RunAdmission",
             "definition: RunDefinition",
             "observedAt: string",
-            "observations: readonly Readonly<{name: string;\n    state: 'available' | 'unavailable' | 'unknown';\n    reason: 'confirmed_present' | 'retention_expired' | 'deleted' |\n      'policy_unavailable' | 'integrity_failed' | 'not_published' |\n      'store_query_failed' | 'clock_uncertain' | 'verification_pending';\n    observedAt: string}>[]"
+            "observations: readonly RunResultStateObservation[]"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "issueSucceededRunStateWire#2",
+          "parameters": [
+            "prepared: PreparedEffectProgram",
+            "compilation: EffectCompilation",
+            "admission: AllowedEffectRun",
+            "definition: RunDefinition",
+            "observedAt: string",
+            "observations: readonly RunResultStateObservation[]",
+            "finalReceipt: PublicationContract"
           ],
           "result": "string"
         },
@@ -100526,7 +100579,12 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "admitEffectfulFinalRunEvidence",
+            "admitOriginalResultOccurrenceEvidence",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState",
+            "issueSucceededRunStateWire#2"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -100749,7 +100807,11 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "admitEffectfulFinalRunEvidence",
+            "admitOriginalResultOccurrenceEvidence",
+            "effectfulFinalRunOutcome",
+            "effectfulFinalRunReconciliationState"
           ],
           "attributes": {
             "responsibility": [

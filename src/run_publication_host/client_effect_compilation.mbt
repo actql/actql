@@ -771,6 +771,15 @@ pub fn client_effect_compilation_result_names(
 }
 
 ///|
+/// Read the retained original compilation inventory; do not reconstruct or
+/// compile the Effect Program when projecting a committed Run's availability.
+pub fn client_effect_allowed_run_result_names(
+  value : ClientEffectAllowedRun,
+) -> Array[String] {
+  client_effect_compilation_result_names(value.compilation)
+}
+
+///|
 /// Compilation admits one Effect-bearing Unit (possibly after acquisition).
 /// Return its authored coordinate from the same checked owner, not a Host label.
 pub fn client_effect_compilation_unit_id(

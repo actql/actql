@@ -1,5 +1,7 @@
 import {admitEffectPreviewIdentity, effectPreviewIdentityCid, effectReviewCheckpointPreview, issueEffectfulFinalRunReceipt,
-  validateEffectfulPublicationCommit, type EffectPreviewIdentity,
+  validateEffectfulPublicationCommit, admitEffectfulFinalRunEvidence, effectfulFinalRunOutcome,
+  effectfulFinalRunReconciliationState, admitOriginalResultOccurrenceEvidence, issueSucceededRunStateWire,
+  type PreparedEffectProgram, type EffectCompilation, type EffectPreviewIdentity,
   type EffectfulPublicationCommitEvidence, type PublicationContract,
   type PublicationRequestContract, type PublicationAttemptContract,
   type PublicIndexEntryContract, type AllowedEffectRun, type RunDefinition,
@@ -39,3 +41,19 @@ issueEffectfulFinalRunReceipt('wire', computation, captured, preview, 'set', [],
 effectPreviewIdentityCid(previewCid);
 // @ts-expect-error Scalar Checkpoint identity does not supply the original binding.
 effectReviewCheckpointPreview('cid', allowed, run, 'stored', 'preview', limits);
+
+const admitted: PublicationContract = admitEffectfulFinalRunEvidence(evidence, limits);
+const outcome: 'succeeded' | 'needs_reconciliation' | 'failed' = effectfulFinalRunOutcome(admitted).status;
+const reconciliation: string = effectfulFinalRunReconciliationState(admitted, '2026-09-18T00:00:00.000Z', limits);
+const occurrence = admitOriginalResultOccurrenceEvidence(definition, definition, definition, definition, definition,
+  {logicalValueCid: 'value', resultSchemaCid: 'schema', effectiveDataPolicyCid: 'policy'});
+const originalOrdering: PublicationContract = occurrence.ordering;
+declare const preparedEffect: PreparedEffectProgram;
+declare const compiledEffect: EffectCompilation;
+issueSucceededRunStateWire(preparedEffect, compiledEffect, allowed, run, '2026-09-18T00:00:00.000Z', [], admitted);
+// @ts-expect-error Effect success needs the same original admitted outcome/publication evidence.
+issueSucceededRunStateWire(preparedEffect, compiledEffect, allowed, run, '2026-09-18T00:00:00.000Z', []);
+// @ts-expect-error Historical scalar wire cannot replace the nominal original Receipt.
+effectfulFinalRunOutcome('wire');
+// @ts-expect-error All three independent observed identities are required.
+admitOriginalResultOccurrenceEvidence(definition, definition, definition, definition, definition, {logicalValueCid: 'value'});

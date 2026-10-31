@@ -38,6 +38,24 @@ export const clientValuesHostIssueEffectfulFinalRunReceipt = (...args) =>
   result('receipt', args, {cid: 'fixture:final', wire: 'fixture final receipt'});
 export const clientValuesHostValidateEffectfulPublicationCommit = (...args) =>
   result('commit', args, undefined);
+export const clientValuesHostAdmitEffectfulFinalRunEvidence = (...args) =>
+  result('admit-full', args, {receipt: args[13], status: control.status || 'succeeded', allUnattempted: false});
+export const clientValuesHostEffectfulFinalRunReceipt = value => value.receipt;
+export const clientValuesHostEffectfulFinalRunStatus = value => {control.calls.push({name:'status'});return value.status;};
+export const clientValuesHostEffectfulFinalRunAllUnattempted = value => value.allUnattempted;
+export const clientValuesHostEffectfulFinalRunReconciliationState = (...args) =>
+  args[0].status === 'needs_reconciliation' ? result('reconcile-retained', args, 'fixture reconciliation wire')
+    : {$tag:0,_0:'not-an-unknown-partition'};
+export const clientValuesHostValidateRetainedEffectfulPublicationCommit = (...args) =>
+  result('commit-retained', args, args[4]);
+export const clientValuesHostAdmitOriginalResultOccurrenceEvidence = (...args) =>
+  result('original-occurrence', args, {derivation: args[2], ordering: args[3]});
+export const clientValuesHostResultOccurrenceDerivation = value => value.derivation;
+export const clientValuesHostResultOccurrenceOrdering = value => value.ordering;
+export const clientValuesHostIssueEffectSucceededRunStateWire = (...args) => {
+  control.calls.push({name:'effect-state',args});
+  return args[3].status === 'succeeded' ? 'fixture succeeded state' : undefined;
+};
 `;
 const abiUrl = 'data:text/javascript,' + encodeURIComponent(abi);
 const source = new URL('./index.mjs', import.meta.url);
@@ -238,4 +256,78 @@ test('invalid inventories and bounds do not reach the publication ABI', () => {
   assert.throws(() => owner.validateEffectfulPublicationCommit(f.evidence,
     f.request, f.attempt, f.index, {...limits, maxNodes: 0}), TypeError);
   assert.equal(control.calls.length, 0);
+});
+
+
+test('retained public full-chain evidence performs one full admission across pure getters and publication checks',()=>{
+  control.status='succeeded';const f=originals();control.calls.length=0;
+  const receipt=owner.admitEffectfulFinalRunEvidence(f.evidence,limits);
+  const input={...f.evidence,finalReceipt:receipt};
+  for(let index=0;index<20;index++)assert.deepEqual(owner.effectfulFinalRunOutcome(receipt),{status:'succeeded',allUnattempted:false});
+  owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits);
+  owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits);
+  assert.equal(control.calls.filter(call=>call.name==='admit-full').length,1);
+  assert.equal(control.calls.filter(call=>call.name==='commit-retained').length,2);
+  assert.equal(control.calls.filter(call=>call.name==='commit').length,0);
+  const full=control.calls.find(call=>call.name==='admit-full');
+  assert.deepEqual(full.args.slice(-3),[65536,4096,32]);
+  assert.equal(receipt.wire,f.evidence.finalReceipt.wire);assert.equal(receipt.cid,f.evidence.finalReceipt.cid);
+});
+
+test('retained public evidence refuses copied originals changed vectors and stale failed publication facts',()=>{
+  control.status='succeeded';const f=originals();const receipt=owner.admitEffectfulFinalRunEvidence(f.evidence,limits);
+  const input={...f.evidence,finalReceipt:receipt};
+  owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits);
+  control.calls.length=0;
+  assert.throws(()=>owner.effectfulFinalRunOutcome({...receipt}),/ForeignRunHostEffectFinalEvidence/u);
+  assert.throws(()=>foreign.effectfulFinalRunOutcome(receipt),/ForeignRunHostEffectFinalEvidence/u);
+  const changed={...input,definitions:[f.evidence.artifacts[0]]};
+  assert.throws(()=>owner.validateEffectfulPublicationCommit(changed,f.request,f.attempt,f.index,limits),/ForeignRunHostEffectFinalEvidence/u);
+  assert.equal(control.calls.length,0);
+  const materials=owner.admitEffectRunMaterials('saved material wire','original Definition CID',{});
+  assert.throws(()=>owner.issueSucceededRunStateWire(materials.prepared,materials.compilation,materials.allowed,
+    materials.definition,'2026-09-18T00:00:00.000Z',[],receipt),/RunHostEffectPublicationEvidenceRequired/u);
+  owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits);
+  control.fail='commit-retained';
+  assert.throws(()=>owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits),{code:'RunHostEffectfulPublicationCommitRejected'});
+  assert.throws(()=>owner.issueSucceededRunStateWire(materials.prepared,materials.compilation,materials.allowed,
+    materials.definition,'2026-09-18T00:00:00.000Z',[],receipt),/RunHostEffectPublicationEvidenceRequired/u);
+  control.fail=undefined;
+  owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,limits);
+  assert.throws(()=>owner.validateEffectfulPublicationCommit(input,f.request,f.attempt,f.index,{...limits,maxNodes:0}),
+    /InvalidRunHostPublicationLimits/u);
+  assert.throws(()=>owner.issueSucceededRunStateWire(materials.prepared,materials.compilation,materials.allowed,
+    materials.definition,'2026-09-18T00:00:00.000Z',[],receipt),/RunHostEffectPublicationEvidenceRequired/u);
+});
+
+test('retained public original Result occurrence preserves derivation ordering and independently observed facts',()=>{
+  const f=originals(),e=f.evidence;control.calls.length=0;
+  const facts={logicalValueCid:'observed-value',resultSchemaCid:'observed-schema',effectiveDataPolicyCid:'observed-policy'};
+  const result=owner.admitOriginalResultOccurrenceEvidence(e.definitions[0],e.artifacts[0],e.derivations[0],e.orderings[0],e.retentions[0],facts);
+  assert.equal(result.derivation.cid,e.derivations[0].cid);assert.equal(result.derivation.wire,e.derivations[0].wire);
+  assert.equal(result.ordering.cid,e.orderings[0].cid);assert.equal(result.ordering.wire,e.orderings[0].wire);
+  assert.deepEqual(control.calls.map(call=>call.name),['original-occurrence']);
+  assert.deepEqual(control.calls[0].args.slice(-3),['observed-value','observed-schema','observed-policy']);
+  let calls=0;const accessor={...facts};Object.defineProperty(accessor,'logicalValueCid',{enumerable:true,get(){calls++;return'changed';}});
+  assert.throws(()=>owner.admitOriginalResultOccurrenceEvidence(e.definitions[0],e.artifacts[0],e.derivations[0],e.orderings[0],e.retentions[0],accessor),/InvalidRunHostOriginalResultEvidence/u);
+  assert.equal(calls,0);assert.equal(control.calls.length,1);
+});
+
+test('retained public Effect succeeded state requires original checked publication and actual admitted success',()=>{
+  for(const status of ['succeeded','needs_reconciliation','failed']){
+    control.status=status;const f=originals();const receipt=owner.admitEffectfulFinalRunEvidence(f.evidence,limits);
+    const materials=owner.admitEffectRunMaterials('saved material wire','original Definition CID',{});
+    const issue=()=>owner.issueSucceededRunStateWire(materials.prepared,materials.compilation,materials.allowed,
+      materials.definition,'2026-09-18T00:00:00.000Z',[],receipt);
+    assert.throws(issue,/RunHostEffectPublicationEvidenceRequired/u);
+    owner.validateEffectfulPublicationCommit({...f.evidence,finalReceipt:receipt},f.request,f.attempt,f.index,limits);
+    if(status==='succeeded')assert.equal(issue(),'fixture succeeded state');
+    else assert.throws(issue,{code:'RunHostStateProjectionRejected'});
+    if(status==='needs_reconciliation')assert.equal(owner.effectfulFinalRunReconciliationState(receipt,'2026-09-18T00:00:00.000Z',limits),'fixture reconciliation wire');
+    else assert.throws(()=>owner.effectfulFinalRunReconciliationState(receipt,'2026-09-18T00:00:00.000Z',limits),{code:'RunHostEffectReconciliationStateRejected'});
+    const other=owner.admitEffectRunMaterials('other saved material','other Definition CID',{});
+    assert.throws(()=>owner.issueSucceededRunStateWire(other.prepared,materials.compilation,materials.allowed,
+      materials.definition,'2026-09-18T00:00:00.000Z',[],receipt),/ForeignRunHostCompilation/u);
+  }
+  control.status='succeeded';
 });

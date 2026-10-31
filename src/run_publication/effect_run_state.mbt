@@ -15,11 +15,9 @@ pub fn issue_effect_reconciliation_run_state_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, RunStateIssue] {
-  if run_id.is_empty() {
-    return Err(InvalidRunId)
-  }
-  if !valid_timestamp(updated_at) {
-    return Err(InvalidObservationTime("run"))
+  match reconciliation_run_state_inputs(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let set = match
     admit_effect_set_apply_receipt_references(
@@ -28,6 +26,62 @@ pub fn issue_effect_reconciliation_run_state_wire(
     Ok(value) => value
     Err(_) => return Err(EffectSetMismatch)
   }
+  reconciliation_run_state_from_set(
+    set, run_id, updated_at, declared_results, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Same existing reconciliation writer using the complete already admitted
+/// partition. No raw Set/member receipt or Checkpoint is admitted again.
+pub fn issue_admitted_effect_reconciliation_run_state_wire(
+  outcomes : EffectSetApplyReceiptEvidence,
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  match reconciliation_run_state_inputs(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  reconciliation_run_state_from_set(
+    outcomes.receipt,
+    run_id,
+    updated_at,
+    declared_results,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn reconciliation_run_state_inputs(
+  run_id : String,
+  updated_at : String,
+) -> Result[Unit, RunStateIssue] {
+  if run_id.is_empty() {
+    return Err(InvalidRunId)
+  }
+  if !valid_timestamp(updated_at) {
+    return Err(InvalidObservationTime("run"))
+  }
+  Ok(())
+}
+
+///|
+fn reconciliation_run_state_from_set(
+  set : PublicationContract,
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
   if contract_string(set, "status") != Some("unknown_outcome") {
     return Err(ActionStatusMismatch)
   }
