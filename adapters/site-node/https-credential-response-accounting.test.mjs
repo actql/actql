@@ -9,7 +9,7 @@ import * as resource from './https-credential-resource.mjs';
 
 // Real original HTTPS binding/request/socket and explicit authority/Journal
 // ports. This does not issue a Common grant or prove a normal funded Effect.
-async function fixture(t, handle, {unjoinedOriginal = false} = {}) {
+async function fixture(t, handle, {unjoinedOriginal = false, fenced = true} = {}) {
   const root = await mkdtemp(join(process.env.ACTQL_TEST_SCRATCH_PARENT ?? tmpdir(), 'actql-response-accounting-'));
   const {ca, cert, key} = await fixtureCertificates(root);
   const server = createServer({cert, key}, handle);
@@ -24,7 +24,8 @@ async function fixture(t, handle, {unjoinedOriginal = false} = {}) {
   const journal = {claim(){claims++;return {replayed:false,grant,use,record:{useCid:'original-use',grantCid:'original-grant'}};},
     authorize(){},finish(id, outcome){assert.equal(id,'original-use');outcomes.push(outcome);}};
   const resolveSecret = async () => 'fixture-secret';
-  const binding = resource.openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,assertCurrent(){}});
+  const binding = resource.openHttpsCredentialBinding({scope,control,journal,resolveSecret,maxSecretBytes:64,
+    ...(fenced ? {assertCurrent(){}} : {})});
   t.after(async()=>{
     assert.equal(resource.closeHttpsCredentialBinding(binding),unjoinedOriginal?'pending':'closed');
     await new Promise(resolve=>server.close(resolve));
@@ -147,6 +148,34 @@ test('native byte observer join failure retains the original under existing bind
   assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
   assert.equal(requests, 1); assert.equal(f.claims(), 1); assert.deepEqual(f.outcomes, ['unknown']);
 });
+
+for (const port of ['byte observer', 'response custody']) {
+  test(`unfenced binding refuses another claim while its original ${port} cannot be joined`, async t => {
+    let settle;
+    const original = new Promise(resolve => {settle = resolve;});
+    const primary = new Error('original native species lookup failed');
+    Object.defineProperty(original, 'constructor', {get() {throw primary;}});
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++; response.writeHead(200); response.end('{}');
+    }, {unjoinedOriginal: true, fenced: false});
+    const options = port === 'byte observer'
+      ? {observeResponseBytes() {return original;}}
+      : {responseCustody: Object.freeze({retain() {return original;}})};
+    try {
+      await assert.rejects(f.call(options), error => error === primary);
+      // No close first: active=false and a completed socket do not retire the
+      // original callback task. Refuse BEFORE a second Journal claim or send.
+      await assert.rejects(f.call({}), {code: 'RemoteCredentialBindingBusy'});
+      assert.equal(requests, 1); assert.equal(f.claims(), 1);
+      assert.deepEqual(f.outcomes, ['unknown']);
+    } finally {
+      settle(); await new Promise(setImmediate);
+      // A test-owned resolver supplies no missing native settlement witness.
+      assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+    }
+  });
+}
 
 test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
   const primary=new Error('original Ledger charge refusal');
