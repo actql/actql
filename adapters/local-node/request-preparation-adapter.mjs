@@ -55,6 +55,12 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestSourceComputation')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestPolicySubjects')==='function' &&
+    typeof own(moon,'clientProgramReadRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramBindRequestPolicySubject')==='function' &&
+    typeof own(moon,'clientProgramFinishRequestPolicySubjects')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
     typeof own(moon,'clientProgramRequestProgramModuleIssueCode')==='function' &&
     typeof own(moon,'clientProgramBorrowRequestProgramPlanInput')==='function' &&
@@ -141,13 +147,13 @@ export function closeHostInitializationPreparation(state) {
 
 // General Request admission observes no caller options, Parameters or source.
 // Actual SDK capture below grows this same parent before its detached data.
-export function beginRequestInput(state, receipt, connection, assertCurrent) {
+export function beginRequestInput(state, receipt, connection, assertCurrent, childrenPending = noPhysicalChildren) {
   const moon=state.context.runtime;
   if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
   if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
       connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
       !Array.isArray(connection.runners)) return false;
-  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
+  openRequestPreparation(state,receipt,assertCurrent,childrenPending);
   return true;
 }
 
@@ -189,5 +195,6 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
   state.capturePlan=state.acquisitionCount=undefined;
+  state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;
 }

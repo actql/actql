@@ -23,8 +23,14 @@ pub fn check_row_acquisition_original(
 /// This is not a Run, reservation, credential grant or cleanup acknowledgement.
 pub struct RowRunResponseBorrow {
   priv run : RowRun
-  priv acquisition : RowAcquisition
+  priv selection : RowResponseSelection
   priv mut cleanup_bound : Bool
+}
+
+///|
+priv enum RowResponseSelection {
+  QueryResponse(RowAcquisition)
+  InputResponse(RowInputAcquisition)
 }
 
 ///|
@@ -44,7 +50,25 @@ pub fn borrow_row_run_responses(
     return Err(ForeignDeclaration)
   }
   run.response_borrowed = true
-  Ok({ run, acquisition, cleanup_bound: false, })
+  Ok({ run, selection: QueryResponse(acquisition), cleanup_bound: false, })
+}
+
+///|
+pub fn borrow_row_input_run_responses(
+  run : RowRun,
+  acquisition : RowInputAcquisition,
+) -> Result[RowRunResponseBorrow, RowHostIssue] {
+  guard !run.closed &&
+    !run.response_borrowed &&
+    run.physical is Some(_) &&
+    run.page_charge is None &&
+    run.attempt.state is Reading(_) &&
+    run.configuration is InputConfiguration(original) &&
+    physical_equal(original, acquisition) else {
+    return Err(InvalidState)
+  }
+  run.response_borrowed = true
+  Ok({ run, selection: InputResponse(acquisition), cleanup_bound: false, })
 }
 
 ///|
@@ -52,12 +76,18 @@ pub fn check_row_run_response_borrow_current(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
   let run = value.run
+  let selected = match (run.configuration, value.selection) {
+    (DirectConfiguration(original), QueryResponse(acquisition)) =>
+      physical_equal(original, acquisition.configuration)
+    (InputConfiguration(original), InputResponse(acquisition)) =>
+      physical_equal(original, acquisition)
+    _ => false
+  }
   guard !run.closed &&
     run.response_borrowed &&
     run.physical is Some(_) &&
     run.attempt.state is Reading(_) &&
-    run.configuration is DirectConfiguration(configuration) &&
-    physical_equal(configuration, value.acquisition.configuration) else {
+    selected else {
     return Err(InvalidState)
   }
   Ok(())

@@ -61,7 +61,7 @@ test "issuer retains the completed typed Values and Tasks bindings" {
 }
 
 ///|
-test "restored equal Definition requires full binding and replaces only one slot" {
+test "restored equal Definition requires full validation and preserves the original slot" {
   for tasks in [false, true] {
     let (_, compiled, definition) = local_values_invocation_fixture(tasks)
     let restored = @publication.admit_publication_contract(
@@ -75,9 +75,12 @@ test "restored equal Definition requires full binding and replaces only one slot
     let full = Ref(0)
     counted_compiled_definition_binding(compiled, restored, full).unwrap()
     counted_compiled_definition_binding(compiled, restored, full).unwrap()
-    assert_eq(full.val, 1)
+    assert_eq(full.val, 2)
     assert_true(
-      physical_equal(compiled.definition_binding.unwrap().definition, restored),
+      physical_equal(
+        compiled.definition_binding.unwrap().definition,
+        definition,
+      ),
     )
     counted_compiled_definition_binding(compiled, definition, full).unwrap()
     counted_compiled_definition_binding(compiled, definition, full).unwrap()

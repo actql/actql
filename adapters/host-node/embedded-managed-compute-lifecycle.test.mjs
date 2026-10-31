@@ -45,7 +45,7 @@ function opening() {
 }
 
 function preparedEnvironmentLifetime({missing = false, retire = () => {},
-  consumerRetire = () => {}, install = true} = {}) {
+  consumerRetire = () => {}, install = true, preparation} = {}) {
   const opening = declared('openInstalledHost');
   assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
@@ -95,7 +95,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     let mockAccount,standardAccountPreparation;
     const retireInstalledProjectConfiguration=()=>{throw new Error('UnexpectedProject');};
     const clientOperationError=code=>Object.assign(new Error(code),{code});
-    const valuesMaxRows=undefined,check=()=>{},verifyRequestValuePolicy=()=>{};
+    const valuesMaxRows=undefined,retainedRelationOutput=false,check=()=>{},verifyRequestValuePolicy=()=>{};
     const updateTargetOriginals={restorePrepared:()=>{}},control={},calendarArtifact=undefined;
     const effectInstallation=undefined;
     const installNodeClientProgramPreparation=options=>{
@@ -117,7 +117,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
   `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,undefined),original,consumer,
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,preparation),original,consumer,
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
@@ -365,6 +365,67 @@ test('actual Host forwards the selected async manager result once without an opt
   delete raw.fundedPreparation;
   assert.throws(()=>f.preparation.fundedPreparation(request,environment),TypeError);
   assert.equal(calls,1);
+  await f.initialControl.close();
+});
+
+test('funded policy Host keeps its original context before snapshot instead of suppressing the owner', () => {
+  const moon = {}, control = {}, environment = {}, preparedEnvironment = {};
+  const original = Object.freeze({runtime: moon, control, environment, preparedEnvironment,
+    retainedRelationOutput: false, valuesMaxRows: 2});
+  const installation = {projectRuntime: moon, initialControl: control,
+    sequenceContractOriginal: {}, retainedRelationOutput: false, valuesMaxRows: 2,
+    verifyRequestValuePolicy() {}, closedValuesPreparationContext: original};
+  const read = new Function('assertSourceManagedHostPreparation', 'clientOperationError',
+    text(declared('readLocalPreparationContext')) + ';return readLocalPreparationContext;')(
+    value => assert.strictEqual(value.installation, installation),
+    code => Object.assign(new Error(code), {code}));
+  assert.strictEqual(read({installation}), original);
+  installation.closedValuesPreparationContext = Object.freeze({...original, valuesMaxRows: 3});
+  assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  installation.closedValuesPreparationContext = Object.freeze({...original, runtime: {}});
+  assert.equal(read({installation}), undefined, 'A foreign runtime cannot acquire the original context');
+});
+
+test('funded policy installer forwards the exact verifier to its original preparation', async () => {
+  const request = {}, environment = {}, result = {}, signal = new AbortController().signal;
+  let calls = 0, expectedVerifier;
+  const preparation = {fundedPreparation(actual, selected, verifier, actualSignal) {
+    assert.strictEqual(this, preparation);
+    assert.strictEqual(actual, request);
+    assert.strictEqual(selected, environment);
+    assert.strictEqual(verifier, expectedVerifier);
+    assert.strictEqual(actualSignal, signal);
+    calls++;
+    return Promise.resolve(result);
+  }};
+  const f = preparedEnvironmentLifetime({preparation});
+  expectedVerifier = f.fixture.options.verifyRequestValuePolicy;
+  assert.equal(typeof expectedVerifier, 'function');
+  assert.strictEqual(await f.fixture.options.getFundedPreparation(request, environment, expectedVerifier, signal), result);
+  assert.equal(calls, 1);
+  f.fixture.retire();
+});
+
+test('funded policy manager forwarding preserves the same callback and original request mapping', async () => {
+  const request = {}, originalRequest = {}, environment = {}, verifier = () => {}, result = {};
+  const signal = new AbortController().signal;
+  let calls = 0, mappings = 0;
+  const manager = {fundedPreparation(actual, selected, originalVerifier, actualSignal) {
+    assert.strictEqual(this, manager);
+    assert.strictEqual(actual, originalRequest);
+    assert.strictEqual(selected, environment);
+    assert.strictEqual(originalVerifier, verifier);
+    assert.strictEqual(actualSignal, signal);
+    calls++;
+    return Promise.resolve(result);
+  }, close() {return {pending: false};}};
+  const f = lifecycle({factory: async () => manager, originalRequest(value) {
+    assert.strictEqual(value, request); mappings++; return originalRequest;
+  }});
+  await f.preparation.prepareManagedCompute();
+  assert.strictEqual(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
+  assert.equal(calls, 1);
+  assert.equal(mappings, 1);
   await f.initialControl.close();
 });
 
@@ -1157,6 +1218,11 @@ function capturePlanConstructor({queryTime, count, retained}) {
     calls.push(`requirement-${stage}`); return requirements[stage];
   };
   const runtime = {
+    clientProgramSelectInstalledSourceInput(p, identity, stage, input) {
+      assert.equal(p, prepared); assert.equal(identity, request); assert.equal(input, 0); return requirements[stage];
+    },
+    clientProgramSelectedSourceInputKind(selection) {assert.ok(requirements.includes(selection)); return 'query';},
+    clientProgramSelectedSourceInputRef(selection) {assert.ok(requirements.includes(selection)); return selection.source;},
     clientProgramAcquisitionCount(p) {assert.equal(p, prepared); calls.push('inventory'); return count;},
     clientProgramPrepareLocalQueryRequirement(...args) {
       assert.equal(queryTime, undefined, 'retained QueryTime must not select the context-free requirement');
@@ -1275,4 +1341,254 @@ test('Host partial Model Request finishes only its Scope and leaves original par
   f.settle(); await f.initialControl.close();
   assert.deepEqual(f.calls, ['adopt', 'scope', 'scope', 'manager-close']);
   assert.equal(f.record.computeLiveRuns.size, 0);
+});
+
+// Actual pre-Plan Host functions with explicit typed selection/capacity ports.
+// This does not execute a compiled Common ABI, physical Source or ordinary Run.
+function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) {
+  const prepared = {}, request = {}, plan = {}, profile = {}, admission = {}, selection = {}, capacity = {};
+  const calls = [], contracts = {values: 'same-values', expression: 'same-fragment', ordered: 'same-ordered'};
+  const run = {prepared, request, sourceProfile: profile, closed: false};
+  const runtime = {
+    clientProgramAcquisitionCount(value) {assert.equal(value, prepared); calls.push('original-prefix'); return 1;},
+    clientProgramSelectInstalledSourceInput(value, identity, stage, input) {
+      assert.equal(value, prepared); assert.equal(identity, request); assert.equal(stage, 0); assert.equal(input, 0);
+      calls.push('select-original'); return selection;
+    },
+    clientProgramSelectedSourceInputKind(value) {assert.equal(value, selection); return 'whole-input';},
+    clientProgramSelectedSourceInputRef(value) {assert.equal(value, selection); return 'same-source';},
+    clientProgramPrepareLocalQueryRequirement() {assert.fail('Whole input must not fabricate a Query requirement');},
+    clientProgramInstalledManagedCapturePlanPrepare() {assert.fail('Whole capacity must not be cast to a Query capacity array');},
+    clientProgramPrepareInstalledManagedWholeSourcePlan(value, identity, selected, transfer, execution,
+      registry, values, fragment, ordered, retained) {
+      assert.equal(this, runtime); assert.equal(value, prepared); assert.equal(identity, request); assert.equal(selected, capacity);
+      assert.equal(transfer, 17n); assert.equal(execution, 29n); assert.equal(registry, admission);
+      assert.equal(values, contracts.values); assert.equal(fragment, contracts.expression); assert.equal(ordered, contracts.ordered);
+      assert.equal(retained, true); calls.push('whole-plan'); return plan;
+    },
+  };
+  run.runtime = runtime;
+  const originals = {installation: {projectRuntime: runtime, retainedRelationOutput: true,
+    managedSourceProfile: profile, computeRuns: new WeakMap([[prepared, run]])}};
+  const adapter = {managedWholeSourceCapacity(facts) {
+    assert.equal(this, adapter); assert.equal(facts.preparedProgram, prepared);
+    assert.equal(facts.sourceSelection, selection); assert.equal(facts.installedContracts, admission);
+    calls.push('whole-capacity'); if (capacityFailure !== undefined) throw capacityFailure;
+    if (invalidate) run.closed = true;
+    return Object.freeze({capacity, wholeInput: true, transferBytes: 17n, executionBytes: 29n});
+  }, managedCaptureCapacity() {assert.fail('No Query fallback after a whole-input refusal');}};
+  const ports = {installedManagedRunContracts(value) {assert.equal(value, originals); return contracts;},
+    prepareInstalledSequenceContractOriginal(value) {assert.equal(value, originals); return {admission};},
+    installedSourceFor(value, ref) {assert.equal(value, profile); assert.equal(ref, 'same-source'); return adapter;},
+    clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
+  const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
+    '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
+  return {prepare: () => prepare(originals, run), calls, plan, run, runtime};
+}
+
+test('whole Source Host constructor retains the original typed input without a Query or zero-prefix classifier', () => {
+  const f = wholeSourcePlanConstructor();
+  assert.equal(f.prepare(), f.plan);
+  assert.deepEqual(f.calls, ['original-prefix', 'select-original', 'whole-capacity', 'whole-plan']);
+  assert.equal(Object.isFrozen(f.run.sourceCapacities), true);
+  assert.equal(f.run.sourceCapacities[0].kind, 'whole-input');
+});
+
+test('whole Source Host constructor keeps the original refusal and post-capacity retirement without fallback', () => {
+  const original = new Error('original selected capacity refused');
+  const refused = wholeSourcePlanConstructor({capacityFailure: original});
+  assert.throws(refused.prepare, error => error === original);
+  assert.equal(refused.run.sourceCapacities, undefined);
+  assert.equal(refused.calls.includes('whole-plan'), false);
+  const retired = wholeSourcePlanConstructor({invalidate: true});
+  assert.throws(retired.prepare, {code: 'ForeignInstalledComputeRun'});
+  assert.equal(retired.calls.includes('whole-plan'), false);
+});
+
+function wholeSourceDispatchBlock(ports) {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'});
+  const matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' && node.test.name === 'singleAccounted' &&
+        actual.slice(node.consequent.start, node.consequent.end).includes('const capture = entry.sourceCapture.capture;')) {
+      matches.push(node.consequent);
+    }
+  });
+  assert.equal(matches.length, 1);
+  return new Function(...Object.keys(ports), 'let setup;\n' +
+    actual.slice(matches[0].start, matches[0].end) + '\nreturn setup;')(...Object.values(ports));
+}
+
+test('whole Source dispatch opens its adopted Plan before binding the same capture to its retained Compute', () => {
+  const parent = {}, prepared = {}, request = {}, sourceOriginal = {}, setup = {}, dag = {}, order = [];
+  const entry = {};
+  const capture = {source: () => sourceOriginal, retainTask(actual, task) {
+    assert.equal(actual, dag); assert.equal(task, 0); assert.equal(entry.pendingSetup, setup);
+    order.push('bind-original');
+  }};
+  entry.sourceCapture = {capture};
+  const moon = {clientProgramOpenInstalledManagedCaptureHost(owner, p, r, captures) {
+    assert.equal(this, moon); assert.equal(owner, parent); assert.equal(p, prepared); assert.equal(r, request);
+    assert.deepEqual(captures, [sourceOriginal]); order.push('open-adopted'); return setup;
+  }, strategyHostRun(value) {assert.equal(value, setup); return dag;},
+  clientProgramOpenSingleCapturedLocalHost() {assert.fail('No independent captured Host/compiler');}};
+  const ports = {entry, moon, held: {managedRun: parent}, preparedProgram: prepared, requested: request,
+    preparationLease: {}, checked: value => value,
+    retainDispatchPreparationHost(actual, runtime, owner, p, r, custody) {
+      assert.equal(actual, entry); assert.equal(runtime, moon); assert.equal(owner, parent);
+      assert.equal(p, prepared); assert.equal(r, request); assert.equal(custody, true); order.push('retain-original');
+    }};
+  assert.equal(wholeSourceDispatchBlock(ports), setup);
+  assert.equal(entry.borrowedSources, true);
+  assert.deepEqual(order, ['retain-original', 'open-adopted', 'bind-original']);
+});
+
+test('whole Source dispatch preserves the same opener refusal without legacy construction or fabricated pending setup', () => {
+  const original = new Error('actual adopted Plan refused');
+  const entry = {sourceCapture: {capture: {source: () => ({}), retainTask() {assert.fail('No bind after refusal');}}}};
+  const ports = {entry, moon: {clientProgramOpenInstalledManagedCaptureHost() {throw original;},
+    clientProgramOpenSingleCapturedLocalHost() {assert.fail('No legacy fallback');}},
+    held: {managedRun: {}}, preparedProgram: {}, requested: {}, preparationLease: {},
+    checked: value => value, retainDispatchPreparationHost() {}};
+  assert.throws(() => wholeSourceDispatchBlock(ports), error => error === original);
+  assert.equal(entry.pendingSetup, undefined);
+  delete ports.moon.clientProgramOpenInstalledManagedCaptureHost;
+  assert.throws(() => wholeSourceDispatchBlock(ports), {message: 'InstalledManagedComputeHostUnavailable'});
+  assert.equal(entry.pendingSetup, undefined);
+});
+
+test('whole Source submission retains its returned same-parent Run before preparing physical Source inputs', () => {
+  const matches = [];
+  visit(ast, node => {
+    if (node.type !== 'BlockStatement') return;
+    const index = node.body.findIndex(statement => statement.type === 'VariableDeclaration' &&
+      statement.declarations.some(value => value.id.name === 'managedSourceRun'));
+    if (index >= 0) matches.push(node.body.slice(index, index + 3));
+  });
+  assert.equal(matches.length, 1);
+  const prepared = {}, request = {}, profile = {}, runtime = {}, original = {}, calls = [];
+  const preparation = {prepareManagedSourceRun(moon, p, r, sourceProfile) {
+    assert.equal(moon, runtime); assert.equal(p, prepared); assert.equal(r, request); assert.equal(sourceProfile, profile);
+    calls.push('adopt-original'); return original;
+  }, prepareManagedComputeRun() {assert.fail('Whole Source must not select Source-free adoption');}};
+  const ports = {preparation, selectedModel: undefined, acquisitionCount: 1, sourceProfile: profile,
+    submission: {preparedProgram: prepared}, requested: request, inferSelections: new WeakMap(),
+    moon: {clientProgramSerializationOccurrences: () => []}};
+  // The exact original runtime argument remains distinct from constructor DATA.
+  ports.moon = runtime; runtime.clientProgramSerializationOccurrences = () => [];
+  const result = new Function(...Object.keys(ports), matches[0].map(text).join('\n') + '\nreturn managedRun;')(...Object.values(ports));
+  assert.equal(result, original); assert.deepEqual(calls, ['adopt-original']);
+});
+
+async function wholeSourceLedgerBlock({foreign = false, missing = false, currentFailure} = {}) {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'});
+  const matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' && node.test.name === 'singleAccounted' &&
+        actual.slice(node.consequent.start, node.consequent.end).includes('const capacity = installedSource.ledgerCapacity(')) {
+      matches.push(node.consequent);
+    }
+  });
+  assert.equal(matches.length, 1);
+  const parent = {}, prepared = {}, request = {}, selected = {}, ledger = {}, access = {}, preparedSource = {}, entry = {}, calls = [];
+  const moon = {clientProgramInstalledManagedWholeSourceLedger(owner, p, r, capacity, transfer, execution) {
+    assert.equal(this, moon); assert.equal(owner, parent); assert.equal(p, prepared); assert.equal(r, request);
+    assert.equal(capacity, selected); assert.equal(transfer, 19n); assert.equal(execution, 31n);
+    calls.push('same-whole-ledger'); if (currentFailure !== undefined) throw currentFailure; return ledger;
+  }, clientProgramInstalledManagedRunPrepareLedger() {assert.fail('Whole capacity is not an array of Query capacities');},
+  clientProgramPrepareSingleCapturedLocalInstalledLedger() {assert.fail('No legacy scalar or replacement Ledger');}};
+  if (missing) delete moon.clientProgramInstalledManagedWholeSourceLedger;
+  const ports = {entry, moon, checkpoints: undefined, submission: {requestId: 'same-request'},
+    installedSource: {sourceAccess: access, ledgerCapacity(value) {
+      assert.equal(value, preparedSource); return {managedRun: foreign ? {} : parent, wholeInput: true,
+        capacity: selected, transferBytes: 19n, executionBytes: 31n};
+    }}, held: {managedRun: parent, preparedSourceAccess: access, preparedSource},
+    preparedProgram: prepared, requested: request, checked: value => value};
+  const result = await new AsyncFunction(...Object.keys(ports), 'let ledger;\n' +
+    actual.slice(matches[0].start, matches[0].end) + '\nreturn ledger;')(...Object.values(ports));
+  assert.equal(result, ledger); assert.equal(entry.acquisitionLedger, ledger);
+  assert.deepEqual(calls, ['same-whole-ledger']);
+}
+
+test('whole Source ledger selection consumes only its same original Run and typed capacity with current refusal intact', async () => {
+  await wholeSourceLedgerBlock();
+  for (const options of [{foreign: true}, {missing: true}]) {
+    await assert.rejects(wholeSourceLedgerBlock(options), {message: 'InstalledSingleSourceOriginalRunUnavailable'});
+  }
+  const original = new Error('original current refused');
+  await assert.rejects(wholeSourceLedgerBlock({currentFailure: original}), error => error === original);
+});
+
+test('whole Source Result-placement guard reads only its original adopted physical Plan and preserves refusal', () => {
+  const actual = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const tree = parse(actual, {ecmaVersion: 'latest', sourceType: 'module'}), matches = [];
+  visit(tree, node => {
+    if (node.type === 'IfStatement' && actual.slice(node.consequent.start, node.consequent.end)
+      .includes('const requiresAcquisitionResult =')) matches.push(node);
+  });
+  assert.equal(matches.length, 1);
+  const owner = {}, prepared = {}, request = {}, original = new Error('original Plan current refused');
+  const moon = {clientProgramInstalledManagedRequiresAcquisitionResultPublication(parent, p, r) {
+    assert.equal(this, moon); assert.equal(parent, owner); assert.equal(p, prepared); assert.equal(r, request); return false;
+  }, clientProgramRequiresAcquisitionResultPublication() {assert.fail('Original prefix1 is not the selected whole Plan graph');}};
+  const ports = {inferring: false, serializing: false, generatingContent: false,
+    held: {managedRun: owner}, moon, preparedProgram: prepared, requested: request, checked: value => value};
+  const run = () => new Function(...Object.keys(ports), actual.slice(matches[0].start, matches[0].end))(...Object.values(ports));
+  run();
+  moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication = () => true;
+  assert.throws(run, {message: 'InstalledAcquisitionResultPublicationUnsupported'});
+  moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication = () => {throw original;};
+  assert.throws(run, error => error === original);
+  delete moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication;
+  assert.throws(run, {message: 'InstalledManagedSourcePlanUnavailable'});
+});
+
+test('whole Source capacity facade captures the original method and receiver without issuing a new Run', () => {
+  const selection = {}, prepared = {}, contracts = {}, selected = {};
+  const facts = {preparedProgram: prepared, sourceSelection: selection, installedContracts: contracts};
+  const source = {prepare() {}, ledgerCapacity() {}, managedCaptureCapacity() {},
+    managedWholeSourceCapacity(value) {assert.equal(this, source); assert.equal(value, facts); return selected;}};
+  const bound = bindInstalledManagedSources(source, () => assert.fail('Pre-Plan capacity cannot issue/adopt a Run'));
+  source.managedWholeSourceCapacity = () => assert.fail('Original fixed method must be retained');
+  assert.equal(bound.managedWholeSourceCapacity(facts), selected);
+});
+
+test('funded policy Source original preserves the same request verifier and signal without compute fallback', async () => {
+  const request = {}, originalRequest = {}, environment = {}, result = {}, verifier = () => {};
+  const signal = new AbortController().signal, events = [];
+  const source = {fundedPreparation(value, selected, callback, actualSignal) {
+    assert.equal(this, source); assert.equal(value, originalRequest); assert.equal(selected, environment);
+    assert.equal(callback, verifier); assert.equal(actualSignal, signal); events.push('source');
+    return Promise.resolve(result);
+  }, close() {return {pending: false};}};
+  const compute = {fundedPreparation() {assert.fail('The original Source manager must not fall through to compute');},
+    close() {return {pending: false};}};
+  const f = lifecycle({source, factory: async () => compute,
+    originalRequest(value) {assert.equal(value, request); events.push('same-request'); return originalRequest;},
+    current(manager) {if (manager !== undefined) events.push(manager === source ? 'source-current' : 'compute-current');}});
+  // Actual Source mode already has its original manager and refuses opening a separate compute manager.
+  events.length = 0;
+  try {
+    assert.equal(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
+    assert.deepEqual(events, ['source-current', 'same-request', 'source']);
+  } finally {await f.initialControl.close();}
+});
+
+test('funded policy Source current refusal keeps its original cause before mapping or compute fallback', async () => {
+  const cause = new Error('original Source installation is no longer current');
+  let refuse = false, mapped = 0, calls = 0;
+  const source = {fundedPreparation() {calls++; assert.fail('A refused Source cannot enter preparation');},
+    close() {return {pending: false};}};
+  const compute = {fundedPreparation() {assert.fail('A current Source refusal is not optional compute selection');},
+    close() {return {pending: false};}};
+  const f = lifecycle({source, factory: async () => compute,
+    originalRequest() {mapped++; assert.fail('Refuse before original request projection');},
+    current(manager) {if (refuse && manager === source) throw cause;}});
+  refuse = true;
+  try {
+    assert.throws(() => f.preparation.fundedPreparation({}, {}, () => {}, undefined), error => error === cause);
+    assert.equal(mapped, 0); assert.equal(calls, 0);
+  } finally {refuse = false; await f.initialControl.close();}
 });

@@ -564,7 +564,15 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Configuration(InvalidLimits))
   }
-  let count = relation_inputs.length().to_int64()
+  // Native supplied reads are already admitted by their original Source.
+  // They do not construct the wire importer below, so use the same import
+  // occurrence count as the retained dispatch Plan's producer-edge inventory.
+  let mut count = 0L
+  for input in relation_inputs {
+    if !(input is SuppliedRelationInput(_)) {
+      count += 1L
+    }
+  }
   if per_input > 0L && count > 9223372036854775807L / per_input {
     return Err(Configuration(InvalidLimits))
   }

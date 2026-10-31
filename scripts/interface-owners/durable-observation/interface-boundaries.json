@@ -5510,6 +5510,7 @@
         "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
+        "retainHttpsCredentialBindingReadChild",
         "withHttpsCredentialRunResponseOriginal"
       ],
       "operations": [
@@ -5520,7 +5521,8 @@
             "scope",
             "control",
             "journal",
-            "resolveSecret"
+            "resolveSecret",
+            "bindingBorrow"
           ],
           "async": false
         },
@@ -5617,6 +5619,13 @@
           "async": false
         },
         {
+          "name": "bindingQuiescent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "callCredentialResource",
           "parameters": [
             "grant",
@@ -5635,11 +5644,25 @@
             "returnRejectedResponse",
             "retainRunResponseOriginal",
             "currentBeforeSend",
+            "responseCustody",
             "observeResponseBytes",
             "signal",
             "binding"
           ],
           "async": true
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "callCredentialResource/retainResponse/retainResponse#2",
+          "parameters": [
+            "original",
+            "cause"
+          ],
+          "async": false
         },
         {
           "name": "callHttpsCredentialResource",
@@ -5972,6 +5995,28 @@
         },
         {
           "name": "receive/receive/request/request/request#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -6588,16 +6633,28 @@
         },
         {
           "operations": [
+            "bindingQuiescent",
+            "callCredentialResource/retainResponse/retainResponse",
+            "callCredentialResource/retainResponse/retainResponse#2",
+            "retainHttpsCredentialBindingReadChild",
+            "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
+            "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
+            "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
             "httpsCredentialResponseWindowBytes",
             "receive/receive/request/request/readObservedResponse/readObservedResponse",
             "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
             "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined"
           ],
           "exports": [
+            "retainHttpsCredentialBindingReadChild",
             "httpsCredentialResponseWindowBytes"
           ],
           "attributes": {
             "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader responsibility:"
@@ -6605,11 +6662,19 @@
             ],
             "inputsOutputs": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader inputs and outputs:"
               }
             ],
             "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader identity:"
@@ -6617,11 +6682,19 @@
             ],
             "ownership": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader ownership:"
               }
             ],
             "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader synchronization:"
@@ -6629,11 +6702,19 @@
             ],
             "failure": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader failure:"
               }
             ],
             "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader cancellation:"
@@ -6641,17 +6722,33 @@
             ],
             "resources": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader resources:"
               }
             ],
             "extension": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader extension:"
               }
             ],
             "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader verification:"
@@ -6660,13 +6757,14 @@
           }
         }
       ],
-      "sha256": "ab7bddb526d1e83b9726e150bc9419b901ce156ba5336154c3180029869871cb",
+      "sha256": "883363c11c928d18c6491f41b0411cff944e4aa036f90863dc70185761f9ff77",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
         "../host-common/installation-preparation-fields.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
         "node:crypto",
         "node:https",

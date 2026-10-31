@@ -33,6 +33,7 @@ const hostAdapters = [
   'adapters/host-common/run-state-access.mjs',
   'adapters/store-local/publication-store.mjs',
   'adapters/host-node/installed-row-source.mjs',
+  'adapters/host-node/installed-rest-source.mjs',
   'adapters/host-node/ordinary-source-binding.mjs',
   'adapters/host-node/installed-row-effect.mjs',
   'adapters/host-node/installed-host-cleanup.mjs',

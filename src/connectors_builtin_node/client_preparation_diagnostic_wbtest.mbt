@@ -146,6 +146,16 @@ fn request_diagnostic_test_parent() -> (
 }
 
 ///|
+fn request_diagnostic_checked_issue_code(
+  result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+) -> String? {
+  match result {
+    Err(issue) => client_program_request_preparation_issue_code(Err(issue))
+    Ok(_) => None
+  }
+}
+
+///|
 test "Request failure projection uses the original semantic issue without another check" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(
@@ -176,10 +186,7 @@ test "Request failure projection uses the original semantic issue without anothe
       None,
     )
     assert_true(result is Err(_))
-    assert_eq(
-      client_program_request_preparation_issue_code(result),
-      Some(expected),
-    )
+    assert_eq(request_diagnostic_checked_issue_code(result), Some(expected))
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
 }
@@ -206,7 +213,7 @@ test "Request failure projection keeps input admission and nonsemantic uncertain
     None,
   )
   assert_true(foreign is Err(_))
-  assert_eq(client_program_request_preparation_issue_code(foreign), None)
+  assert_eq(request_diagnostic_checked_issue_code(foreign), None)
   @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   let retired = client_program_prepare_request_native_computation(
     parent,
@@ -218,7 +225,7 @@ test "Request failure projection keeps input admission and nonsemantic uncertain
     None,
   )
   assert_true(retired is Err(_))
-  assert_eq(client_program_request_preparation_issue_code(retired), None)
+  assert_eq(request_diagnostic_checked_issue_code(retired), None)
   assert_eq(
     client_program_request_preparation_issue_code(Ok("effect_free")),
     None,
@@ -327,10 +334,7 @@ test "native Query terminal projects original syntax declaration and missing-inp
       None,
     )
     assert_true(result is Err(_))
-    assert_eq(
-      client_program_request_preparation_issue_code(result),
-      Some(expected),
-    )
+    assert_eq(request_diagnostic_checked_issue_code(result), Some(expected))
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
 }
@@ -359,7 +363,7 @@ test "native Query terminal keeps foreign and retired originals outside semantic
     None,
   )
   assert_true(foreign is Err(_))
-  assert_eq(client_program_request_preparation_issue_code(foreign), None)
+  assert_eq(request_diagnostic_checked_issue_code(foreign), None)
   @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   let retired = client_program_prepare_request_source_computation(
     parent,
@@ -371,7 +375,7 @@ test "native Query terminal keeps foreign and retired originals outside semantic
     None,
   )
   assert_true(retired is Err(_))
-  assert_eq(client_program_request_preparation_issue_code(retired), None)
+  assert_eq(request_diagnostic_checked_issue_code(retired), None)
 }
 
 ///|
@@ -406,7 +410,7 @@ test "native Source document terminal projects original invalid Program instead 
       ),
     )
     assert_eq(
-      client_program_request_preparation_issue_code(result),
+      request_diagnostic_checked_issue_code(result),
       Some("check_invalid_input"),
     )
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()

@@ -1151,6 +1151,10 @@ pub fn client_serialization_plan_graph_wire(ClientSerializationPlanGraph) -> Str
 
 pub fn client_serialization_recovery_matches_infer(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferOccurrence, @run_publication.BoundContentGeneration) -> Bool
 
+pub fn client_source_acquisition_matches_effect_program(PreparedClientEffectComputation, Int, Int, @sourceview_resolution.SourceAcquisition) -> Bool
+
+pub fn client_source_acquisition_matches_program(PreparedClientProgram, Int, Int, @sourceview_resolution.SourceAcquisition) -> Bool
+
 pub fn client_source_computation_matches(ClientSourcePreparation, ClientSubmittedIntent, @program_check.CheckEnvironment) -> Bool
 
 pub fn client_source_computation_material(ClientSourcePreparation) -> (String, String?)
@@ -1445,6 +1449,8 @@ pub fn issue_captured_client_effect_local_table_definition(PreparedClientEffectC
 
 pub fn issue_captured_source_input_logical(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, task? : Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn issue_captured_whole_source_input_logical(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, task? : Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
+
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
 pub fn issue_client_captured_content(ClientCapturedContent, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, @run_publication.GeneratedContentReferenceIssue]
@@ -1466,6 +1472,8 @@ pub fn issue_client_compiled_source_free_task_invocation(ClientCompiledRun, @run
 pub fn issue_client_compiled_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_compiled_values_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_compiled_whole_source_invocation(ClientCompiledRun, @run_publication.PublicationContract, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_acquired_evidence(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int, unit? : Int, publication_retention? : @run_publication.PublicationContract?) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
@@ -1775,6 +1783,8 @@ pub fn prepare_client_effect_retained_task_dispatch(ClientEffectAllowedRun, @run
 
 pub fn prepare_client_effect_serialization(PreparedClientEffectComputation, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
 
+pub fn prepare_client_effect_source_acquisition(PreparedClientEffectComputation, Int, Int) -> Result[@sourceview_resolution.SourceAcquisition, ClientSourceAcquisitionIssue]
+
 pub fn prepare_client_effect_source_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectSourceDispatchIssue]
 
 pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation, request? : ClientRequestIdentity?) -> Result[@remote_site_protocol.RemoteInputBinding, ClientEffectSourceDispatchIssue]
@@ -1858,6 +1868,8 @@ pub fn prepare_client_run_state_original(@run_publication.PublicationContract, @
 pub fn prepare_client_saved_run_state_update(ClientSavedSubmissionSnapshot, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue]
 
 pub fn prepare_client_serialization(PreparedClientProgram, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
+
+pub fn prepare_client_source_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.SourceAcquisition, ClientSourceAcquisitionIssue]
 
 pub fn prepare_client_source_computation(ClientSubmittedIntent, @program_check.CheckEnvironment, String, public_primary? : Bool, publication_environment? : @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
 
@@ -4249,6 +4261,12 @@ pub(all) enum ClientSerializationPreparationIssue {
   MissingTask
   OutsideTask
   Barrier(@lowering_relation.SerializationPreparationIssue)
+}
+
+pub(all) enum ClientSourceAcquisitionIssue {
+  MissingStage
+  MissingRequests
+  UnsupportedAcquisition(@sourceview_resolution.SourceAcquisitionIssue)
 }
 
 type ClientSourceFreeProjectBindings

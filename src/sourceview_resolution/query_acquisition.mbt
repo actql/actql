@@ -77,6 +77,25 @@ fn derive_query_acquisition_context(
   query_time : @publication.QueryEvaluationTime?,
   structural : Bool,
 ) -> Result[QueryAcquisition, QueryAcquisitionIssue] {
+  match
+    inspect_query_acquisition_context(
+      requests, source_index, max_work, query_time, structural,
+    ) {
+    Ok(Some(value)) => Ok(value)
+    Ok(None) => Err(UnsupportedShape)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn inspect_query_acquisition_context(
+  requests : PipelineRequests,
+  source_index : Int,
+  max_work : Int,
+  query_time : @publication.QueryEvaluationTime?,
+  structural : Bool,
+  remaining_out? : Ref[Int]? = None,
+) -> Result[QueryAcquisition?, QueryAcquisitionIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -87,14 +106,20 @@ fn derive_query_acquisition_context(
   remaining -= 1
   guard pipeline_request_at(requests, source_index)
     is Some(Direct(mode, request)) else {
-    return Err(UnsupportedShape)
+    if remaining_out is Some(output) {
+      output.val = remaining
+    }
+    return Ok(None)
   }
   // A finite snapshot read mode is not a requirement for snapshot isolation or
   // a provider snapshot token. Changes/checkpoint semantics are outside scope.
   if @environment.read_mode_kind(mode_contract(mode)) !=
     @environment.SnapshotMode ||
     mode_checkpoint(mode) is Some(_) {
-    return Err(UnsupportedShape)
+    if remaining_out is Some(output) {
+      output.val = remaining
+    }
+    return Ok(None)
   }
   if request.host_bindings != 0 {
     return Err(UnboundRequest)
@@ -102,7 +127,10 @@ fn derive_query_acquisition_context(
   let uses = requests.uses
   guard pipeline_use_count(uses, source_index) == Some(1) &&
     pipeline_use_at(uses, source_index, 0) is Some(StepInput(filter_index, _)) else {
-    return Err(UnsupportedShape)
+    if remaining_out is Some(output) {
+      output.val = remaining
+    }
+    return Ok(None)
   }
   let stage = uses.attachment.stage
   let pipeline = @collection.pipeline(@stages.collection(stage))
@@ -111,7 +139,10 @@ fn derive_query_acquisition_context(
     input is @pipeline.Input(_) &&
     filter_step.operation is @pipeline.Unary(filter) &&
     @relation.operation(filter) == @relation.Filter else {
-    return Err(UnsupportedShape)
+    if remaining_out is Some(output) {
+      output.val = remaining
+    }
+    return Ok(None)
   }
   let mut selection : (Int, @relation.CheckedOperation)? = None
   // Inspect every edge, including off-chain consumers, before allocating a unit.
@@ -131,7 +162,10 @@ fn derive_query_acquisition_context(
         guard selection is None &&
           step.operation is @pipeline.Unary(select) &&
           @relation.operation(select) == @relation.Select else {
-          return Err(UnsupportedShape)
+          if remaining_out is Some(output) {
+            output.val = remaining
+          }
+          return Ok(None)
         }
         selection = Some((i, select))
       }
@@ -148,11 +182,17 @@ fn derive_query_acquisition_context(
     remaining -= 1
     if @results.target(@results.result_at(results, i).unwrap()) ==
       @pipeline.Step(filter_index) {
-      return Err(UnsupportedShape)
+      if remaining_out is Some(output) {
+        output.val = remaining
+      }
+      return Ok(None)
     }
   }
   guard selection is Some((select_index, select)) else {
-    return Err(UnsupportedShape)
+    if remaining_out is Some(output) {
+      output.val = remaining
+    }
+    return Ok(None)
   }
   let mut query_time_required = false
   for operation in [filter, select] {
@@ -172,19 +212,21 @@ fn derive_query_acquisition_context(
   if query_time_required && query_time is None && !structural {
     return Err(UnboundRequest)
   }
-  Ok({
-    owner: requests,
-    pipeline,
-    source_index,
-    input,
-    filter_index,
-    select_index,
-    filter,
-    select,
-    query_time_required,
-    query_time,
-    work: max_work - remaining,
-  })
+  Ok(
+    Some({
+      owner: requests,
+      pipeline,
+      source_index,
+      input,
+      filter_index,
+      select_index,
+      filter,
+      select,
+      query_time_required,
+      query_time,
+      work: max_work - remaining,
+    }),
+  )
 }
 
 ///|

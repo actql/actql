@@ -1767,6 +1767,16 @@ A missing original selection continues to refuse before execution.
 
 ## Capturing the installed Source service
 
+Installation-metadata issuer intake captures the supplied Source configuration
+reader and its original receiver before the first metadata await. The same
+`readText` receives the exact declared issuer-key byte bound; it preserves the
+original file owner and pending cleanup carrier. A supplied malformed reader
+refuses before metadata work, rather than selecting a separate file read.
+Issuer-type validation, original current checks and custody construction remain
+inside that same failed-initialization handoff. If they fail after key intake,
+the metadata view retires only after the original failed child has acknowledged
+cleanup; pending view retirement retains its same retry holder.
+
 Connector loaders capture their four original standard Source methods once,
 before the first metadata await. The common snapshot retains each own DATA
 function and its original receiver; replacement methods, inherited methods,

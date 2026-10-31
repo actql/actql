@@ -30,9 +30,9 @@ test('installed Calendar snapshots the closed profile without inventing grants o
   assert.throws(()=>checkInstalledCalendarSourceProfile(changing),{code:'InvalidInstalledCalendarSourceProfile'});
 });
 
-test('installed Calendar refuses missing actual capacity or material before profile I/O',async()=>{
-  await assert.rejects(loadInstalledCalendarSource(profile,{}),{code:'CalendarReaderCapacityUnavailable'});
-  await assert.rejects(loadInstalledCalendarSource(profile,{readerCapacity:{}}),{code:'CalendarCredentialMaterialUnavailable'});
+test('installed Calendar refuses missing original initialization before profile I/O',async()=>{
+  await assert.rejects(loadInstalledCalendarSource(profile,{}),{code:'CalendarSourceInitializationUnavailable'});
+  await assert.rejects(loadInstalledCalendarSource(profile,{readerCapacity:{}}),{code:'CalendarSourceInitializationUnavailable'});
 });
 
 // Invoke the actual exported identity and loader with original configuration
@@ -51,12 +51,26 @@ function originalConfiguration({ca=true, mutate=false, failure}={}) {
   const stop=new Error('Original provider boundary');
   const provider=Object.fromEntries(['calendarProjectCalendarList','calendarListRowsWire','calendarListMetadataJson',
     'calendarListColumnNames','calendarListSchemaWire','calendarListRelationFactsWire'].map(name=>[name,function(){
-      assert.equal(this,provider);assert.equal(name,'calendarListSchemaWire');events.push('schema');throw stop;} ]));
+      assert.equal(this,provider);if(name==='calendarListColumnNames')return ['id'];
+      assert.equal(name,'calendarListSchemaWire');events.push('schema');throw stop;} ]));
+  const installation=Object.freeze({original:'calendar'});
+  const sourceInitialization=Object.freeze({prepareDeclaration(){assert.fail('no declaration before schema');}});
+  const installationServices={
+    sourceReaderImplementationProfile(input){assert.equal(this,installationServices);
+      assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
+      assert.equal(input.metadataResponses,0);assert.equal(input.originUnits,site.apiOrigin.length);
+      return Object.freeze({maxDeclarationBytes:limits.maxDeclarationBytes,maxDeclarationNodes:limits.maxDeclarationNodes});},
+    sourceReaderImplementation(input){assert.equal(this,installationServices);
+      assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
+      assert.equal(input.columnCount,1);return Object.freeze({original:'unexecuted implementation'});},
+    openRowSite(){assert.fail('no Site before provider schema');},
+    createSourceReader(){assert.fail('no reader before provider schema');},
+  };
   return {reader,events,stop,site,selected,pem,
     identity(context=true){return installedCalendarSourceIdentityParts(selected,selected,read,undefined,
       context?{configurationReader:reader}:undefined);},
-    load(){return loadInstalledCalendarSource(selected,{readerCapacity:{},resolveSecret(){assert.fail('no secret read');},
-      providerMoon:provider,configurationReader:reader});}};
+    load(){return loadInstalledCalendarSource(selected,{sourceInitialization,installation,installationServices,
+      resolveSecret(){assert.fail('no secret read');},providerMoon:provider,configurationReader:reader});}};
 }
 
 test('Calendar original reader public identity honors the supplied JSON port without context',async()=>{

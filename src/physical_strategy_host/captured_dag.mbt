@@ -203,6 +203,46 @@ pub fn open_source_free_dag(
 }
 
 ///|
+/// Whole Source input is supplied to the original root computation, not
+/// installed as its completed output. Existing task/current/cleanup machinery
+/// owns the resulting execution and retains the exact live Source borrow.
+pub fn open_source_input_dag(
+  graph : CheckedDAG,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+) -> Result[CapturedDAG, RunIssue] {
+  guard graph.captured_prefix_value() == 0 &&
+    !graph.source_free_root_value() &&
+    graph.supplied_slots_count() == 1 &&
+    graph.owners_at(0) is Some(owner) &&
+    @query.captured_source_matches(
+      source,
+      @checked.source_identity(graph.program_value()),
+      owner,
+    ) &&
+    @query.captured_source_original_input_read(source) is Some(read) &&
+    @execution.supplied_relation_read_matches_input(read, owner, 0) else {
+    return Err(ForeignCapture)
+  }
+  open_checked_dag(graph, [], ledger, [], supplied_reads=[(0, 0, read)])
+}
+
+///|
+/// The live root has the same original supplied input, not an equal row wire.
+pub fn source_input_dag_matches_read(
+  run : CapturedDAG,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  !run.stopped &&
+  run.graph.captured_prefix_value() == 0 &&
+  !run.graph.source_free_root_value() &&
+  run.supplied_reads.get(0).bind(ports => ports.get(0)).bind(value => value)
+  is Some(actual) &&
+  @execution.supplied_relation_read_same_binding(actual, read) &&
+  @execution.supplied_relation_read_available(actual)
+}
+
+///|
 fn valid_source_free_root(graph : CheckedDAG) -> Bool {
   !(graph.owners_count() == 0) &&
   graph.input_counts_at(0).unwrap() == 0 &&
