@@ -256,7 +256,7 @@ fn partial_runtime_cleanup_matches(
   request == record.request.dispatch_request_cid &&
   record.revision >= revision &&
   record.execution == NativeSettled &&
-  record.evidence == NoEvidence &&
+  (record.evidence == NoEvidence || record.evidence == EvidenceRejected) &&
   !record.material_available &&
   !record.quarantined_capacity &&
   (
@@ -896,6 +896,17 @@ pub fn prepare_owned_remote_runtime_cleanup(
   if custody.partial_restoration is Some(_) &&
     !partial_runtime_cleanup_matches(record, custody) {
     return Err(DispatchIdentityMismatch)
+  }
+  // Preserve the same failed-outcome fact as live failure cleanup. Releasing
+  // physical resources alone must not leave NativeSettled/NoEvidence, which
+  // is still an unfinished success path for the enclosing Coordinator.
+  if custody.partial_restoration is Some(_) && record.evidence == NoEvidence {
+    if remote_runtime_custody_stop_pending(custody) {
+      return Ok(runtime_step(RuntimeAwaitStop, None))
+    }
+    return prepare_reject_execution_evidence(record).map(transition => {
+      runtime_step(RuntimePersistTransition, Some(transition))
+    })
   }
   prepare_remote_runtime_cleanup(
     record,

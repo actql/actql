@@ -33,11 +33,19 @@ checked at its actual physical boundary. Failed release and uncertain COMMIT
 retain the same obligations; absence of a lost process-local handle is not ACK.
 
 Only the existing owned cleanup progression can advance this restored custody.
-Its permanent cleanup-only marker rejects success and failure/evidence preparation,
+Its permanent cleanup-only marker rejects success and completed evidence issuance,
 including after resources have been returned. Cleanup remains bound to the
 original request and monotonic revision; another occurrence, force loss,
 quarantine, restored availability or evidence substitution refuses. No public
 Result, Run terminal state, permission, new start or refund is inferred.
+
+After original stop is confirmed, partial owned cleanup first emits the existing
+durable evidence-rejection transition. That failed-outcome fact must commit
+before beginning physical release, and remains rejected after release. The
+enclosing Coordinator therefore observes the original failure; cleanup does not
+leave an unfinished `NativeSettled`/`NoEvidence` success path or manufacture a Run
+terminal state. An unconfirmed rejection COMMIT remains pending without resource
+release, success or a replacement transition law.
 
 The selected controller checks exercise original binding, pending stop,
 independent release, terminal cleanup, foreign state and unconfirmed COMMIT with

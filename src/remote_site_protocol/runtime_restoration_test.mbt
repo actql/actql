@@ -73,6 +73,29 @@ fn restore_failed_partial_fixture(
 }
 
 ///|
+test "failed partial cleanup durably rejects original evidence before any release" {
+  let (record, measured) = failed_partial_runtime_fixture(
+    "partial-reject-original",
+  )
+  let custody = restore_failed_partial_fixture(record, measured).unwrap()
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  let step = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(step), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(step).unwrap(),
+    true,
+  ).unwrap()
+  // Existing durable rejection is the original failed-outcome fact. Resource
+  // release cannot replace it with a NativeSettled/NoEvidence completion.
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
+  assert_eq(dispatch_record_state_codes(record)[2], 3)
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_false(remote_runtime_custody_output_released(custody))
+  assert_false(remote_runtime_custody_holding_released(custody))
+  assert_false(remote_runtime_custody_bundle_released(custody))
+}
+
+///|
 test "failed partial restoration retains every original obligation and can never enter success" {
   let (record, measured) = failed_partial_runtime_fixture("partial-original")
   let revision = dispatch_record_revision(record)
@@ -100,6 +123,12 @@ test "failed partial restoration retains every original obligation and can never
   // original process stop. This alone returns none of the three resources.
   assert_true(remote_runtime_custody_confirm_stop(custody))
   assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  let rejected = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  commit_dispatch_transition(
+    remote_runtime_step_transition(rejected).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
   let release = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
   assert_eq(remote_runtime_step_action_code(release), 1)
   commit_dispatch_transition(
@@ -135,6 +164,7 @@ test "failed partial restoration retains every original obligation and can never
   assert_false(remote_runtime_custody_acquire_holding(custody))
   assert_false(remote_runtime_custody_acquire_bundle(custody))
   assert_false(remote_runtime_record_startable(record))
+  assert_eq(dispatch_record_state_codes(record)[1], 3)
   assert_true(
     prepare_remote_runtime_success(record, custody) is Err(MaterialUnavailable),
   )
