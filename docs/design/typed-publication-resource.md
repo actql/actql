@@ -145,8 +145,20 @@ is meaningful only on its original connection and is stored with the TEMP
 projection, so a refused mutation cannot leave a newer version stamped over old
 totals. Concurrent connections keep their independent observation boundaries;
 this mechanism does not claim to remove full observation after external writes.
-Physical digests, canonical admission, claim/CAS, reply-loss recovery and the
-original database close owner remain independent obligations.
+The projection advances text totals with SQLite's original native-encoding
+`LENGTH(CAST(... AS BLOB))`, while each preflight retains its original UTF8 input
+increment. Existing UTF16 databases therefore keep the original quota decisions;
+JavaScript does not substitute a different storage-byte model.
+
+Stored entry/outcome text and response bytes are bounded in their original SQL
+row projection, before oversized columns cross into Node. A rejected column
+remains a present row with a null field, preserving the original integrity
+refusal instead of becoming a missing record. UTF8 databases use the existing
+byte ceiling; UTF16 databases use the corresponding native text-backing ceiling
+so valid ASCII and Unicode are preserved. The original exact UTF8 check and
+physical digest admission remain after projection. Physical digests, canonical
+admission, claim/CAS, reply-loss recovery and the original database close owner
+remain independent obligations.
 
 ### Checked Local demand
 

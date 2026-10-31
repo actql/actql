@@ -91,7 +91,8 @@ function prepareEffectLedgerUsage(database) {
     ON CONFLICT(singleton) DO UPDATE SET data_version = excluded.data_version,
       entries = excluded.entries, bytes = excluded.bytes`);
   const advance = database.prepare(`UPDATE temp.effect_ledger_usage
-    SET entries = entries + ?, bytes = bytes + ? WHERE singleton = 1`);
+    SET entries = entries + ?, bytes = bytes + ? + LENGTH(CAST(? AS BLOB))
+    WHERE singleton = 1`);
   const refresh = selectedVersion => {
     const observed = original.get();
     retain.run(selectedVersion, observed.entries, observed.bytes);
@@ -107,11 +108,13 @@ function prepareEffectLedgerUsage(database) {
       return observed?.data_version === selectedVersion
         ? observed : refresh(selectedVersion);
     },
-    add(entries, bytes) {
-      // The same transaction has already admitted these exact increments.
+    add(entries, bytes, text = '') {
+      // Preflight keeps its original encoded-input-byte rule. Retained totals
+      // must use SQLite's original native text encoding, just like SUM(CAST),
+      // including existing UTF16 databases. No JS byte-model replaces SQLite.
       // Failed inserts/CAS/reads and uncertain COMMIT keep their original
       // rollback/connection semantics, including rollback of this version stamp.
-      if (advance.run(entries, bytes).changes !== 1) {
+      if (advance.run(entries, bytes, text).changes !== 1) {
         fail('EffectLedgerIntegrityFailed');
       }
     },
@@ -269,15 +272,29 @@ export function openSqliteEffectLedger(root, {
     SELECT logical_request_scope_cid, revision, entry_cid
     FROM effect_ledger_heads WHERE logical_item_locator_cid = ?
   `);
+  // Preserve the original UTF8 semantic byte check below. SQL first bounds
+  // actual String backing: valid UTF8 input has <=B UTF16 units, so a UTF16
+  // database may return <=2B native text bytes without rejecting valid ASCII.
+  const textEncoding = database.prepare('PRAGMA main.encoding').get().encoding;
+  if (!['UTF-8', 'UTF-16le', 'UTF-16be'].includes(textEncoding)) {
+    fail('EffectLedgerIntegrityFailed');
+  }
+  const nativeTextBytes = BigInt(maxEntryBytes) * (textEncoding === 'UTF-8' ? 1n : 2n);
+  const boundedEntryJson = `CASE WHEN LENGTH(CAST(entry_json AS BLOB)) <= ${nativeTextBytes}
+    THEN entry_json ELSE NULL END AS entry_json`;
+  const boundedOutcomeJson = `CASE WHEN LENGTH(CAST(outcome_json AS BLOB)) <= ${nativeTextBytes}
+    THEN outcome_json ELSE NULL END AS outcome_json`;
+  const boundedResponseBytes = `CASE WHEN LENGTH(response_bytes) <= ${maxResponseBytes}
+    THEN response_bytes ELSE NULL END AS response_bytes`;
   const readEntry = database.prepare(`
-    SELECT logical_item_locator_cid, revision, entry_cid, entry_json,
+    SELECT logical_item_locator_cid, revision, entry_cid, ${boundedEntryJson},
       physical_sha256 FROM effect_ledger_entries
     WHERE logical_item_locator_cid = ? AND revision = ?
   `);
   const readResponse = database.prepare(`
     SELECT logical_item_locator_cid, dispatch_entry_cid,
       logical_request_scope_cid, credential_use_cid, status_code,
-      response_bytes, physical_sha256
+      ${boundedResponseBytes}, physical_sha256
     FROM effect_ledger_responses WHERE dispatch_entry_cid = ?
   `);
   const readResponseLocators = database.prepare(`
@@ -299,7 +316,7 @@ export function openSqliteEffectLedger(root, {
   `);
   const readBatchResponse = database.prepare(`
     SELECT batch_owner_cid, logical_request_scope_cid,
-      credential_use_cid, status_code, response_bytes, member_count,
+      credential_use_cid, status_code, ${boundedResponseBytes}, member_count,
       physical_sha256 FROM effect_ledger_batch_responses
     WHERE batch_owner_cid = ?
   `);
@@ -311,7 +328,7 @@ export function openSqliteEffectLedger(root, {
   const readOutcome = database.prepare(`
     SELECT dispatch_entry_cid, logical_item_locator_cid,
       logical_request_scope_cid, response_physical_sha256,
-      outcome_cid, outcome_json, physical_sha256
+      outcome_cid, ${boundedOutcomeJson}, physical_sha256
     FROM effect_ledger_outcomes WHERE dispatch_entry_cid = ?
   `);
   const readOutcomeLocators = database.prepare(`
@@ -615,7 +632,7 @@ export function openSqliteEffectLedger(root, {
           }
           throw error;
         }
-        usage.add(1, bytes);
+        usage.add(1, 0, outcomeJson);
         return Object.freeze({outcome: batchEvidence === undefined
           ? outcome(dispatchEntryCid)
           : materializeOutcome(readOutcome.get(dispatchEntryCid), observed),
@@ -863,7 +880,7 @@ export function openSqliteEffectLedger(root, {
             expectedRevision, head.entry_cid);
           if (result.changes !== 1) fail('EffectLedgerCASFailed');
         }
-        usage.add(1, entryBytes);
+        usage.add(1, 0, entryJson);
         return Object.freeze({
           entry: current(logicalItemLocatorCid),
           created: true,
@@ -936,6 +953,7 @@ export function openSqliteEffectLedger(root, {
               ) VALUES (?, ?, ?, ?, ?)
             `).run(operation.logicalItemLocatorCid, revision, entry.entryCid,
               entry.entryJson, physicalDigest(entry.entryJson));
+            usage.add(1, 0, entry.entryJson);
           }
           const lastCid = operation.entries.at(-1).entryCid;
           if (operation.expectedRevision === 0) {
@@ -956,7 +974,6 @@ export function openSqliteEffectLedger(root, {
             if (updated.changes !== 1) fail('EffectLedgerCASFailed');
           }
         }
-        usage.add(additionalEntries, additionalBytes);
         return Object.freeze({created: true, entries: Object.freeze(
           operations.map(operation => current(operation.logicalItemLocatorCid)),
         )});
@@ -1071,7 +1088,7 @@ export function openSqliteEffectLedger(root, {
         fail('EffectLedgerHistoryLimitExceeded');
       }
       const rows = database.prepare(`
-        SELECT logical_item_locator_cid, revision, entry_cid, entry_json,
+        SELECT logical_item_locator_cid, revision, entry_cid, ${boundedEntryJson},
           physical_sha256 FROM effect_ledger_entries
         WHERE logical_item_locator_cid = ? ORDER BY revision ASC
       `).all(locatorCid);

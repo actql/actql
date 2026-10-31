@@ -92248,7 +92248,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0aa48ac54e180b460e674cfddd7bac3d1bae3c52de40eb935ef864201bffa6ef",
+      "sha256": "37f43bb709aef99d65f362afd5529296d04277ebf5ff0d14ab9256b77430d06e",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -92673,7 +92673,8 @@
           "name": "prepareEffectLedgerUsage/init:add/init:add",
           "parameters": [
             "entries",
-            "bytes"
+            "bytes",
+            "text"
           ],
           "async": false
         },
