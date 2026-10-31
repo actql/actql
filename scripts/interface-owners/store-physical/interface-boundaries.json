@@ -3716,7 +3716,7 @@
     {
       "module": "adapters/store-local/object-writer-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f1e5cb7902a4070fdfb1e2a97c11460c65a80b943439b1a0bee6b4bb26a2fd3",
+      "sha256": "95221ab37fb4db20cfbc2906ef42d2a5c5d5b51da5f547f8b1b6e3e4a3daaf8d",
       "exports": [
         "createObjectWriterOwner"
       ],
@@ -3763,6 +3763,11 @@
             "reservation",
             "operations"
           ],
+          "async": false
+        },
+        {
+          "name": "ObjectWriterOwner/constructor:constructor/constructor:constructor/constructor:constructor",
+          "parameters": [],
           "async": false
         },
         {
@@ -3853,6 +3858,7 @@
           "operations": [
             "<module>",
             "ObjectWriterOwner/constructor:constructor/constructor:constructor",
+            "ObjectWriterOwner/constructor:constructor/constructor:constructor/constructor:constructor",
             "ObjectWriterOwner/method:append/method:append",
             "ObjectWriterOwner/method:append/method:append/method:append",
             "ObjectWriterOwner/method:append/method:append/method:append#2",
