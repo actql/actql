@@ -11,8 +11,8 @@ const same = (actual, expected) => {assert.equal(actual.length, expected.length)
 function fixture() {
   const prepared = {}, request = {}, plan = {}, parent = {}, scope = {}, demand = {}, admission = {}, original = {};
   const model = Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}});
-  const facts = {prepared, identity: request, compilation: {}, allowed: {},
-    definition: model.definition, modelCompiled: model.compiled};
+  const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {},
+    definition: model.definition, modelCompiled: model.compiled, queryTimePreparation: undefined});
   const runs = new WeakMap(), liveRuns = new Set(), calls = [], registry = {};
   let pending = true, beginFailure, finishCallback;
   const runtime = {
@@ -37,7 +37,7 @@ function fixture() {
       assert.equal(this, runtime); same([p, value, r], [parent, prepared, request]); return ok();
     },
     clientProgramInstalledEffectManagedOperationPlan(p, value, r) {assert.equal(p, parent); assert.equal(value, prepared); assert.equal(r, request); return ok(plan);},
-    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
+    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {calls.push('retire-parent'); return ok();},
     clientProgramNodeEffectManagedPlanCleanup(a) {assert.equal(a, admission); calls.push('cleanup-admission'); return ok();},
     clientProgramFinishInferOriginalReadScope(s, compiled, definition, graph, complete) {

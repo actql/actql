@@ -1051,7 +1051,7 @@ test('actual installed Effect Host forwards original Request input and joins typ
   const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, log = [];
   let retireCalls = 0;
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {},
+    clientProgramInstalledEffectOperationControlsBegin() {return plan;},
     clientProgramInstalledManagedRunRetire(value) {
       assert.equal(this, runtime); assert.equal(value, parent); log.push('retire');
       if (++retireCalls === 1) throw new Error('OriginalBorrowPending');
@@ -1077,7 +1077,8 @@ test('actual installed Effect Host forwards original Request input and joins typ
     assert.equal(value, prepared); return requestInput;
   }});
   await f.preparation.prepareManagedCompute();
-  const facts = {prepared, identity}, inputs = {};
+  const facts = Object.freeze({prepared, identity, compilation: {}, allowed: {}, definition: {},
+    queryTimePreparation: undefined, modelCompiled: undefined}), inputs = {};
   const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
     assert.equal(actual, facts); assert.equal(selectedInputs.installedContracts, undefined); return plan;
   }});
@@ -1211,12 +1212,13 @@ test('captured Host constructor keeps the same QueryTime requirement without con
 async function modelEffectLifecycle({failure} = {}) {
   const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, scope = {}, demand = {};
   const model = Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}});
-  const facts = {prepared, identity, compilation: {}, allowed: {}, definition: model.definition, modelCompiled: model.compiled};
+  const facts = Object.freeze({prepared, identity, compilation: {}, allowed: {}, definition: model.definition,
+    modelCompiled: model.compiled, queryTimePreparation: undefined});
   const calls = []; let pending = true, f;
   const runtime = {
     clientProgramInstalledEffectModelDemandPrepare() {return demand;},
     clientProgramInstalledEffectPlanMatchesModelDemand(p, selected) {return p === plan && selected === demand;},
-    clientProgramInstalledEffectOperationControlsBegin() {},
+    clientProgramInstalledEffectOperationControlsBegin() {return plan;},
     clientProgramInstalledEffectManagedOperationPlan(value, actual, request) {
       assert.equal(value, parent); assert.equal(actual, prepared); assert.equal(request, identity); return plan;
     },

@@ -803,9 +803,10 @@ test('installed Effect caller consumes actual Request manager adoption and same 
   const f = await originalEffectRequest();
   const {prepareInstalledEffectManagedPlanRun: prepare, readInstalledEffectManagedPlanRun: read} = await import('./installed-effect-managed-run.mjs');
   const selected = await f.view.fundedPreparation(f.sdkRequest, undefined);
-  const facts = {prepared: selected.prepared, identity: f.identity}, runs = new WeakMap(), liveRuns = new Set();
+  const facts = Object.freeze({prepared: selected.prepared, identity: f.identity, compilation: {}, allowed: {},
+    definition: {}, queryTimePreparation: undefined, modelCompiled: undefined}), runs = new WeakMap(), liveRuns = new Set();
   f.moon.clientProgramInstalledManagedRunRetire = () => ok(undefined);
-  f.moon.clientProgramInstalledEffectOperationControlsBegin = () => ok(undefined);
+  f.moon.clientProgramInstalledEffectOperationControlsBegin = () => ok(f.plan);
   f.moon.clientProgramInstalledEffectManagedOperationPlan = function(value, prepared, identity) {
     assert.equal(this, f.moon); assert.equal(value, f.parent); assert.equal(prepared, f.prepared); assert.equal(identity, f.identity); return ok(f.plan);
   };

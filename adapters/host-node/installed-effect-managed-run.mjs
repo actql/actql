@@ -27,7 +27,15 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   runs.set(prepared, run);
   liveRuns.add(run);
   try {
-    if (facts?.prepared !== prepared || facts.identity !== request) fail('ForeignInstalledEffectManagedRun');
+    // The sole installed issuer supplies a frozen own-DATA tuple. Do not move
+    // an accessor/reentrant facts read across the original native boundary.
+    if (facts === null || typeof facts !== 'object' || types.isProxy(facts) || !Object.isFrozen(facts)) {
+      fail('ForeignInstalledEffectManagedRun');
+    }
+    const fields = Object.getOwnPropertyDescriptors(facts);
+    if (['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
+        .some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('ForeignInstalledEffectManagedRun');
+    if (facts.prepared !== prepared || facts.identity !== request) fail('ForeignInstalledEffectManagedRun');
     run.definitionOriginal = Object.freeze(Object.fromEntries(
       ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
         .map(name => [name, facts[name]])));
@@ -110,12 +118,23 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     }
     // The original Request/Model adoption above supplies the SAME Ledger.
     // Quote DATA alone cannot back the consumer's later operation controls.
-    const parent = run.value;
-    checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
+    const parent = run.value, definition = run.definitionOriginal, readPlan = run.readPlan;
+    const demand = run.modelDemand, scope = run.modelScope, admission = run.admission, original = run.original;
+    const actualPlan = checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
     if (Object.hasOwn(run, 'failure')) throw run.failure;
-    if (run.value !== parent || run.operationPlan !== operationPlan || run.beginOperations !== beginOperations) fail('ForeignInstalledEffectManagedRun');
+    if (actualPlan !== operationPlan || run.value !== parent || run.operationPlan !== operationPlan ||
+        run.beginOperations !== beginOperations || run.requestInput !== requestInput ||
+        ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
+          .some(name => definition[name] !== facts[name])) fail('ForeignInstalledEffectManagedRun');
     run.operationsBegun = true;
-    return same(run);
+    // Consume the SAME native Plan result immediately. No optional proof or
+    // cached current flag escapes; cached/later reads still call their getter.
+    assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
+      definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations);
+    assertCurrent();
+    assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
+      definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations);
+    return parent;
   } catch (cause) {
     if (!Object.hasOwn(run, 'failure')) run.failure = cause;
     throw run.failure;
