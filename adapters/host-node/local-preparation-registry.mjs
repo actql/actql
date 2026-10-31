@@ -70,8 +70,14 @@ export function installLocalPreparationRegistry(select, retirePrepared, resource
     if (resource !== undefined) {
       try {
         entry.coreHandler = resource.borrow(prepared, request);
-        if (entry.coreHandler !== undefined &&
-            resource.runtime.clientProgramPreparationBorrowRead(entry.coreHandler) !== prepared) {
+        if (entry.coreHandler === undefined) {
+          // A custody selector is not a Request-domain witness. Unbound and
+          // legacy preparations retain their original owner; no handler or
+          // dispatch capability is fabricated from an absent Core borrow.
+          delete payload(entry).prepared;
+          return prepared;
+        }
+        if (resource.runtime.clientProgramPreparationBorrowRead(entry.coreHandler) !== prepared) {
           throw new Error('ForeignLocalPreparationResource');
         }
       } catch (error) {
