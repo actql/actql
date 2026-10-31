@@ -200,11 +200,11 @@ function physicalReadChild({namespace,path,assertCurrent}) {
 // Run/Ledger/RowRun and Reference admission; the Source supplier retains the
 // same physical reader before any post-acquisition current check.
 export async function installPreparedProjectLocalFiles({moon,preparation,sourceManaged,
-  baseEnvironmentWire,authorizationFor,nativeFilesystem,prepareManagedRun}) {
+  baseEnvironmentWire,authorizationFor,nativeFilesystem,prepareManagedRun,prepareManagedContentRun}) {
   if(typeof authorizationFor!=='function'||typeof sourceManaged?.assertCurrent!=='function'||
       typeof sourceManaged?.prepareRead!=='function'||
       typeof moon?.clientProgramLocalFileTimestamp!=='function') fail('LocalFilesManagedReadUnavailable');
-  const bundle=preparation.originalsForRuntime(moon),sources=[],runs=new Map(),reads=new WeakMap();
+  const bundle=preparation.originalsForRuntime(moon),sources=[],reads=new WeakMap();
   // Weak lookup is provenance only. The shared Host owns ordinary Runs; this
   // Connector retains only its actual native children until their close ACK.
   const sharedRuns=new WeakMap(),sharedReads=new Set();
@@ -227,7 +227,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
   const sameRun=prepared=>{
-    current();const run=sharedRuns.get(prepared)??runs.get(prepared);
+    current();const run=sharedRuns.get(prepared);
+    if(run?.retired)fail('LocalFilesPreparationRetired');
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
     checked((run.effectful?moon.clientProgramInstalledEffectManagedRunCheck:moon.clientProgramInstalledManagedRunCheck)
@@ -235,7 +236,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   };
   function prepareRun(prepared,request,prepareInvocation){
     current();
-    if(runs.has(prepared)||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
+    if(sharedRuns.get(prepared)?.recipe!==undefined||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
     // The same Host retains its actual partial/adopted Run before returning.
     // No Connector Root, admission, numeric quote or run-count ceiling exists.
     const value=Reflect.apply(prepareManagedRun,undefined,[prepared,request,profile,prepareInvocation]);
@@ -245,52 +246,70 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior===undefined)sharedRuns.set(prepared,{prepared,request,value,effectful:false,reads:new Map()});
     current();
   }
-  function prepareContentRun(prepared,request,recipe){
+  function releaseContentAliases(managed,inputHolder){
+    const run=this;if(run.retired===true)return;
+    if(sharedRuns.get(run.prepared)!==run||run.contentPreparation?.localPreparation!==run)
+      fail('ForeignLocalFilesContentPreparation');
+    if(managed!==undefined){
+      if(run.hostRun!==managed||managed.retiringContent!==true||managed.prepared!==run.prepared||managed.request!==run.request)
+        fail('LocalFileCleanupPending');
+    }else if(run.hostRun?.value!==undefined||inputHolder===undefined||run.inputHolder!==inputHolder||
+        moon.clientProgramPreparationBorrowRead(inputHolder)!==run.prepared||
+        moon.clientProgramPreparationBorrowRetirementStarted(inputHolder)!==true)fail('LocalFileCleanupPending');
+    for(const read of run.reads.values())if(read!==undefined&&!read.closed)fail('LocalFileCleanupPending');
+    for(const key of Object.keys(run))run[key]=undefined;
+    run.retired=true;
+  }
+  function prepareContentRun(prepared,request,recipe,graph,contentPreparation){
     current();
-    if(sharedRuns.has(prepared))fail('ForeignLocalFilesContentPreparation');
-    const prior=runs.get(prepared);
+    if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
+    const prior=sharedRuns.get(prepared);
     if(prior!==undefined){
-      if(prior.recipe!==recipe)fail('ForeignLocalFilesContentPreparation');
+      if(prior.retired||prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
       sameRun(prepared);
-      checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return;
+      checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return prior.hostRun;
     }
-    if(runs.size===4096)fail('LocalFilesRunLimit');
-    const run={prepared,request,effectful:false,recipe,original:undefined,admission:undefined,value:undefined,
-      reads:new Map(),retired:false,failed:false,failure:undefined};
-    runs.set(prepared,run);
+    if(contentPreparation?.prepared!==prepared||contentPreparation.inputHolder===undefined||contentPreparation.localPreparation!==undefined)
+      fail('ForeignLocalFilesContentPreparation');
+    const run={prepared,request,effectful:false,recipe,graph,hostRun:undefined,original:undefined,value:undefined,
+      inputHolder:contentPreparation.inputHolder,contentPreparation,reads:new Map(),retired:false,failed:false,failure:undefined};
+    Object.defineProperty(run,'releaseAliases',{value:releaseContentAliases});
+    contentPreparation.localPreparation=run;
+    sharedRuns.set(prepared,run);
     try{
-      const keyed=recipe.keyedAcquisition;
-      if(keyed===undefined||moon.clientProgramKeyedAcquisitionMatchesProgram(keyed,prepared)!==true)
-        fail('ForeignLocalFilesContentPreparation');
-      const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
-      const stage=runtimeOptionalField(coordinates,0),input=runtimeOptionalField(coordinates,1);
-      if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
-      const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,stage,input,
-        recipe.registry,recipe.values,recipe.fragment,recipe.ordered));
-      const directRef=moon.clientProgramQueryRequirementSourceRef(requirement);
-      const facts=checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyed));
-      const direct=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
-        view.resource==='files'&&view.source_ref===directRef));
-      const content=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
-        view.resource==='contents'&&view.source_ref===facts[0]));
-      if(direct===undefined||content===undefined)fail('LocalFilesContentPreparationUnavailable');
-      const acquisition=checked(moon.clientProgramRowSourcePrepareAcquisition(direct.declaration,
-        requirement,queryContract,evidenceContract));
-      const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
-      if(capacity===undefined)fail('LocalFilesContentPreparationUnavailable');
-      run.keyed=keyed;run.contentEntry=content;
-      run.selected=checked(moon.clientProgramInstalledManagedKeyedContentPrepare(prepared,capacity,keyed,
-        content.declaration,content.limits.maxPageBytes,content.limits.maxPageBytes,1000000,
-        [BigInt(direct.limits.maxPages)*BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).transferBytes],
-        [BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).executionBytes],content.limits.maxPageBytes,1000000,
-        recipe.registry,recipe.values,recipe.fragment,recipe.ordered,recipe.task,recipe.step,
-        recipe.prefixRetainedBytes,recipe.prefixExecutionBytes));
-      // Retain both physical-purpose original and its admission before any
-      // fallible current/start/take. A failed begin never issues a replacement.
-      run.original=sourceManaged.prepareContentRun(prepared,run.selected);
-      current();run.admission=checked(moon.clientProgramNodeLocalContentRunPrepare(run.original,prepared));
-      run.value=checked(moon.clientProgramInstalledManagedKeyedContentRunBegin(
-        run.admission,prepared,request,run.selected));sameRun(prepared);
+      run.hostRun=Reflect.apply(prepareManagedContentRun,undefined,[prepared,request,graph,recipe,()=>{
+        const keyed=recipe.keyedAcquisition;
+        if(keyed===undefined||moon.clientProgramKeyedAcquisitionMatchesProgram(keyed,prepared)!==true)
+          fail('ForeignLocalFilesContentPreparation');
+        const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
+        const stage=runtimeOptionalField(coordinates,0),input=runtimeOptionalField(coordinates,1);
+        if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
+        const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,stage,input,
+          recipe.registry,recipe.values,recipe.fragment,recipe.ordered));
+        const directRef=moon.clientProgramQueryRequirementSourceRef(requirement);
+        const facts=checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyed));
+        const direct=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
+          view.resource==='files'&&view.source_ref===directRef));
+        const content=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
+          view.resource==='contents'&&view.source_ref===facts[0]));
+        if(direct===undefined||content===undefined)fail('LocalFilesContentPreparationUnavailable');
+        const acquisition=checked(moon.clientProgramRowSourcePrepareAcquisition(direct.declaration,
+          requirement,queryContract,evidenceContract));
+        const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
+        if(capacity===undefined)fail('LocalFilesContentPreparationUnavailable');
+        run.keyed=keyed;run.contentEntry=content;
+        run.selected=checked(moon.clientProgramInstalledManagedKeyedContentPrepare(prepared,capacity,keyed,
+          content.declaration,content.limits.maxPageBytes,content.limits.maxPageBytes,1000000,
+          [BigInt(direct.limits.maxPages)*BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).transferBytes],
+          [BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).executionBytes],content.limits.maxPageBytes,1000000,
+          recipe.registry,recipe.values,recipe.fragment,recipe.ordered,recipe.task,recipe.step,
+          recipe.prefixRetainedBytes,recipe.prefixExecutionBytes));
+        return run.selected;
+      },contentPreparation]);
+      if(run.hostRun===undefined||run.hostRun.selectedKeyed!==run.selected||run.hostRun.value===undefined)
+        fail('LocalFilesContentPreparationUnavailable');
+      run.original=run.hostRun.original;run.value=run.hostRun.value;
+      sameRun(prepared);return run.hostRun;
     }catch(cause){run.failed=true;run.failure=cause;throw cause;}
   }
   function contentLedger(prepared,request,recipe,direct,keyed,capacity){
@@ -328,14 +347,14 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     // The Core session still owns its original read and RowRun retirement.
     // Keep only a weak-key close tombstone and the consumed occurrence, not
     // another strong path to the Prepared graph or closed native controls.
-    reads.set(read.value,{entry:read.entry,externalClosed:true});
+    if(read.value!==undefined)reads.set(read.value,{entry:read.entry,keyed:read.keyed===true,externalClosed:true});
     read.owner.reads.set(read.index,undefined);
     sharedReads.delete(read);read.closed=true;
     read.owner=read.value=read.raw=read.entry=read.reader=read.physical=read.close=read.retain=undefined;
   }
   async function closeSourceRead(original){
     const retained=reads.get(original);
-    if(retained===undefined)fail('ForeignLocalFilesSourcePreparation');
+    if(retained===undefined||retained.keyed===true||retained.read?.keyed===true)fail('ForeignLocalFilesSourcePreparation');
     if(retained.externalClosed===true)return Object.freeze({pending:false});
     const read=retained.read;
     if(!sharedReads.has(read))fail('ForeignLocalFilesSourcePreparation');
@@ -347,7 +366,10 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(sharedReads.has(read)){
       await closeSharedReadExternal(read);
       if(read.closed)return;
-      if(read.value!==undefined)checked(moon.clientProgramInstalledSourceReadRetire(read.value));
+      if(read.value!==undefined){
+        const retire=read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:moon.clientProgramInstalledSourceReadRetire;
+        checked(Reflect.apply(retire,moon,[read.value]));
+      }
       releaseSharedRead(read);return;
     }else{
       if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
@@ -364,18 +386,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   async function close(){
     closing=true;const errors=[];
     for(const read of sharedReads)try{await closeRead(read);}catch(cause){errors.push(cause);}
-    for(const run of runs.values()){
-      for(const read of run.reads.values())try{await closeRead(read);}catch(cause){errors.push(cause);}
-      if([...run.reads.values()].some(read=>!read.closed)||run.retired)continue;
-      try{
-        if(run.value!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-        else if(run.admission!==undefined)checked((run.effectful?moon.clientProgramNodeEffectManagedRunCleanup:
-          moon.clientProgramNodeManagedRunCleanup)(run.admission));
-        run.retired=true;
-      }catch(cause){errors.push(cause);}
-    }
     if(errors.length)throw new AggregateError(errors,'LocalFilesCleanupPending');
-    runs.clear();
   }
   try{
     for(const entry of bundle.sources){
@@ -415,9 +426,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             return Object.freeze({runInvocationCid,dispatchRequestCid});
           },
           async close(){
-            for(const read of sharedReads)if(read.entry===entry)await closeRead(read);
-            for(const run of runs.values())for(const read of run.reads.values())
-              if(read.entry===entry)await closeRead(read);}}),
+            for(const read of sharedReads)if(read.entry===entry)await closeRead(read);}}),
         physicalTarget:(resource,fields)=>({connection:entry.connection,root:entry.rootPath,
           resource,fields:[...fields],scope_cid:entry.scopeCid}),
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
@@ -454,9 +463,9 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           if(run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry||
               declaration!==entry.declaration||run.reads.has(request))fail('LocalFilesSourcePreparationMismatch');
           const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.original,request);
-          const read={raw,entry,keyed:true,value:undefined,reader:undefined,physical:undefined,
+          const read={raw,entry,owner:run,index:request,keyed:true,value:undefined,reader:undefined,physical:undefined,
             close:undefined,closeCaptured:false,retain:undefined,closed:false,attempted:false};
-          run.reads.set(request,read);captureClose(read);read.retain=raw.retainChild;
+          run.reads.set(request,read);sharedReads.add(read);captureClose(read);read.retain=raw.retainChild;
           if(typeof read.retain!=='function')fail('LocalFilesManagedReadUnavailable');
           sameRun(checkedOwner);
           read.value=checked(moon.clientProgramInstalledManagedKeyedSourceRead(
@@ -465,14 +474,18 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         },
         async closeKeyedSourceRead(original){
           const retained=reads.get(original);
-          if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry)
+          if(retained?.externalClosed===true){
+            if(!retained.keyed||retained.entry!==entry)fail('ForeignLocalFilesContentPreparation');
+            return Object.freeze({pending:false});
+          }
+          if(retained===undefined||!retained.read?.keyed||retained.read.entry!==entry)
             fail('ForeignLocalFilesContentPreparation');
           await closeRead(retained.read);return Object.freeze({pending:false});
         },
         async readPages(options){
           if(options.resource==='contents'){
             const retained=reads.get(options.rowRun.originalKeyedRead);
-            if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry||
+            if(retained===undefined||!retained.read?.keyed||retained.read.entry!==entry||
                 typeof options.capturedResourcePath!=='function'||typeof options.captureContent!=='function')
               fail('LocalFilesSourcePreparationMismatch');
             const {run,read}=retained;sameRun(run.prepared);
@@ -520,7 +533,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           }
           if(options.resource!=='files'||options.listing===undefined)fail('LocalFilesContentReadUnavailable');
           const retained=reads.get(options.rowRun.originalRead);
-          if(retained===undefined)fail('LocalFilesSourcePreparationMismatch');
+          if(retained?.read===undefined)fail('LocalFilesSourcePreparationMismatch');
           const {run,read}=retained;sameRun(run.prepared);
           if(read.closed||read.attempted||read.entry!==entry)fail('LocalFilesSourcePreparationMismatch');
           const shared=sharedRuns.get(run.prepared)===run;
@@ -595,7 +608,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         },
         async prepare(facts){
           const owner=facts.preparedEffect??facts.preparedProgram;
-          const original=sharedRuns.get(owner)??runs.get(owner);
+          const original=sharedRuns.get(owner);
           if(original===undefined||original.failed) {
             if(original?.failed)throw original.failure;
             fail('LocalFilesManagedReadUnavailable');

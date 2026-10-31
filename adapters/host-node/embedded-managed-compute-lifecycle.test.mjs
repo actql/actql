@@ -1144,7 +1144,7 @@ test('actual installed Effect Host forwards original Request input and joins typ
   const facts = Object.freeze({prepared, identity, compilation: {}, allowed: {}, definition: {},
     queryTimePreparation: undefined, modelCompiled: undefined}), inputs = {};
   const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
-    assert.equal(actual, facts); assert.equal(selectedInputs.installedContracts, undefined); return plan;
+    assert.equal(actual, facts); assert.equal(selectedInputs, inputs); return plan;
   }});
   assert.equal(f.preparation.prepareManagedEffectPlanRun(runtime, facts, selection, inputs), parent);
   await f.initialControl.close();

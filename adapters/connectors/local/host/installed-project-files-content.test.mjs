@@ -64,8 +64,9 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
     {resource:'contents',source_ref:'local:contents',view_cid:'view2',carrier_schema_cid:'schema2'}]});
   const entry={connection:'local',rootPath:directory,wire,declaration,scopeCid,versionMode:'metadata',limits,
     queryAliases:[{name:'local',resource:'files'},{name:'local.contents',resource:'contents'}]};
-  const bundle={sources:[entry]},prepared={},request={},keyed={},selected={},run={},admission={},original={},read={};
-  let options,current=true,retired=false,physical,rawClosed=false,closeAllowed=!pendingClose,nativeReads=0;
+  const bundle={sources:[entry]},prepared={},request={},keyed={},selected={},run={},original={},read={};
+  const serializationGraph=Object.freeze({task:0,step:1});
+  let options,current=true,physical,rawClosed=false,closeAllowed=!pendingClose,nativeReads=0;
   const calls=[],raws=[];
   const moon={
     clientProgramLocalFileTimestamp:()=>'',clientProgramResourceReferenceIssuer:()=>({}),
@@ -77,11 +78,8 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
     clientProgramRowSourcePrepareAcquisition:(actual)=>{assert.strictEqual(actual,declaration);return ok({});},
     clientProgramInstalledRowCaptureCapacity:()=>({}),
     clientProgramInstalledManagedKeyedContentPrepare:()=>ok(selected),
-    clientProgramNodeLocalContentRunPrepare:(actual,value)=>{assert.strictEqual(actual,original);assert.strictEqual(value,prepared);calls.push('admission');return ok(admission);},
-    clientProgramInstalledManagedKeyedContentRunBegin(actual,value,intent,selection){
-      assert.strictEqual(actual,admission);assert.strictEqual(value,prepared);assert.strictEqual(intent,request);
-      assert.strictEqual(selection,selected);calls.push('begin');return failBegin?{$tag:0,_0:new Error('partial-begin')}:ok(run);
-    },
+    clientProgramNodeLocalContentRunPrepare:()=>assert.fail('No independent Content admission'),
+    clientProgramInstalledManagedKeyedContentRunBegin:()=>assert.fail('No standalone Content begin'),
     clientProgramInstalledManagedRunCheck:(actual,value,intent)=>{
       assert.strictEqual(actual,run);assert.strictEqual(value,prepared);assert.strictEqual(intent,request);return ok();},
     clientProgramInstalledManagedKeyedContentCheckPreparation:(actual,value)=>{
@@ -91,12 +89,12 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
       assert.strictEqual(parent,run);assert.strictEqual(k,keyed);assert.strictEqual(q,keyedRequest);assert.strictEqual(d,declaration);return ok(read);},
     clientProgramInstalledKeyedSourceReadCheckCurrent:()=>ok(),
     clientProgramInstalledKeyedSourceReadRetire:value=>{assert.strictEqual(value,read);assert(physical===undefined||physical.status().pending===false);calls.push('retire');return ok();},
-    clientProgramInstalledManagedRunRetire:()=>{calls.push('parent-retire');retired=true;return ok();},
-    clientProgramNodeManagedRunCleanup:value=>{assert.strictEqual(value,admission);calls.push('partial-parent-cleanup');retired=true;return ok();},
+    clientProgramInstalledManagedRunRetire:()=>assert.fail('Local physical child cannot retire its Host parent'),
+    clientProgramNodeManagedRunCleanup:()=>assert.fail('No standalone admission cleanup'),
   };
   const sourceManaged={assertCurrent(){if(!current)throw new Error('current-changed');},
     prepareRun(){throw new Error('wrong-purpose');},prepareRead(){throw new Error('wrong-child');},
-    prepareContentRun(value,selection){assert.strictEqual(value,prepared);assert.strictEqual(selection,selected);calls.push('original');return original;},
+    prepareContentRun(){assert.fail('No standalone Content Root');},
     prepareKeyedRead(value,d,parent,q){
       assert.strictEqual(value,prepared);assert.strictEqual(d,declaration);assert.strictEqual(parent,original);assert.strictEqual(q,keyedRequest);
       const raw={retainChild(child){physical=child;calls.push('retain-native');},
@@ -121,17 +119,23 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   };
   nativeFilesystem.fileRootClose=handle=>closeAllowed?Reflect.apply(native.fileRootClose,native,[handle]):{outcome:'pending',errno:0};
   const profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged,
-    baseEnvironmentWire:'{}',authorizationFor:async()=>authorization,nativeFilesystem});
+    baseEnvironmentWire:'{}',authorizationFor:async()=>authorization,nativeFilesystem,
+    prepareManagedContentRun(value,intent,graph,recipe,construct){
+      assert.strictEqual(value,prepared);assert.strictEqual(intent,request);assert.strictEqual(graph,serializationGraph);
+      calls.push('same-host-parent');assert.strictEqual(construct(),selected);calls.push('selected');
+      if(failBegin)throw Object.assign(new Error('partial-begin'),{code:'OriginalHostContentAdoptionFailed'});
+      calls.push('adopt');return{original,value:run,selectedKeyed:selected,contentCompilation:{}};
+    }});
   const recipe=Object.freeze({registry:'registry',values:'values',task:0,step:1,keyedAcquisition:keyed,
     prefixRetainedBytes:1n,prefixExecutionBytes:1n});
+  const contentPreparation={prepared,inputHolder:{}};
   const keyedRequest={};
   const resource={$actql_ref:'resource',version:'actql-resource-ref/0.1',provider_namespace:'local',
     resource_kind:'file',provider_identity_cid:scopeCid,authority_scope_cid:contextCid,
     boundary_cid:scopeCid,identity_cid:cid({root_scope:scopeCid,path:'one.txt'})};
   return{profile,options,prepared,request,keyed,recipe,keyedRequest,read,resource,version,bytes,calls,raws,decision,authorization,
     acknowledgeClose(){closeAllowed=true;},get nativeReads(){return nativeReads;},
-    get retired(){return retired;},
-    prepare:()=>profile.prepareManagedContentRun(prepared,request,recipe),
+    prepare:()=>profile.prepareManagedContentRun(prepared,request,recipe,serializationGraph,contentPreparation),
     prepareRead:()=>options.prepareKeyedSourceRead({checkedOwner:prepared,keyedAcquisition:keyed,
       request:keyedRequest,declaration}),
     async readContent({path='one.txt',actualResource=resource,actualVersion=version}={}){
@@ -154,18 +158,18 @@ test('Local Content installer selects the existing Run-owned capture before keye
   assert.equal(f.profile.sources.length,1);
   assert.equal(f.profile.sources[0].requiresRunContentCapture,true);
   f.prepare();
-  assert.deepEqual(f.calls.slice(0,3),['original','admission','begin']);
+  assert.deepEqual(f.calls.slice(0,3),['same-host-parent','selected','adopt']);
   await f.profile.close();
 });
 
 test('Local Content caller retains original admission, actual native bytes and same reference/version row',async()=>{
-  const f=await fixture();f.prepare();assert.deepEqual(f.calls.slice(0,3),['original','admission','begin']);
+  const f=await fixture();f.prepare();assert.deepEqual(f.calls.slice(0,3),['same-host-parent','selected','adopt']);
   assert.strictEqual(f.prepareRead(),f.read);
   const rows=await f.readContent();assert.deepEqual(rows,[{resource:f.resource,version:f.version,
     path:'one.txt',media_type:'text/plain',content:{$actql_ref:'content'}}]);
   assert(f.calls.filter(x=>x==='raw-charge').length>1);
   assert(f.calls.indexOf('retain-native')>f.calls.indexOf('send'));
-  await f.options.closeKeyedSourceRead(f.read);await f.profile.close();assert(f.retired);
+  await f.options.closeKeyedSourceRead(f.read);await f.profile.close();assert.equal(f.calls.includes('parent-retire'),false);
   assert(f.calls.indexOf('retire')<f.calls.indexOf('raw-close'));
 });
 test('Local Content grant requires original Account decision and exact tuple',async()=>{
@@ -216,10 +220,10 @@ test('Local Content post-factory current failure retains the original close and 
   await f.profile.close();assert.equal(replacement,0);assert.equal(f.calls.includes('raw-close'),true);
   assert.notStrictEqual(f.raws[0].close,original);
 });
-test('Local Content failed begin retains original admission for cleanup without reissue',async()=>{
-  const f=await fixture({failBegin:true});assert.throws(f.prepare,{code:'MoonBitHostFailure'});
-  assert.throws(f.prepare);assert.equal(f.calls.filter(x=>x==='original').length,1);
-  await f.profile.close();assert(f.retired);assert(f.calls.includes('partial-parent-cleanup'));
+test('Local Content failed Host adoption never creates or cleans another admission',async()=>{
+  const f=await fixture({failBegin:true});assert.throws(f.prepare,{code:'OriginalHostContentAdoptionFailed'});
+  assert.throws(f.prepare);assert.equal(f.calls.filter(x=>x==='same-host-parent').length,1);
+  await f.profile.close();assert.equal(f.calls.includes('parent-retire'),false);assert.equal(f.calls.includes('partial-parent-cleanup'),false);
 });
 test('Local Content native short reads and empty bytes preserve the same exact bounded output',async()=>{
   for(const options of [{shortReads:true},{empty:true}]){

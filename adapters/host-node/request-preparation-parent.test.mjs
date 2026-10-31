@@ -53,6 +53,8 @@ async function fixture({beginFailure, environment, control=[1024n,0n], policyLim
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
     clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
+    clientProgramComposedInferOccurrences: () => ok([]),
+    clientProgramSerializationOccurrences: () => [],
     clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
@@ -1159,7 +1161,7 @@ async function originalCapturedRequest({moduleFailure, adoptFailure} = {}) {
   moon.clientProgramAdoptRequestProgramPreparation = () => assert.fail('no Source-free adoption for captured Program');
   moon.clientProgramPrepareRequestCaptureModuleBody = function(parent, input, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(input, receipt); assert.equal(selected, plan);
-    events.push('complete'); if (completeFailure) throw completeFailure; return ok(undefined);
+    events.push('module'); if (moduleFailure) throw moduleFailure; return ok(undefined);
   };
   moon.clientProgramAdoptRequestCapturePreparation = function(parent, selected) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(selected, identity);
@@ -1213,7 +1215,7 @@ test('captured Request completes one original Plan and adopts its same parent wi
 });
 
 test('captured Request keeps original failed completion or adoption without replaying its constructor', async () => {
-  for (const phase of ['completeFailure', 'adoptFailure']) {
+  for (const phase of ['moduleFailure', 'adoptFailure']) {
     const failure = new Error(phase), f = await originalCapturedRequest({[phase]: failure});
     await f.view.fundedPreparation(f.request, undefined);
     let constructors = 0;

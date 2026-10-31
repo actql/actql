@@ -3884,6 +3884,109 @@ Model constructor adopts an already inventoried preparation, the existing
 `bind_client_model_read_scope` binds that same original census. Calling the
 pristine-bootstrap `begin_client_model_read_scope` would select a different
 lifecycle and is not a substitute for this binding.
+
+### First timed Request invocation
+
+A time-dependent Request retains its original preparation borrower until the
+submission has its nominal Request. The same parent compiles once, then the
+existing Host constructs the first checked Run and Definition and binds its
+QueryTime preparation to those originals. Only the Core getter's opaque Option
+passes to the module constructor. JavaScript neither reconstructs that tuple nor
+uses an adopted Run to construct its own module. Module completion precedes
+adoption; a failed original construction remains failed rather than selecting
+another compiler, clock sample or header.
+
+The installed operation retains only the immutable Request, compiled Run,
+Definition and QueryTime view needed by its existing captured Plan and later
+publication. The temporary Option carrier and constructor callback do not
+remain as additional roots. Downstream Values or Task publication checks and
+uses that same view; its invocation, Result policy, retention and current
+checks remain separate. A retained Definition restores its original query time
+instead of sampling another one. The adopted Core getter checks the original
+Prepared and all four retained tokens and refuses a failed or retired holder.
+
+Retirement follows the existing managed payload severing boundary. A pending
+retirement keeps the same original view and cleanup duty; successful severing
+clears those aliases before its existing continuation finishes. This managed
+alias release is not a physical cleanup acknowledgment. Untimed and independently
+selected Model or serialization purposes keep their original paths. Captured
+whole-Source execution additionally requires its matching typed QueryTime port
+and complete same-parent backing; a JS view or a numeric limit is not that
+backing.
+
+The captured constructor forwards that same temporary invocation Option into
+its Plan callback before passing it to ModuleBody. A timed whole-Source Plan
+selects the typed whole-Source constructor with that unchanged Option; it does
+not select the untimed constructor or substitute a Query capacity. Absence of
+the typed port refuses construction. The Option is not stored on the Run or in
+the publication view. Untimed whole-Source construction retains its original
+argument shape, and Query capture retains its existing QueryTime preparation.
+The typed binding and complete physical backing remain separate constructor
+obligations; forwarding an Option does not supply either of them.
+
+### Original Request domain construction
+
+An effect-free compiler result does not select an ordinary module. The manager
+reads the existing checked INFER and serialization inventories from the same
+Request's Program construction borrow. It retains the selected Model or Content
+construction borrow before returning that inventory borrow. A failed selection
+keeps its exact originals on the existing Request cleanup path. Core consumes a
+returned borrower before attempting owner settlement: a false result leaves the
+owner live, and a settlement error retains the same parent retry rather than
+making the consumed borrower returnable again. Mixed
+profiles remain subject to their existing typed consumer guards.
+
+The Model Request compiler returns the original raw TaskCompilation. The
+existing Task issuer consumes that artifact directly, while ordinary Values and
+Tasks retain their existing compilation-sum entry. The selected module, original
+Graph and retained bounds must belong to the same preparation. Model completion
+retains its actual Scope on the existing caller record before completion or
+adoption can fail. Keyed Content completion retains the original keyed Plan and
+Request; it cannot construct a replacement Ledger or substitute a pure module.
+A source-free serialization is a distinct Content purpose, not a fabricated
+keyed acquisition.
+
+The ordinary Mock Model caller constructs its source-free module or two-query
+capture Plan under that same Request parent, using the retained TaskCompilation,
+selected Limits and ordered original acquisitions. The installing Host retains
+partial module outputs and the Model carrier before another current check or
+Scope acquisition can fail. Source preparation borrows the adopted Plan's
+original requirement instead of preparing an equal query. This route does not
+use the standalone Local Mock Model Run constructor.
+
+The Local component closes its Source children, consuming read and original
+Scope before acknowledging its own retirement. It leaves Request parent
+retirement to the existing Host continuation. The Host cuts the Model aliases
+after the actual Core payload-sever observation, then returns the original
+handler and dispatch borrows and finishes that same parent. A refused
+construction retains its partial module and issued Scope for original cleanup;
+pending children or an unacknowledged Scope cannot become alias retirement.
+An inventory shape selects custody only when the same Request supplies an
+actual Core borrower. It does not authorize Model construction or adopt Content
+into this Model route.
+
+These input and handoff contracts do not supply physical backing. Complete
+compiler, module, provider, codec, output, constructor and failed-child overlap
+must already belong to the same parent before each constructor. Scope, child
+cleanup, and preparation-borrow return retain their separate acknowledgements.
+
+Terminal source-free Content uses the Request's checked serialization graph and
+raw TaskCompilation. The existing Task issuer binds that original graph to its
+compiled Run; the original Definition and configured workspace then enter the
+same Request's serialization Plan constructor. Completion and Content adoption
+retain its original prefix provider, and dispatch starts that prefix under the
+adopted Run. It neither recompiles the graph nor constructs a scalar Ledger.
+The six stored prefix requirements describe that prefix alone, not the complete
+Host, generation, Store, output or failed-child backing.
+
+The installed Content cleanup retains physical writer/holding duties before
+settling its original prefix. A failed prefix start remains reachable through
+the same adopted Run even if no prefix returned to JavaScript. The Host spends
+that prefix's acknowledged cleanup once before parent payload severing; a later
+consumed-borrow settlement failure retries the original parent continuation,
+not a new prefix or a query of a severed Content payload. Keyed Content and
+intermediate Model serialization remain distinct constructor purposes.
+
 ### Original Contract Value body construction
 
 `value_admission.contract_value_body_construction_inventory` projects the
@@ -4260,3 +4363,68 @@ execution and cleanup; no clock, compiler, Run or Definition is issued again.
 The private association has the same weak Plan lifetime and retains no new
 variable input or output body. Its caller's complete construction and cleanup
 backing remain separate from this data-shape connection.
+### Model alias retirement before Request return
+
+After the original Model Scope and Core payload acknowledge retirement, the
+Host calls the captured alias-release method with its original Model receiver.
+Only its successful managed return spends that duty; the Host then clears the
+Model references before returning the original Request preparation borrow. A
+settlement failure after that borrow is consumed continues the same retirement
+without invoking the already-spent alias release or reconstructing the Model.
+This managed-alias step supplies no physical cleanup acknowledgement.
+
+### Keyed Content on the original Request
+
+The Host retains the selected keyed Plan on its existing Request operation
+before compiling that Plan's exact Serialization component. The same compiler
+artifact passes through Content completion and adoption, then into the existing
+Task Run issuer and Run definition. The later keyed preparation only binds that
+issued plan; it does not reconstruct the graph, acquire a separate Content
+admission or issue another Resource original. A failed constructor remains on
+the same partial Host record, including an original thrown undefined value.
+
+The Local adapter keeps weak provenance for the Host Run and retains only its
+live physical readers strongly. Each consumed request remains spent; successful
+reader close leaves a weak close tombstone without another Prepared/graph path.
+Actual native close precedes the exact Core read retirement. The Host cuts its
+raw compiler, graph, selected Plan and recipe aliases before returning the
+original preparation borrow. The Request's original cleanup retains incomplete
+construction; a caller cannot interpret construction failure or a managed alias
+cut as a physical acknowledgement.
+
+The existing prefix limits and ordered transport extents remain requirements,
+not backing. The selected Plan, compiler, provider inputs, physical output and
+failed-child overlap require the same parent's actual construction lifetime
+before entering their constructors. A standalone Source or Content Root cannot
+supply that lifetime, and absent required original ports refuse rather than
+fall back to legacy compilation or admission.
+
+
+### Content original alias retirement
+
+The existing Request input retains the Content preparation record before any
+prefix quotation or selected constructor can fail. The Local adapter links its
+same weak provenance record before entering the Host constructor. These are
+original references under the existing Request, not additional cleanup owners.
+While a Prepared key remains held, weak-map values still require explicit
+retirement: successful cleanup removes the Content graph, Plan, recipe and
+managed Run aliases, and the Local record's selected, keyed, Content entry and
+Host Run aliases. Each weak map retains only a spent tombstone; the same key
+cannot issue another preparation. The unchanged 4096 bound counts live Content
+preparations, and only that original record's retirement releases its slot.
+
+The Host keeps the existing checked retirement result law: successful Unit is
+sufficient; only its failure queries the original payload-sever observation
+once. That observation retains its currentness callback and can reenter or
+fail. A same-record retirement latch and post-callback original checks precede
+alias release. A pending Local read or failed observation preserves the same
+aliases and slot. A consumed parent return cannot repeat already-spent alias
+release. No alias step acknowledges physical cleanup or refunds work.
+
+Before Run adoption, the same Request abort and original input borrow's
+retirement phase govern alias release. Failed construction does not fabricate
+a managed Run or a successful physical outcome. The Request retains partial
+records until this fence, spends their alias duty before returning the same
+borrow, and retains the parent if that consumed return or its settlement fails.
+Complete constructor, provider, output and failed-child overlap backing remains
+a separate obligation before enabling a normal route.

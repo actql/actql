@@ -2698,9 +2698,6 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
-      if (compilationOriginal !== undefined && kind !== 'values' && kind !== 'tasks') {
-        throw new TypeError('Compilation supplied without its selected barrier');
-      }
       const serializationGraph = kind === 'serialization'
         ? serializationPlanTokens.get(inferGraph) : undefined;
       if (kind === 'serialization' && serializationGraph === undefined) {
@@ -2719,14 +2716,19 @@ function publicationControl(moon) {
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
-      // A staged original is the existing typed Values/Tasks sum held by the
-      // actual Plan. The fixed Common entry validates its variant and owner.
+      // Pure staged originals use the existing Values/Tasks sum. The Request
+      // Model compiler instead returns the original raw TaskCompilation;
+      // its existing typed issuer validates that original and owner directly.
       // Unmigrated explicit compilation keeps its separate raw artifact entry.
       let value = compiledRunResult(compilationOriginal !== undefined
         ? kind === 'values'
           ? moon.clientProgramIssueOriginalValuesCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt)
+          : kind === 'infer' || kind === 'serialization'
+            ? moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+              compilation, policy.executionContextCid, policy.hostPolicyCid,
+              policy.expiresAt)
           : moon.clientProgramIssueOriginalTaskCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt)
@@ -2737,6 +2739,10 @@ function publicationControl(moon) {
           : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt), 'RunHostAdmissionRejected');
+      if (kind === 'serialization' && compilationOriginal !== undefined &&
+          moon.clientProgramCompiledRunSerializationGraph(value) !== serializationGraph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
       if (kind === 'infer') {
         const original = policy.resultDataPolicy;
         if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
@@ -3370,6 +3376,61 @@ function publicationControl(moon) {
       checked(moon.clientProgramBindInferModelEntryPersistence(execution,
         preparedCallSet, admitted, beginEntry));
       return admitted;
+    },
+    prepareCheckedClientRequestSerializationCompilation(parent, input, graph, contracts) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request Content compiler unavailable');
+      // The actual typed constructor checks this SAME parent/input, checked
+      // graph and contracts. No graph token or rebuilt compilation escapes.
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, original, contracts]),
+        'RunHostTaskCompilationRejected');
+    },
+    prepareCheckedClientRequestKeyedSerializationCompilation(parent, input, selected, graph) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestKeyedSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request keyed Content compiler unavailable');
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, selected, original]),
+        'RunHostTaskCompilationRejected');
+    },
+    prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled, definition,
+      limits, workspace) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'serialization') {
+        throw new TypeError('Foreign Client compiled Content preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestSerializationPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
+    },
+    prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramInstalledMockModelSourceFreePlanPrepare;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      // These are the original module, selected Limits and Run tokens. The
+      // existing typed constructor checks their complete tuple; this binding
+      // issues no Scope/Run and does not select bounds or compile again.
+      return checked(Reflect.apply(prepare, moon, [original, request, value,
+        token(definition), occurrence, graph, selected]));
+    },
+    bindCheckedClientMockModelCapturePlan(original, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const bind = moon.clientProgramInstalledMockModelCapturePlanBind;
+      if (typeof bind !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(bind, moon, [original, value, token(definition),
+        occurrence, graph, selected]));
     },
     checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
       declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
@@ -6438,6 +6499,29 @@ export function contentGenerationControl(moon, publications) {
         throw new TypeError('Content capacity overflow');
       }
       return Object.freeze({retainedBytes, executionBytes});
+    },
+    prepareRequestPrefix(parent, input, request, compiled, definition, limits, workspace) {
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
+    },
+    requestPrefixCapacity(selected) {
+      const value = moon.clientProgramPreparedInstalledSerializationPrefixRequirements(selected);
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestPrefix(run, program, selected) {
+      const prefix = checked(moon.clientProgramInstalledManagedSerializationPrefixStart(run, program, selected));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
     },
     prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
       // Revalidate through the same provider before reserve/start. Capacity

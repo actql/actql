@@ -103,9 +103,27 @@ test('barrier profiles retain their original graph requirements without an artif
  const get=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens:new WeakMap(),serializationPlanTokens:new WeakMap(),compiledRunResult:x=>{issues++;return x;},inspectEvidence:x=>x,inspect:x=>x,inspectAdmission:x=>x});
  for(const kind of ['infer','serialization']) {
   assert.throws(()=>get({},kind,{},undefined,{}),/requires its checked graph/);
-  assert.throws(()=>get({},kind,{},{},{}),/without its selected barrier/);
+  if(kind==='serialization') assert.throws(()=>get({},kind,{},{},{}),/Foreign Content compilation graph/);
  }
  assert.equal(compiles,0);assert.equal(issues,0);
+});
+
+test('Request Serialization consumes its original TaskCompilation and rejects copied graphs without compiling again', () => {
+ const prepared={},graph={},rawGraph={},compilation={},issued={},tokens=new WeakMap();let issues=0;
+ const moon={clientProgramCompileLocalSerialization(){assert.fail('Do not recompile original Request Serialization');},
+  clientProgramIssueOriginalTaskCompiledRun(){assert.fail('Serialization artifact is not a compilation sum');},
+  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignSerializationCompilation');return issued;},
+  clientProgramCompiledRunSerializationGraph:()=>rawGraph};
+ for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
+ const invoke=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens:tokens,
+  serializationPlanTokens:new WeakMap([[graph,rawGraph]]),compiledRunResult:value=>value,
+  inspectEvidence:value=>value,inspect:value=>value,inspectAdmission:value=>value});
+ const result=invoke(prepared,'serialization',{},graph,compilation);
+ assert.equal(tokens.get(result),issued);assert.equal(issues,1);
+ assert.throws(()=>invoke(prepared,'serialization',{},graph,{}),{code:'ForeignSerializationCompilation'});
+ assert.throws(()=>invoke({},'serialization',{},graph,compilation),{code:'ForeignSerializationCompilation'});
+ assert.throws(()=>invoke(prepared,'serialization',{}, {...graph},compilation),/Foreign Content compilation graph/);
+ assert.equal(issues,3);
 });
 
 
@@ -169,4 +187,80 @@ test('actual timed invocation module resolves its canonical projection with regi
  assert.equal(reads,1);
  mode='failure';assert.throws(()=>control.checkedClientManagedQueryInvocationOriginal(run,prepared,original),e=>e===primary);
  assert.equal(projections,4);assert.equal(issuers,1);assert.equal(definitions,1);
+});
+
+
+test('actual Model admission uses the Request raw TaskCompilation without a compiler or sum conversion', async () => {
+ const {runtimeCore}=await import('../host-common/runtime-core.mjs');
+ const prepared={},graph={},artifact={},compiledToken={},calls=[];
+ const ok=value=>({$tag:1,_0:value});
+ const moon={strategyRemoteManagedOutputEvidenceKind:()=> 'fixture',
+  clientProgramCompileLocalInfer(){assert.fail('Request Model must not compile again');},
+  clientProgramCompileLocalInfers(){assert.fail('Request Model must not compile again');},
+  clientProgramIssueOriginalTaskCompiledRun(){assert.fail('A raw Model artifact is not a Values/Tasks sum');},
+  clientProgramIssueTaskCompiledRun(p,a,...policy){
+   calls.push([p,a,...policy]);
+   return p===prepared&&a===artifact?ok(compiledToken):{$tag:0,_0:'ForeignModelCompilation'};
+  },
+  clientProgramBindCompiledInferResultPolicy(value,cid,wire){assert.equal(value,compiledToken);assert.equal(cid,'policy');assert.equal(wire,'{}');return ok(value);},
+  strategyRunEvidenceName:()=> 'component',strategyRunEvidenceIdentity:()=> 'identity',strategyRunEvidenceJson:()=> '{}',
+  strategyPublicationContractName:()=> 'compiled_plan',strategyPublicationContractIdentityField:()=> 'compiled_plan_cid',
+  strategyPublicationContractIdentity:()=> 'plan',strategyPublicationContractJson:()=> '{}',
+ };
+ for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
+ const control=runtimeCore(moon).publicationControl;
+ const policy={executionContextCid:'context',hostPolicyCid:'host',expiresAt:'expiry',resultDataPolicy:{kind:'data_policy',cid:'policy',wire:'{}'}};
+ const result=control.prepareCheckedClientCompiledRun(prepared,'infer',policy,[graph],artifact);
+ assert.equal(result.kind,'infer');
+ assert.deepEqual(calls,[[prepared,artifact,'context','host','expiry']]);
+ assert.throws(()=>control.prepareCheckedClientCompiledRun(prepared,'infer',policy,[graph],{}),{code:'RunHostAdmissionRejected'});
+ assert.throws(()=>control.prepareCheckedClientCompiledRun({},'infer',policy,[graph],artifact),{code:'RunHostAdmissionRejected'});
+ assert.throws(()=>control.prepareCheckedClientCompiledRun(prepared,'infer',policy,undefined,artifact),/requires its checked graph/);
+ assert.equal(calls.length,3);
+});
+
+
+test('actual Model Plan bindings retain module, Request, selected bounds and registered Run originals', async () => {
+ const {runtimeCore}=await import('../host-common/runtime-core.mjs');
+ const opaque=label=>new Proxy({}, {get(){assert.fail(label+' must remain opaque');}});
+ const prepared={},artifact={},compiledToken={},definitionToken={},occurrence={};
+ const graph=opaque('original Graph'),selected=opaque('original selected Limits'),request=opaque('original Request');
+ const sourceFree=opaque('original source-free module'),captured=opaque('original capture Plan');
+ const freePlan={},capturePlan={},calls=[];let refusal;
+ const ok=value=>({$tag:1,_0:value});
+ const moon={strategyRemoteManagedOutputEvidenceKind:()=> 'fixture',
+  clientProgramIssueTaskCompiledRun(p,a){assert.equal(p,prepared);assert.equal(a,artifact);return ok(compiledToken);},
+  clientProgramBindCompiledInferResultPolicy:value=>ok(value),
+  clientProgramIssueCompiledRunDefinition(value){assert.equal(value,compiledToken);return ok(definitionToken);},
+  strategyRunEvidenceName:()=> 'evidence',strategyRunEvidenceIdentity:()=> 'identity',strategyRunEvidenceJson:()=> '{}',
+  strategyPublicationContractName:()=> 'run_definition',strategyPublicationContractIdentityField:()=> 'run_id',
+  strategyPublicationContractIdentity:()=> 'definition',strategyPublicationContractJson:()=> '{}',
+  clientProgramInstalledMockModelSourceFreePlanPrepare(...args){
+   assert.equal(this,moon);assert.deepEqual(args,[sourceFree,request,compiledToken,definitionToken,occurrence,graph,selected]);
+   calls.push('source-free');return refusal===undefined?ok(freePlan):{$tag:0,_0:refusal};
+  },
+  clientProgramInstalledMockModelCapturePlanBind(...args){
+   assert.equal(this,moon);assert.deepEqual(args,[captured,compiledToken,definitionToken,occurrence,graph,selected]);
+   calls.push('captured');return refusal===undefined?ok(capturePlan):{$tag:0,_0:refusal};
+  },
+  clientProgramInstalledMockModelManagedRunBegin(){assert.fail('A Plan binding cannot issue a legacy Run');},
+  clientProgramCompileLocalInfers(){assert.fail('A Plan binding cannot compile again');},
+ };
+ for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
+ const control=runtimeCore(moon).publicationControl;
+ const compiled=control.prepareCheckedClientCompiledRun(prepared,'infer',{
+  resultDataPolicy:{kind:'data_policy',cid:'policy',wire:'{}'}},[graph],artifact);
+ const definition=control.defineCheckedClientCompiledRun(compiled,{});
+ assert.equal(control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,compiled,definition,occurrence,graph,selected),freePlan);
+ assert.equal(control.bindCheckedClientMockModelCapturePlan(captured,compiled,definition,occurrence,graph,selected),capturePlan);
+ assert.deepEqual(calls,['source-free','captured']);
+ for(const original of [{...compiled},Object.freeze({kind:'infer'}),{}]) {
+  assert.throws(()=>control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,original,definition,occurrence,graph,selected),/Foreign Client compiled Infer preparation/);
+  assert.throws(()=>control.bindCheckedClientMockModelCapturePlan(captured,original,definition,occurrence,graph,selected),/Foreign Client compiled Infer preparation/);
+ }
+ assert.throws(()=>control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,compiled,{...definition},occurrence,graph,selected),/Foreign publication contract/);
+ assert.deepEqual(calls,['source-free','captured']);
+ refusal={original:'typed Model Plan refusal'};
+ assert.throws(()=>control.bindCheckedClientMockModelCapturePlan(captured,compiled,definition,occurrence,graph,selected),error=>error.cause===refusal);
+ assert.deepEqual(calls,['source-free','captured','captured']);
 });

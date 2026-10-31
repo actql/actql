@@ -24,10 +24,10 @@ assert.equal(typeof initializer, 'string');
 const instantiate = new Function('ports', `
   const {prepareSubmit, earlyMockInferPlans, earlyContentPlans, inferSelections,
     inferTaskRunAdmission, control, moon, authorityScopeCid, namespaceId,
-    storeAuthorityCid, now, diagnostic} = ports;
+    storeAuthorityCid, now, diagnostic, preparation} = ports;
   return (${initializer});
 `);
-function fixture({composed = false, multiple = false} = {}) {
+function fixture({composed = false, multiple = false, modelArtifact} = {}) {
   const prepared = {}, occurrence = {}, one = {}, two = {}, compiled = {};
   const graph = multiple ? [one, two] : one;
   const selection = {graph, ...(composed ? {occurrence} : {})};
@@ -36,6 +36,11 @@ function fixture({composed = false, multiple = false} = {}) {
     prepareSubmit: {assertOwned(value) {assert.strictEqual(value, prepared);}, originalInferRun() {}},
     earlyMockInferPlans: new Map(), earlyContentPlans: new Map(),
     inferSelections: new Map([[prepared, selection]]), control: {}, moon: {},
+    preparation: modelArtifact === undefined ? undefined : {
+      prepareManagedModelCompilation(_moon, actual, original) {
+        assert.equal(actual, prepared); assert.equal(original, graph); return modelArtifact;
+      },
+    },
     authorityScopeCid: 'original-authority', namespaceId: 'original-namespace',
     storeAuthorityCid: 'original-store', now: () => '2026-10-21T00:00:00.000Z',
     diagnostic() {assert.fail('No failure substitution');},
@@ -63,4 +68,11 @@ test('Host preserves the original multiple INFER component array', () => {
   const f = fixture({composed: true, multiple: true}), plan = f.run();
   assert.strictEqual(f.calls[0].inferGraph, f.graph);
   assert.strictEqual(plan.inferGraph, f.graph);
+});
+
+
+test('Host Model admission forwards the same original Request artifact into its existing plan consumer', () => {
+  const artifact = {}, f = fixture({composed: true, modelArtifact: artifact});
+  f.run(); assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0].compilationOriginal, artifact);
 });

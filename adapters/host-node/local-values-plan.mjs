@@ -658,7 +658,7 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
 // or a pure Values fallback. Physical generation must still supply its actual
 // input/generation observations before publication can issue an Invocation.
 export function serializationTaskRunAdmission(options) {
-  const serializationGraph = selectInstalledSerializationGraph(options);
+  const serializationGraph = options.serializationGraph ?? selectInstalledSerializationGraph(options);
   return checkedTaskRunAdmission({...options, serializationGraph}, 'serialization');
 }
 

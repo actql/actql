@@ -133,7 +133,7 @@ export async function prepareInstalledProjectMock(moon, project, profile,
 // Source/managed-Compute original; neither the profile label nor this factory
 // issues a permission, a runtime parent, or a replacement Run.
 export async function installPreparedProjectMockSources({moon, mockPreparation,
-  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset}) {
+  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun}) {
   if (typeof authorizationFor !== 'function' || typeof readAsset !== 'function' ||
       typeof sourceManaged?.assertCurrent !== 'function' ||
       typeof sourceManaged?.prepareRun !== 'function' ||
@@ -141,6 +141,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   const bundle = mockPreparation.originalsForRuntime(moon);
   if (bundle.sources.length !== 2) fail('InstalledMockCatalogueUnavailable');
   let closing = false;
+  const prepareRequestModel = prepareManagedModelRun;
   const records = new Map(), originalReads = new WeakMap();
   const sources = [], closedSources = new Set();
   const current = () => {
@@ -158,6 +159,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   function prepareManagedRun(prepared, request, model, effectful = false) {
     if (effectful !== false) fail('InstalledEffectPlanUnavailable');
     current();
+    if (model !== undefined && !effectful) fail('InstalledMockModelOperationalAdmissionUnavailable');
     let record = records.get(prepared);
     if (record !== undefined) {
       if (record.failure !== undefined) throw record.failure;
@@ -173,35 +175,49 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     if (records.size === 4096) fail('InstalledMockRunLimit');
     records.set(prepared, record);
     try {
-      record.original = model === undefined
-        ? sourceManaged.prepareRun(prepared)
-        : sourceManaged.prepareLocalMockModelRun(prepared, model);
+      record.original = sourceManaged.prepareRun(prepared);
       sourceManaged.assertCurrent();
-      const prepare = model === undefined ? moon.clientProgramNodeManagedRunPrepare
-        : moon.clientProgramNodeLocalMockModelRunPrepare;
-      record.admission = checked(prepare(record.original, prepared));
-      if (model === undefined) {
-        record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
-      } else {
-        const begun = model.control.beginCheckedClientMockModelManagedRun(record.admission,
-          prepared, request, model.compiled, model.runDefinition, model.graph, model.budget);
-        record.value = runtimeField(begun, 0);
-        model.scope = runtimeField(begun, 1);
-      }
+      record.admission = checked(moon.clientProgramNodeManagedRunPrepare(record.original, prepared));
+      record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
       sameRun(prepared);
     } catch (error) { record.failure = error; throw error; }
   }
   function prepareManagedMockModelRun(prepared, request, control, plan, selection, publicationCapacity) {
+    current();
     let record = records.get(prepared);
     if (record !== undefined) {
-      if (record.model?.compiled !== plan.compiled || record.model?.runDefinition !== plan.runDefinition ||
-          record.model?.graph !== selection.graph) fail('ForeignInstalledModelPreparation');
-      prepareManagedRun(prepared, request, record.model);
+      if (record.failure !== undefined) throw record.failure;
+      if (!record.requestOwned || record.request !== request || record.model?.compiled !== plan.compiled ||
+          record.model?.runDefinition !== plan.runDefinition || record.model?.graph !== selection.graph ||
+          record.model?.control !== control || record.model.closed) fail('ForeignInstalledModelPreparation');
+      sameRun(prepared);
       return;
     }
-    prepareManagedRun(prepared, request, {control, compiled: plan.compiled,
-      runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence,
-      publicationCapacity});
+    if (typeof prepareRequestModel !== 'function') fail('InstalledMockModelOperationalAdmissionUnavailable');
+    if (records.size === 4096) fail('InstalledMockRunLimit');
+    const model = {control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+      graph: selection.graph, occurrence: selection.occurrence, queryTimePreparation: plan.queryTimePreparation,
+      scope: undefined, publicationCapacity, releaseAliases() {
+        if (this !== model) fail('ForeignInstalledModelPreparation');
+        if (record.aliasesReleased) return;
+        if (model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined ||
+            record.reads.some(read => read !== undefined && !read.closed)) fail('InstalledMockModelCleanupPending');
+        records.delete(record.prepared);
+        for (const key of Object.keys(model)) model[key] = undefined;
+        model.closed = true;
+        record.prepared = record.request = record.original = record.value = record.model = record.failure = undefined;
+        record.reads.length = 0; record.aliasesReleased = true; record.retired = true;
+      }};
+    record = {prepared, request, model, requestOwned: true, effectful: false, original: undefined,
+      value: undefined, reads: [], failure: undefined};
+    records.set(prepared, record);
+    try {
+      // The original Host owns module/Scope/partial failure on this Request.
+      // Local retains this SAME model carrier before either can be issued.
+      const run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
+      record.original = run.original; record.value = run.value; record.preparationFunded = true;
+      sameRun(prepared);
+    } catch (cause) {record.failure = cause; throw cause;}
   }
   function modelPreparation(prepared, plan) {
     const run = sameRun(prepared), model = run.model;
@@ -260,6 +276,13 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         retireModelRead(model);
         if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
           model.runDefinition, model.graph, model.scope, true) !== true) return false;
+        model.scopeFinished = true;
+        if (run.requestOwned) {
+          // Physical child/Scope cleanup is complete. Existing Host registry
+          // retirement still owns payload severing, borrows and parent stop.
+          model.closed = true;
+          return true;
+        }
         retireRunRecord(run);
         return true;
       }});
@@ -283,6 +306,10 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   }
   function retireRunRecord(record) {
     if (record.retired) return;
+    if (record.requestOwned) {
+      if (!record.model?.closed) fail('InstalledMockModelCleanupPending');
+      return;
+    }
     if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
     else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
     record.retired = true;
@@ -314,6 +341,17 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     }
     if (failures.length === 0) for (const record of records.values()) {
       try {
+        if (record.requestOwned) {
+          const model = record.model;
+          if (model.taken && !model.closed) fail('InstalledMockModelCleanupPending');
+          retireModelRead(model);
+          if (model.scope !== undefined && model.scopeFinished !== true) {
+            if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+              model.runDefinition, model.graph, model.scope, true) !== true) fail('InstalledMockModelCleanupPending');
+            model.scopeFinished = true;
+          }
+          model.closed = true;
+        }
         if (record.model?.read !== undefined) {
           // A handed-off component owns its real cleanup. Host close cannot
           // acknowledge it just because both Source FileHandles have closed.
@@ -329,6 +367,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     // cleanup retains this whole record for its original retry; clearing it
     // is not an FD/native acknowledgement or a promise about GC/RSS.
     for (const record of records.values()) {
+      // The same Host Run continuation cuts Request-owned aliases only after
+      // its actual Core payload-sever witness; close is not that witness.
+      if (record.requestOwned) continue;
       if (record.model !== undefined) {
         const model = record.model;
         model.closed = true;
@@ -372,7 +413,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           if (effectful !== run.effectful || selected !== declaration ||
               !Number.isSafeInteger(slot) || slot < 0 || slot >= count ||
               occurrence.input !== 0 || run.reads[slot] !== undefined) fail('InstalledSourcePreparationMismatch');
-          const raw = sourceManaged.prepareRead(checkedOwner, declaration, run.original);
+          const raw = sourceManaged.prepareRead(checkedOwner, declaration,
+            run.requestOwned ? run.value : run.original);
           const read = {raw, source: index, close: undefined, bytes: undefined, value: undefined, closed: false};
           run.reads[slot] = read;
           read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;
@@ -418,8 +460,14 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       }));
       sources.push(Object.freeze({...adapter, queryAliases,
         async prepare(facts) {
-          const prepared = await adapter.prepare(facts);
-          const run = sameRun(facts.preparedEffect ?? facts.preparedProgram);
+          const owner = facts.preparedEffect ?? facts.preparedProgram, run = sameRun(owner);
+          // The SAME adopted Plan retains its original Query/acquisition.
+          // Let the existing Core borrower select it instead of preparing a
+          // second requirement from the physical source description.
+          const forwarded = run.requestOwned ? Object.freeze({...facts,
+            managedRun: run.value, requestIdentity: run.request}) : facts;
+          const prepared = await adapter.prepare(forwarded);
+          if (sameRun(owner) !== run) fail('ForeignInstalledModelPreparation');
           preparedReads.set(prepared, run);
           return prepared;
         },
