@@ -19,7 +19,7 @@ test "GitHub CREATE native inventory covers both escaped request Strings before 
   let cost = @execution.preparation_representation_cost(inventory).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), cost)
   assert_eq(@execution.execution_capacity_execution_bytes(capacity), cost)
-  assert_eq(@json.parse(exported)["body"], original.to_json())
+  assert_eq(@json.parse(exported), ({ "body": original.to_json() } : Json))
 }
 
 ///|
@@ -31,7 +31,7 @@ test "GitHub CREATE constructor inventory does not change original Unicode or re
   let (inner, outer) = github_comment_request_wire_bounds(false)
   assert_true(original.length().to_int64() < inner)
   assert_true(exported.length().to_int64() < outer)
-  assert_eq(@json.parse(exported)["body"], original.to_json())
+  assert_eq(@json.parse(exported), ({ "body": original.to_json() } : Json))
   assert_eq(
     github_add_comment_request_json(subject, body + "x"),
     "{\"refused\":\"InvalidBody\"}",
@@ -51,7 +51,7 @@ test "GitHub subject-check inventory is separate and prices the same original ex
   let (inner, outer) = github_comment_request_wire_bounds(true)
   assert_eq(original.length().to_int64(), inner)
   assert_eq(exported.length().to_int64(), outer)
-  assert_eq(@json.parse(exported)["body"], original.to_json())
+  assert_eq(@json.parse(exported), ({ "body": original.to_json() } : Json))
   let capacity = github_comment_subject_request_construction_capacity().unwrap()
   let mutation = github_add_comment_request_construction_capacity().unwrap()
   assert_true(
