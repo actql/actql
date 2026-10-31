@@ -573,3 +573,31 @@ test "member capture and row constructor retain distinct original same Request r
   assert_eq(released.peak_retention_bytes, before.peak_retention_bytes + 100L)
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "ordinary prepaid Effect operation controls still observe current once for a body borrow" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  begin_installed_effect_operation_controls(owner, prepared, request, plan).unwrap()
+  let original = owner.effect_operation_controls.unwrap()
+  let before = calls.val
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_eq(calls.val, before + 1)
+  assert_true(
+    owner.effect_operation_controls is Some(control) &&
+    physical_equal(control, original),
+  )
+  assert_true(retire_installed_effect_operation(operation, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

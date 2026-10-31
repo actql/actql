@@ -3874,3 +3874,34 @@ uses the common collection representation owner for its index and growth.
 The same control reservation precedes index construction. Its count comes from
 the checked Plan and original implementation inventory, without another profile,
 per-wrapper phase, numerical policy, Resource owner or provider-authored recipe.
+
+### Same-boundary Effect reservation
+
+An operation borrow reads its immutable Plan and extent, then enters the
+existing Resource admission once. After its original physical current callback,
+a non-escaping internal Core continuation checks the same Local owner, Ledger,
+preparation and control/index links before any reservation or history mutation.
+Resource then rechecks its own original tuple, lifetime and park state without
+another callback, and uses its existing private control/body allocators.
+The continuation is neither retained nor exposed to JavaScript or connector
+authors. It issues no reusable current proof, Bool grant or new cleanup Owner.
+External I/O, await, Start, permission and other actual current boundaries stay
+separate.
+
+If the body quota refuses after a control was admitted, the closed call returns
+that original control with the typed body refusal. The same Run stores it first;
+no control serial, peak or charge is rolled back or refunded. Local original,
+Resource admission and control/body quota failures retain their distinct typed
+projections. The two physical/construction backings and their retirement remain
+the existing operation's duties.
+
+The opening latch permits one such synchronous Core call at a time. Its fixed
+frame uses one additional existing conservative Host-call envelope in the same
+aggregate control quote. Per-occurrence bounds remain proportional to the
+actual admitted operation inventory; no per-closure recipe, provider knob,
+new quotation phase or logical limit is introduced.
+The full same-parent frame/backing must exist before entering this call; the
+new control returned afterwards cannot fund an earlier allocation. The normal
+prepaid-control entrance and the original Run prelude retain those separate
+construction obligations. Independent Plan reads and real external/I/O/await
+boundaries keep their own current checks.
