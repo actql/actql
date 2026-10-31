@@ -200,3 +200,49 @@ test('actual Model admission uses the Request raw TaskCompilation without a comp
  assert.throws(()=>control.prepareCheckedClientCompiledRun(prepared,'infer',policy,undefined,artifact),/requires its checked graph/);
  assert.equal(calls.length,3);
 });
+
+
+test('actual Model Plan bindings retain module, Request, selected bounds and registered Run originals', async () => {
+ const {runtimeCore}=await import('../host-common/runtime-core.mjs');
+ const opaque=label=>new Proxy({}, {get(){assert.fail(label+' must remain opaque');}});
+ const prepared={},artifact={},compiledToken={},definitionToken={},occurrence={};
+ const graph=opaque('original Graph'),selected=opaque('original selected Limits'),request=opaque('original Request');
+ const sourceFree=opaque('original source-free module'),captured=opaque('original capture Plan');
+ const freePlan={},capturePlan={},calls=[];let refusal;
+ const ok=value=>({$tag:1,_0:value});
+ const moon={strategyRemoteManagedOutputEvidenceKind:()=> 'fixture',
+  clientProgramIssueTaskCompiledRun(p,a){assert.equal(p,prepared);assert.equal(a,artifact);return ok(compiledToken);},
+  clientProgramBindCompiledInferResultPolicy:value=>ok(value),
+  clientProgramIssueCompiledRunDefinition(value){assert.equal(value,compiledToken);return ok(definitionToken);},
+  strategyRunEvidenceName:()=> 'evidence',strategyRunEvidenceIdentity:()=> 'identity',strategyRunEvidenceJson:()=> '{}',
+  strategyPublicationContractName:()=> 'run_definition',strategyPublicationContractIdentityField:()=> 'run_id',
+  strategyPublicationContractIdentity:()=> 'definition',strategyPublicationContractJson:()=> '{}',
+  clientProgramInstalledMockModelSourceFreePlanPrepare(...args){
+   assert.equal(this,moon);assert.deepEqual(args,[sourceFree,request,compiledToken,definitionToken,occurrence,graph,selected]);
+   calls.push('source-free');return refusal===undefined?ok(freePlan):{$tag:0,_0:refusal};
+  },
+  clientProgramInstalledMockModelCapturePlanBind(...args){
+   assert.equal(this,moon);assert.deepEqual(args,[captured,compiledToken,definitionToken,occurrence,graph,selected]);
+   calls.push('captured');return refusal===undefined?ok(capturePlan):{$tag:0,_0:refusal};
+  },
+  clientProgramInstalledMockModelManagedRunBegin(){assert.fail('A Plan binding cannot issue a legacy Run');},
+  clientProgramCompileLocalInfers(){assert.fail('A Plan binding cannot compile again');},
+ };
+ for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
+ const control=runtimeCore(moon).publicationControl;
+ const compiled=control.prepareCheckedClientCompiledRun(prepared,'infer',{
+  resultDataPolicy:{kind:'data_policy',cid:'policy',wire:'{}'}},[graph],artifact);
+ const definition=control.defineCheckedClientCompiledRun(compiled,{});
+ assert.equal(control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,compiled,definition,occurrence,graph,selected),freePlan);
+ assert.equal(control.bindCheckedClientMockModelCapturePlan(captured,compiled,definition,occurrence,graph,selected),capturePlan);
+ assert.deepEqual(calls,['source-free','captured']);
+ for(const original of [{...compiled},Object.freeze({kind:'infer'}),{}]) {
+  assert.throws(()=>control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,original,definition,occurrence,graph,selected),/Foreign Client compiled Infer preparation/);
+  assert.throws(()=>control.bindCheckedClientMockModelCapturePlan(captured,original,definition,occurrence,graph,selected),/Foreign Client compiled Infer preparation/);
+ }
+ assert.throws(()=>control.prepareCheckedClientMockModelSourceFreePlan(sourceFree,request,compiled,{...definition},occurrence,graph,selected),/Foreign publication contract/);
+ assert.deepEqual(calls,['source-free','captured']);
+ refusal={original:'typed Model Plan refusal'};
+ assert.throws(()=>control.bindCheckedClientMockModelCapturePlan(captured,compiled,definition,occurrence,graph,selected),error=>error.cause===refusal);
+ assert.deepEqual(calls,['source-free','captured','captured']);
+});
