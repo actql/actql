@@ -70,6 +70,31 @@ const sources = [
   'src/connectors_workers_async_bridge/bridge.generated.mbt',
 ];
 
+test('completed cleanup controller retains the exact original completion tuple and existing cleanup planner', () => {
+  const source = readFileSync(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'remoteSiteControl');
+  assert(declaration);
+  const record = Object.freeze({}), evidence = Object.freeze({}), subject = Object.freeze({}), measurement = Object.freeze({});
+  const result = Object.freeze({}), custody = Object.freeze({}), step = Object.freeze({}), calls = [];
+  const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'actql.remote.managed-output/0.1',
+    strategyRemoteRuntimeCustodyCreate() {assert.fail('A fresh custody cannot replace the original completion');},
+    strategyRemoteRuntimeRestoreCompletedCleanupCustody(...args) {
+      assert.equal(this, moon);assert.deepEqual(args, [record,evidence,subject,measurement]);calls.push('restore');return result;
+    },strategyRemoteRuntimeOwnedCleanupPlan(...args) {
+      assert.equal(this,moon);assert.deepEqual(args,[record,custody]);calls.push('plan');return step;
+    }};
+  const control = runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
+    remoteSiteControls:new WeakMap(), checked(value) {return value===result?custody:value;},
+  })(moon);
+  assert.equal(control.restoreCompletedCleanupRuntimeCustody(record,evidence,subject,measurement),custody);
+  assert.equal(control.prepareOwnedRuntimeCleanup(record,custody),step);
+  assert.deepEqual(calls,['restore','plan']);
+  const failure=Object.freeze({originalFailure:true});
+  moon.strategyRemoteRuntimeRestoreCompletedCleanupCustody=()=>{throw failure;};
+  assert.throws(()=>control.restoreCompletedCleanupRuntimeCustody(record,evidence,subject,measurement),cause=>cause===failure);
+});
+
 for (const path of sources) {
   const source = readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
   const declaration = name => {

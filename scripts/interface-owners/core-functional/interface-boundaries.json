@@ -281,7 +281,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "81631a810636ed2ba3f57b1e7db080bd1a5129792ae7bdbf669fa42d0df83b9b",
+      "sha256": "d2ca52f5bc9f69660809424dd60bfc3bc65ef02d293789e5ec19128893a458f5",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -5966,6 +5966,16 @@
           "parameters": [
             "record",
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteSiteControl/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody",
+          "parameters": [
+            "record",
+            "evidence",
+            "subject",
+            "measurement"
           ],
           "async": false
         },
@@ -11983,6 +11993,78 @@
               {
                 "path": "scripts/workers-composition.test.mjs",
                 "anchor": "test('failed partial controller"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "remoteSiteControl/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The existing `RemoteRuntimeCustody` separates readable completed restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "completion in Active, Releasing or Unknown cleanup"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "material/holding/evidence binding and observed revision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "resource disposition must be reconstructed before planning release"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "and monotonic revision against that original binding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "resources return. The same existing cleanup planner checks the current record"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A settled operation is distinct from released resources."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "within the same custody. It introduces no additional owner, registry, handle,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The cleanup-only marker cannot be confirmed into readable restoration."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/workers-composition.test.mjs",
+                "anchor": "test('completed cleanup controller retains"
+              },
+              {
+                "path": "src/remote_site_protocol/runtime_restoration_test.mbt",
+                "anchor": "test \"cold completed cleanup retains"
               }
             ]
           }

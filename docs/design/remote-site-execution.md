@@ -1271,3 +1271,37 @@ admission; cross-process pointer identity is not a restoration requirement.
 `physical_stop` becomes confirmed only through the existing Run Owner's actual
 same-Run holder coverage, current authorization and durable revision/CAS
 connection, independently of report serialization or process exit.
+
+## Completed cold cleanup custody
+
+The existing `RemoteRuntimeCustody` separates readable completed restoration
+from cleanup-only completed restoration. The readable constructor retains its
+Active-only contract. A cold cleanup constructor accepts the same typed durable
+completion in Active, Releasing or Unknown cleanup, checks its original request,
+evidence, output subject and measurement together, and retains the checked
+material/holding/evidence binding and observed revision. Current Site authority,
+original Source, physical generation and exclusive handles remain independently
+checked by their existing environment Owners before construction and release.
+
+The cleanup-only marker cannot be confirmed into readable restoration. Success,
+new execution and failure reclassification remain refused even after all
+resources return. The same existing cleanup planner checks the current record
+and monotonic revision against that original binding. No absent process-local
+handle can erase historical output, holding or bundle debt: every original
+resource disposition must be reconstructed before planning release, and all
+three require their existing Owners' actual release observations. No synthetic
+holding, new output, fresh execution custody or replacement publisher is issued.
+
+A settled operation is distinct from released resources. Pending stop, uncertain
+Resource release or uncertain durable COMMIT preserves its original duty; neither
+process exit nor NativeSettled alone acknowledges physical cleanup. The durable
+release transition is selected only after the same original custody observes all
+resources reclaimed, and the permanent cleanup-only purpose still forbids output
+or execution admission afterwards.
+
+The private purpose variant replaces the old completed Option-plus-tuple envelope
+within the same custody. It introduces no additional owner, registry, handle,
+owned text or larger logical constructor representation. The installed caller
+still retains that custody in its actual funded control slot before fallible
+continuation. Core's bound checks and logical representation do not supply a
+physical handle, capacity grant, Account permission or a successful cleanup ACK.

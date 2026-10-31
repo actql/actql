@@ -6474,6 +6474,23 @@ pub fn strategy_remote_runtime_custody_acquire_operation(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeRestoreCompletedCleanupCustody")
+pub fn strategy_remote_runtime_restore_completed_cleanup_custody(
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> @remote.RemoteRuntimeCustody raise NodeHostFailure {
+  match
+    @remote.restore_remote_runtime_completed_cleanup_custody(
+      record, evidence, subject, measurement,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteRuntimeCustodySettleOperation")
 pub fn strategy_remote_runtime_custody_settle_operation(
   custody : @remote.RemoteRuntimeCustody,

@@ -1016,6 +1016,10 @@ function remoteSiteControl(moon) {
         sourceMeasurementCid, measurement, sourceOwner, sourceGeneration,
         processRequestCid, processMaterialGeneration, processOwner, processGeneration));
     },
+    restoreCompletedCleanupRuntimeCustody(record, evidence, subject, measurement) {
+      return checked(moon.strategyRemoteRuntimeRestoreCompletedCleanupCustody(
+        record, evidence, subject, measurement));
+    },
     runtimeCustodyAcquireOperation:
       moon.strategyRemoteRuntimeCustodyAcquireOperation,
     runtimeCustodySettleOperation:
