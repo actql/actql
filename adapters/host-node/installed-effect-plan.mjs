@@ -126,7 +126,9 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       recipe.rowOperations.map(entry => entry.extent)));
   });
   const model = inputs.modelDemand !== undefined, providers = sources?.providers;
-  const construct = model ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
+  const construct = model ? providers === undefined
+    ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
+    : moon.clientProgramInstalledEffectModelManagedProviderPlanPrepare
     : providers !== undefined ? facts.queryTimePreparation === undefined
       ? moon.clientProgramInstalledEffectManagedProviderPlanPrepare
       : moon.clientProgramInstalledEffectManagedProviderPlanPrepareAtQueryTime
@@ -136,7 +138,7 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
   const original = [facts.prepared, facts.identity,
     ...(model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
-    sources?.declarations ?? [], ...(model || providers !== undefined ? [providers] : []),
+    sources?.declarations ?? [], ...(providers !== undefined ? [providers] : []),
     sources?.queryContract ?? '', sources?.evidenceContract ?? '',
     sources?.transferBytes ?? [], sources?.executionBytes ?? [], inputs.installedContracts,
     inputs.values, inputs.fragment, inputs.ordered, demands,

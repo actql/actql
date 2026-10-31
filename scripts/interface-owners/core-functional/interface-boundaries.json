@@ -47220,7 +47220,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "6fdc3d3588e17e1da439a3d75da130f5c6093f1cb2c06176e5f0f97db67c702f",
+      "sha256": "1c25b30a97a3975769a3ef19dc2850fb19dc04cc66751d102c7901c8d6b2d566",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -47232,7 +47232,11 @@
         },
         {
           "name": "client_program_installed_effect_model_managed_plan_prepare",
-          "declaration": "client_program_installed_effect_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_model_managed_provider_plan_prepare",
+          "declaration": "client_program_installed_effect_model_managed_provider_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_model_read_window",
@@ -47257,6 +47261,7 @@
             "<module>",
             "client_program_installed_effect_model_demand_prepare",
             "client_program_installed_effect_model_managed_plan_prepare",
+            "client_program_installed_effect_model_managed_provider_plan_prepare",
             "client_program_installed_effect_model_read_window",
             "client_program_installed_effect_plan_matches_model_demand",
             "client_program_installed_mock_model_capture_plan_bind",

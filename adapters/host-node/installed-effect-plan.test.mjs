@@ -36,7 +36,7 @@ for (const model of [false, true]) test(`Effect Plan forwards the same retained 
         sourceInputs.executionBytes, installedContracts, 'values', 'fragment', 'ordered', [demand]]);
       calls.push('plan'); return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectModelManagedPlanPrepare(...actual) {
+    clientProgramInstalledEffectModelManagedProviderPlanPrepare(...actual) {
       assert.equal(this, moon); assert.equal(model, true);
       originalArguments(actual, [prepared, identity, sourceInputs.declarations, sourceInputs.providers,
         sourceInputs.queryContract, sourceInputs.evidenceContract, sourceInputs.transferBytes,

@@ -4466,3 +4466,19 @@ its response-custody slot; the failed join and later socket close supply no task
 retirement acknowledgement. This does not issue another request or Journal use,
 reset Unknown, or make an invalid asynchronous observer acceptable. Normal
 synchronous byte charging and its original error/transport duties are unchanged.
+
+### Typed Model Source-provider boundary
+
+The Node Model Plan entrances distinguish original base Source acquisition
+from original provider-backed Source acquisition in typed Moon code. The base
+entrance supplies no provider-vector argument and forms native None. The
+provider entrance accepts the same plain capacity array from the Host and forms
+native Some before entering the one shared original Plan constructor. JavaScript
+does not construct, inspect or guess an Option tag or wrapper layout.
+
+The checked declarations, Source count, transport bounds, original selected
+Model and component handles pass unchanged to that shared constructor. Base
+acquisition can still have nonzero Sources; absence of a provider vector does
+not change it into a source-free Plan. Foreign, empty or mismatched provider
+vectors retain the existing Core refusals. This bridge supplies neither new
+capacity nor an extra compiler/provider/Run or a construction-backing receipt.
