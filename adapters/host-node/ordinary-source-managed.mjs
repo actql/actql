@@ -233,11 +233,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     liveRuns.add(run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
-    const required = purpose === 'local-content'
-      ? callbacks.contentRequirements(originals, prepared, content)
-      : purpose === 'local-mock-model'
-      ? callbacks.mockRequirements(originals, prepared, model)
-      : callbacks.requirements(originals, prepared);
+    const required = callbacks.requirements(originals, prepared);
     run.required = required;
     const producerReceipt = producer.receipt;
     const requestOriginals = new WeakSet();
