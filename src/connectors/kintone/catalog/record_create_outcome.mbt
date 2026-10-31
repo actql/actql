@@ -13,6 +13,20 @@ pub fn project_record_create_effect_outcome(
   response : RecordCreateAcknowledgement,
   limits : RecordMutationLimits,
 ) -> Result[RecordCreateEffectOutcome, RecordMutationIssue] {
+  project_record_create_effect_outcome_for_operation(
+    request, response, limits, false,
+  )
+}
+
+///|
+// The original keyed UPSERT issuer selects this branch before response
+// decoding. Standalone CREATE retains its exact original wire.
+fn project_record_create_effect_outcome_for_operation(
+  request : RecordCreateRequest,
+  response : RecordCreateAcknowledgement,
+  limits : RecordMutationLimits,
+  upsert : Bool,
+) -> Result[RecordCreateEffectOutcome, RecordMutationIssue] {
   if !mutation_limits_valid(limits) {
     return Err(InvalidLimits)
   }
@@ -37,6 +51,10 @@ pub fn project_record_create_effect_outcome(
   }
   let document = try {
     @encode.begin_ordered_object(writer)
+    if upsert {
+      @encode.ordered_key(writer, "action")
+      @encode.string_value(writer, "created")
+    }
     @encode.ordered_key(writer, "result")
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "created")

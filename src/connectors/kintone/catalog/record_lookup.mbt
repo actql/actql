@@ -359,3 +359,17 @@ pub fn match_record_key_lookup(
   }
   Ok(())
 }
+
+///|
+/// Original selected field DATA, not a configured alias or uniqueness grant.
+pub fn record_key_lookup_key(observation : RecordLookupObservation) -> String {
+  observation.request.key
+}
+
+///|
+/// Exact original key spelling. It is distinct from a native API record ID.
+pub fn record_key_lookup_identity(
+  observation : RecordLookupObservation,
+) -> String {
+  observation.request.value
+}

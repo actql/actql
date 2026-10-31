@@ -59,7 +59,7 @@ test('ordinary Content owns one purpose and retains the same keyed physical clos
   f.view.finishSourceProducer(f.receipt, 'returned');
   f.setCurrent(false);
   assert.throws(() => f.view.assertCurrent(), /original-current/);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   assert.equal((await child.close()).pending, true);
   pending = false;
@@ -94,7 +94,7 @@ test('ordinary two-Source acquisition uses distinct actual readers and one manag
   assert.deepEqual(bytes[1], bytes[0]);
   assert.notStrictEqual(bytes[0], bytes[1]);
   f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   for (const child of children) assert.equal((await child.close()).pending, false);
   assert.equal(ports.status(2), 0);
@@ -137,7 +137,7 @@ test('ordinary Mock purpose retains one request original and both real Source ch
   assert.deepEqual(bytes[0], bytes[1]);
   assert.notStrictEqual(bytes[0], bytes[1]);
   f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
   await children[0].close();
   assert.equal(ports.status(2), -42);
@@ -154,38 +154,27 @@ test('ordinary Source original cannot later acquire the separate Mock purpose', 
   assert.equal((await f.view.close()).pending, false);
 });
 
-test('ordinary Effect preparation uses its original typed quote and cannot switch to Pure', async () => {
-  const f = await fixture(), original = f.view.prepareEffectRun(f.prepared);
-  assert.strictEqual(f.view.prepareEffectRun(f.prepared), original);
-  assert.deepEqual(f.quotes, {pure: 0, effect: 1});
-  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
-  const ports = runtime.prepareOriginalManagedRunPorts(original, f.prepared);
-  assert.equal(ports.status(0), 0);
-  const children = f.declarations.map(declaration => f.view.prepareRead(f.prepared, declaration, original));
-  const bytes = await Promise.all(children.map(child => child.readOriginalBytes()));
-  assert.deepEqual(bytes[0], bytes[1]); assert.notStrictEqual(bytes[0], bytes[1]);
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
-  assert.equal(ports.status(2), -42);
-  for (const child of children) await child.close();
-  assert.equal(ports.status(2), 0);
+test('ordinary manager exposes no retired raw Effect entry or replacement Root', async () => {
+  const f = await fixture();
+  assert.equal(Object.hasOwn(f.view, 'prepareEffectRun'), false);
+  assert.equal(f.view.prepareEffectRun, undefined);
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
 });
 
-test('Effect Model Plan retains the same Root purpose and Plan identity before admission', async () => {
-  const f = await fixture(), plan = {};
-  const original = f.view.prepareEffectModelPlanRun(f.prepared, plan);
-  assert.equal(f.view.prepareEffectModelPlanRun(f.prepared, plan), original);
-  assert.deepEqual(f.quotes, {pure: 0, effect: 1});
-  assert.equal(f.view.prepareEffectPlanRun, undefined, 'ordinary Effect adopts its original Request instead');
-  assert.equal(runtime.prepareOriginalManagedRunPorts(original, plan), null);
-  assert.equal(runtime.prepareOriginalLocalMockModelRunPorts(original, f.prepared), null);
-  const ports = runtime.prepareOriginalLocalMockModelRunPorts(original, plan);
-  assert.notEqual(ports, null);
-  assert.equal(ports.status(0), 0);
-  f.view.finishSourceProducer(f.receipt, 'returned');
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
-  assert.equal(ports.status(2), 0);
-  f.view.retireRun(f.prepared, original);
+test('Effect Model Plan has no standalone manager Root constructor after Request adoption', async () => {
+  const f = await fixture();
+  assert.equal(f.view.prepareEffectModelPlanRun, undefined);
+  assert.equal(typeof f.view.adoptEffectModelPreparation, 'function');
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  f.view.finishSourceProducer(f.receipt, 'failed');
   assert.equal((await f.view.close()).pending, false);
+});
+
+test('retired Mock Effect manager entry cannot acquire another Model Root', async () => {
+  const f = await fixture();
+  assert.equal(f.view.prepareEffectLocalMockModelRun, undefined);
+  assert.deepEqual(f.quotes, {pure: 0, effect: 0});
+  await f.view.close();
 });

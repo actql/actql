@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "9b701c1164401d32d4d81b7df7408cbe80f3268178d544ba3d5aadf5ce4aadd2",
+      "sha256": "384ae5487d6fdde70898eee8b92df6896038d63a37d37cf085e99bc6721837da",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1833,20 +1833,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-          "parameters": [
-            "admission",
-            "prepared",
-            "request",
-            "compiled",
-            "compilation",
-            "definition",
-            "graph",
-            "budget"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
           "parameters": [
             "compiled",
@@ -2480,27 +2466,6 @@
             "compilation",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "occurrence",
-            "graph",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
           ],
           "async": false
         },
@@ -8585,7 +8550,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9384,7 +9349,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -9474,6 +9439,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -9484,12 +9453,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -9500,12 +9477,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -9516,12 +9501,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -9532,12 +9525,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -9548,75 +9549,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
-            "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
+              },
               {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ]
           }
@@ -40893,7 +40829,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_write_request.mbt",
-      "sha256": "489c3a2131e6e56133a44190db123f98f28e7c5aff62e076427b9be855873216",
+      "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
@@ -40961,6 +40897,10 @@
           "declaration": "record_create_request_values ( request : RecordCreateRequest , ) - > Array [ RecordWriteValues ]"
         },
         {
+          "name": "record_update_acknowledgement_is_original",
+          "declaration": "record_update_acknowledgement_is_original ( value : RecordUpdateAcknowledgement , ) - > Bool"
+        },
+        {
           "name": "record_update_acknowledgement_records",
           "declaration": "record_update_acknowledgement_records ( response : RecordUpdateAcknowledgement , ) - > Array [ ( String , String ) ]"
         },
@@ -40979,6 +40919,10 @@
         {
           "name": "record_update_request_count",
           "declaration": "record_update_request_count ( request : RecordUpdateRequest ) - > Int"
+        },
+        {
+          "name": "record_update_request_is_original",
+          "declaration": "record_update_request_is_original ( value : RecordUpdateRequest ) - > Bool"
         },
         {
           "name": "record_update_request_observation",
@@ -41099,12 +41043,161 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "record_update_acknowledgement_is_original",
+            "record_update_request_is_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/catalog/record_write_request.mbt",
+                "anchor": "pub fn prepare_record_create_request("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors/kintone/catalog/record_create_json.mbt",
-      "sha256": "3c00f06c7b2d635dd51265c501be38a5f513c954c8927492ebbc3dd57746c9d1",
+      "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
@@ -41112,16 +41205,12 @@
       "exports": [],
       "operations": [
         {
+          "name": "create_json_issue",
+          "declaration": "create_json_issue ( issue : RecordWriteJsonIssue ) - > RecordCreateJsonIssue"
+        },
+        {
           "name": "create_json_records",
           "declaration": "create_json_records ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ Array [ RecordWriteValues ] , RecordCreateJsonIssue ]"
-        },
-        {
-          "name": "create_json_values",
-          "declaration": "create_json_values ( catalog : FormFieldCatalog , cursor : @ decode . Cursor , limits : RecordWriteLimits , ) - > Result [ RecordWriteValues , RecordCreateJsonIssue ]"
-        },
-        {
-          "name": "create_json_write_limits_valid",
-          "declaration": "create_json_write_limits_valid ( limits : RecordWriteLimits ) - > Bool"
         },
         {
           "name": "prepare_record_create_request_json",
@@ -41141,8 +41230,6 @@
           "operations": [
             "<module>",
             "create_json_records",
-            "create_json_values",
-            "create_json_write_limits_valid",
             "prepare_record_create_request_json",
             "record_create_request_values_json",
             "restore_record_create_request_json"
@@ -41212,6 +41299,154 @@
               {
                 "path": "src/connectors/kintone/catalog/record_create_json_wbtest.mbt",
                 "anchor": "test \"mapped CREATE values become exact native requests without fabricated records or defaults\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "create_json_issue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/catalog/record_create_json.mbt",
+                "anchor": "pub fn prepare_record_create_request_json("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "## Original keyed UPSERT material"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
               }
             ]
           }
@@ -41608,7 +41843,7 @@
           }
         }
       ],
-      "sha256": "7138faf9bc484344754da9015f4bc222a6e7ea4a0ff4f9ccb7d121657ca4a32b",
+      "sha256": "fe198e9f375b7da433c6a75b42859fe0015f4b572723bb0576b05846355bbcb5",
       "operations": [
         {
           "name": "create_proposal_values",
@@ -42503,6 +42738,446 @@
         {
           "name": "client_program_installed_json_effect_response_construction_capacity",
           "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_model_demand.mbt",
+      "sha256": "c3246fc55e5ae3938174ef24868b9181ec9a3539e0536621e39fa165896acca8",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_plan_matches_model_demand",
+          "declaration": "installed_effect_plan_matches_model_demand ( plan : ClientInstalledEffectManagedPlan , model : ClientInstalledEffectModelDemand , ) - > Bool"
+        },
+        {
+          "name": "prepare_installed_effect_model_demand",
+          "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledEffectModelDemand , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_plan_matches_model_demand",
+            "prepare_installed_effect_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_model_demand.mbt",
+                "anchor": "pub fn installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+      "sha256": "8a579eae450a09878f0c7965991b2f9e38e97adb2558c7e3df5f4c0e6fa251d0",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_model_demand_prepare",
+          "declaration": "client_program_installed_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_model_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_plan_matches_model_demand",
+          "declaration": "client_program_installed_effect_plan_matches_model_demand ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , model : @ client_local_host . ClientInstalledEffectModelDemand , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_model_demand_prepare",
+            "client_program_installed_effect_model_managed_plan_prepare",
+            "client_program_installed_effect_plan_matches_model_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_plan_matches_model_demand("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Model Effect Plan projection refuses a copied or foreign selected demand"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_managed_run_bridge.mbt",
+      "sha256": "b9bfdcfd0d38ca8ff0ae80b19a67c062b2ba563cdcae1ed8a342363559547ca2",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local Source and Node Effect owners; D retires unused raw Effect admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_managed_run_check",
+          "declaration": "client_program_installed_effect_managed_run_check ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_prepare_ledger",
+          "declaration": "client_program_installed_effect_managed_run_prepare_ledger ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_run_requirements",
+          "declaration": "client_program_installed_effect_managed_run_requirements ( prepared : @ publication_host . PreparedClientEffectComputation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_managed_run_check",
+            "client_program_installed_effect_managed_run_prepare_ledger",
+            "client_program_installed_effect_managed_run_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              }
+            ]
+          }
         }
       ]
     }

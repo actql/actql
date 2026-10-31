@@ -117,3 +117,15 @@ fn installed_model_demand_limits(
   }
   Some(limits)
 }
+
+///|
+/// Immutable DATA correspondence for the already selected original Plan.
+/// This cannot issue a Scope or upgrade another Model's cleanup lineage.
+pub fn installed_effect_plan_matches_model_demand(
+  plan : ClientInstalledEffectManagedPlan,
+  model : ClientInstalledEffectModelDemand,
+) -> Bool {
+  physical_equal(plan.prepared, model.prepared) &&
+  plan.model is Some(original) &&
+  physical_equal(original, model)
+}

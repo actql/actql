@@ -2761,6 +2761,20 @@ The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
 
+### Local native read retirement
+
+The Local Source retains its original physical reader and raw managed child
+through cleanup. The physical reader must acknowledge stop, followed by the
+captured original raw close method with its original receiver. Only then may
+the same ordinary or keyed typed read retire and the Local read become closed.
+Typed retirement is not evidence that native cleanup has completed.
+
+A pending or throwing native close retains the same read and prevents the
+existing parent-retirement loop from retiring that Run. A typed retirement
+failure also leaves the read retained for the same cleanup retry. Cleanup does
+not acquire a new Root, permission or current-state admission, and an absent,
+inherited or accessor `pending` field is not an acknowledgment.
+
 ### Normal SQL and AQL Request continuation
 
 SQL and Pipe Source inputs retain the same SDK snapshot and Request as native
@@ -3346,7 +3360,12 @@ The installed implementation supplies its complete original operation Plan.
 The manager retains that Plan before calling the existing Request completion
 and adoption entries with the same input receipt and final Request identity.
 Failure remains on that Request and cannot renew compilation, completion or
-admission. The Model-specific Scope path retains its separate existing contract.
+admission. For a Model Plan, the existing outer Run first retains the Scope
+constructed from that same Request input and exact Plan, then completion and
+Model adoption consume the same originals. Partial completion/adoption keeps
+that Scope attached for the existing physical cleanup, without a second Node
+admission. The generic initial envelope must already admit the selected Model
+and its simultaneous constructor/read holdings.
 
 After the actual dispatch and physical children have retired, Host cleanup
 starts the same managed Run retirement, observes its original payload-sever

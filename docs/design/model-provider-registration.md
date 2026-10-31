@@ -687,3 +687,39 @@ cleanup or numerical release. The existing Host retains the view from before
 fallible initialization through its original shutdown; new setup refusal and
 successful finalization use that same runtime even before local import
 initialization completes. Existing Unknown and child cleanup remain owned.
+
+###### Effect Request adoption and retired Mock entry points
+
+The installed Mock Source profile exposes Pure preparation only. Its former
+`prepareManagedEffectRun` and `prepareManagedEffectMockModelRun` entry points
+and the manager's separate `prepareEffectLocalMockModelRun` Root constructor
+are retired. A true Effect discriminator refuses before current callbacks,
+quotes, record retention or native admission; it cannot fall through to Pure.
+The retained Source reader likewise refuses an Effect context before borrowing
+a Mock Source child. Existing Pure Model/Source custody and cleanup remain with
+the same profile and manager.
+
+The ordinary Effect caller instead selects its existing implementation Plan
+and completes/adopts the same original Request input and reservations. A Model
+Effect must retain the same original Scope before either completion or adoption
+can fail. Removing the obsolete profile methods does not supply the required
+early original ManagedProvider, Source acquisition, complete initial backing,
+current permission or physical cleanup observation. Those actual inputs remain
+necessary; there is no alternate Root or empty/default provider fallback.
+
+The LocalFiles profile also exposes no raw Effect preparation entry. Its Pure
+and Content constructors keep their original native admission, declared
+identity, original Reader custody and cleanup. An Effect discriminator or read
+context refuses before a Pure parent can be selected. The actual Local Effect
+Source adapter must separately consume its same adopted Effect tuple; removal
+of the dead branch does not provide that read service.
+
+The Node bridge no longer exposes the six obsolete raw Prepared Effect
+admission, cleanup, begin and Mock Model requirements entry points. Existing
+native APIs remain separately owned; the Node current check, selected Plan,
+Ledger preparation and numerical requirements projections are retained.
+`readLocalMockModelRunRequirements` accepts only its existing Pure Model scope
+and preserves its original extracted-method receiver. Runtime control cannot
+recreate the removed Effect Model admission through a second wrapper. Existing
+immutable compiled software stays qualified at its original source; this
+source/API retirement requires genuine later matching input selection.

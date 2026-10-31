@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "24be07e552aa90b7f2d80f94b3597dc25fdb810d0ee95f7c3addaee06356f411",
+      "sha256": "21f8bcffb2583dd50299b01f845b3427a472e7e616e1ca6d9828bd6c56a90205",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -653,14 +653,6 @@
         },
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
           "parameters": [
             "prepared",
             "request"
@@ -968,6 +960,7 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/acquisition-outcome.mjs",
         "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/file-media-type.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-check-environment.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
@@ -1022,7 +1015,6 @@
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
             "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
@@ -1075,6 +1067,10 @@
               {
                 "path": "docs/connectors/local-files.md",
                 "anchor": "## Sources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
@@ -1089,6 +1085,10 @@
               {
                 "path": "adapters/host-common/file-media-type.mjs",
                 "anchor": "export function defaultFileMediaType"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
@@ -1103,6 +1103,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "LocalFilesContentResourceMismatch"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -1117,6 +1121,14 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "prepareManagedContentRun:prepareContentRun"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "synchronization": [
@@ -1127,6 +1139,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "consumePage"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
@@ -1141,6 +1157,14 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "new AcquisitionOpenError(cause"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "cancellation": [
@@ -1151,6 +1175,14 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "resources": [
@@ -1165,6 +1197,14 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "const keyedTransports="
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Local native read retirement"
               }
             ],
             "extension": [
@@ -1175,6 +1215,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -1193,6 +1237,18 @@
               {
                 "path": "adapters/host-common/file-media-type-consumers.test.mjs",
                 "anchor": "actual Local listing and Content defaults"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local Source typed read and parent remain live until the original raw child acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('Local keyed cleanup preserves an original thrown undefined before typed retirement'"
               }
             ]
           }

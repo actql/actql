@@ -9,7 +9,7 @@ fn create_proposal_values(
   request_limits : RecordMutationLimits,
 ) -> Result[RecordWriteValues, RecordCreateJsonIssue] {
   if max_input_bytes <= 0 ||
-    !create_json_write_limits_valid(write_limits) ||
+    !write_json_limits_valid(write_limits) ||
     !mutation_limits_valid(request_limits) {
     return Err(InvalidLimits)
   }
@@ -53,7 +53,7 @@ fn create_proposal_values(
     @decode.lookup(object, "value") is Some(value) else {
     return Err(InvalidRecords)
   }
-  create_json_values(catalog, value, write_limits)
+  write_json_values(catalog, value, write_limits).map_err(create_json_issue)
 }
 
 ///|
