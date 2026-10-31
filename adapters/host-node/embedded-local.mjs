@@ -6115,8 +6115,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
       const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan';
+      const mockSourceRetirement = run.mockSourceReads !== undefined;
       if (contentRetirement && run.retiringContent) throw clientOperationError('InstalledContentRunCleanupPending');
+      if (mockSourceRetirement && run.retiringMockSources) throw clientOperationError('InstalledMockSourceCleanupPending');
       if (contentRetirement) run.retiringContent = true;
+      if (mockSourceRetirement) run.retiringMockSources = true;
       try {
         if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
         if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
@@ -6155,9 +6158,22 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.serializationCleaned = true;
           }
           const sameValue = run.value, sameRequest = run.request, sameOriginal = run.original;
+          const sameSourceReads = run.mockSourceReads, releaseSourceAliases = run.releaseMockSourceAliases;
           try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
           catch (cause) {
             if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
+          }
+          if (mockSourceRetirement) {
+            // Native retirement and physical close are separate duties. Cut
+            // only this installation's SAME acknowledged read records before
+            // returning the parent borrower, including a consumed-return error.
+            if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
+                run.runtime !== moon || run.value !== sameValue || run.request !== sameRequest ||
+                run.original !== sameOriginal || run.mockSourceReads !== sameSourceReads ||
+                run.releaseMockSourceAliases !== releaseSourceAliases || typeof releaseSourceAliases !== 'function') {
+              throw clientOperationError('InstalledSourcePreparationMismatch');
+            }
+            Reflect.apply(releaseSourceAliases, run, [prepared, sameRequest]);
           }
           if (contentRetirement) {
             if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
@@ -6210,7 +6226,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         record.computeRuns.delete(prepared);
         record.computeLiveRuns.delete(run);
         for (const key of Object.keys(run)) run[key] = undefined;
-      } finally {if (contentRetirement) run.retiringContent = false;}
+      } finally {
+        if (contentRetirement) run.retiringContent = false;
+        if (mockSourceRetirement) run.retiringMockSources = false;
+      }
     },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
       const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;

@@ -4428,3 +4428,24 @@ records until this fence, spends their alias duty before returning the same
 borrow, and retains the parent if that consumed return or its settlement fails.
 Complete constructor, provider, output and failed-child overlap backing remains
 a separate obligation before enabling a normal route.
+
+### Mock Effect Source alias retirement
+
+The Mock installation retains each physical read in its existing Effect read
+set before method capture or later currentness checks can fail. Closing that
+original physical child only records its own close acknowledgement; it does
+not retire the native Source read, free a consumed occurrence or release the
+installation's references. Sibling reads can still need the same charged
+document for correspondence while the original Run remains live.
+
+After the original managed Run's native retirement succeeds, or its existing
+payload-sever observation confirms retirement after a failed return, the Host
+checks the same Run, Request, read inventory and captured release method. That
+method checks every original physical-close acknowledgement before cutting any
+sibling alias, then removes exactly those read-set and weak-map associations.
+It cuts the raw child, byte method, retained document and native-read references
+before the original Request borrower returns. A consumed parent-return failure
+does not repeat the already-spent alias release. Pending children, failed
+observations, replaced originals and reentrant retirement retain their existing
+cleanup duties; this private reference cut issues no cleanup acknowledgement,
+reservation, capacity or replacement Run.

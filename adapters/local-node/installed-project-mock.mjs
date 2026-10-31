@@ -308,6 +308,34 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
     record.retired = true;
   }
+  // Called only by the same Host Run after its native retirement succeeds (or
+  // the existing payload-sever witness confirms it). This releases aliases,
+  // never a physical child, native read or consumed occurrence. The separate
+  // physical-close ACK for every original child must already be retained.
+  function releaseEffectSourceAliases(prepared, request) {
+    const run = this, reads = run.mockSourceReads;
+    if (effectRuns.get(prepared)?.deref() !== run || run.prepared !== prepared ||
+        run.request !== request || run.preparationKind !== 'effect-plan' || run.closed ||
+        run.releaseMockSourceAliases !== releaseEffectSourceAliases || !Array.isArray(reads)) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    // Check the whole same-Run inventory before cutting any sibling's document
+    // correspondence. Pending/failed close keeps every original for its retry.
+    for (const read of reads) if (read !== undefined) {
+      if (!read.physicalClosed || !read.closed && !effectReads.has(read) ||
+          read.value !== undefined && originalReads.get(read.value)?.run !== run) {
+        fail('InstalledMockSourceCleanupPending');
+      }
+    }
+    for (const read of reads) if (read !== undefined) {
+      if (read.value !== undefined) originalReads.delete(read.value);
+      effectReads.delete(read);
+      read.raw = read.close = read.bytes = read.observedBytes = read.value = undefined;
+      read.closed = true;
+    }
+    effectRuns.delete(prepared);
+    run.mockSourceReads = run.releaseMockSourceAliases = undefined;
+  }
   async function closeSource(index) {
     for (const read of effectReads) if (read.source === index) {
       await closeRead(read);
@@ -411,6 +439,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         originalPageLimits: {maxNodes: 4096, maxDepth: 32},
         prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence, managedRun, originalRead}) {
           const run = sameRun(checkedOwner);
+          if (run.closed || run.retiringMockSources) fail('InstalledMockSourceCleanupPending');
           const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
             : moon.clientProgramAcquisitionCount(checkedOwner);
           const slot = occurrence.stage;
@@ -419,6 +448,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
               !Number.isSafeInteger(slot) || slot < 0 || slot >= count ||
               occurrence.input !== 0 || reads[slot] !== undefined ||
               effectful && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
+          if (effectful) {
+            if (run.releaseMockSourceAliases !== undefined &&
+                run.releaseMockSourceAliases !== releaseEffectSourceAliases) fail('InstalledSourcePreparationMismatch');
+            run.releaseMockSourceAliases = releaseEffectSourceAliases;
+          }
           const raw = sourceManaged.prepareRead(checkedOwner, declaration,
             effectful || run.requestOwned ? run.value : run.original, occurrence);
           const read = {raw, source: index, close: undefined, bytes: undefined, value: undefined, closed: false};

@@ -22,11 +22,14 @@ const make=compileFunction(`
   const {sourceManaged,moon,declaration}=input,index=0;
   const records=new Map(input.record ? [[input.record.prepared,input.record]] : []);
   const originalReads=new WeakMap();
+  const effectReads=new Set();
   const current=()=>sourceManaged.assertCurrent();
-  const sameRun=prepared=>{current();return records.get(prepared);};
+  const sameRun=prepared=>{current();const run=records.get(prepared);
+    if(run===undefined)fail('NodeManagedRunAdmissionUnavailable');return run;};
   ${select('FunctionDeclaration','prepareManagedRun')}
   ${select('FunctionDeclaration','closeSource')}
   ${select('FunctionDeclaration','closeRead')}
+  ${select('FunctionDeclaration','closePhysicalRead')}
   const reader={${select('Property','prepareSourceRead')}};
   return {prepareManagedRun,reader,closeSource,held:()=>records.values().next().value};`,['input','checked','fail']);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -107,20 +110,20 @@ test('retired Mock Effect discriminator cannot enter the Pure Run constructor', 
   assert.equal(current, 0); assert.equal(factories, 0); assert.equal(f.held(), undefined);
 });
 
-test('retired Mock Effect read context refuses before Source custody or current callbacks', () => {
+test('foreign Mock Effect read context refuses before acquiring any Source child', () => {
   let current = 0, acquisitions = 0;
   const f = make({sourceManaged: {assertCurrent() {current++;},
     prepareRead() {acquisitions++; assert.fail('No legacy Effect Source child');}}, moon: {}},
     value => value, fail);
   assert.throws(() => f.reader.prepareSourceRead({checkedOwner: {}, effectful: true,
-    declaration: {}, occurrence: {stage: 0, input: 0}}), {code: 'InstalledEffectPlanUnavailable'});
-  assert.equal(current, 0); assert.equal(acquisitions, 0);
+    declaration: {}, occurrence: {stage: 0, input: 0}}), {code: 'NodeManagedRunAdmissionUnavailable'});
+  assert.equal(current, 1); assert.equal(acquisitions, 0);
 });
 
 // Same actual Source child and Host retirement bodies. The native retirement
 // and raw close ports are explicit: this counter proves JS alias lifetime,
 // never a real Resource/FD ACK, normal admission or a capacity recipe.
-function effectReadRetirementFixture() {
+function effectReadRetirementFixture(count = 1) {
   const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   let retirement;
   function find(node) {
@@ -137,12 +140,11 @@ function effectReadRetirementFixture() {
   const run = {prepared, request, value: native, preparationKind: 'effect-plan',
     preparationFunded: true, original: {}, closed: false};
   const record = {computeRuns: new WeakMap([[prepared, run]]), computeLiveRuns: new Set([run])};
-  let nativePending = false, physicalPending = false, severFailure, onNative;
+  let nativePending = false, physicalPending = false, severFailure, onNative, payloadSevered = false, observations = 0;
   const pending = Object.assign(new Error('OriginalNativePending'), {code: 'OriginalNativePending'});
-  const raw = {close() {assert.equal(this, raw); events.push('physical'); return {pending: physicalPending};},
-    readOriginalBytes() {assert.fail('No Source I/O in retirement counter');}};
-  const moon = {clientProgramEffectAcquisitionCount: () => 1,
-    clientProgramInstalledPreparationPayloadSevered: () => false};
+  const raws = [];
+  const moon = {clientProgramEffectAcquisitionCount: () => count,
+    clientProgramInstalledPreparationPayloadSevered() {observations++; return payloadSevered;}};
   run.runtime = moon;
   run.retire = function(value) {
     assert.equal(this, moon); assert.equal(value, native); events.push('native'); onNative?.();
@@ -155,7 +157,10 @@ function effectReadRetirementFixture() {
   const originalReads = new WeakMap(), effectRuns = new WeakMap([[prepared, new WeakRef(run)]]);
   const effectReads = new Set(), records = new Map();
   const sourceManaged = {assertCurrent() {}, prepareRead(p, selected, value) {
-    assert.equal(p, prepared); assert.equal(selected, declaration); assert.equal(value, native); return raw;
+    assert.equal(p, prepared); assert.equal(selected, declaration); assert.equal(value, native);
+    const raw = {close() {assert.equal(this, raw); events.push('physical'); return {pending: physicalPending};},
+      readOriginalBytes() {assert.fail('No Source I/O in retirement counter');}};
+    raws.push(raw); return raw;
   }};
   const optionalRelease = nodes.find(node => node.type === 'FunctionDeclaration' &&
     node.id?.name === 'releaseEffectSourceAliases');
@@ -180,10 +185,11 @@ function effectReadRetirementFixture() {
   reader.prepareSourceRead({checkedOwner: prepared, effectful: true, declaration,
     occurrence: {stage: 0, input: 0}, managedRun: native, originalRead});
   const read = run.mockSourceReads[0];
-  return {run, record, prepared, request, native, originalRead, read, raw,
+  return {run, record, prepared, request, native, declaration, originalRead, read, raw: raws[0], raws,
     reader, retire: () => retire(prepared), events, effectReads, effectRuns, originalReads, pending,
     nativePending(value) {nativePending = value;}, physicalPending(value) {physicalPending = value;},
-    failSever(value) {severFailure = value;}, onNative(callback) {onNative = callback;}};
+    failSever(value) {severFailure = value;}, onNative(callback) {onNative = callback;},
+    payloadSevered(value) {payloadSevered = value;}, observations: () => observations};
 }
 
 test('same acknowledged Effect Run releases installation-held Source read aliases before parent return', async () => {
@@ -201,4 +207,99 @@ test('same acknowledged Effect Run releases installation-held Source read aliase
   assert.equal(f.run.mockSourceReads, undefined);
   assert.equal(f.run.releaseMockSourceAliases, undefined);
   assert.deepEqual(f.events, ['physical', 'native', 'parent']);
+});
+
+test('pending original native retirement keeps every Mock Source alias and installation record', async () => {
+  const f = effectReadRetirementFixture();
+  await f.reader.closeSourceRead(f.originalRead);
+  f.nativePending(true);
+  assert.throws(f.retire, error => error === f.pending);
+  assert.equal(f.effectReads.has(f.read), true);
+  assert.equal(f.read.raw, f.raw);
+  assert.equal(f.originalReads.get(f.originalRead).read, f.read);
+  assert.equal(f.effectRuns.get(f.prepared).deref(), f.run);
+  assert.equal(f.run.closed, false);
+  f.nativePending(false); f.retire();
+  assert.equal(f.effectReads.size, 0);
+  assert.deepEqual(f.events, ['physical', 'native', 'native', 'parent']);
+});
+
+test('pending original physical close cannot release Mock Source aliases through native retirement', async () => {
+  const f = effectReadRetirementFixture(), bytes = Buffer.from('original shared document');
+  f.read.observedBytes = bytes;
+  f.physicalPending(true);
+  await assert.rejects(f.reader.closeSourceRead(f.originalRead), {code: 'InstalledMockSourceCleanupPending'});
+  assert.throws(f.retire, {code: 'InstalledMockSourceCleanupPending'});
+  assert.equal(f.read.raw, f.raw); assert.equal(f.read.observedBytes, bytes);
+  assert.equal(f.effectReads.size, 1); assert.equal(f.run.closed, false);
+  f.physicalPending(false); await f.reader.closeSourceRead(f.originalRead); f.retire();
+  assert.equal(f.effectReads.size, 0); assert.equal(f.read.observedBytes, undefined);
+  assert.deepEqual(f.events, ['physical', 'native', 'physical', 'native', 'parent']);
+});
+
+test('consumed parent return cannot retain or reissue retired Mock Source aliases', async () => {
+  const f = effectReadRetirementFixture(), failure = new Error('same consumed parent return');
+  await f.reader.closeSourceRead(f.originalRead);
+  f.failSever(failure);
+  assert.throws(f.retire, error => error === failure);
+  assert.equal(f.effectReads.size, 0); assert.equal(f.read.raw, undefined);
+  assert.equal(f.originalReads.has(f.originalRead), false);
+  assert.equal(f.run.releaseMockSourceAliases, undefined);
+  await assert.rejects(f.reader.closeSourceRead(f.originalRead), {code: 'InstalledSourcePreparationMismatch'});
+  f.retire();
+  assert.equal(f.run.closed, true);
+  assert.deepEqual(f.events, ['physical', 'native', 'parent', 'native', 'parent']);
+});
+
+test('Mock Source native retirement callback cannot reenter retirement or acquire another child', async () => {
+  const f = effectReadRetirementFixture();
+  await f.reader.closeSourceRead(f.originalRead);
+  f.onNative(() => {
+    assert.throws(f.retire, {code: 'InstalledMockSourceCleanupPending'});
+    assert.throws(() => f.reader.prepareSourceRead({checkedOwner: f.prepared, effectful: true,
+      declaration: f.declaration, occurrence: {stage: 0, input: 0}, managedRun: f.native, originalRead: {}}),
+    {code: 'InstalledMockSourceCleanupPending'});
+  });
+  f.retire();
+  assert.equal(f.effectReads.size, 0);
+  assert.deepEqual(f.events, ['physical', 'native', 'parent']);
+});
+
+test('Mock Source retirement rejects a replaced Host original without cutting the original read', async () => {
+  const f = effectReadRetirementFixture();
+  await f.reader.closeSourceRead(f.originalRead);
+  f.onNative(() => f.record.computeRuns.set(f.prepared, {...f.run}));
+  assert.throws(f.retire, {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.effectReads.size, 1); assert.equal(f.read.raw, f.raw);
+  assert.equal(f.originalReads.get(f.originalRead).read, f.read);
+  assert.equal(f.effectRuns.get(f.prepared).deref(), f.run);
+  assert.deepEqual(f.events, ['physical', 'native']);
+});
+
+test('Mock Source retirement keeps sibling document correspondence until every original child closes', async () => {
+  const f = effectReadRetirementFixture(2), secondOriginal = {}, bytes = Buffer.from('same retained document');
+  f.reader.prepareSourceRead({checkedOwner: f.prepared, effectful: true, declaration: f.declaration,
+    occurrence: {stage: 1, input: 0}, managedRun: f.native, originalRead: secondOriginal});
+  const second = f.run.mockSourceReads[1];
+  assert.notEqual(second.raw, f.read.raw);
+  f.read.observedBytes = bytes;
+  await f.reader.closeSourceRead(f.originalRead);
+  assert.throws(f.retire, {code: 'InstalledMockSourceCleanupPending'});
+  assert.equal(f.effectReads.size, 2); assert.equal(f.read.observedBytes, bytes);
+  assert.equal(f.read.raw, f.raws[0]); assert.equal(second.raw, f.raws[1]);
+  await f.reader.closeSourceRead(secondOriginal); f.retire();
+  assert.equal(f.effectReads.size, 0); assert.equal(f.originalReads.has(secondOriginal), false);
+  assert.equal(f.read.observedBytes, undefined); assert.equal(second.raw, undefined);
+  assert.deepEqual(f.events, ['physical', 'native', 'physical', 'native', 'parent']);
+});
+
+test('Mock Source aliases consume only the existing failed-return payload-sever observation', async () => {
+  const f = effectReadRetirementFixture();
+  await f.reader.closeSourceRead(f.originalRead);
+  f.nativePending(true); f.payloadSevered(true); f.retire();
+  assert.equal(f.observations(), 1); assert.equal(f.effectReads.size, 0);
+  const g = effectReadRetirementFixture();
+  await g.reader.closeSourceRead(g.originalRead); g.retire();
+  assert.equal(g.observations(), 0, 'Successful Unit adds no currentness/retirement callback');
+  assert.equal(g.effectReads.size, 0);
 });

@@ -416,7 +416,7 @@ test('Mock Effect reader consumes the same planned original and retires physical
   }};
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const closeFunctions = outer.body.body.filter(node => node.type === 'FunctionDeclaration' &&
-    ['closeRead', 'closePhysicalRead'].includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
+    ['closeRead', 'closePhysicalRead', 'releaseEffectSourceAliases'].includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
   const same = (actual, expected) => actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
   const ports = {moon, sourceManaged, originalReads, effectReads, declaration, index: 0,
     bundle: {sources: [{declaration}, {declaration}]}, checked: value => value, fail,

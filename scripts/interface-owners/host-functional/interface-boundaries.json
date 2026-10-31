@@ -67672,7 +67672,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "eed2e86943ac0eb550398758bd5c47f9919fd9dd7ed361552174ea4ccb064346",
+      "sha256": "71b49743fd83981908815d1a138b3d3072b43ff7b4d8a3d44cd32e6041c22f0e",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -67918,6 +67918,14 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockSources/releaseEffectSourceAliases",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/retireModelRead",
           "parameters": [
             "model"
@@ -68121,6 +68129,7 @@
             "installPreparedProjectMockSources/prepareManagedRun",
             "installPreparedProjectMockSources/queryAliases/queryAliases",
             "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
+            "installPreparedProjectMockSources/releaseEffectSourceAliases",
             "installPreparedProjectMockSources/sameRun/sameRun"
           ],
           "exports": [
@@ -68135,6 +68144,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -68145,6 +68158,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "identity": [
@@ -68159,6 +68176,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "ownership": [
@@ -68177,6 +68198,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "synchronization": [
@@ -68191,6 +68216,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "failure": [
@@ -68201,6 +68230,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "cancellation": [
@@ -68211,6 +68244,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "resources": [
@@ -68225,6 +68262,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "extension": [
@@ -68235,6 +68276,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
               }
             ],
             "verification": [
@@ -68261,6 +68306,14 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "retired Mock Effect manager entry cannot acquire another Model Root"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Mock Effect Source alias retirement"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "test('same acknowledged Effect Run releases installation-held Source read aliases before parent return'"
               }
             ]
           }
