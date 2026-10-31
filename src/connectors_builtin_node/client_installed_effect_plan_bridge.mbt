@@ -43,6 +43,24 @@ pub fn client_program_installed_effect_operation_extent_prepare(
 }
 
 ///|
+// Pure same-Plan capture quantity. JavaScript forwards the native capacity
+// unchanged; Core supplies its checked row multiplicity, never an ABI tuple
+// or an independent caller estimate.
+#export_name("clientProgramInstalledEffectCaptureExtentPrepare")
+pub fn client_program_installed_effect_capture_extent_prepare(
+  operation : String,
+  fixed_capacity : @execution.ExecutionCapacity,
+  capacity_per_checked_row : @execution.ExecutionCapacity,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_capture_extent(
+    operation, fixed_capacity, capacity_per_checked_row,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationDemandPrepare")
 pub fn client_program_installed_effect_operation_demand_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,

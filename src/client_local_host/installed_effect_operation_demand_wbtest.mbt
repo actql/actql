@@ -1010,3 +1010,49 @@ test "Effect Compute keeps the same checked four-row leaf demand before operatio
     }
   }
 }
+
+///|
+test "standard capture extent refuses overflow and row-slot reuse without changing static extents" {
+  let (prepared, _, _) = effect_operation_plan_inputs()
+  let capacity = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  let template = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(0L, 0L).unwrap(),
+    capacity,
+  ).unwrap()
+  assert_true(resolve_installed_effect_capture_extent(template, 2) is None)
+  assert_true(resolve_installed_effect_capture_extent(template, -1) is None)
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [], [
+      template,
+    ])
+    is Err(Unsupported),
+  )
+  let static_extent = prepare_installed_effect_operation_extent(
+    "capture", capacity, 0L, false,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      resolve_installed_effect_capture_extent(static_extent, 3).unwrap(),
+      static_extent,
+    ),
+  )
+  assert_true(
+    prepare_installed_effect_capture_extent("", capacity, capacity)
+    is Err(Unsupported),
+  )
+  // The original structural-work guard applies before any template scan.
+  let work = @publication_host.client_standard_program_preparation_limits().max_graph_work
+  assert_true(
+    prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "save",
+      [],
+      Array::make(work + 1, static_extent),
+    )
+    is Err(Unsupported),
+  )
+}

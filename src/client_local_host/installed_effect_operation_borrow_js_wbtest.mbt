@@ -668,3 +668,134 @@ test "zero Effect occurrences still retain the fixed control initialization fram
   assert_true(retained >= fixed_frame)
   assert_true(execution >= retained)
 }
+
+///|
+// Actual checked Program/Compute/operation Plan; no physical grant or normal
+// runtime here. The same closed row fact supplies capture storage only once.
+test "standard capture extent resolves same checked zero and three rows before its original member borrow" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  for count in [0, 3] {
+    let rows = if count == 0 {
+      "[]"
+    } else {
+      "[{\"id\":1},{\"id\":2},{\"id\":3}]"
+    }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"standard-capture-rows\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+    let prepared = @publication_host.prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let request = @publication_host.prepare_client_effect_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "standard-capture-rows",
+      "sha256:" + "b".repeat(64),
+    ).unwrap()
+    let template = prepare_installed_effect_capture_extent(
+      "capture",
+      @execution.execution_capacity(13L, 17L).unwrap(),
+      @execution.execution_capacity(37L, 61L).unwrap(),
+    ).unwrap()
+    let demand = prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "save",
+      [template],
+      [],
+    ).unwrap()
+    let plan = prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      [demand],
+      provider_factory=_ => [],
+    ).unwrap()
+    assert_eq(plan.rows, count)
+    assert_true(
+      physical_equal(
+        plan.capacity_plan,
+        plan.source_free.unwrap().capacity_plan,
+      ),
+    )
+    let selected = prepared_installed_effect_managed_operation(
+      plan, 0, false, 0, "capture",
+    ).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected.capacity),
+      13L + 37L * count.to_int64(),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected.capacity),
+      17L + 61L * count.to_int64(),
+    )
+    assert_true(selected.checked_row_capacity is None)
+    assert_true(template.checked_row_capacity is Some(_))
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(template.capacity),
+      13L,
+    )
+    assert_eq(prepared_installed_effect_managed_capture_children(plan), 1)
+    assert_eq(plan.limits.attempts, plan._observed_compute_limits.attempts)
+    assert_eq(
+      plan.limits.transfer_bytes,
+      plan._observed_compute_limits.transfer_bytes,
+    )
+    let (input, initial, _, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+    )
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    let ledger = owner.ledger.unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let child = borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, false, 0, 0, "capture",
+    ).unwrap()
+    let during = @resources.ledger_usage(ledger)
+    assert_eq(
+      during.reserved_retention_bytes,
+      before.reserved_retention_bytes +
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      ) +
+      13L +
+      37L * count.to_int64(),
+    )
+    assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+    assert_eq(@resources.ledger_usage(ledger), during)
+    assert_true(retire_installed_effect_operation(child, true) is Ok(true))
+    assert_true(
+      borrow_installed_effect_operation(
+        owner, prepared, request, plan, 0, false, 0, 0, "capture",
+      )
+      is Err(AlreadyBound),
+    )
+    retire_installed_managed_run(owner).unwrap()
+  }
+}

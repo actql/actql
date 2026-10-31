@@ -40940,7 +40940,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "311c52162a51c370d05b874dd34a4503f4f758fc21fcf80e6452d5e19c3543fe",
+      "sha256": "8d47030f65b0b5b7358040afe854a9cdd74db3af596fe249a579838337fd686d",
       "exports": [],
       "operations": [
         {
@@ -40966,6 +40966,10 @@
         {
           "name": "installed_effect_requirements",
           "declaration": "installed_effect_requirements ( limits : @ resources . LedgerLimits , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "prepare_installed_effect_capture_extent",
+          "declaration": "prepare_installed_effect_capture_extent ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepare_installed_effect_managed_plan",
@@ -40998,6 +41002,10 @@
         {
           "name": "prepared_installed_effect_managed_source",
           "declaration": "prepared_installed_effect_managed_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ row_source_host . RowDeclaration , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "resolve_installed_effect_capture_extent",
+          "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -41014,6 +41022,7 @@
             "installed_effect_operation_extent_transfer",
             "installed_effect_plan_matches",
             "installed_effect_requirements",
+            "prepare_installed_effect_capture_extent",
             "prepare_installed_effect_managed_plan",
             "prepare_installed_effect_operation_demand",
             "prepare_installed_effect_operation_extent",
@@ -41021,7 +41030,8 @@
             "prepared_installed_effect_managed_operation",
             "prepared_installed_effect_managed_requirements",
             "prepared_installed_effect_managed_shape",
-            "prepared_installed_effect_managed_source"
+            "prepared_installed_effect_managed_source",
+            "resolve_installed_effect_capture_extent"
           ],
           "exports": [],
           "attributes": {
@@ -54042,6 +54052,167 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_demand_wbtest.mbt",
                 "anchor": "test \"Effect Compute keeps the same checked four-row leaf demand before operation backing\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
+      "sha256": "7dc2c1cfc0f7ee1c28a2428a3adeed3685135d317449456717e1bf0bfa67bc0d",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
+      "referenceQualification": "Existing typed Plan bridge plus new opaque fixed/per-checked-row capture DATA projection; source and type qualification only, not current Common/ordinary/full backing",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_capture_extent_prepare",
+          "declaration": "client_program_installed_effect_capture_extent_prepare ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_host_open",
+          "declaration": "client_program_installed_effect_managed_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_operation_plan",
+          "declaration": "client_program_installed_effect_managed_operation_plan ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_capture_children",
+          "declaration": "client_program_installed_effect_managed_plan_capture_children ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Int"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_operation",
+          "declaration": "client_program_installed_effect_managed_plan_operation ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , operation : String , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_prepare_at_query_time",
+          "declaration": "client_program_installed_effect_managed_plan_prepare_at_query_time ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , query_time : @ publication_host . ClientQueryTimePreparation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_requirements",
+          "declaration": "client_program_installed_effect_managed_plan_requirements ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_shape",
+          "declaration": "client_program_installed_effect_managed_plan_shape ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > ( Int , Int , Int )"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_source",
+          "declaration": "client_program_installed_effect_managed_plan_source ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ client_row_source_host . RowDeclaration , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_provider_plan_prepare",
+          "declaration": "client_program_installed_effect_managed_provider_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_provider_plan_prepare_at_query_time",
+          "declaration": "client_program_installed_effect_managed_provider_plan_prepare_at_query_time ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , query_time : @ publication_host . ClientQueryTimePreparation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_source_read",
+          "declaration": "client_program_installed_effect_managed_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_demand_prepare",
+          "declaration": "client_program_installed_effect_operation_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent , ] , row_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent ] , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_extent_prepare",
+          "declaration": "client_program_installed_effect_operation_extent_prepare ( operation : String , retained_bytes : Int64 , execution_bytes : Int64 , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_node_effect_managed_plan_cleanup",
+          "declaration": "client_program_node_effect_managed_plan_cleanup ( admission : @ resources . NodeManagedRunAdmission [ @ client_local_host . ClientInstalledEffectManagedPlan , ] , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_capture_extent_prepare",
+            "client_program_installed_effect_managed_host_open",
+            "client_program_installed_effect_managed_operation_plan",
+            "client_program_installed_effect_managed_plan_capture_children",
+            "client_program_installed_effect_managed_plan_operation",
+            "client_program_installed_effect_managed_plan_prepare",
+            "client_program_installed_effect_managed_plan_prepare_at_query_time",
+            "client_program_installed_effect_managed_plan_requirements",
+            "client_program_installed_effect_managed_plan_shape",
+            "client_program_installed_effect_managed_plan_source",
+            "client_program_installed_effect_managed_provider_plan_prepare",
+            "client_program_installed_effect_managed_provider_plan_prepare_at_query_time",
+            "client_program_installed_effect_managed_source_read",
+            "client_program_installed_effect_operation_demand_prepare",
+            "client_program_installed_effect_operation_extent_prepare",
+            "client_program_node_effect_managed_plan_cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The original Effect Plan resolves those quantities from the"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_capture_extent_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "fn installed_effect_plan_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same resolved extent is quoted, borrowed and retired by the original Run."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "The exact checked graph/sequence inventory supplies the domain-independent"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "if row_extents.any(extent => extent.checked_row_capacity is Some(_)) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"planned Effect callback current loss retains original DAG cleanup and starts no task\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Row-operation slots cannot carry this member template. Fixed extents retain"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Fixed extents retain"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"standard capture extent resolves same checked zero and three rows before its original member borrow\""
               }
             ]
           }

@@ -1638,6 +1638,16 @@ original physical call from the child. Saved recovery needs its actual original
 parent and child retainer; a saved recipe or CID cannot select fresh backing or
 silently restore the legacy physical route.
 
+A standard capture extent may retain a fixed prefix beside material for each
+checked input row. The original Effect Plan resolves those quantities from the
+same completed Compute inventory before returning its selected operation
+extents. Resolution preserves one member child, no physical attempt and no
+transfer; it does not multiply occurrence count or traverse schemas again.
+Row-operation slots cannot carry this member template. Fixed extents retain
+their original meaning and identity. Zero input rows still need real fixed
+constructor backing; overflow or zero backing never supplies a constructor.
+The same resolved extent is quoted, borrowed and retired by the original Run.
+
 A managed capture selects its fixed `captureConstruction` member occurrence
 before Source export can append proposal rows, expand JSON or derive canonical
 CREATE identities. The original Plan reserves that body and the existing

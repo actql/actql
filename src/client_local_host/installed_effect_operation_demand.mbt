@@ -8,6 +8,9 @@ struct ClientInstalledEffectOperationExtent {
   capacity : @execution.ExecutionCapacity
   transfer_bytes : Int64
   physical_attempt : Bool
+  // Pure capture templates are resolved once from the SAME completed Plan.
+  // This multiplicity is storage DATA, never an occurrence/authority flag.
+  checked_row_capacity : @execution.ExecutionCapacity?
 }
 
 ///|
@@ -25,7 +28,69 @@ pub fn prepare_installed_effect_operation_extent(
     (!physical_attempt && transfer_bytes != 0L) {
     return Err(Unsupported)
   }
-  Ok({ operation, capacity, transfer_bytes, physical_attempt, })
+  Ok({
+    operation,
+    capacity,
+    transfer_bytes,
+    physical_attempt,
+    checked_row_capacity: None,
+  })
+}
+
+///|
+/// One member capture retains storage for all checked input rows, but remains
+/// ONE child/occurrence. Resolve this template only after the original Compute
+/// Plan has supplied its row inventory. It cannot select a physical attempt,
+/// transfer or a row-operation slot, and does not reserve or grant anything.
+pub fn prepare_installed_effect_capture_extent(
+  operation : String,
+  fixed_capacity : @execution.ExecutionCapacity,
+  capacity_per_checked_row : @execution.ExecutionCapacity,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  if operation.is_empty() {
+    return Err(Unsupported)
+  }
+  Ok({
+    operation,
+    capacity: fixed_capacity,
+    transfer_bytes: 0L,
+    physical_attempt: false,
+    checked_row_capacity: Some(capacity_per_checked_row),
+  })
+}
+
+///|
+fn resolve_installed_effect_capture_extent(
+  original : ClientInstalledEffectOperationExtent,
+  rows : Int,
+) -> ClientInstalledEffectOperationExtent? {
+  guard original.checked_row_capacity is Some(per_row) else {
+    return Some(original)
+  }
+  if original.physical_attempt || original.transfer_bytes != 0L {
+    return None
+  }
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_retained_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_retained_bytes(per_row),
+      rows,
+    )
+    is Some(retained) &&
+    @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(original.capacity),
+      QuotedBytes,
+      @execution.execution_capacity_execution_bytes(per_row),
+      rows,
+    )
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(capacity) else {
+    return None
+  }
+  Some({ ..original, capacity, checked_row_capacity: None, })
 }
 
 ///|
@@ -57,6 +122,11 @@ pub fn prepare_installed_effect_operation_demand(
   if member_extents.length() > work ||
     row_extents.length() > work - member_extents.length() ||
     (member_extents.is_empty() && row_extents.is_empty()) {
+    return Err(Unsupported)
+  }
+  // A capture template co-funds one enclosing member. A row slot would apply
+  // checked multiplicity twice, and cannot carry this member-only recipe.
+  if row_extents.any(extent => extent.checked_row_capacity is Some(_)) {
     return Err(Unsupported)
   }
   let descriptor = match
@@ -335,6 +405,25 @@ pub fn prepare_installed_effect_managed_plan(
     Some({ closed_rows: Some(count), .. }) => count
     _ => @publication_host.client_standard_values_sequence_limits().max_rows
   }
+  // Complete the selected capture templates from the SAME immutable row
+  // inventory above. Static extents keep their original identity. No second
+  // schema traversal, Plan preparation or caller-supplied row count is used.
+  let resolved_operations = selected_operations.copy()
+  for index, demand in selected_operations {
+    if demand.member_extents.any(extent => {
+        extent.checked_row_capacity is Some(_)
+      }) {
+      let member_extents = demand.member_extents.copy()
+      for slot, original in demand.member_extents {
+        guard resolve_installed_effect_capture_extent(original, rows)
+          is Some(extent) else {
+          return Err(Unsupported)
+        }
+        member_extents[slot] = extent
+      }
+      resolved_operations[index] = { ..demand, member_extents, }
+    }
+  }
   let mut attempts = compute_limits.attempts.to_int64()
   let mut held_children = 0L
   let mut transfer = compute_limits.transfer_bytes
@@ -342,7 +431,7 @@ pub fn prepare_installed_effect_managed_plan(
   let mut execution = compute_limits.execution_bytes
   let mut extent_count = 0L
   let mut remaining = @publication_host.client_standard_program_preparation_limits().max_graph_work
-  for demand in selected_operations {
+  for demand in resolved_operations {
     for
       (extents, multiplicity) in [
         (demand.member_extents, 1),
@@ -530,7 +619,7 @@ pub fn prepare_installed_effect_managed_plan(
     values_body,
     fragment_body,
     ordered_body,
-    operations: selected_operations.copy(),
+    operations: resolved_operations,
     source_free,
     sequences,
     compute_sequences,
