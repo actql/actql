@@ -10321,7 +10321,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});"
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
               }
             ],
             "failure": [

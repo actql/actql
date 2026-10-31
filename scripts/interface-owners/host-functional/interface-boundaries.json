@@ -41811,7 +41811,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "original.capacity = control.prefixCapacity(preparedProgram, task, step,"
+                "anchor": "original.capacity = control.requestPrefixCapacity(original.managed.serialization);"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
