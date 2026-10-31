@@ -272,6 +272,8 @@ function siteControl(moon) {
     settleTransferDestination: moon.strategySiteSettleTransferDestination,
     retainTransferHolding: moon.strategySiteRetainTransferHolding,
     retainHolding: moon.strategySiteRetainHolding,
+    prepareHoldingRestoration: moon.strategySitePrepareHoldingRestoration,
+    acquireRestoredHolding: moon.strategySiteAcquireRestoredHolding,
     releaseHolding: moon.strategySiteReleaseHolding,
     retainCleanup: moon.strategySiteRetainCleanup,
     releaseCleanup: moon.strategySiteReleaseCleanup,

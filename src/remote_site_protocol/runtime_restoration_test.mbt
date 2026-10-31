@@ -73,6 +73,95 @@ fn restore_failed_partial_fixture(
 }
 
 ///|
+test "failed partial cleanup restores its original rejected and releasing phases after cursor loss" {
+  for releasing in [false, true] {
+    let (record, measured) = failed_partial_runtime_fixture(
+      if releasing {
+        "partial-cold-releasing"
+      } else {
+        "partial-cold-rejected"
+      },
+    )
+    let original = restore_failed_partial_fixture(record, measured).unwrap()
+    assert_true(remote_runtime_custody_confirm_stop(original))
+    let rejected = prepare_owned_remote_runtime_cleanup(record, original).unwrap()
+    commit_dispatch_transition(
+      remote_runtime_step_transition(rejected).unwrap(),
+      true,
+    ).unwrap()
+    if releasing {
+      let release = prepare_owned_remote_runtime_cleanup(record, original).unwrap()
+      commit_dispatch_transition(
+        remote_runtime_step_transition(release).unwrap(),
+        true,
+      ).unwrap()
+    }
+    let revision = dispatch_record_revision(record)
+    // The process-local cursor is lost. The same admitted Source, measurement
+    // and process-generation observations must bind the new cleanup-only cursor.
+    let restored = restore_failed_partial_fixture(record, measured).unwrap()
+    assert_eq(dispatch_record_revision(record), revision)
+    assert_eq(dispatch_record_state_codes(record)[1], 3)
+    assert_true(remote_runtime_custody_operation_settled(restored))
+    assert_true(remote_runtime_custody_stop_pending(restored))
+    assert_false(remote_runtime_custody_output_released(restored))
+    assert_false(remote_runtime_custody_holding_released(restored))
+    assert_false(remote_runtime_custody_bundle_released(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_false(remote_runtime_custody_acquire_operation(restored))
+    assert_true(
+      prepare_remote_runtime_success(record, restored)
+      is Err(MaterialUnavailable),
+    )
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      0,
+    )
+    // These explicit physical ports represent separate original acknowledgments.
+    // A cold cursor or historical rejection alone supplies none of them.
+    assert_true(remote_runtime_custody_confirm_stop(restored))
+    if !releasing {
+      let release = prepare_owned_remote_runtime_cleanup(record, restored).unwrap()
+      commit_dispatch_transition(
+        remote_runtime_step_transition(release).unwrap(),
+        true,
+      ).unwrap()
+    }
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      3,
+    )
+    assert_true(remote_runtime_custody_release_output(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_true(remote_runtime_custody_release_holding(restored))
+    assert_false(remote_runtime_custody_resources_reclaimed(restored))
+    assert_true(remote_runtime_custody_release_bundle(restored))
+    let released = prepare_owned_remote_runtime_cleanup(record, restored).unwrap()
+    commit_dispatch_transition(
+      remote_runtime_step_transition(released).unwrap(),
+      true,
+    ).unwrap()
+    assert_eq(
+      remote_runtime_step_action_code(
+        prepare_owned_remote_runtime_cleanup(record, restored).unwrap(),
+      ),
+      4,
+    )
+    assert_eq(dispatch_record_state_codes(record)[1], 3)
+    assert_false(remote_runtime_record_startable(record))
+    assert_true(
+      prepare_remote_runtime_success(record, restored)
+      is Err(MaterialUnavailable),
+    )
+    assert_true(restore_failed_partial_fixture(record, measured) is Err(_))
+  }
+}
+
+///|
 test "failed partial cleanup durably rejects original evidence before any release" {
   let (record, measured) = failed_partial_runtime_fixture(
     "partial-reject-original",
