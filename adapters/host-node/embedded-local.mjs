@@ -5851,7 +5851,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const content = runtimeCore(runtime).contentGenerationControl;
       const run = {runtime, prepared, request, manager, content, contentPlan: plan,
         contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
-        original: undefined, value: undefined, serialization: undefined, closed: false, selecting: true};
+        original: undefined, value: undefined, serialization: undefined, serializationCleaned: false,
+        closed: false, selecting: true};
       runs.set(prepared, run); liveRuns.add(run);
       try {
         run.retire = runtime.clientProgramInstalledManagedRunRetire;
@@ -6044,9 +6045,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return;
       }
       if (run.preparationFunded) {
-        if (run.preparationKind === 'serialization-plan' &&
-            Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
-          throw clientOperationError('InstalledContentRunCleanupPending');
+        if (run.preparationKind === 'serialization-plan' && !run.serializationCleaned) {
+          if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
+            throw clientOperationError('InstalledContentRunCleanupPending');
+          }
+          // Spend only this original prefix's ACK before parent retirement
+          // can sever its payload or a consumed borrow return can throw.
+          run.serializationCleaned = true;
         }
         try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
         catch (cause) {

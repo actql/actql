@@ -91,6 +91,10 @@ test('installed Content cleanup retains a real prepared object until the same re
     async commitPhysicalHolding() { commitCalls++; throw originalFailure; },
   };
   const publications = {
+    checkedClientSerializationGenerationLimits(value, graph) {
+      assert.equal(value, compiled); assert.deepEqual(graph, {task: 0, step: 1});
+      return {maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes};
+    },
     checkClientCompiledRunOwner(run, prepared) {
       assert.equal(run, compiled); assert.equal(prepared, preparedProgram);
     },
@@ -150,7 +154,8 @@ test('installed Content cleanup retains a real prepared object until the same re
   assert.equal(await execution.cleanup(), true);
   assert.equal(releaseCalls, 3, 'confirmed cleanup never releases twice');
   assert.equal(starts, 1);
-  assert.equal(ledgerPreparations, 1);
+  assert.equal(ledgerPreparations, 0);
+  assert.equal(managedPreparations, 1);
   assert.equal(seals, 1);
   assert.equal(commitCalls, 1, 'cleanup retry never retries the failed commit');
   await assert.rejects(readFile(join(scratch.path, 'store', 'objects', contentCid.slice(7))), {code: 'ENOENT'});
