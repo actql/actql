@@ -204,7 +204,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   if(typeof authorizationFor!=='function'||typeof sourceManaged?.assertCurrent!=='function'||
       typeof sourceManaged?.prepareRead!=='function'||
       typeof moon?.clientProgramLocalFileTimestamp!=='function') fail('LocalFilesManagedReadUnavailable');
-  const bundle=preparation.originalsForRuntime(moon),sources=[],runs=new Map(),reads=new WeakMap();
+  const bundle=preparation.originalsForRuntime(moon),sources=[],reads=new WeakMap();
   // Weak lookup is provenance only. The shared Host owns ordinary Runs; this
   // Connector retains only its actual native children until their close ACK.
   const sharedRuns=new WeakMap(),sharedReads=new Set();
@@ -227,14 +227,14 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
   const sameRun=prepared=>{
-    current();const run=sharedRuns.get(prepared)??runs.get(prepared);
+    current();const run=sharedRuns.get(prepared);
     if(run?.failed)throw run.failure;
     if(run===undefined||run.value===undefined)fail('LocalFilesManagedReadUnavailable');
     checked(moon.clientProgramInstalledManagedRunCheck(run.value,prepared,run.request));return run;
   };
   function prepareRun(prepared,request,prepareInvocation){
     current();
-    if(runs.has(prepared)||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
+    if(sharedRuns.get(prepared)?.recipe!==undefined||typeof prepareManagedRun!=='function')fail('LocalFilesManagedReadUnavailable');
     // The same Host retains its actual partial/adopted Run before returning.
     // No Connector Root, admission, numeric quote or run-count ceiling exists.
     const value=Reflect.apply(prepareManagedRun,undefined,[prepared,request,profile,prepareInvocation]);
@@ -246,17 +246,16 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   }
   function prepareContentRun(prepared,request,recipe,graph){
     current();
-    if(sharedRuns.has(prepared)||typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
-    const prior=runs.get(prepared);
+    if(typeof prepareManagedContentRun!=='function')fail('ForeignLocalFilesContentPreparation');
+    const prior=sharedRuns.get(prepared);
     if(prior!==undefined){
       if(prior.recipe!==recipe||prior.graph!==graph)fail('ForeignLocalFilesContentPreparation');
       sameRun(prepared);
       checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return prior.hostRun;
     }
-    if(runs.size===4096)fail('LocalFilesRunLimit');
-    const run={prepared,request,effectful:false,recipe,graph,requestOwned:true,hostRun:undefined,original:undefined,value:undefined,
-      reads:new Map(),retired:false,failed:false,failure:undefined};
-    runs.set(prepared,run);
+    const run={prepared,request,effectful:false,recipe,graph,hostRun:undefined,original:undefined,value:undefined,
+      reads:new Map(),failed:false,failure:undefined};
+    sharedRuns.set(prepared,run);
     try{
       run.hostRun=Reflect.apply(prepareManagedContentRun,undefined,[prepared,request,graph,recipe,()=>{
         const keyed=recipe.keyedAcquisition;
@@ -328,7 +327,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     // The Core session still owns its original read and RowRun retirement.
     // Keep only a weak-key close tombstone and the consumed occurrence, not
     // another strong path to the Prepared graph or closed native controls.
-    reads.set(read.value,{entry:read.entry,externalClosed:true});
+    if(read.value!==undefined)reads.set(read.value,{entry:read.entry,keyed:read.keyed===true,externalClosed:true});
     read.owner.reads.set(read.index,undefined);
     sharedReads.delete(read);read.closed=true;
     read.owner=read.value=read.raw=read.entry=read.reader=read.physical=read.close=read.retain=undefined;
@@ -347,7 +346,10 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(sharedReads.has(read)){
       await closeSharedReadExternal(read);
       if(read.closed)return;
-      if(read.value!==undefined)checked(moon.clientProgramInstalledSourceReadRetire(read.value));
+      if(read.value!==undefined){
+        const retire=read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:moon.clientProgramInstalledSourceReadRetire;
+        checked(Reflect.apply(retire,moon,[read.value]));
+      }
       releaseSharedRead(read);return;
     }else{
     if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
@@ -364,18 +366,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   async function close(){
     closing=true;const errors=[];
     for(const read of sharedReads)try{await closeRead(read);}catch(cause){errors.push(cause);}
-    for(const run of runs.values()){
-      for(const read of run.reads.values())try{await closeRead(read);}catch(cause){errors.push(cause);}
-      if([...run.reads.values()].some(read=>!read.closed)||run.retired)continue;
-      try{
-        if(run.requestOwned){run.retired=true;continue;}
-        if(run.value!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-        else if(run.admission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(run.admission));
-        run.retired=true;
-      }catch(cause){errors.push(cause);}
-    }
     if(errors.length)throw new AggregateError(errors,'LocalFilesCleanupPending');
-    runs.clear();
   }
   try{
     for(const entry of bundle.sources){
@@ -454,9 +445,9 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           if(run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry||
               declaration!==entry.declaration||run.reads.has(request))fail('LocalFilesSourcePreparationMismatch');
           const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.original,request);
-          const read={raw,entry,keyed:true,value:undefined,reader:undefined,physical:undefined,
+          const read={raw,entry,owner:run,index:request,keyed:true,value:undefined,reader:undefined,physical:undefined,
             close:undefined,closeCaptured:false,retain:undefined,closed:false,attempted:false};
-          run.reads.set(request,read);captureClose(read);read.retain=raw.retainChild;
+          run.reads.set(request,read);sharedReads.add(read);captureClose(read);read.retain=raw.retainChild;
           if(typeof read.retain!=='function')fail('LocalFilesManagedReadUnavailable');
           sameRun(checkedOwner);
           read.value=checked(moon.clientProgramInstalledManagedKeyedSourceRead(
@@ -465,14 +456,18 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         },
         async closeKeyedSourceRead(original){
           const retained=reads.get(original);
-          if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry)
+          if(retained?.externalClosed===true){
+            if(!retained.keyed||retained.entry!==entry)fail('ForeignLocalFilesContentPreparation');
+            return Object.freeze({pending:false});
+          }
+          if(retained===undefined||!retained.read?.keyed||retained.read.entry!==entry)
             fail('ForeignLocalFilesContentPreparation');
           await closeRead(retained.read);return Object.freeze({pending:false});
         },
         async readPages(options){
           if(options.resource==='contents'){
             const retained=reads.get(options.rowRun.originalKeyedRead);
-            if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry||
+            if(retained===undefined||!retained.read?.keyed||retained.read.entry!==entry||
                 typeof options.capturedResourcePath!=='function'||typeof options.captureContent!=='function')
               fail('LocalFilesSourcePreparationMismatch');
             const {run,read}=retained;sameRun(run.prepared);

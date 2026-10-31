@@ -6125,9 +6125,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }
         run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
         run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
+        run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
         run.manager.severPreparation(prepared,run.original);
         run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
-        run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
         run.prepared=undefined;run.closed=true;
         run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.

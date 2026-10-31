@@ -221,7 +221,7 @@ test('Local Content post-factory current failure retains the original close and 
 });
 test('Local Content failed Host adoption never creates or cleans another admission',async()=>{
   const f=await fixture({failBegin:true});assert.throws(f.prepare,{code:'OriginalHostContentAdoptionFailed'});
-  assert.throws(f.prepare);assert.equal(f.calls.filter(x=>x==='original').length,1);
+  assert.throws(f.prepare);assert.equal(f.calls.filter(x=>x==='same-host-parent').length,1);
   await f.profile.close();assert.equal(f.calls.includes('parent-retire'),false);assert.equal(f.calls.includes('partial-parent-cleanup'),false);
 });
 test('Local Content native short reads and empty bytes preserve the same exact bounded output',async()=>{
