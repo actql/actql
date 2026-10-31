@@ -27,9 +27,10 @@ const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
-const deriveInstalledRowWrite = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
+const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
   'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
   createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
 const providerCid = `sha256:${'a'.repeat(64)}`;
@@ -626,4 +627,31 @@ test('standard mapper consumes and saves exact original proposal wire without re
   assert.equal(restored.proposalWire,wire);
   assert.equal(driver.requestCid(restored),prepared.requestCid);
   assert.equal(restored.body,prepared.request.body);
+});
+
+test('standard declaration supplies its same immutable construction facts without calling a provider', () => {
+  const unused = () => assert.fail('No provider constructor or I/O while selecting DATA');
+  const write = declaration({request: unused, classify: unused, check: {
+    resource: 'forms', operation: 'fixture:form', beforeSend: true,
+    http: {origin, method: 'POST', path: '/form', headers: [['accept', 'application/json']],
+      maxRequestBytes: 101, maxResponseBytes: 103}, body: unused, project: unused}});
+  const original = deriveInstalledRowWriteOriginal(write, 'fixture');
+  assert(Object.isFrozen(original)); assert(Object.isFrozen(original.driver));
+  const facts = original.construction;
+  assert(Object.isFrozen(facts)); assert(Object.isFrozen(facts.write)); assert(Object.isFrozen(facts.check));
+  assert.deepEqual(facts.write, {operation: 'fixture:create', maxRequestBytes: 200, maxResponseBytes: 400});
+  assert.deepEqual(facts.check, {resource: 'forms', operation: 'fixture:form', beforeSend: true,
+    maxRequestBytes: 101, maxResponseBytes: 103});
+  assert(Number.isSafeInteger(facts.metadataTextUnits) && facts.metadataTextUnits > origin.length);
+  write.http.maxRequestBytes = 1; write.check.http.maxResponseBytes = 1;
+  assert.equal(facts.write.maxRequestBytes, 200); assert.equal(facts.check.maxResponseBytes, 103);
+});
+
+test('standard construction facts distinguish no check from an original legacy check', () => {
+  const plain = deriveInstalledRowWriteOriginal(declaration(), 'fixture');
+  assert.strictEqual(plain.construction.check, undefined);
+  const legacy = deriveInstalledRowWriteOriginal(declaration({check: {resource: 'forms', operation: 'fixture:form',
+    request() {assert.fail('Legacy callback must not run during declaration selection');}}}), 'fixture');
+  assert.strictEqual(legacy.construction.check, null);
+  assert.equal(typeof legacy.driver.checkRequest, 'function');
 });
