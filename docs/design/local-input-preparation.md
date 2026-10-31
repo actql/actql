@@ -3784,3 +3784,31 @@ carrier and the input/output tuple carriers are real retained or overlapping
 material. Their complete backing belongs to the caller's same-parent domain
 inventory before allocation. A reference getter or compiler-work receipt does
 not fund those holdings, and retirement cannot refund consumed work or attempts.
+
+### Model bounds before original Run binding
+
+`prepared_composed_bounds` selects the existing installed input, Model, output
+and identity limits from the same checked occurrence and Infer Plan before a
+Run exists. The caller backs and retains this DATA before constructing the
+physical Model frame. The existing limit selection and Host/contract clamps
+remain its sole numerical definition; a Run definition is not needed merely
+to read them.
+
+`check_original_composed_preparation` later binds that occurrence and Plan to
+the actual compiled Run and definition. It performs the original nominal and
+definition checks without selecting limits again. This binding is separate
+from current Account, egress, resource, Model dispatch and cleanup obligations;
+neither phase creates a Ledger, Scope or permission.
+
+Current late Node consumers retain their binding-before-selection refusal
+order through one private adapter. A prepared consumer instead retains its
+selected limits and invokes only the binding continuation later. The former
+combined Core entry is removed rather than kept as a second phase contract.
+
+The Node retained-limits projection reads that same selected `Limits` value.
+It supplies the existing bootstrap/read/Model retained and execution pairs and
+three live inventory bounds without selecting limits again. The existing
+combined requirement consumer uses this same projection; Model Ledger totals
+are separate from these consumer allowances. The projection returns DATA and
+does not admit a physical frame. The prepared bounds getter already requires
+the original Infer Plan graph, so it cannot fund that graph's first construction.
