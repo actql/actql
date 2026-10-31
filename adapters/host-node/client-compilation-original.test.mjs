@@ -108,6 +108,23 @@ test('barrier profiles retain their original graph requirements without an artif
  assert.equal(compiles,0);assert.equal(issues,0);
 });
 
+test('Request Serialization consumes its original TaskCompilation and rejects copied graphs without compiling again', () => {
+ const prepared={},graph={},rawGraph={},compilation={},issued={},tokens=new WeakMap();let issues=0;
+ const moon={clientProgramCompileLocalSerialization(){assert.fail('Do not recompile original Request Serialization');},
+  clientProgramIssueOriginalTaskCompiledRun(){assert.fail('Serialization artifact is not a compilation sum');},
+  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignSerializationCompilation');return issued;}};
+ for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
+ const invoke=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens:tokens,
+  serializationPlanTokens:new WeakMap([[graph,rawGraph]]),compiledRunResult:value=>value,
+  inspectEvidence:value=>value,inspect:value=>value,inspectAdmission:value=>value});
+ const result=invoke(prepared,'serialization',{},graph,compilation);
+ assert.equal(tokens.get(result),issued);assert.equal(issues,1);
+ assert.throws(()=>invoke(prepared,'serialization',{},graph,{}),{code:'ForeignSerializationCompilation'});
+ assert.throws(()=>invoke({},'serialization',{},graph,compilation),{code:'ForeignSerializationCompilation'});
+ assert.throws(()=>invoke(prepared,'serialization',{}, {...graph},compilation),/Foreign Content compilation graph/);
+ assert.equal(issues,3);
+});
+
 
 test('timed original projection forwards the Core Option without a JavaScript tuple constructor',()=>{
  const q={},prepared={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
