@@ -90,6 +90,13 @@ test('ordinary Local Files delegates to the same Host Run without creating anoth
   assert.deepEqual(f.calls, ['same-host-parent']);
 });
 
+test('Local Files returns its same retained Host Run to the original submission caller', async () => {
+  const f = await fixture();
+  assert.strictEqual(f.profile.prepareManagedRun(f.prepared, f.request), f.managed);
+  assert.strictEqual(f.profile.prepareManagedRun(f.prepared, f.request), f.managed);
+  assert.deepEqual(f.calls, ['same-host-parent', 'same-host-parent']);
+});
+
 test('Local planned read keeps the same Core tuple and closes only its original external child', async () => {
   const f = await fixture(); f.profile.prepareManagedRun(f.prepared, f.request);
   const original = {};

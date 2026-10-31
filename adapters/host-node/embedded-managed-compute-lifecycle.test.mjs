@@ -884,8 +884,8 @@ function singleSourceOpening() {
           .includes('clientProgramPrepareSingleCapturedLocalInstalledLedger')) matches.push(node);
   });
   assert.equal(matches.length, 1);
-  return new AsyncFunction('installedSource', 'moon', 'preparedProgram', 'requested', 'checked', `
-    const singleAccounted=true, checkpoints=undefined, submission={},held={preparedSource:{}};
+  return new AsyncFunction('installedSource', 'moon', 'preparedProgram', 'requested', 'checked', 'managedRun', `
+    const singleAccounted=true, checkpoints=undefined, submission={},held={preparedSource:{},managedRun};
     const prepareAcquisition=()=>held.preparedSource;
     const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let ledger;
     ${dispatchSource.slice(matches[0].start, matches[0].end)}
@@ -899,19 +899,23 @@ test('single Source dispatcher keeps the original managed parent and singleton c
     assert.deepEqual(args, [run, prepared, request, [capacity], [3n], [5n],
       'registry', 'values', 'fragment', 'ordered']); return ledger;
   }, clientProgramPrepareSingleCapturedLocalInstalledLedger() {assert.fail('Accounting fallback');}},
-  prepared, request, value => value);
+  prepared, request, value => value, run);
   assert.strictEqual(result.ledger, ledger); assert.strictEqual(result.entry.acquisitionLedger, ledger);
 });
 
 test('single Source dispatcher preserves managed missing/parked refusal instead of scalar fallback', async () => {
   const open = singleSourceOpening(), marker = new Error('OriginalResourceParked');
-  const source = {ledgerCapacity: () => ({managedRun: {}, capacity: {}, transferBytes: 3n, executionBytes: 5n})};
+  const run = {}, source = {ledgerCapacity: () => ({managedRun: run, capacity: {}, transferBytes: 3n, executionBytes: 5n})};
   const legacy = () => assert.fail('Accounting fallback');
   await assert.rejects(open(source, {clientProgramPrepareSingleCapturedLocalInstalledLedger: legacy},
-    {}, {}, value => value), /InstalledSingleSourceOriginalRunUnavailable/u);
+    {}, {}, value => value, run), /InstalledSingleSourceOriginalRunUnavailable/u);
   await assert.rejects(open(source, {clientProgramPrepareSingleCapturedLocalInstalledLedger: legacy,
-    clientProgramInstalledManagedRunPrepareLedger() {throw marker;}}, {}, {}, value => value),
+    clientProgramInstalledManagedRunPrepareLedger() {throw marker;}}, {}, {}, value => value, run),
   error => error === marker);
+  await assert.rejects(open(source, {
+    clientProgramInstalledManagedRunPrepareLedger() {assert.fail('No foreign parent may reach Core');},
+    clientProgramPrepareSingleCapturedLocalInstalledLedger: legacy}, {}, {}, value => value, {}),
+  /InstalledSingleSourceOriginalRunUnavailable/u);
 });
 
 test('unprepared single Source retains its existing accounting constructor and argument shape', async () => {
@@ -1480,11 +1484,42 @@ test('whole Source submission retains its returned same-parent Run before prepar
   }, prepareManagedComputeRun() {assert.fail('Whole Source must not select Source-free adoption');}};
   const ports = {preparation, selectedModel: undefined, acquisitionCount: 1, sourceProfile: profile,
     submission: {preparedProgram: prepared}, requested: request, inferSelections: new WeakMap(),
-    moon: {clientProgramSerializationOccurrences: () => []}};
+    moon: {clientProgramSerializationOccurrences: () => []},
+    prepareTimedRunInvocation: () => assert.fail('No untimed clock or invocation construction')};
   // The exact original runtime argument remains distinct from constructor DATA.
   ports.moon = runtime; runtime.clientProgramSerializationOccurrences = () => [];
   const result = new Function(...Object.keys(ports), matches[0].map(text).join('\n') + '\nreturn managedRun;')(...Object.values(ports));
   assert.equal(result, original); assert.deepEqual(calls, ['adopt-original']);
+});
+
+test('native Source submission retains the original Run returned by its installed profile', () => {
+  const matches=[];
+  visit(ast,node=>{
+    if(node.type!=='BlockStatement')return;
+    const index=node.body.findIndex(statement=>statement.type==='VariableDeclaration'&&
+      statement.declarations.some(value=>value.id.name==='managedSourceRun'));
+    if(index>=0)matches.push(node.body.slice(index,index+3));
+  });
+  assert.equal(matches.length,1);
+  const prepared={},request={},original={},invocation=()=>{},calls=[];
+  const profile={prepareManagedRun(p,r,sample){
+    assert.strictEqual(this,profile);assert.strictEqual(p,prepared);
+    assert.strictEqual(r,request);assert.strictEqual(sample,invocation);
+    calls.push('same-profile-original');return original;
+  }};
+  const runtime={clientProgramSerializationOccurrences:()=>[]};
+  const ports={preparation:{
+    prepareManagedSourceRun(){assert.fail('No second Host constructor');},
+    prepareManagedComputeRun(){assert.fail('No Source-free substitution');},
+  },selectedModel:undefined,acquisitionCount:1,sourceProfile:profile,
+  submission:{preparedProgram:prepared},requested:request,inferSelections:new WeakMap(),
+  moon:runtime,prepareTimedRunInvocation:invocation};
+  const invoke=new Function(...Object.keys(ports),matches[0].map(text).join('\n')+'\nreturn managedRun;');
+  assert.strictEqual(invoke(...Object.values(ports)),original);
+  assert.deepEqual(calls,['same-profile-original']);
+  const failure=new Error('OriginalNativeSourceParentRefused');
+  profile.prepareManagedRun=function(){assert.strictEqual(this,profile);throw failure;};
+  assert.throws(()=>invoke(...Object.values(ports)),error=>error===failure);
 });
 
 async function wholeSourceLedgerBlock({foreign = false, missing = false, currentFailure} = {}) {

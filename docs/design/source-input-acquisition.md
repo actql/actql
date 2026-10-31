@@ -162,6 +162,12 @@ binds the original parent and checks currentness before and after preparation.
 An error cannot select another route, and neither the identity cache nor a
 selection's reference DATA grants a read or replaces the parent's cleanup.
 
+A native Source profile returns the same Host Run that it has retained and
+rechecked. Submission retains that returned original before dispatch selects
+the Source's Ledger capacity. Its identity must match the Run retained by the
+Source; a scalar quote or a second lookup cannot replace this handoff. This
+return carries no additional read grant, preparation or cleanup acknowledgment.
+
 The normal Source service retains the selected reader's node and depth bounds
 in the same immutable reader demand as its response and row bounds. Whole-input
 capacity construction and RowRun Begin consume that same demand. The legacy

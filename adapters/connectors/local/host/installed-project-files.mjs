@@ -245,6 +245,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior!==undefined&&(prior.value!==value||prior.request!==request))fail('ForeignLocalFilesPreparation');
     if(prior===undefined)sharedRuns.set(prepared,{prepared,request,value,effectful:false,reads:new Map()});
     current();
+    return value;
   }
   function releaseContentAliases(managed,inputHolder){
     const run=this;if(run.retired===true)return;

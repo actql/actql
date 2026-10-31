@@ -3795,7 +3795,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
-      sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
+      managedSourceRun = sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
     } else if (acquisitionCount > 0 && preparation !== undefined) {
       managedSourceRun = preparation.prepareManagedSourceRun(
         moon, submission.preparedProgram, requested, sourceProfile, prepareTimedRunInvocation);
