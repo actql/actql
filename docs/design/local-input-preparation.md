@@ -3904,3 +3904,27 @@ the publication view. Untimed whole-Source construction retains its original
 argument shape, and Query capture retains its existing QueryTime preparation.
 The typed binding and complete physical backing remain separate constructor
 obligations; forwarding an Option does not supply either of them.
+
+### Original Request domain construction
+
+An effect-free compiler result does not select an ordinary module. The manager
+reads the existing checked INFER and serialization inventories from the same
+Request's Program construction borrow. It retains the selected Model or Content
+construction borrow before returning that inventory borrow. A failed selection
+or return keeps its exact originals on the existing Request cleanup path. Mixed
+profiles remain subject to their existing typed consumer guards.
+
+The Model Request compiler returns the original raw TaskCompilation. The
+existing Task issuer consumes that artifact directly, while ordinary Values and
+Tasks retain their existing compilation-sum entry. The selected module, original
+Graph and retained bounds must belong to the same preparation. Model completion
+retains its actual Scope on the existing caller record before completion or
+adoption can fail. Keyed Content completion retains the original keyed Plan and
+Request; it cannot construct a replacement Ledger or substitute a pure module.
+A source-free serialization is a distinct Content purpose, not a fabricated
+keyed acquisition.
+
+These input and handoff contracts do not supply physical backing. Complete
+compiler, module, provider, codec, output, constructor and failed-child overlap
+must already belong to the same parent before each constructor. Scope, child
+cleanup, and preparation-borrow return retain their separate acknowledgements.

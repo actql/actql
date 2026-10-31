@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "743a01539c140ce8d784094a8c9c39cedd16371c264b88c5915607b0edc58128",
+      "sha256": "a85b128020e637f7743abd03829f24cc870cda0a11342a0e9804c32ce0d45202",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -8192,6 +8192,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -8238,6 +8242,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -8284,6 +8292,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -8334,6 +8346,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -8384,6 +8400,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -8430,6 +8450,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -8468,6 +8492,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -8522,6 +8550,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -8568,6 +8600,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -8605,7 +8641,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8634,6 +8670,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model admission uses the Request raw TaskCompilation"
               }
             ]
           }
@@ -9476,7 +9516,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }

@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "743a01539c140ce8d784094a8c9c39cedd16371c264b88c5915607b0edc58128",
+      "sha256": "a85b128020e637f7743abd03829f24cc870cda0a11342a0e9804c32ce0d45202",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -23980,6 +23980,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -24014,6 +24018,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -24048,6 +24056,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -24086,6 +24098,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -24124,6 +24140,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -24158,6 +24178,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -24188,6 +24212,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -24230,6 +24258,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -24264,6 +24296,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -24314,6 +24350,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model admission uses the Request raw TaskCompilation"
               }
             ]
           }
@@ -39839,7 +39879,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f9ddee7170c6e43275359ed5be015529db8eeb952abaefb88370101e05bb1147",
+      "sha256": "3d9d24d1f594e1960551e89ae00d1cef01f241df5142a2b3c76fca952d299b52",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -45182,6 +45222,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -45192,6 +45236,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -45202,6 +45250,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -45212,6 +45264,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -45222,6 +45278,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -45232,6 +45292,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -45242,6 +45306,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -45252,6 +45320,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -45262,12 +45334,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/preparation-initial-failure-public.test.mjs",
                 "anchor": "Ready initial preparations retire before Run adoption after Result refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
+                "anchor": "Host Model admission forwards the same original Request artifact"
               }
             ]
           }
@@ -47547,6 +47627,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -47601,6 +47685,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -47675,6 +47763,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -47745,6 +47837,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -47811,6 +47907,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -47869,6 +47969,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -47927,6 +48031,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -48001,6 +48109,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -48063,6 +48175,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -48185,6 +48301,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole-input Host request and acquisition keep one original identity without a Query substitute"
+              },
+              {
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
+                "anchor": "Host Model admission forwards the same original Request artifact"
               }
             ]
           }
@@ -50605,6 +50725,110 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "timed installing caller keeps immutable view through pending retirement then clears at original sever"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:prepareManagedModelCompilation/init:prepareManagedModelCompilation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedModelCompilation(runtime, prepared, graph) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
+                "anchor": "Host Model admission forwards the same original Request artifact"
               }
             ]
           }
