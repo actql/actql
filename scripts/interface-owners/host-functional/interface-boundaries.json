@@ -16580,7 +16580,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5494a770d5d0fc4a6a001b79c455682a55ee05ee94536f0b9014ab04f9a4ccd4",
+      "sha256": "d5be047cbec8663089b7de795123f8088b3a1cd34e70fdfdc6fbe1b6ab535586",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -16666,10 +16666,18 @@
         {
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition/init:issueDefinition",
           "parameters": [],
           "async": false
         },
@@ -16841,6 +16849,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "inputsOutputs": [
@@ -16867,6 +16879,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "identity": [
@@ -16893,6 +16909,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "ownership": [
@@ -16919,6 +16939,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "synchronization": [
@@ -16945,6 +16969,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "failure": [
@@ -16971,6 +16999,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "cancellation": [
@@ -16993,6 +17025,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "resources": [
@@ -17019,6 +17055,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "extension": [
@@ -17041,6 +17081,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "verification": [
@@ -17067,6 +17111,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ]
           }
@@ -17146,7 +17194,8 @@
         },
         {
           "operations": [
-            "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition"
+            "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition",
+            "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition/init:issueDefinition"
           ],
           "exports": [],
           "attributes": {
@@ -17154,60 +17203,104 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Identity is retained with the same Host, installation and Run."
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Synchronization captures each private operation and its receiver before later"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Extension remains private to the installed Host and the existing typed"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('Effect definition captures original then once and does not assimilate its opaque fulfillment DATA'"
               }
             ]
           }
