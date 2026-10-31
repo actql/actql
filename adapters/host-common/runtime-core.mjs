@@ -2698,7 +2698,7 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
-      if (compilationOriginal !== undefined && kind !== 'values' && kind !== 'tasks') {
+      if (compilationOriginal !== undefined && kind !== 'values' && kind !== 'tasks' && kind !== 'infer') {
         throw new TypeError('Compilation supplied without its selected barrier');
       }
       const serializationGraph = kind === 'serialization'
@@ -2719,14 +2719,19 @@ function publicationControl(moon) {
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
-      // A staged original is the existing typed Values/Tasks sum held by the
-      // actual Plan. The fixed Common entry validates its variant and owner.
+      // Pure staged originals use the existing Values/Tasks sum. The Request
+      // Model compiler instead returns the original raw TaskCompilation;
+      // its existing typed issuer validates that original and owner directly.
       // Unmigrated explicit compilation keeps its separate raw artifact entry.
       let value = compiledRunResult(compilationOriginal !== undefined
         ? kind === 'values'
           ? moon.clientProgramIssueOriginalValuesCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt)
+          : kind === 'infer'
+            ? moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+              compilation, policy.executionContextCid, policy.hostPolicyCid,
+              policy.expiresAt)
           : moon.clientProgramIssueOriginalTaskCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt)

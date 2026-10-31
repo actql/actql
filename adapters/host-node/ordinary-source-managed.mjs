@@ -669,6 +669,44 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
     },
+    prepareModelCompilation(prepared, request, graph) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined) return undefined; // An explicitly separate purpose.
+      if (state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.modelGraph !== undefined && state.modelGraph !== graph) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
+      if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      if (state.modelCompilation !== undefined) return state.modelCompilation;
+      const compile = moon.clientProgramPrepareRequestModelCompilation;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      if (typeof compile !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      state.preparing = true;
+      state.modelGraph = graph;
+      try {
+        // The typed Request compiler owns this SAME raw TaskCompilation.
+        // The Model module and Run issuer must consume it without compiling
+        // the graph again or reinterpreting it as the Values/Tasks sum.
+        state.modelCompilation = checkedRequestProgramPreparation(moon, Reflect.apply(compile, moon,
+          [state.parent, producer.receipt, graph, contracts.admission]), issue);
+        if (state.modelCompilation === undefined) fail('NodeManagedRunCompilationUnavailable');
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            state.modelGraph !== graph || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        return state.modelCompilation;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      } finally {state.preparing = false;}
+    },
     publicationPreparation(prepared) {
       const run = runFor(prepared), state = run.producer.preparation;
       if (state === undefined || state.prepared !== prepared ||

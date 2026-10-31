@@ -52,10 +52,12 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
     'checkedRequestProgramPreparation', 'requestPreparationAvailable',
-    `const closing=false,closed=false;return ({${method}}).fundedPreparation;`)(() => {},
+    `const closing=false,closed=false;return ({${method}});`)(() => {},
     actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
     (_moon, value) => value, () => true);
-  return {state, calls, inventory, selected, prepared, read: () => read(request),
+  return {state, calls, inventory, selected, prepared, moon, parent, input, request,
+    read: () => read.fundedPreparation(request),
+    compile: graph => read.prepareModelCompilation(prepared, request, graph),
     clearReturnFailure() {returnFailure = undefined;}};
 }
 
@@ -134,4 +136,27 @@ test('original Request cleanup retains both family borrows until each acknowledg
   assert.equal(state.inventoryHolder, undefined); assert.equal(state.holder, undefined);
   assert.equal(state.parent, undefined); assert.equal(retired, 1);
   assert.deepEqual(calls, ['abort', 'inventory', 'abort', 'inventory', 'selected', 'abort']);
+});
+
+
+test('Request Model compilation retains one original artifact and graph without a second compile', async () => {
+  const f = fixture({infers: [{}]}), graph = {}, artifact = {}, admission = [];
+  let compiles = 0;
+  f.moon.clientProgramRequestProgramModuleIssueCode = () => undefined;
+  f.moon.clientProgramPrepareRequestModelCompilation = function(parent, input, original, contracts) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent); assert.equal(input, f.input);
+    assert.equal(original, graph); admission.push(contracts); compiles++; return artifact;
+  };
+  await f.read();
+  assert.equal(f.compile(graph), artifact); assert.equal(f.compile(graph), artifact);
+  assert.throws(() => f.compile({}), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(compiles, 1); assert.equal(admission.length, 1);
+  const g = fixture({infers: [{}]}), failure = new Error('original-model-compiler');
+  let attempts = 0;
+  g.moon.clientProgramRequestProgramModuleIssueCode = () => undefined;
+  g.moon.clientProgramPrepareRequestModelCompilation = () => {attempts++; throw failure;};
+  await g.read();
+  assert.throws(() => g.compile(graph), error => error === failure);
+  assert.throws(() => g.compile(graph), error => error === failure);
+  assert.equal(attempts, 1);
 });

@@ -3024,7 +3024,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       // selects the existing compiler, not a replacement graph or admission.
       const compilationGraphs = infer.occurrence === undefined || Array.isArray(infer.graph)
         ? infer.graph : [infer.graph];
-      try {return Object.freeze({...inferTaskRunAdmission({...common, inferGraph: compilationGraphs}),
+      const compilationOriginal = preparation?.prepareManagedModelCompilation?.(
+        moon, preparedProgram, infer.graph);
+      try {return Object.freeze({...inferTaskRunAdmission({...common,
+        compilationOriginal, inferGraph: compilationGraphs}),
         inferGraph: infer.graph,
         ...(infer.serializationGraph === undefined ? {} : {serializationGraph: infer.serializationGraph})});}
       catch (cause) {
@@ -5886,6 +5889,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run.queryInvocation === undefined) return undefined; // Existing untimed module.
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
         run.value, prepared, run.queryInvocation);
+    },
+    prepareManagedModelCompilation(runtime, prepared, graph) {
+      const manager = computeManaged ?? sourceManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareModelCompilation !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
+        : assertManagedComputeInstallationCurrent)(manager, originals);
+      return manager.prepareModelCompilation(prepared,
+        originalSourceManagedHostRequest(originals, prepared), graph);
     },
     managedComputeCompilationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
