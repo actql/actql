@@ -6,9 +6,11 @@ import {
   "actql/actql/connectors/github/catalog",
   "actql/actql/encode_core" @encode,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/source_value" @source,
 }
 
 import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "actql/actql/client_local_host" @client_host,
 } for "wbtest"

@@ -101,3 +101,117 @@ pub fn github_add_comment_request_construction_capacity() -> @execution.Executio
 pub fn github_comment_subject_request_construction_capacity() -> @execution.ExecutionCapacity? {
   github_comment_request_capacity(true)
 }
+
+///|
+// Existing installed comment implementation bounds, not new user/profile
+// knobs or Resource limits. The normal HTTP caller and this native recipe
+// project the SAME constants instead of defining a second four-value table.
+let github_comment_http_request_bytes : Int = 300000
+
+///|
+let github_comment_page_limits : @catalog.PageLimits = {
+  max_bytes: 100000,
+  max_nodes: 10000,
+  max_depth: 32,
+  max_rows: 1,
+}
+
+///|
+#export_name("installedStandardCreateHttpLimits")
+pub fn installed_standard_create_http_limits() -> Array[Int] {
+  [
+    github_comment_http_request_bytes,
+    github_comment_page_limits.max_bytes,
+    github_comment_page_limits.max_nodes,
+    github_comment_page_limits.max_depth,
+  ]
+}
+
+///|
+fn github_comment_response_export_geometry() -> @source.ParseLimits {
+  // The original output has <=8 Json nodes at depth<=3 (success/refusal
+  // alternatives co-count). IdRepresentationChanged is the longest fixed
+  // protocol label here; use its ORIGINAL projection, not another label table.
+  // Eight complete such fixed records conservatively cover keys, punctuation,
+  // number spellings and all fixed labels. The one variable String may come
+  // from the bounded response; six bytes per original byte cover JSON escapes.
+  let fixed = graphql_issue_name(IdRepresentationChanged).stringify().length()
+  {
+    max_input_bytes: 6 * github_comment_page_limits.max_bytes + 8 * fixed,
+    max_nodes: 8,
+    max_depth: 3,
+  }
+}
+
+///|
+/// Native quantities and existing ParseLimits DATA. The Host forwards this
+/// entire Option/Array/tuple value unchanged to the typed Core adapter; it
+/// never peels/reboxes an Option or supplies capacity from JS numbers.
+/// Entry order is write request, subject request, write reply, subject reply.
+/// Each entry retains native capacity, optional native byte-JSON input shape,
+/// and exact upper geometry of the returned JSON String. These are neither a
+/// whole Host recipe nor a transfer/grant/cleanup observation.
+#export_name("installedStandardCreateConstructionProfile")
+pub fn installed_standard_create_construction_profile() -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+]? {
+  guard github_comment_request_capacity(false) is Some(write) &&
+    github_comment_request_capacity(true) is Some(read) else {
+    return None
+  }
+  let (_, write_wire) = github_comment_request_wire_bounds(false)
+  let (_, read_wire) = github_comment_request_wire_bounds(true)
+  // UTF8 uses at most three bytes per valid UTF16 unit. No HTTP cap bounds
+  // these earlier native outputs; controls can exceed that later send quota.
+  let write_export : @source.ParseLimits = {
+    max_input_bytes: (3L * write_wire).to_int(),
+    max_nodes: 2,
+    max_depth: 1,
+  }
+  let read_export : @source.ParseLimits = {
+    max_input_bytes: (3L * read_wire).to_int(),
+    max_nodes: 2,
+    max_depth: 1,
+  }
+  let response = github_comment_response_export_geometry()
+  guard @encode.text_writer_construction_inventory(
+      response.max_input_bytes,
+      response.max_nodes,
+      response.max_depth,
+    )
+    is Some(writer) &&
+    @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: writer.record_headers,
+        reference_slots: writer.reference_slots,
+        scalar_words: writer.scalar_words,
+        owned_utf16_units: writer.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(projected) else {
+    return None
+  }
+  let input : @source.ParseLimits = {
+    max_input_bytes: github_comment_page_limits.max_bytes,
+    max_nodes: github_comment_page_limits.max_nodes,
+    max_depth: github_comment_page_limits.max_depth,
+  }
+  Some([
+    (write, None, write_export),
+    (read, None, read_export),
+    (projected, Some(input), response),
+    (projected, Some(input), response),
+  ])
+}

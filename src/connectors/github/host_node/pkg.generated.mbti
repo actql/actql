@@ -4,6 +4,7 @@ package "actql/actql/connectors/github/host_node"
 import {
   "actql/actql/connectors/github/catalog",
   "actql/actql/execution_relation",
+  "actql/actql/source_value",
 }
 
 // Values
@@ -74,6 +75,10 @@ pub fn github_repository_response_json(Bytes, Int) -> String
 pub fn github_request_headers_json() -> String
 
 pub fn github_response_headers_json() -> String
+
+pub fn installed_standard_create_construction_profile() -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits)]?
+
+pub fn installed_standard_create_http_limits() -> Array[Int]
 
 // Errors
 

@@ -44991,7 +44991,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "c9525f708b45e71f112692c2918b7d1724661e4ecaad9e5542f31539e5f225ea",
+      "sha256": "abab58078205674fc3b0ae05727c0e639833ba55d7ae98ccf946614c72cc3e0d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -45005,6 +45005,10 @@
         {
           "name": "installed_json_effect_response_construction_capacity",
           "declaration": "installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_standard_create_constructor_capacities",
+          "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
         }
       ],
       "contracts": [
@@ -45012,7 +45016,8 @@
           "operations": [
             "<module>",
             "installed_json_effect_request_construction_capacity",
-            "installed_json_effect_response_construction_capacity"
+            "installed_json_effect_response_construction_capacity",
+            "installed_standard_create_constructor_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -45063,6 +45068,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Those constructor quantities remain separate from original request/response"
               }
             ],
             "extension": [
@@ -45079,6 +45088,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"standard JSON constructor adapter rejects malformed and overflowing opaque profiles\""
               }
             ]
           }
@@ -47167,7 +47180,8 @@
             "client_program_installed_effect_operation_transfer_uncertain",
             "client_program_installed_effect_response_buffer_construction_capacity",
             "client_program_installed_json_effect_request_construction_capacity",
-            "client_program_installed_json_effect_response_construction_capacity"
+            "client_program_installed_json_effect_response_construction_capacity",
+            "client_program_installed_standard_create_constructor_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -47217,6 +47231,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "secret/current/Journal material, provider parsing and saved response envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Those constructor quantities remain separate from original request/response"
               }
             ],
             "extension": [
@@ -47233,12 +47251,16 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response backing shortage refuses the original physical extent before borrow or binding'"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"standard CREATE native profile preserves original HTTP bounds and opaque constructor entries\""
               }
             ]
           }
         }
       ],
-      "sha256": "4771724043a3b3340295441611aa1b066752108196b07314f13147c0763c6378",
+      "sha256": "604c7395f63170e3b87b85b72b3f348e7e2ea3cb22b1fc104e8e2907de940b41",
       "operations": [
         {
           "name": "client_program_installed_effect_operation_borrow",
@@ -47250,7 +47272,7 @@
         },
         {
           "name": "client_program_installed_effect_operation_controls_begin",
-          "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+          "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_operation_extent_from_capacity",
@@ -47291,6 +47313,10 @@
         {
           "name": "client_program_installed_json_effect_response_construction_capacity",
           "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_standard_create_constructor_capacities",
+          "declaration": "client_program_installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -53779,7 +53805,7 @@
     },
     {
       "module": "src/connectors/github/host_node/comment_construction.mbt",
-      "sha256": "1d57c44f63a35e41868ef2a4a7ae6f2311125c235b3e81ea7135c9c8a2340684",
+      "sha256": "21c5ef178a04e1064282122eaf9b533affc4d2efd51fdd969bf3f92284099079",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
@@ -53803,8 +53829,20 @@
           "declaration": "github_comment_request_wire_bounds ( subject_check : Bool ) - > ( Int64 , Int64 )"
         },
         {
+          "name": "github_comment_response_export_geometry",
+          "declaration": "github_comment_response_export_geometry ( ) - > @ source . ParseLimits"
+        },
+        {
           "name": "github_comment_subject_request_construction_capacity",
           "declaration": "github_comment_subject_request_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_standard_create_construction_profile",
+          "declaration": "installed_standard_create_construction_profile ( ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ?"
+        },
+        {
+          "name": "installed_standard_create_http_limits",
+          "declaration": "installed_standard_create_http_limits ( ) - > Array [ Int ]"
         }
       ],
       "contracts": [
@@ -53815,7 +53853,10 @@
             "github_comment_request_capacity",
             "github_comment_request_construction_inventory",
             "github_comment_request_wire_bounds",
-            "github_comment_subject_request_construction_capacity"
+            "github_comment_response_export_geometry",
+            "github_comment_subject_request_construction_capacity",
+            "installed_standard_create_construction_profile",
+            "installed_standard_create_http_limits"
           ],
           "exports": [],
           "attributes": {
@@ -53862,6 +53903,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "representation policy prices these units; the provider adds no byte tariff or"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Those constructor quantities remain separate from original request/response"
               }
             ],
             "extension": [
@@ -53882,6 +53927,10 @@
               {
                 "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
                 "anchor": "test \"GitHub subject-check inventory is separate and prices the same original export\""
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"standard CREATE native JSON profile funds indexed input and literal returned String separately\""
               }
             ]
           }

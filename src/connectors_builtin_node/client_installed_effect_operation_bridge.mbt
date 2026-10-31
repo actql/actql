@@ -161,3 +161,19 @@ pub fn client_program_installed_effect_operation_controls_begin(
     owner, prepared, request, plan,
   )
 }
+
+///|
+// Forward the original provider-native Option/Array/tuple profile into the
+// existing Core JSON constructor owner. JavaScript supplies no ABI layout or
+// replacement quantities; this result is still constructor DATA only.
+#export_name("clientProgramInstalledStandardCreateConstructorCapacities")
+pub fn client_program_installed_standard_create_constructor_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+  ]?,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_standard_create_constructor_capacities(original)
+}

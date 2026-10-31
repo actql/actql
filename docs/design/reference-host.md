@@ -1663,6 +1663,22 @@ capacity reservation settles. The installation's full selected extent must
 still cover this prefix, its failed construction and simultaneous outputs;
 reserving an unqualified numeric bound supplies none of those facts.
 
+The installed native CREATE implementation owns its fixed HTTP/JSON limits.
+The Host snapshots that original method and receiver once; it has no parallel
+numeric default table. These are codec/transport rejection bounds, never Run
+allowances or permission. Native constructor profiles retain original
+`ExecutionCapacity` values beside existing `ParseLimits` for optional byte-JSON
+input and the returned JSON String. JavaScript forwards the opaque
+Option/Array/tuples unchanged to the typed Core adapter. The Core adds the
+existing indexed input constructor and literal Host output constructor, without
+parsing a Program, granting capacity or reconstructing an ABI tuple.
+
+Those constructor quantities remain separate from original request/response
+storage, headers, credentials, failed children and saved-output overlap. A
+complete selected physical recipe must fund all of them on the same Plan
+before allocation. A nonempty constructor quantity alone never enables an
+ordinary physical call or upgrades a provider response into an applied Effect.
+
 The standard CREATE declaration can express a read check as fixed `http`
 method/path/headers/bounds plus synchronous `body` and Unit `project`
 callbacks. These callbacks receive original provider request/response DATA

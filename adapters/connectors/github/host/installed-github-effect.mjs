@@ -22,6 +22,8 @@ import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowEffect} from
   '../../../host-node/installed-row-effect.mjs';
+import {captureInstalledStandardCreateLimits} from
+  '../../../host-node/installed-effect-plan.mjs';
 import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
@@ -42,8 +44,6 @@ const writesUrl = new URL('../../../../src/connectors/github/writes.json',
   import.meta.url);
 const profileKeys = ['accountConfigurationWire', 'connectorId',
   'publicationPath', 'siteProfilePath', 'version', 'writes'];
-const commentLimits = Object.freeze({maxRequestBytes: 300_000,
-  maxResponseBytes: 100_000, maxNodes: 10_000, maxDepth: 32});
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -173,6 +173,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
   if (!text(baseEnvironmentWire) || !absolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
   }
+  const commentLimits = captureInstalledStandardCreateLimits(providerMoon);
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => fail('InstalledGitHubConfigurationReaderUnavailable'));
   if (configurationReader !== undefined && readers.readOriginalText === undefined) {

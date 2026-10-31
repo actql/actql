@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan}
+import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
+  captureInstalledStandardCreateLimits}
   from './installed-effect-plan.mjs';
 
 // These are the actual installed Plan selector's ports. No native capacity,
@@ -285,4 +286,39 @@ test('capture construction selects its original member extent without consuming 
   assert.throws(()=>captureInstalledEffectPlanRecipe(Object.freeze({...base,get captureConstruction(){getters++;return {};}}),2),
     {code:'InvalidInstalledEffectPlanRecipe'});
   assert.equal(getters,0);
+});
+
+
+// Only the fixed native DATA method is explicit. Original request, Plan,
+// Account and physical owners remain separate; no Resource is issued here.
+test('standard CREATE snapshots original native implementation limits once without a JS default table', () => {
+  let calls = 0;
+  const values = [31, 37, 13, 5];
+  const native = {installedStandardCreateHttpLimits() {
+    assert.equal(this, native);calls++;return values;
+  }};
+  const limits = captureInstalledStandardCreateLimits(native);
+  assert.deepEqual(limits, {maxRequestBytes: 31, maxResponseBytes: 37, maxNodes: 13, maxDepth: 5});
+  assert(Object.isFrozen(limits));assert.equal(calls, 1);
+  values[0] = 1;assert.equal(limits.maxRequestBytes, 31);
+  const failure = {};
+  assert.throws(() => captureInstalledStandardCreateLimits({installedStandardCreateHttpLimits() {throw failure;}}),
+    error => error === failure);
+});
+
+test('standard CREATE refuses missing async inherited or accessor native metadata before use', () => {
+  let observed = 0;
+  for (const native of [{}, Object.create({installedStandardCreateHttpLimits() {observed++;}}),
+    {get installedStandardCreateHttpLimits() {observed++;}},
+    {async installedStandardCreateHttpLimits() {observed++;}}]) {
+    assert.throws(() => captureInstalledStandardCreateLimits(native), {code: 'InstalledStandardCreateRuntimeUnavailable'});
+  }
+  for (const values of [[1, 2, 3], [1, 2, 3, 4, 5], [0, 2, 3, 4], [1, 2, 3, 2147483648]]) {
+    assert.throws(() => captureInstalledStandardCreateLimits({installedStandardCreateHttpLimits: () => values}),
+      {code: 'InvalidInstalledStandardCreateLimits'});
+  }
+  const values = [1, 2, 3, 4];Object.defineProperty(values, '0', {get() {observed++;return 1;}});
+  assert.throws(() => captureInstalledStandardCreateLimits({installedStandardCreateHttpLimits: () => values}),
+    {code: 'InvalidInstalledStandardCreateLimits'});
+  assert.equal(observed, 0);
 });

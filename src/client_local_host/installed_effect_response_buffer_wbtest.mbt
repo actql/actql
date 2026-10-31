@@ -46,3 +46,55 @@ test "Effect response buffer backing checks exact original extent before an occu
   // There is no borrow, binding, request, transfer debit or permission here.
   // Native capacity correspondence is a necessary component, not a full Plan.
 }
+
+///|
+// Constructor DATA only. A zero native fixed value can return a borrowed
+// literal, but its Host JSON object still needs real constructed backing.
+test "standard JSON constructor adapter rejects malformed and overflowing opaque profiles" {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let output : @source.ParseLimits = {
+    max_input_bytes: 1,
+    max_nodes: 1,
+    max_depth: 1,
+  }
+  let pair = [(zero, None, output), (zero, None, output)]
+  let capacities = installed_standard_create_constructor_capacities(Some(pair)).unwrap()
+  assert_eq(capacities.length(), 2)
+  assert_true(@execution.execution_capacity_retained_bytes(capacities[0]) > 0L)
+  assert_true(
+    installed_standard_create_constructor_capacities(Some([pair[0]]))
+    is Err(Unsupported),
+  )
+  assert_true(
+    installed_standard_create_constructor_capacities(
+      Some([pair[0], pair[1], pair[0]]),
+    )
+    is Err(Unsupported),
+  )
+  let invalid : @source.ParseLimits = {
+    max_input_bytes: 0,
+    max_nodes: 1,
+    max_depth: 1,
+  }
+  assert_true(
+    installed_standard_create_constructor_capacities(
+      Some([(zero, None, invalid), pair[1]]),
+    )
+    is Err(Unsupported),
+  )
+  assert_true(
+    installed_standard_create_constructor_capacities(
+      Some([(zero, Some(invalid), output), pair[1]]),
+    )
+    is Err(Unsupported),
+  )
+  let maximum = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  assert_true(
+    installed_standard_create_constructor_capacities(
+      Some([(maximum, None, output), pair[1]]),
+    )
+    is Err(Unsupported),
+  )
+}

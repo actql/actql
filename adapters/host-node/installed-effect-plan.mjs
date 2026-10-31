@@ -7,6 +7,34 @@ import {credentialInvocationBindingKeys} from '../host-common/credential-scope-f
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
 
+// Fixed installed implementation metadata, not caller tuning or a Resource
+// allowance. Capture the native method/receiver once; no fallback numeric table
+// can silently disagree with the mapper/projector's original implementation.
+export function captureInstalledStandardCreateLimits(providerMoon) {
+  if (providerMoon === null || !['object', 'function'].includes(typeof providerMoon) ||
+      nodeTypes.isProxy(providerMoon)) fail('InstalledStandardCreateRuntimeUnavailable');
+  const method = Object.getOwnPropertyDescriptor(providerMoon, 'installedStandardCreateHttpLimits');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function' ||
+      nodeTypes.isProxy(method.value) || nodeTypes.isAsyncFunction(method.value)) {
+    fail('InstalledStandardCreateRuntimeUnavailable');
+  }
+  const values = Reflect.apply(method.value, providerMoon, []);
+  if (!Array.isArray(values) || nodeTypes.isProxy(values)) fail('InvalidInstalledStandardCreateLimits');
+  const fields = Object.getOwnPropertyDescriptors(values);
+  if (Reflect.ownKeys(fields).length !== 5 || fields.length?.value !== 4) {
+    fail('InvalidInstalledStandardCreateLimits');
+  }
+  const names = ['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth'];
+  const limits = {};
+  for (let index = 0; index < names.length; index++) {
+    const field = fields[index];
+    if (!field || !Object.hasOwn(field, 'value') || !Number.isSafeInteger(field.value) ||
+        field.value < 1 || field.value > 2147483647) fail('InvalidInstalledStandardCreateLimits');
+    limits[names[index]] = field.value;
+  }
+  return Object.freeze(limits);
+}
+
 // The selected Host supplies original typed extents from its actual implementation
 // recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
 // Core values; this view creates no capacity, admission or permission.

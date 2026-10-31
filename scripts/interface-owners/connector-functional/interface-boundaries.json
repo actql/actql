@@ -15139,6 +15139,7 @@
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "captureInstalledEffectPlanRecipe",
+        "captureInstalledStandardCreateLimits",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
         "prepareInstalledEffectRequestChild"
@@ -15210,6 +15211,13 @@
           "name": "captureInstalledEffectPlanRecipe/own/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledStandardCreateLimits",
+          "parameters": [
+            "providerMoon"
           ],
           "async": false
         },
@@ -15540,7 +15548,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "48cf2c1a2ccc28d05876e8f01eb12e5cb25bf7c693e181631db395e56582c7d0",
+      "sha256": "f1dfad2a8b46382170f54b64376bc611d586f40f428e0347cc7c2bf416ab2996",
       "contracts": [
         {
           "operations": [
@@ -15554,6 +15562,7 @@
             "captureInstalledEffectPlanRecipe/operations/operations/operations",
             "captureInstalledEffectPlanRecipe/own/own",
             "captureInstalledEffectPlanRecipe/own/own/own",
+            "captureInstalledStandardCreateLimits",
             "fail/fail",
             "prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectCredentialChild/callResource/callResource",
@@ -15603,6 +15612,7 @@
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
+            "captureInstalledStandardCreateLimits",
             "prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectRequestChild"
