@@ -2442,6 +2442,17 @@ actual executable/component interfaces, not to an invented platform history.
 
 ### Static command preparation facilities
 
+Explicit `new-submission` selects the same original command preparation before
+physical acquisition. It restores the original Product and adopted Journal;
+it does not select initial signing, regenerate keys, prepare a Program or acquire
+a business execution domain. Its dispatch runs under the same captured Read and
+issues through the existing epoch Owner with actual current Account authority.
+The returned reference is correlation DATA, not Run admission or execution supply.
+Durable clock uncertainty and fencing remain distinct failures. A failed issuance
+cannot retry, fall through to compatibility Library loading or replace the
+original cleanup custody. Current scope and Account are checked before disclosure
+after the durable issuance boundary.
+
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The
 command-owned mappings and trusted runtime lifetime remain separate. Help,

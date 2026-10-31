@@ -1,4 +1,30 @@
 ///|
+test "Explicit submission reference selects original preparation without a business Run" {
+  let parsed = command().parse(argv=[
+    "--mode", "local", "new-submission", "--request-id", "original-control",
+  ])
+  assert_true(local_command_preparation_selected(parsed))
+  assert_true(
+    local_command_preparation_operation_selected(
+      parsed, "new-submission", false,
+    ),
+  )
+  assert_false(
+    local_command_preparation_operation_selected(parsed, "cancel", false),
+  )
+  let original = native_storage_finite_arithmetic_profile()
+  let (profile, business) = local_command_profile_selection(original, parsed)
+  assert_true(business is None)
+  assert_eq(profile.control_bytes, original.control_bytes)
+  assert_eq(profile.arena_bytes, original.arena_bytes)
+  let remote = command().parse(argv=[
+    "--mode", "remote", "new-submission", "--request-id", "original-control",
+  ])
+  assert_false(local_command_preparation_selected(remote))
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "Both preparation carriers select only the supplied exact public Run operation" {
   let local_command = command().parse(argv=[
     "--mode", "local", "run", "program.aql",

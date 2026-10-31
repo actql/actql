@@ -136,6 +136,10 @@ fn local_command_preparation_operation_selected(
   operation == "explain" ||
   operation == "adopt" ||
   (
+    operation == "new-submission" &&
+    matches.subcommand is Some(("new-submission", _))
+  ) ||
+  (
     matches.subcommand is Some((selected, child)) &&
     selected == operation &&
     local_quick_query_requested(selected, child) &&
@@ -394,6 +398,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
             configuration=Some(configuration),
           )
+        } else if operation == "new-submission" {
+          local_new_submission_reference(settings, capture, child)
         } else if operation == "explain" {
           if optional(child, "run") is Some(_) {
             local_saved_run_explain(

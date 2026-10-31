@@ -1,4 +1,61 @@
 ///|
+// Issue only a Submission reference under the already acquired original Read.
+// No business preparation, Run, execution supply or initialization is selected.
+// The existing Epoch Owner retains its clock, current Account and lost-COMMIT
+// semantics; a failure never retries issuance or falls through to raw loading.
+fn local_new_submission_reference(
+  settings : LocalHostSettings,
+  capture : @local_host.NativeLocalJournalCapture,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  let epoch = match
+    capture.issue_epoch_in_original_read(
+      settings.principal,
+      settings.connection,
+      scope,
+      @env.now().to_double(),
+    ) {
+    Ok(value) => value
+    Err(
+      @local_host.Epoch(TransactionUnknown)
+      | @local_host.InstallationReadTransactionFailure(_, TransactionUnknown)
+    ) => stop("LocalSubmissionEpochUnknown")
+    Err(@local_host.Epoch(Fenced)) => stop("LocalSubmissionEpochFenced")
+    Err(@local_host.Epoch(AuthorizationDenied)) =>
+      stop("LocalSubmissionAuthorizationDenied")
+    Err(_) => stop("LocalSubmissionEpochUnavailable")
+  }
+  let reference = @local_host.prepare_native_client_submission_reference(
+    epoch,
+    required(child, "request-id"),
+  ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+  // Issuance may advance the durable clock. Preserve the original current
+  // boundary before disclosing this reference; it is never an execution grant.
+  guard capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    )
+    is Ok(current) &&
+    current == scope &&
+    capture.authorize_in_original_read({
+      principal: settings.principal,
+      connection: settings.connection,
+      resource: "run",
+      operation: "submit",
+    })
+    is Ok(Allow(_)) else {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  @local_host.native_client_submission_reference_wire(reference)
+}
+
+///|
 // Invocation correlation only, not a Run, authorization or retry decision.
 // An explicit original remains the caller's recovery selection. The public
 // fresh spelling allocates once and never enters that branch again on error.
