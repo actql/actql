@@ -154,3 +154,42 @@ test "whole Source dispatch uses its exact Plan graph and existing Run Ledger" {
     is Err(_),
   )
 }
+
+///|
+test "source-free dispatch reads its retained Request Plan without a captured Source" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_program_body_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let plan = parent.program_source_free.unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "source-free-result-placement",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(run.captured_preparation is None)
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), plan))
+  let before_current = calls.val
+  let before_usage = @resources.ledger_usage(parent.ledger)
+  let placement = installed_managed_acquisition_result_publication(
+    run, prepared, request,
+  )
+  let after_current = calls.val
+  let after_usage = @resources.ledger_usage(parent.ledger)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(after_current, before_current)
+  assert_eq(after_usage, before_usage)
+  assert_eq(placement, Ok(false))
+}
