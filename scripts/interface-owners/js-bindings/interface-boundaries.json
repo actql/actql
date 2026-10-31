@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "afa74bc7ce43f70f5767d1d3650ec08432069c889a75769e9fe896d88ef3c3f9",
+      "sha256": "b7fe277c1cf8132a5882b6fc9d6e8f50fbe5246f6cc293b1d6591733ea99babb",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -15592,6 +15592,14 @@
             "encoder",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+          "parameters": [
+            "run",
+            "selected"
           ],
           "async": false
         },
@@ -15936,6 +15944,19 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:recover/init:recover",
           "parameters": [
             "compiled",
@@ -15955,6 +15976,20 @@
             "originalWire",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "n"
           ],
           "async": false
         },
@@ -16021,6 +16056,15 @@
             "input",
             "row",
             "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected"
           ],
           "async": false
         },
@@ -19370,6 +19414,29 @@
             "occurrence",
             "graph",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "graph",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
           ],
           "async": false
         },
@@ -24379,6 +24446,10 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model admission uses the Request raw TaskCompilation"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -27582,6 +27653,116 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model Plan bindings retain module"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+            "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+            "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -40009,7 +40190,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6a247b300d883e528a768e775731ebad17bb107f2c407ab951b5ee766350b1e3",
+      "sha256": "1c1b3add6da0bb084dc43844fbd21614a4fbc1b8258898b6aa6f0f43fc57ff5e",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -40591,6 +40772,25 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "originalGraph",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
           "parameters": [
             "runtime",
@@ -40636,6 +40836,33 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "plan",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
           "parameters": [
             "method"
           ],
@@ -42098,12 +42325,23 @@
           "parameters": [
             "prepared",
             "request",
-            "recipe"
+            "plan",
+            "limits",
+            "workspace"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
           "parameters": [
             "prepared",
             "request",
@@ -45603,6 +45841,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model failed construction"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -45751,6 +45993,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model failed construction"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -48600,6 +48846,10 @@
               {
                 "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
                 "anchor": "Host Model admission forwards the same original Request artifact"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -48939,6 +49189,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -48953,6 +49207,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -48967,6 +49225,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -48981,6 +49243,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -48995,6 +49261,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -49009,6 +49279,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -49023,6 +49297,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -49037,6 +49315,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -49051,6 +49333,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -49069,6 +49355,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -49159,24 +49449,40 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Optional Source diagnostics use the installed Host observer and the same"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "observe: (event, detail) => diagnostic(event,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "{...detail, ref: facts.ref}), sourceContinuation,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "captures.push(captured);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -49187,30 +49493,50 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "Only this original adapter call starts a new Source attempt."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "recovery = ended.recovery;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "sourceAccess: source.access, signal,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "cleanup acknowledgement."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "an already retained capture or refusing that admission is not another start."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -49221,6 +49547,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "'a refused original admission is not a Source attempt'"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -51237,6 +51567,115 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model failed construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+            "connectEmbeddedLocal/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
+            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
+            "connectEmbeddedLocal/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedSerializationRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -77065,7 +77504,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9dc804df540d2e8269da85be08098ca26c175a51a785dbe789aca394159ec9f2",
+      "sha256": "6d0c8f33183d45b1f31689fd84a1483ed1060083dd539beb258b581df7202260",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -80323,6 +80762,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -80333,6 +80776,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -80343,6 +80790,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -80353,6 +80804,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -80363,6 +80818,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -80373,6 +80832,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -80383,6 +80846,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -80393,6 +80860,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -80403,6 +80874,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -80417,6 +80892,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -80552,6 +81031,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -80562,6 +81045,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -80572,6 +81059,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -80582,6 +81073,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -80592,6 +81087,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -80602,6 +81101,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -80612,6 +81115,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -80622,6 +81129,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -80632,6 +81143,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -80646,6 +81161,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }

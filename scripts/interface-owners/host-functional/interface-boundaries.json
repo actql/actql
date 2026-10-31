@@ -41143,7 +41143,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d01e6a66fcde787753ed4a2a99d021d6bf011fc1afc264b76158463e9c6cb055",
+      "sha256": "15b81008c8810397fd1513e1b6b2cd6979d1b632d30fb66865ac781a22b97003",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -41169,7 +41169,8 @@
             "assertRunCurrent",
             "preparedRunRequired",
             "prepareKeyedManagedRun",
-            "borrowKeyedManagedLedger"
+            "borrowKeyedManagedLedger",
+            "prepareSerializationManagedRun"
           ],
           "async": false
         },
@@ -41272,7 +41273,8 @@
           "name": "installNodeContentRun/installNodeContentRun",
           "parameters": [
             "preparedProgram",
-            "plan"
+            "plan",
+            "request"
           ],
           "async": false
         },
@@ -41572,6 +41574,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -41602,6 +41608,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -41632,6 +41642,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -41666,6 +41680,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -41696,6 +41714,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -41726,6 +41748,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -41756,6 +41782,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -41790,6 +41820,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -41812,6 +41846,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -41850,6 +41888,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -77879,7 +77921,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "72759dda9021524766e652d1ccdcb0dc2f91e517b46d374b11e4ae8338526294",
+      "sha256": "a6ca49403f87f5f24966c33bb3c0be9f36fff20f8ce368a47ebc1626780e04ac",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -78144,7 +78186,8 @@
           "parameters": [
             "prepared",
             "identity",
-            "contentPlan"
+            "contentPlan",
+            "serialization"
           ],
           "async": false
         },
@@ -78370,6 +78413,16 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph",
+            "compileOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
           "parameters": [
             "prepared",
@@ -78509,6 +78562,16 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan"
           ],
           "async": false
         },
@@ -78655,6 +78718,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -78665,6 +78732,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -78675,6 +78746,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -78685,6 +78760,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -78695,6 +78774,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -78705,6 +78788,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -78715,6 +78802,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -78725,6 +78816,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -78735,6 +78830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -78745,6 +78844,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -79170,6 +79273,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "inputsOutputs": [
@@ -79184,6 +79291,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "identity": [
@@ -79194,6 +79305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "ownership": [
@@ -79208,6 +79323,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "synchronization": [
@@ -79218,6 +79337,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "failure": [
@@ -79232,6 +79355,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "cancellation": [
@@ -79242,6 +79369,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "resources": [
@@ -79256,6 +79387,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "extension": [
@@ -79266,6 +79401,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
               }
             ],
             "verification": [
@@ -79280,6 +79419,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -80663,6 +80806,10 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "Model handoff retains the original Scope before completion"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -80767,6 +80914,111 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Model manager hands the same parent"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "    prepareContentCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -84127,7 +84379,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "1870f4cc9936045aac34a43cb099c6f1f6f2eb42eb42f39118c637af3bc23e31",
+      "sha256": "6c112be9a83246653ce5e99a11361955a54dd906c87752c48e361752f393e705",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -84535,6 +84787,10 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "original Request cleanup consumes both borrows once"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -84887,6 +85143,10 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "original Request cleanup consumes both borrows once"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }

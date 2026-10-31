@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "afa74bc7ce43f70f5767d1d3650ec08432069c889a75769e9fe896d88ef3c3f9",
+      "sha256": "b7fe277c1cf8132a5882b6fc9d6e8f50fbe5246f6cc293b1d6591733ea99babb",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -346,6 +346,14 @@
             "encoder",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+          "parameters": [
+            "run",
+            "selected"
           ],
           "async": false
         },
@@ -690,6 +698,19 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:recover/init:recover",
           "parameters": [
             "compiled",
@@ -709,6 +730,20 @@
             "originalWire",
             "binding",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "n"
           ],
           "async": false
         },
@@ -775,6 +810,15 @@
             "input",
             "row",
             "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected"
           ],
           "async": false
         },
@@ -4124,6 +4168,29 @@
             "occurrence",
             "graph",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "graph",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
           ],
           "async": false
         },
@@ -8699,6 +8766,10 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model admission uses the Request raw TaskCompilation"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }
@@ -10722,6 +10793,116 @@
               {
                 "path": "adapters/host-node/client-compilation-original.test.mjs",
                 "anchor": "actual Model Plan bindings retain module"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+            "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+            "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
               }
             ]
           }

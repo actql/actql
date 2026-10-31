@@ -3950,3 +3950,20 @@ These input and handoff contracts do not supply physical backing. Complete
 compiler, module, provider, codec, output, constructor and failed-child overlap
 must already belong to the same parent before each constructor. Scope, child
 cleanup, and preparation-borrow return retain their separate acknowledgements.
+
+Terminal source-free Content uses the Request's checked serialization graph and
+raw TaskCompilation. The existing Task issuer binds that original graph to its
+compiled Run; the original Definition and configured workspace then enter the
+same Request's serialization Plan constructor. Completion and Content adoption
+retain its original prefix provider, and dispatch starts that prefix under the
+adopted Run. It neither recompiles the graph nor constructs a scalar Ledger.
+The six stored prefix requirements describe that prefix alone, not the complete
+Host, generation, Store, output or failed-child backing.
+
+The installed Content cleanup retains physical writer/holding duties before
+settling its original prefix. A failed prefix start remains reachable through
+the same adopted Run even if no prefix returned to JavaScript. The Host spends
+that prefix's acknowledged cleanup once before parent payload severing; a later
+consumed-borrow settlement failure retries the original parent continuation,
+not a new prefix or a query of a severed Content payload. Keyed Content and
+intermediate Model serialization remain distinct constructor purposes.
