@@ -77601,7 +77601,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "f23b791dfb3846ef6c12e4d45f2d21589cf2fa332ff7ae8c03b0f060f2fa52cf",
+      "sha256": "7e1fc6b31de91a25d3b42a581270f7600a05aead083218a7196a1bbad65baa74",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -83743,7 +83743,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "d7d0421b1267006df5040da007913e4eea2391b5bc446f8b29e0fd6bccfeb24b",
+      "sha256": "1870f4cc9936045aac34a43cb099c6f1f6f2eb42eb42f39118c637af3bc23e31",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -84150,7 +84150,7 @@
               },
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
-                "anchor": "original Request cleanup retains both family borrows"
+                "anchor": "original Request cleanup consumes both borrows once"
               }
             ]
           }
@@ -84502,7 +84502,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
-                "anchor": "original Request cleanup retains both family borrows"
+                "anchor": "original Request cleanup consumes both borrows once"
               }
             ]
           }
