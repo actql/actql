@@ -15852,7 +15852,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5a3ff6e8452e9a6732db33f0d991e294f6a96469963c3d7b71a7611a1202f7a2",
+      "sha256": "81631a810636ed2ba3f57b1e7db080bd1a5129792ae7bdbf669fa42d0df83b9b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

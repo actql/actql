@@ -4153,6 +4153,23 @@ pub fn strategy_site_retain_holding(
 }
 
 ///|
+#export_name("strategySitePrepareHoldingRestoration")
+pub fn strategy_site_prepare_holding_restoration(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHoldingRestoration? {
+  @site.prepare_site_holding_restoration(site, bytes)
+}
+
+///|
+#export_name("strategySiteAcquireRestoredHolding")
+pub fn strategy_site_acquire_restored_holding(
+  restoration : @site.SiteHoldingRestoration,
+) -> @site.SiteHolding? {
+  restoration.acquire()
+}
+
+///|
 #export_name("strategySiteReleaseHolding")
 pub fn strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
   @site.release_site_holding(holding)

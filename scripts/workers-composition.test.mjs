@@ -4,6 +4,34 @@ import {runInNewContext} from 'node:vm';
 import {parse} from 'acorn';
 import test from 'node:test';
 
+test('historical holding controller forwards the original Site token and exact bytes', () => {
+  const source = readFileSync(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'siteControl');
+  assert(declaration);
+  const site = Object.freeze({originalSite: true});
+  const restoration = Object.freeze({originalRestoration: true});
+  const holding = Object.freeze({originalHolding: true});
+  const calls = [];
+  const moon = {
+    strategySitePrepareHoldingRestoration(actualSite, bytes) {
+      calls.push(['prepare', actualSite, bytes]); return restoration;
+    },
+    strategySiteAcquireRestoredHolding(actualRestoration) {
+      calls.push(['acquire', actualRestoration]); return holding;
+    },
+    strategySiteRetainHolding() { assert.fail('Normal retention cannot restore historical debt'); },
+  };
+  const factory = runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
+    siteControls: new WeakMap(),
+  });
+  const control = factory(moon);
+  assert.equal(factory(moon), control);
+  assert.equal(control.prepareHoldingRestoration(site, 31n), restoration);
+  assert.equal(control.acquireRestoredHolding(restoration), holding);
+  assert.deepEqual(calls, [['prepare', site, 31n], ['acquire', restoration]]);
+});
+
 test('failed partial controller forwards the same original physical tuple without creating another custody', () => {
   const source = readFileSync(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
   const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body

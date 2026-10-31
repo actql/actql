@@ -202,10 +202,19 @@ pub fn restore_remote_runtime_failed_partial_custody(
   process_owner : String,
   process_generation : String,
 ) -> Result[RemoteRuntimeCustody, DispatchIssue] {
+  // A lost cursor does not reset the existing failed-outcome progression.
+  // NoEvidence is only the initial unknown cleanup; the same durable rejection
+  // may already have committed, with physical release still pending.
+  let failed_cleanup = (
+      record.evidence == NoEvidence && record.cleanup == CleanupUnknown
+    ) ||
+    (
+      record.evidence == EvidenceRejected &&
+      (record.cleanup == CleanupUnknown || record.cleanup == CleanupReleasing)
+    )
   if record.revision != expected_revision ||
     record.execution != NativeSettled ||
-    record.evidence != NoEvidence ||
-    record.cleanup != CleanupUnknown ||
+    !failed_cleanup ||
     record.material_available ||
     record.quarantined_capacity {
     return Err(InvalidTransition)
@@ -900,10 +909,11 @@ pub fn prepare_owned_remote_runtime_cleanup(
   // Preserve the same failed-outcome fact as live failure cleanup. Releasing
   // physical resources alone must not leave NativeSettled/NoEvidence, which
   // is still an unfinished success path for the enclosing Coordinator.
+  if custody.partial_restoration is Some(_) &&
+    remote_runtime_custody_stop_pending(custody) {
+    return Ok(runtime_step(RuntimeAwaitStop, None))
+  }
   if custody.partial_restoration is Some(_) && record.evidence == NoEvidence {
-    if remote_runtime_custody_stop_pending(custody) {
-      return Ok(runtime_step(RuntimeAwaitStop, None))
-    }
     return prepare_reject_execution_evidence(record).map(transition => {
       runtime_step(RuntimePersistTransition, Some(transition))
     })
