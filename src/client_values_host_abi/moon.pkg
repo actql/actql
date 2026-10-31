@@ -23,3 +23,7 @@ import {
   "actql/actql/host_observation" @observation,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/execution_site" @site,
+} for "wbtest"
