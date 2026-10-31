@@ -116,3 +116,89 @@ test('retired Mock Effect read context refuses before Source custody or current 
     declaration: {}, occurrence: {stage: 0, input: 0}}), {code: 'InstalledEffectPlanUnavailable'});
   assert.equal(current, 0); assert.equal(acquisitions, 0);
 });
+
+// Same actual Source child and Host retirement bodies. The native retirement
+// and raw close ports are explicit: this counter proves JS alias lifetime,
+// never a real Resource/FD ACK, normal admission or a capacity recipe.
+function effectReadRetirementFixture() {
+  const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  let retirement;
+  function find(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'retireManagedComputeRun') retirement = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(find);
+      else if (value && typeof value === 'object') find(value);
+    }
+  }
+  find(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(retirement);
+  const prepared = {}, request = {}, native = {}, declaration = {}, events = [];
+  const run = {prepared, request, value: native, preparationKind: 'effect-plan',
+    preparationFunded: true, original: {}, closed: false};
+  const record = {computeRuns: new WeakMap([[prepared, run]]), computeLiveRuns: new Set([run])};
+  let nativePending = false, physicalPending = false, severFailure, onNative;
+  const pending = Object.assign(new Error('OriginalNativePending'), {code: 'OriginalNativePending'});
+  const raw = {close() {assert.equal(this, raw); events.push('physical'); return {pending: physicalPending};},
+    readOriginalBytes() {assert.fail('No Source I/O in retirement counter');}};
+  const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramInstalledPreparationPayloadSevered: () => false};
+  run.runtime = moon;
+  run.retire = function(value) {
+    assert.equal(this, moon); assert.equal(value, native); events.push('native'); onNative?.();
+    return nativePending ? {$tag: 0, _0: pending} : {$tag: 1};
+  };
+  run.manager = {severPreparation(p, original) {
+    assert.equal(p, prepared); assert.equal(original, run.original); events.push('parent');
+    if (severFailure) {const error = severFailure; severFailure = undefined; throw error;}
+  }};
+  const originalReads = new WeakMap(), effectRuns = new WeakMap([[prepared, new WeakRef(run)]]);
+  const effectReads = new Set(), records = new Map();
+  const sourceManaged = {assertCurrent() {}, prepareRead(p, selected, value) {
+    assert.equal(p, prepared); assert.equal(selected, declaration); assert.equal(value, native); return raw;
+  }};
+  const optionalRelease = nodes.find(node => node.type === 'FunctionDeclaration' &&
+    node.id?.name === 'releaseEffectSourceAliases');
+  const reader = compileFunction(`
+    const index=0;
+    ${optionalRelease ? source.slice(optionalRelease.start, optionalRelease.end) : ''}
+    ${select('FunctionDeclaration', 'closePhysicalRead')}
+    ${select('FunctionDeclaration', 'closeRead')}
+    ${select('FunctionDeclaration', 'closeSource')}
+    return {${select('Property', 'prepareSourceRead')},
+      ${select('Property', 'closeSourceRead')}, closeSource};`,
+    ['sourceManaged', 'moon', 'declaration', 'sameRun', 'originalReads', 'effectReads', 'effectRuns', 'records', 'checked', 'fail'])(
+      sourceManaged, moon, declaration, p => {assert.equal(p, prepared); return run;},
+      originalReads, effectReads, effectRuns, records,
+      value => {if (value.$tag !== 1) throw value._0; return value._0;}, fail);
+  const retire = compileFunction(`return ({${hostSource.slice(retirement.start, retirement.end)}}).retireManagedComputeRun;`,
+    ['record', 'moon', 'checked', 'finishInstalledEffectModelScope', 'clientOperationError',
+      'managedPreparationRetirementContinuation'])(record, moon,
+      value => {if (value.$tag !== 1) throw value._0; return value._0;}, () => {},
+      code => Object.assign(new Error(code), {code}), () => () => {});
+  const originalRead = {};
+  reader.prepareSourceRead({checkedOwner: prepared, effectful: true, declaration,
+    occurrence: {stage: 0, input: 0}, managedRun: native, originalRead});
+  const read = run.mockSourceReads[0];
+  return {run, record, prepared, request, native, originalRead, read, raw,
+    reader, retire: () => retire(prepared), events, effectReads, effectRuns, originalReads, pending,
+    nativePending(value) {nativePending = value;}, physicalPending(value) {physicalPending = value;},
+    failSever(value) {severFailure = value;}, onNative(callback) {onNative = callback;}};
+}
+
+test('same acknowledged Effect Run releases installation-held Source read aliases before parent return', async () => {
+  const f = effectReadRetirementFixture();
+  assert.equal(f.effectReads.size, 1);
+  assert.equal(f.originalReads.get(f.originalRead).read, f.read);
+  await f.reader.closeSourceRead(f.originalRead);
+  assert.equal(f.read.physicalClosed, true);
+  assert.equal(f.effectReads.size, 1, 'Physical close alone is not native retirement');
+  f.retire();
+  assert.equal(f.effectReads.size, 0, 'Per-Run retirement must not wait for installation close');
+  assert.equal(f.effectRuns.has(f.prepared), false);
+  assert.equal(f.originalReads.has(f.originalRead), false);
+  for (const key of ['raw', 'close', 'bytes', 'observedBytes', 'value']) assert.equal(f.read[key], undefined, key);
+  assert.equal(f.run.mockSourceReads, undefined);
+  assert.equal(f.run.releaseMockSourceAliases, undefined);
+  assert.deepEqual(f.events, ['physical', 'native', 'parent']);
+});
