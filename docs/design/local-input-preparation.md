@@ -4242,3 +4242,21 @@ the publication view. Untimed whole-Source construction retains its original
 argument shape, and Query capture retains its existing QueryTime preparation.
 The typed binding and complete physical backing remain separate constructor
 obligations; forwarding an Option does not supply either of them.
+
+### Closed publication data and QueryTime lifetime
+
+The ordinary publication Plan keeps its closed publication data shape. Its
+source-free Values and Tasks producers retain the original QueryTime owner and
+context in the existing private original-Plan association, alongside the same
+opaque static-Plan token. The Tasks publication Plan shares that association
+with its admitted original rather than copying another timed Plan carrier.
+Reading the static-Plan original still returns that same opaque token; equal
+or copied publication data cannot create the association.
+
+These lifetime links do not extend the publication contract or supply current
+authority. Preflight retains its exact data-shape checks and native contract
+admission. The original Request/Run holds its existing bound invocation through
+execution and cleanup; no clock, compiler, Run or Definition is issued again.
+The private association has the same weak Plan lifetime and retains no new
+variable input or output body. Its caller's complete construction and cleanup
+backing remain separate from this data-shape connection.

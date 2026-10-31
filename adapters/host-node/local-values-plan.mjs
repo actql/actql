@@ -128,11 +128,17 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
 const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
-export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan);}
+export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
 
-function retainOriginalPlan(plan, compiled, preparedProgram, control) {
-  originalPlans.set(plan, control.captureOriginalClientRunPlan(
-    compiled, preparedProgram, plan.runDefinition, originalPlanLimits));
+function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime) {
+  // Keep lifetime links in the existing private association, outside the
+  // closed publication data bag. This replaces the larger timed Plan clone.
+  originalPlans.set(plan, Object.freeze({
+    original: control.captureOriginalClientRunPlan(
+      compiled, preparedProgram, plan.runDefinition, originalPlanLimits),
+    queryTimePreparation: queryTime?.queryTimePreparation,
+    queryTime: queryTime?.queryTime,
+  }));
   return plan;
 }
 // The ordinary Effect-free INFER Host profile explicitly binds unknown
@@ -605,12 +611,11 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     // the adapter does not infer workspace or field bounds from output rows.
     outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
   });
-  const selectedPlan=Object.keys(queryTime).length===0?plan:Object.freeze({...plan,...queryTime});
-  valuesAdmissions.set(selectedPlan, Object.freeze({
+  valuesAdmissions.set(plan, Object.freeze({
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
   }));
-  return retainOriginalPlan(selectedPlan, compiled, preparedProgram, control);
+  return retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -782,7 +787,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
-  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control) : admitted;
+  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control, queryTime) : admitted;
 }
 
 // Multi-task source-free Programs use the common task compiler and the same
@@ -804,12 +809,10 @@ export function sourceFreeTaskPlan(options) {
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram,
     outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)});
-  const selectedPlan=acquired.queryTime===undefined?plan:Object.freeze({...plan,
-    queryTimePreparation:acquired.queryTimePreparation,queryTime:acquired.queryTime});
-  valuesAdmissions.set(selectedPlan, Object.freeze({prepared: acquired.preparedEvidence.wire,
+  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
     authorization: acquired.authorization.wire}));
-  originalPlans.set(selectedPlan, sourceFreePlanOriginal(acquired));
-  return selectedPlan;
+  originalPlans.set(plan, originalPlans.get(acquired));
+  return plan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing

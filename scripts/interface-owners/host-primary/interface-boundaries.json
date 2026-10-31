@@ -14105,7 +14105,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "17dfe97354d8f43468b7db47b1d03ed57b4e9cf58fe6fed9cc0c35f4ac68c93d",
+      "sha256": "195656397940e9e249519ea320f803092bf6f18c0a138a5789b8ff8539a744a8",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -14546,7 +14546,8 @@
             "plan",
             "compiled",
             "preparedProgram",
-            "control"
+            "control",
+            "queryTime"
           ],
           "async": false
         },
