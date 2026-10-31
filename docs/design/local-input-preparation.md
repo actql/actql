@@ -4231,3 +4231,29 @@ Model references before returning the original Request preparation borrow. A
 settlement failure after that borrow is consumed continues the same retirement
 without invoking the already-spent alias release or reconstructing the Model.
 This managed-alias step supplies no physical cleanup acknowledgement.
+
+### Keyed Content on the original Request
+
+The Host retains the selected keyed Plan on its existing Request operation
+before compiling that Plan's exact Serialization component. The same compiler
+artifact passes through Content completion and adoption, then into the existing
+Task Run issuer and Run definition. The later keyed preparation only binds that
+issued plan; it does not reconstruct the graph, acquire a separate Content
+admission or issue another Resource original. A failed constructor remains on
+the same partial Host record, including an original thrown undefined value.
+
+The Local adapter keeps weak provenance for the Host Run and retains only its
+live physical readers strongly. Each consumed request remains spent; successful
+reader close leaves a weak close tombstone without another Prepared/graph path.
+Actual native close precedes the exact Core read retirement. The Host cuts its
+raw compiler, graph, selected Plan and recipe aliases before returning the
+original preparation borrow. The Request's original cleanup retains incomplete
+construction; a caller cannot interpret construction failure or a managed alias
+cut as a physical acknowledgement.
+
+The existing prefix limits and ordered transport extents remain requirements,
+not backing. The selected Plan, compiler, provider inputs, physical output and
+failed-child overlap require the same parent's actual construction lifetime
+before entering their constructors. A standalone Source or Content Root cannot
+supply that lifetime, and absent required original ports refuse rather than
+fall back to legacy compilation or admission.

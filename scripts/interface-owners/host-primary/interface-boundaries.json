@@ -5091,7 +5091,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "2c9fad0da7f2858ac8c8b32c928aa04ccc8f4e2699c04e6c3bd0e6f63592bd2e",
+      "sha256": "90b5d9b1b63523e8269915510ce489bf8d0368a0352f269fc5fdc0bd810d4605",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5494,6 +5494,17 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph",
+            "recipe",
+            "constructPlan"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
           "parameters": [
             "prepared",
@@ -5712,6 +5723,43 @@
         {
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "graph",
+            "recipe",
+            "constructPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
+          "parameters": [
+            "parent",
+            "input",
+            "selected",
+            "originalGraph"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+          "parameters": [
+            "method"
+          ],
           "async": false
         },
         {
@@ -6875,7 +6923,8 @@
             "preparedProgram",
             "requestId",
             "retainedDefinitionWire",
-            "requestIdentity"
+            "requestIdentity",
+            "keyedOriginal"
           ],
           "async": false
         },
@@ -7244,6 +7293,7 @@
           "parameters": [
             "prepared",
             "request",
+            "graph",
             "recipe"
           ],
           "async": false
@@ -8734,6 +8784,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -8812,6 +8866,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -8906,6 +8964,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -8988,6 +9050,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -9074,6 +9140,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -9148,6 +9218,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -9218,6 +9292,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -9308,6 +9386,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -9382,6 +9464,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -9540,6 +9626,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -10307,24 +10397,40 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "assertContentRunCurrent() {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "ordinaryHostJournalInstallation(originals).assertCurrent();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const earlyContentPlans = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -10335,24 +10441,40 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "throw clientOperationError('InstalledContentRunPreparationUnsupported');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "assertInitialControlHostPreparation(originals);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -10363,12 +10485,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (retained?.physicalStartReserved === true) return;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -10770,6 +10900,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -10788,6 +10922,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -10806,6 +10944,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -10824,6 +10966,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -10842,6 +10988,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -10860,6 +11010,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -10878,6 +11032,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -10896,6 +11054,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -10914,6 +11076,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model alias retirement before Request return"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -10932,6 +11098,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model retains the original alias receiver across a consumed preparation return failure"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -13039,60 +13209,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function readLocalContentRunRequirements(originals, prepared, selected) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "checked(moon.clientProgramInstalledManagedKeyedContentCheckPreparation(selected, prepared));"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const early = earlyContentPlans.get(submission.preparedProgram);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "throw clientOperationError('InstalledContentRunPreparationUnavailable');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "export async function retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
               {
                 "path": "src/client_local_host/installed_managed_keyed_content.mbt",
                 "anchor": "pub fn installed_managed_keyed_content_requirements("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "other unsupported backend shapes remain separate connections, not language"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-content-preparation.test.mjs",
                 "anchor": "test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -13797,6 +14007,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -13807,6 +14021,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -13817,6 +14035,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -13827,6 +14049,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -13837,6 +14063,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -13847,6 +14077,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -13857,6 +14091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -13867,6 +14105,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -13877,12 +14119,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -13991,6 +14241,114 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedContentRun/init:prepareManagedContentRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted",
+            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/adopted/adopted#2",
+            "connectEmbeddedLocal/preparation/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun/init:prepareManagedKeyedContentRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    prepareManagedKeyedContentRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }

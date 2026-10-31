@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "08a42d525f642b5ec2ff2192ca8c36f1e5a39ff27fe52f03f8939f9e777c0936",
+      "sha256": "aa4f2a3ecdec56158ee0cb1e2f23687187a3a1b6c0b78c6d7d2828b3bfa8e6a2",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -4133,6 +4133,16 @@
             "occurrence",
             "graph",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "selected",
+            "graph"
           ],
           "async": false
         },
@@ -8253,6 +8263,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -8303,6 +8317,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -8357,6 +8375,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -8411,6 +8433,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -8465,6 +8491,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -8519,6 +8549,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -8561,6 +8595,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -8619,6 +8657,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -8669,6 +8711,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -8743,6 +8789,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -9358,6 +9408,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -9368,6 +9422,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -9378,6 +9436,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -9388,6 +9450,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -9398,6 +9464,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -9408,6 +9478,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -9418,6 +9492,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -9428,6 +9506,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -9438,6 +9520,10 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -9452,6 +9538,10 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -9582,6 +9672,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -9592,6 +9686,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -9602,6 +9700,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -9612,6 +9714,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -9622,6 +9728,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -9632,6 +9742,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -9642,6 +9756,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -9652,6 +9770,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -9662,6 +9784,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "issueCheckedClientCompiledInvocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -9672,6 +9798,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -9998,6 +10128,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -10008,6 +10142,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -10018,6 +10156,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -10028,6 +10170,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -10038,6 +10184,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -10048,6 +10198,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -10058,6 +10212,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -10068,6 +10226,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -10078,6 +10240,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
@@ -10092,6 +10258,10 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -10650,6 +10820,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "inputsOutputs": [
@@ -10660,6 +10834,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "identity": [
@@ -10670,6 +10848,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "ownership": [
@@ -10680,6 +10862,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "synchronization": [
@@ -10690,6 +10876,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "failure": [
@@ -10700,6 +10890,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "cancellation": [
@@ -10710,6 +10904,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "resources": [
@@ -10720,6 +10918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "extension": [
@@ -10730,12 +10932,124 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
