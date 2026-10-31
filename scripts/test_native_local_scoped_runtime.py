@@ -87,6 +87,48 @@ class LocalScopedComposition(unittest.TestCase):
         self.assertEqual(runtime, {str(self.allocator / (name + '.c'))
                                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')})
 
+    def test_in_checkout_toolchain_runtime_keeps_the_same_derived_provider(self):
+        self.home = MODULE.ROOT / '.toolchains/moonbit-pinned'
+        commands = [c.copy() for c in self.commands]
+        for command in commands:
+            for index, part in enumerate(command):
+                if part.startswith('$MOON_HOME/lib/runtime/'):
+                    command[index] = './.toolchains/moonbit-pinned/lib/runtime/' + Path(part).name
+        planned = self.plan(commands)
+        runtime = {p for c in planned for p in c
+                   if p.endswith('.c') and p.startswith(str(self.allocator))}
+        self.assertEqual(runtime, {str(self.allocator / (name + '.c'))
+                                  for name in MODULE.RUNTIME_NAMES})
+        for name in MODULE.RUNTIME_NAMES:
+            relative = './.toolchains/moonbit-pinned/lib/runtime/' + name + '.c'
+            self.assertEqual(MODULE.canonical_c_arguments(['-c', relative, '-O2']),
+                             ['-c', str(self.home / 'lib/runtime' / (name + '.c')), '-O2'])
+        foreign = [c.copy() for c in commands]
+        foreign[6][-1] = './.toolchains/foreign/lib/runtime/env.c'
+        with self.assertRaisesRegex(ValueError, 'FFI'):
+            self.plan(foreign)
+
+    def test_in_checkout_toolchain_original_link_and_utf_members_stay_exact(self):
+        self.home = MODULE.ROOT / '.toolchains/moonbit-pinned'
+        commands = [c.copy() for c in self.commands]
+        final = commands[-1]
+        final[final.index('$MOON_HOME/lib/libmoonbitrun.o')] = (
+            './.toolchains/moonbit-pinned/lib/libmoonbitrun.o')
+        archive = ['/owned/bin/ar', '-r', '-c', '-s',
+                   str(self.emission / 'native/release/build/libruntime-original.a'),
+                   './.toolchains/moonbit-pinned/lib/moonbit_simdutf.o',
+                   './.toolchains/moonbit-pinned/lib/simdutf.o']
+        output = '\n'.join(shlex.join(c) for c in commands + [archive])
+        selected = MODULE.commands_for(output, self.home, self.emission, self.allocator,
+                                      self.clang, self.sdk, entry=MODULE.LOCAL_ENTRY,
+                                      source_sha=self.source, ar_driver=Path('/owned/bin/ar'))
+        self.assertEqual(selected[-1], archive)
+        self.assertIn('./.toolchains/moonbit-pinned/lib/libmoonbitrun.o', selected[-2])
+        for member in ('libmoonbitrun.o', 'libbacktrace.a'):
+            relative = './.toolchains/moonbit-pinned/lib/' + member
+            self.assertEqual(MODULE.canonical_c_arguments([relative]),
+                             [str(self.home / 'lib' / member)])
+
     def test_package_registry_and_all_original_c_flags_survive_selection(self):
         planned = self.plan()
         self.assertEqual(planned[0][1:], self.commands[0][1:])

@@ -9,10 +9,11 @@ import {admitCompletedNativeLocalProvider} from './native-cli-completed-provider
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const source = 'a'.repeat(40);
 
-async function fixture(t) {
+async function fixture(t, inCheckoutToolchain = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-completed-provider-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  const repository = join(root, 'source'), moon = join(root, 'moon'), artifact = join(root, 'artifact');
+  const repository = join(root, 'source'), moon = inCheckoutToolchain
+    ? join(repository, '.toolchains/moonbit-pinned') : join(root, 'moon'), artifact = join(root, 'artifact');
   const provider = join(artifact, 'native-producer');
   await mkdir(provider, {recursive: true});
   const json = async (path, value) => {
@@ -156,6 +157,25 @@ test('actual Moon source spelling matches only the same original C input, never 
     ['-o', f.binary.path, '-O0', original[3]],
     ['-o', f.binary.path + '.other', '-O2', original[3]],
     ['-o', f.binary.path, '-O2', join(f.root, 'foreign/src/platform_native/sqlite/sqlite_stub.c')],
+  ]) {
+    await f.json(f.step.receipt, {...actual, original: changed});
+    await assert.rejects(f.admit());
+  }
+});
+
+test('in-checkout toolchain C spelling preserves the same completed original and exact compiler arguments', async t => {
+  const f = await fixture(t, true);
+  const relative = './.toolchains/moonbit-pinned/lib/runtime/utf.c';
+  const original = ['-o', f.binary.path, '-O2', join(f.moon, 'lib/runtime/utf.c')];
+  const planned = {...f.step, original: ['-o', f.binary.path, '-O2', relative]};
+  await f.json(join(f.provider, 'cc-plan.json'), {steps: [planned]});
+  const actual = {...planned, original, exit: 0, output: f.binary};
+  await f.json(f.step.receipt, actual);
+  assert.equal((await f.admit()).binary, f.binary.path);
+  for (const changed of [
+    ['-o', f.binary.path, '-O0', original[3]],
+    ['-o', f.binary.path + '.other', '-O2', original[3]],
+    ['-o', f.binary.path, '-O2', join(f.repository, '.toolchains/foreign/lib/runtime/utf.c')],
   ]) {
     await f.json(f.step.receipt, {...actual, original: changed});
     await assert.rejects(f.admit());

@@ -9,10 +9,11 @@ import {isAbsolute, join, resolve} from 'node:path';
 import {releaseVersion} from './release-version.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-// Match the pinned compiler driver's one original-source spelling adjustment.
+// Match the pinned compiler driver's checkout-source/runtime spelling adjustment.
 // Flags, outputs and all other paths remain byte-for-byte command arguments.
 const canonicalCArguments = (arguments_, repository) => arguments_.map(value =>
-  value.startsWith('./src/') && value.endsWith('.c') ? resolve(repository, value) : value);
+  ((value.startsWith('./src/') && value.endsWith('.c')) || value.startsWith('./.toolchains/'))
+    ? resolve(repository, value) : value);
 
 async function observedFile(path, expected, maximum = 512 * 1024 * 1024) {
   assert.equal(expected.path, path);
