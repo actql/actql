@@ -63,7 +63,7 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
   const journal={
     async admitOrLookupDefinition(original,options){assert.strictEqual(original,identity);
       if(state.saved)return retained();
-      const issued=options.issueDefinition();state.saved=issued;
+      const issued=await options.issueDefinition();state.saved=issued;
       if(race)state.saved={...issued,runDefinition:{wire:JSON.stringify({...state.issued[0],created_at:race}),identity:cid}};
       if(commitFailure)throw commitFailure;
       return retained();},
@@ -73,7 +73,8 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
     reservePhysicalStart(){state.events.push('claim');state.claims++;return true;},
     originalSubmittedIntent:()=>undefined,
   };
-  const install=()=>installNodeClientEffectRun({moon,publicationControl:control,journal,
+  const install=({prepareDefinition}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
+    prepareDefinition,
     authorizeRequest:async()=>policy,authorizeRunStart:async()=>true,
     now:()=> '2026-10-19T00:00:00.000Z',
     prepareExecution(facts){state.events.push('prepare');state.preparations.push(facts);return {};},
@@ -135,4 +136,58 @@ test('query-time adapter captures original Common receivers and refuses incomple
   await run.accept(f.request);assert.equal(f.state.samples.length,1);
   const missing=fixture();delete missing.moon.clientProgramQueryTimeContext;
   assert.throws(()=>missing.install(),{message:'InvalidClientEffectRunInstallation'});
+});
+
+// Actual acceptance and original issuer await; Common/Journal authority and
+// backing remain explicit ports. No Run is saved or physical claim issued.
+test('Effect definition refuses async preparation only after the SAME original borrow settles',async()=>{
+  for(const rejected of [false,true]){
+    let settle,seen;
+    const pending=new Promise((resolve,reject)=>{settle=()=>rejected?reject(new Error('original rejected borrow')):resolve();});
+    const f=fixture({legacy:true}),run=f.install({prepareDefinition(facts){seen=facts;return pending;}});
+    let state='pending',failure;
+    const flight=run.accept(f.request).then(()=>{state='accepted';},error=>{state='refused';failure=error;});
+    await new Promise(setImmediate);
+    try{
+      assert.equal(state,'pending','same original preparation must settle before acceptance refusal');
+      assert.equal(f.state.saved,undefined);
+      assert.equal(seen.prepared,f.request.prepared);
+      assert.equal(seen.runDefinition.wire,JSON.stringify(f.state.issued[0]));
+      assert.equal(f.state.issued.length,1);
+      assert.equal(f.state.claims,0);assert.equal(f.state.executions.length,0);
+    }finally{settle();await flight;}
+    assert.equal(state,'refused');assert.equal(failure?.message,'AsyncClientEffectDefinitionPreparation');
+    assert.equal(f.state.saved,undefined);assert.equal(f.state.claims,0);
+  }
+});
+
+test('Effect definition captures original then once and does not assimilate its opaque fulfillment DATA',async()=>{
+  let finish,reads=0,opaqueReads=0,invocations=0;
+  const opaque=Object.freeze({get then(){opaqueReads++;throw new Error('opaque DATA must not be assimilated');}});
+  const thenable=Object.freeze({get then(){reads++;return function(yes){assert.equal(this,thenable);finish=()=>yes(opaque);};}});
+  const f=fixture({legacy:true}),run=f.install({prepareDefinition(){invocations++;return thenable;}});
+  let failure;
+  const flight=run.accept(f.request).catch(error=>{failure=error;});
+  await new Promise(setImmediate);
+  assert.equal(reads,1);assert.equal(invocations,1);assert.equal(f.state.saved,undefined);
+  finish();await flight;
+  assert.equal(reads,1);assert.equal(opaqueReads,0);
+  assert.equal(failure?.message,'AsyncClientEffectDefinitionPreparation');
+  assert.equal(f.state.saved,undefined);assert.equal(f.state.claims,0);
+});
+
+test('Effect definition preserves original synchronous failure and existing synchronous preparation',async()=>{
+  for(const failure of [undefined,new Error('original synchronous construction failure')]){
+    const f=fixture({legacy:true}),run=f.install({prepareDefinition(){throw failure;}});
+    let refused=false,actual;
+    await run.accept(f.request).catch(error=>{refused=true;actual=error;});
+    assert.equal(refused,true);assert.equal(actual,failure);
+    assert.equal(f.state.saved,undefined);assert.equal(f.state.claims,0);
+  }
+  const f=fixture({legacy:true});let seen;
+  const original=Object.freeze({then:17});
+  const run=f.install({prepareDefinition(facts){seen=facts;return original;}}),handle=await run.accept(f.request);
+  assert.equal(seen.prepared,f.request.prepared);assert.equal(f.state.events.filter(event=>event==='compile').length,1);assert(Object.isFrozen(seen));
+  assert.deepEqual(handle.ref,f.ref);assert.equal(f.state.issued.length,1);
+  assert.equal(f.state.claims,0);assert.equal(f.state.executions.length,0);
 });
