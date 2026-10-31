@@ -331,3 +331,36 @@ test('actual Model custody selector borrows original handler and dispatch tokens
   dispatch.retire(); assert.equal(retired, 1);
   assert.throws(() => submission.preparedProgram, /Retired/);
 });
+
+test('Model Source prepare forwards its original adopted Run and Request and rechecks current after the actual await', async () => {
+  const push = outer.body.body.find(node => node.type === 'TryStatement').block.body
+    .find(node => node.type === 'ForOfStatement').body.body
+    .filter(node => node.type === 'ExpressionStatement')
+    .find(node => node.expression?.callee?.object?.name === 'sources' && node.expression.callee.property.name === 'push');
+  const object = push.expression.arguments[0].arguments[0];
+  const method = object.properties.find(node => node.key?.name === 'prepare'); assert(method);
+  for (const requestOwned of [true, false]) for (const expire of [true, false]) {
+    const prepared = {}, result = {}, run = {requestOwned, value: {}, request: {}};
+    const facts = {preparedProgram: prepared, occurrence: {stage: 1, input: 0, task: 1}};
+    const primary = new Error('original-after-prepare-current'), preparedReads = new WeakMap();
+    let resolve, forwarded, current = true;
+    const adapter = {prepare(value) {forwarded = value; return new Promise(done => {resolve = done;});}};
+    const holder = Function('adapter', 'sameRun', 'preparedReads', 'fail',
+      `return ({${source.slice(method.start, method.end)}});`)(adapter,
+      value => {assert.equal(value, prepared); if (!current) throw primary; return run;}, preparedReads,
+      code => {throw Object.assign(new Error(code), {code});});
+    const pending = holder.prepare(facts);
+    if (requestOwned) {
+      assert.notEqual(forwarded, facts); assert.equal(forwarded.managedRun, run.value);
+      assert.equal(forwarded.requestIdentity, run.request); assert.equal(forwarded.occurrence, facts.occurrence);
+      assert.equal(Object.hasOwn(facts, 'managedRun'), false);
+    } else assert.equal(forwarded, facts);
+    if (expire) current = false;
+    resolve(result);
+    if (expire) {
+      await assert.rejects(pending, error => error === primary); assert.equal(preparedReads.has(result), false);
+    } else {
+      assert.equal(await pending, result); assert.equal(preparedReads.get(result), run);
+    }
+  }
+});
