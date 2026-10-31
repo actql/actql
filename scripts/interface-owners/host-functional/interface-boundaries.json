@@ -7532,7 +7532,7 @@
     {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ff4b663195256b985149ac3991660e0bb6ec4a835698f8e99d45bbf7c5509d7f",
+      "sha256": "4137c7050ad062a6db775d3e5159fdeeaab95d9378438f30f6ef8983e5867a7b",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -7775,6 +7775,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -7789,6 +7793,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "identity": [
@@ -7803,6 +7811,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "ownership": [
@@ -7817,6 +7829,10 @@
               {
                 "path": "docs/design/physical-strategy-execution.md",
                 "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "synchronization": [
@@ -7831,6 +7847,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "failure": [
@@ -7845,6 +7865,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "cancellation": [
@@ -7859,6 +7883,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "resources": [
@@ -7873,6 +7901,10 @@
               {
                 "path": "docs/design/physical-strategy-execution.md",
                 "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "extension": [
@@ -7887,6 +7919,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ],
             "verification": [
@@ -7897,6 +7933,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
               }
             ]
           }

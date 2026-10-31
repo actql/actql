@@ -85,3 +85,14 @@ directory durability stages remain authoritative. A failed observation keeps
 that same owner pending and retains its capacity. Only the existing successful
 durability/accounting transition settles it. Diagnostic replacement supplies no
 physical acknowledgement, new reservation, refund or permission to resend.
+
+## Bounded managed-execution diagnostics
+
+The synchronous managed-failure adapter records its own first/latest cleanup
+throwables through the same diagnostic operation. Original read failure,
+upstream/additional cleanup owners and their current observations remain
+separate. Diagnostic replacement neither advances the Core failure progression
+nor marks operations closed. Repeated failures can remain pending indefinitely;
+only their original successful close/stop/settlement transitions advance it.
+The execution settles once, and an Unknown reader still cannot be treated as
+stopped because a diagnostic slot was replaced or an input reader disappeared.

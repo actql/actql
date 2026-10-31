@@ -127,7 +127,7 @@ export function settleFailedManagedOperations(
     closed: typeof member(value, 'close') !== 'function',
   }));
   const cleanupErrors = [];
-  const record = error => { cleanupErrors.push(error); };
+  const record = error => { retainFirstAndLatestCleanupError(cleanupErrors, error); };
   const additionalClosed = () => additional.every(cleanup => cleanup.closed);
   const observeAdditionalClosed = () => {
     if (additionalClosed()) {
