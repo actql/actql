@@ -21,6 +21,24 @@ struct ClientModelReadScope {
 }
 
 ///|
+// This Owner's two actual records above. All eight fields borrow originals;
+// CID getters return retained strings and create no copied UTF16 backing.
+let client_model_read_scope_construction_units : @execution.PreparationRepresentationUnits = {
+  record_headers: 2L,
+  reference_slots: 8L,
+  scalar_words: 0L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+/// Immutable construction DATA, not a byte allowance or Scope/permission.
+/// The original caller must fund this and its census growth before binding.
+pub fn client_model_read_scope_construction_inventory() -> @execution.PreparationRepresentationUnits {
+  client_model_read_scope_construction_units
+}
+
+///|
 struct ClientModelReadPreparation {
   origin : ClientModelReadOrigin
   claim : @resources.FundedReadClaim[ClientModelReadOrigin]

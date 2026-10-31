@@ -16,11 +16,13 @@ priv enum ClientRequestPreparationPhase {
   EffectCompiled
   EffectPlanQuoted
   EffectPlanReserved
+  EffectModelScopeQuoted
   EffectBodyReady
   EffectBodyFailed
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
+  ModelScopeQuoted
   ContentPlanReserved
   ProgramBodyReady
   ProgramBodyFailed
@@ -98,6 +100,7 @@ struct ClientRequestPreparation[I] {
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
+  mut model_scope_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
   mut program_invocation_quote : (Int64, Int64)?
@@ -235,7 +238,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     // one scalar tag. Keep it in this existing common fixed caller allowance,
     // rather than introduce a per-domain control reservation.
     // This is 11H21R10W, not recursive measurement or provider backing.
-    record_headers: 11L +
+    record_headers: request_model_scope_quote_controls.record_headers +
+    11L +
     inventory_headers +
     js_headers +
     import_headers +
@@ -248,7 +252,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     9L,
     // Resident Model Plan and Content Plan/Request links. Selected Some and
     // domain construction are separately funded before their allocation.
-    reference_slots: 21L +
+    reference_slots: request_model_scope_quote_controls.reference_slots +
+    21L +
     inventory_refs +
     3L +
     js_refs +
@@ -260,7 +265,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     5L +
     7L +
     11L,
-    scalar_words: 10L +
+    scalar_words: request_model_scope_quote_controls.scalar_words +
+    10L +
     inventory_words +
     js_words +
     import_words +
@@ -367,6 +373,7 @@ pub fn[I] begin_request_preparation(
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
+    model_scope_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
     program_invocation_quote: None,
@@ -682,6 +689,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
+  owner.model_scope_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_invocation_quote = None

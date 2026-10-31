@@ -13,6 +13,18 @@ fn[T] original_token_slots(capacity? : Int = 0) -> OriginalTokenSlots[T] {
 }
 
 ///|
+// The caller has already grown the SAME census's full logical backing.
+// Reserve its exact selected capacity now, so later push never silently grows
+// from the old six-slot buffer to a larger geometric spare allocation.
+fn[T] OriginalTokenSlots::reserve_capacity(
+  self : OriginalTokenSlots[T],
+  capacity : Int,
+) -> Unit {
+  self.slots.reserve_capacity(capacity)
+  self.order.reserve_capacity(capacity)
+}
+
+///|
 fn[T] OriginalTokenSlots::length(self : OriginalTokenSlots[T]) -> Int {
   self.order.length()
 }

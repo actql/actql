@@ -867,6 +867,8 @@ pub fn client_model_read_consumer_handed_off_current(ClientModelReadConsumer, Cl
 
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
+pub fn client_model_read_scope_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn client_model_read_scope_live(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
 pub fn client_model_read_scope_original_inventory(ClientModelReadScope, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Bool

@@ -228,9 +228,13 @@ test "Pure Scope funds its new origin and original census before binding for sou
   for captured in [false, true] {
     let (parent, input, plan, construction) = request_model_fixture(captured~)
     let capacity = parent.program_capacity.unwrap()
-    let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
     let increment = expected_request_model_scope_controls(
-      plan.max_reservations, plan.max_holdings, plan.max_delegations,
+      plan.max_reservations,
+      plan.max_holdings,
+      plan.max_delegations,
     )
     let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
     assert_eq(
@@ -242,7 +246,72 @@ test "Pure Scope funds its new origin and original census before binding for sou
     let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
     assert_true(
       @publication_host.finish_client_model_read_scope(
-        scope, plan.compiled, plan.definition, plan.graph, true,
+        scope,
+        plan.compiled,
+        plan.definition,
+        plan.graph,
+        true,
+      ).unwrap(),
+    )
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "Pure Scope one-short keeps its original absolute quote and cannot complete another Plan" {
+  for captured in [false, true] {
+    let (parent, input, plan, construction) = request_model_fixture(captured~)
+    let capacity = parent.program_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let increment = expected_request_model_scope_controls(
+      plan.max_reservations,
+      plan.max_holdings,
+      plan.max_delegations,
+    )
+    let limits = @resources.ledger_limits(parent.ledger)
+    let block = @resources.reserve_capacity(
+      parent.ledger,
+      0L,
+      limits.execution_bytes - before.1 - increment + 1L,
+    ).unwrap()
+    assert_true(
+      prepare_request_model_read_scope(parent, input, plan)
+      is Err(Preparation(Resource(_))),
+    )
+    assert_true(parent.phase == ModelScopeQuoted)
+    assert_eq(
+      parent.model_scope_quote,
+      Some((before.0 + increment, before.1 + increment)),
+    )
+    assert_true(
+      complete_request_model_preparation(parent, input, plan)
+      is Err(ForeignOriginal),
+    )
+    let copied = { ..plan, max_holdings: plan.max_holdings, }
+    assert_true(
+      prepare_request_model_read_scope(parent, input, copied)
+      is Err(ForeignOriginal),
+    )
+    @resources.settle_capacity(parent.ledger, block).unwrap()
+    let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok((before.0 + increment, before.1 + increment)),
+    )
+    assert_true(parent.model_scope_quote is None)
+    complete_request_model_preparation(parent, input, plan).unwrap()
+    @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+    let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        plan.compiled,
+        plan.definition,
+        plan.graph,
+        true,
       ).unwrap(),
     )
     retire_installed_managed_run(run).unwrap()

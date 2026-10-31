@@ -4482,3 +4482,29 @@ acquisition can still have nonzero Sources; absence of a provider vector does
 not change it into a source-free Plan. Foreign, empty or mismatched provider
 vectors retain the existing Core refusals. This bridge supplies neither new
 capacity nor an extra compiler/provider/Run or a construction-backing receipt.
+
+### Same-parent Model Scope construction
+
+The Scope owner declares the representation of its original binding and Scope
+records. Resource separately owns the census-slot representation. The existing
+Request uses those two declarations and the common tariff to reserve only the
+new Scope records and the increase from its initial six-slot census, before
+binding either a Pure or Effect Model. The same Resource census reserves its
+exact selected array capacity after that debit, preserving token identities,
+issuance order and consumed history. Later pushes within that selected bound
+do not create an unquoted geometric spare allocation.
+
+The Request's fixed entrance separately prepays the quotation/return controls,
+its resident quote reference and the initial backing-array copy overlap. A
+failed grow retains the same original Plan and absolute quote in its selected
+phase. A copied or replacement Plan cannot spend it, completion cannot skip
+the missing Scope, and a continuation does not add the relative increment a
+second time. Successful binding clears the quotation alias; abort and ordinary
+retirement keep the existing child/borrower and physical-cleanup obligations.
+
+This construction reservation is distinct from runtime Source/Model bodies
+and operation controls, which make their own reservations on the same Ledger.
+The entire runtime Plan allowance is never added to preparation as a proxy
+for construction. This accounts for the Scope and census only: complete
+physical Host/provider/material/output and failed-child coexistence still
+requires its actual original lifetime and inventory before allocation.

@@ -196,6 +196,11 @@ pub fn[I, P] grow_preparation_capacity_inventory(
     value.park is None else {
     return Err(WorkActive)
   }
+  // Full backing was admitted before allocating these exact arrays. Existing
+  // token identities/order/serials remain in place; no fresh census is issued.
+  value.reservations.reserve_capacity(max_reservations)
+  value.holdings.reserve_capacity(max_holdings)
+  value.delegations.reserve_capacity(max_delegations)
   value.max_reservations = max_reservations
   value.max_holdings = max_holdings
   value.max_delegations = max_delegations

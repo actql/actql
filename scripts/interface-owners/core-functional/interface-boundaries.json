@@ -29438,7 +29438,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "28c4edfa9c08837739e8e381b8afa79bdbcab4b2c61099e5a4efb90f88c6a79e",
+      "sha256": "42186f375bda5aaa2268f4bc704343800757c7b32e46b4f6f3f05a5b450d5f16",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -29503,6 +29503,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -29513,6 +29517,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -29523,6 +29531,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -29533,6 +29545,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -29543,6 +29559,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -29553,6 +29573,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -29563,6 +29587,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -29573,6 +29601,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -29583,6 +29615,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -29593,6 +29629,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ]
           }
@@ -29607,60 +29647,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ]
           }
@@ -29678,60 +29758,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ]
           }
@@ -29746,54 +29866,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -29804,6 +29960,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request accounting observations"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ]
           }
@@ -33014,7 +33174,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1a9185dd20394a461ae92a9d2eef8d1ed72a85628353812cdcd64ab92db48c0b",
+      "sha256": "c1a3e8e286593d2d2de8eda5a1584fe4499e31fd4b19998cf2d7c9ebc3c28e6c",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -33038,6 +33198,10 @@
         {
           "name": "[I]continue_request_effect_preparation",
           "declaration": "[ I ] continue_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_effect_model_read_scope",
+          "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "[I]request_effect_plan_quote",
@@ -33124,6 +33288,78 @@
               {
                 "path": "src/client_local_host/preparation_request_plan_input_js_wbtest.mbt",
                 "anchor": "test \"Request Effect Plan input remains distinct"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_effect_model_read_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
               }
             ]
           }
@@ -53080,6 +53316,451 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_model_body.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and original Model Scope owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_request_model_read_scope",
+          "declaration": "[ I ] prepare_request_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I]prepare_request_model_read_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "d2325299589f824f57506383bce76657cd8022c48061a6a52b19babd6f294bc0"
+    },
+    {
+      "module": "src/client_local_host/preparation_request_model_scope.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and original Model Scope owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]request_model_scope_construction_quote",
+          "declaration": "[ I , P ] request_model_scope_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ( Int64 , Int64 ) , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I,P]request_model_scope_construction_quote"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "bf36c515b37356e81d31f4ee4cc54e488ca135d40f3bc2964aa0d7b44f819d10"
+    },
+    {
+      "module": "src/physical_resources/preparation_inventory.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation inventory owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]grow_preparation_capacity_inventory",
+          "declaration": "[ I , P ] grow_preparation_capacity_inventory ( owner : PreparationCapacity [ I , P ] , input : I , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I,P]grow_preparation_capacity_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
+                "anchor": "test \"exact selected census backing avoids a later geometric allocation"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "fa7f97ed7c0f77e6ab18a7667a8a4e4260bfea75b4a18fd25d26bd14d77acb0a"
+    },
+    {
+      "module": "src/physical_resources/original_inventory_slots.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource original token-slot owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]OriginalTokenSlots::reserve_capacity",
+          "declaration": "[ T ] OriginalTokenSlots : : reserve_capacity ( self : OriginalTokenSlots [ T ] , capacity : Int , ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[T]OriginalTokenSlots::reserve_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
+                "anchor": "test \"exact selected census backing avoids a later geometric allocation"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "020ff6d6bc9d90c9e3cb0206fee44d444dc13eaef9b28b1b5c6a6c5de793d0c8"
+    },
+    {
+      "module": "src/run_publication_host/client_model_read_preparation.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Model read Scope owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_model_read_scope_construction_inventory",
+          "declaration": "client_model_read_scope_construction_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "client_model_read_scope_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "23c0e7bafd9a41b99f89e2ee85d31a81a8eb2159ed22c8a6609e2f51dd043b6e"
     }
   ]
 }

@@ -142,9 +142,9 @@ pub fn[I] prepare_request_model_compilation(
 
 ///|
 /// Bind this actual Model Plan before completing the original Prepared body.
-/// The caller has backed and retained its complete selected Model/read/module
-/// overlap at the current extents. This call does not derive backing from a
-/// codec limit or start another Root/bootstrap/Node admission.
+/// Fund the actual Scope records and the original census-slot growth before
+/// binding. Complete selected Model/read/module/physical constructor overlap
+/// remains separate; no codec ceiling or runtime allowance supplies it here.
 pub fn[I] prepare_request_model_read_scope(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -153,10 +153,22 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
-  guard owner.phase == ModelPlanReserved &&
+  let quoted = owner.phase == ModelScopeQuoted
+  guard (
+      (
+        owner.phase == ModelPlanReserved &&
+        owner.program_model is None &&
+        owner.model_scope_quote is None
+      ) ||
+      (
+        quoted &&
+        owner.program_model is Some(selected_plan) &&
+        physical_equal(selected_plan, plan) &&
+        owner.model_scope_quote is Some(_)
+      )
+    ) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
-    owner.program_model is None &&
     owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
     @publication_host.client_compiled_run_matches_tasks(
       plan.compiled,
@@ -177,11 +189,22 @@ pub fn[I] prepare_request_model_read_scope(
   if !installed_effect_limits_fit(plan.limits, available) {
     return Err(InsufficientCapacity)
   }
-  let (r, e) = match
-    @resources.preparation_capacity_working_extents(capacity, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(value) => value
+  if !quoted {
+    let quote = match
+      request_model_scope_construction_quote(
+        capacity,
+        input,
+        plan.max_reservations,
+        plan.max_holdings,
+        plan.max_delegations,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    owner.program_model = Some(plan)
+    owner.model_scope_quote = Some(quote)
   }
+  let (r, e) = owner.model_scope_quote.unwrap()
   owner.phase = Selecting
   let result : Result[
     @publication_host.ClientModelReadScope,
@@ -197,7 +220,22 @@ pub fn[I] prepare_request_model_read_scope(
       plan.max_delegations,
     ) {
     Err(issue) => Err(Preparation(issue))
-    Ok(_) =>
+    Ok(_) => {
+      guard owner.phase == Selecting &&
+        owner.input is Some(original_input) &&
+        physical_equal(original_input, input) &&
+        owner.program_capacity is Some(original_capacity) &&
+        physical_equal(original_capacity, capacity) &&
+        owner.program_model is Some(original_plan) &&
+        physical_equal(original_plan, plan) &&
+        owner.model_scope_quote is Some(current_quote) &&
+        current_quote.0 == r &&
+        current_quote.1 == e else {
+        if owner.phase == Selecting {
+          owner.phase = ModelScopeQuoted
+        }
+        return Err(ForeignOriginal)
+      }
       match
         @resources.preparation_capacity_inventory_original(capacity, input) {
         Err(issue) => Err(Preparation(issue))
@@ -210,11 +248,16 @@ pub fn[I] prepare_request_model_read_scope(
             identity,
           ).map_err(issue => ModelRead(issue))
       }
+    }
   }
   if result is Ok(_) {
-    owner.program_model = Some(plan)
+    owner.model_scope_quote = None
   }
-  owner.phase = ModelPlanReserved
+  owner.phase = if result is Ok(_) {
+    ModelPlanReserved
+  } else {
+    ModelScopeQuoted
+  }
   result
 }
 

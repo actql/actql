@@ -150,8 +150,9 @@ pub fn[I] borrow_request_effect_plan_input(
 ///|
 /// Bind the selected original Model to this preparation's existing census
 /// before completing its Plan or issuing Source/read children. The caller
-/// already retains and funds the complete selected Model/census/constructor
-/// overlap at the current working extents; this call invents no byte recipe.
+/// retains the selected original. Fund this Owner's Scope records and the
+/// Resource-owned census-slot delta before binding; runtime Model/body and
+/// complete physical Host/provider overlap remain their separate domains.
 /// The returned Scope must remain with that owner through adoption refusal
 /// and receive its actual cleanup acknowledgement before parent retirement.
 pub fn[I] prepare_request_effect_model_read_scope(
@@ -162,10 +163,22 @@ pub fn[I] prepare_request_effect_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
-  guard owner.phase == EffectPlanReserved &&
+  let quoted = owner.phase == EffectModelScopeQuoted
+  guard (
+      (
+        owner.phase == EffectPlanReserved &&
+        owner.effect_plan is None &&
+        owner.model_scope_quote is None
+      ) ||
+      (
+        quoted &&
+        owner.effect_plan is Some(selected_plan) &&
+        physical_equal(selected_plan, plan) &&
+        owner.model_scope_quote is Some(_)
+      )
+    ) &&
     owner.effect_capacity is Some(capacity) &&
     owner.compiled_effect is Some(prepared) &&
-    owner.effect_plan is None &&
     physical_equal(plan.prepared, prepared) &&
     owner.input is Some(original) &&
     physical_equal(original, input) else {
@@ -176,11 +189,24 @@ pub fn[I] prepare_request_effect_model_read_scope(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let (r, e) = match
-    @resources.preparation_capacity_working_extents(capacity, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(value) => value
+  if !quoted {
+    let quote = match
+      request_model_scope_construction_quote(
+        capacity,
+        input,
+        selected.max_reservations,
+        selected.max_holdings,
+        selected.max_delegations,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    // Keep the original Plan and absolute quote before current can fail.
+    // A retry consumes this same quote, never another relative increment.
+    owner.effect_plan = Some(plan)
+    owner.model_scope_quote = Some(quote)
   }
+  let (r, e) = owner.model_scope_quote.unwrap()
   owner.phase = Selecting
   // The original six input/borrower slots already exist. Growing this same
   // census retains their backing and the selected Model maxima; it never
@@ -199,7 +225,22 @@ pub fn[I] prepare_request_effect_model_read_scope(
       selected.max_delegations,
     ) {
     Err(issue) => Err(Preparation(issue))
-    Ok(_) =>
+    Ok(_) => {
+      guard owner.phase == Selecting &&
+        owner.input is Some(original_input) &&
+        physical_equal(original_input, input) &&
+        owner.effect_capacity is Some(original_capacity) &&
+        physical_equal(original_capacity, capacity) &&
+        owner.effect_plan is Some(original_plan) &&
+        physical_equal(original_plan, plan) &&
+        owner.model_scope_quote is Some(current_quote) &&
+        current_quote.0 == r &&
+        current_quote.1 == e else {
+        if owner.phase == Selecting {
+          owner.phase = EffectModelScopeQuoted
+        }
+        return Err(ForeignOriginal)
+      }
       match
         @resources.preparation_capacity_inventory_original(capacity, input) {
         Err(issue) => Err(Preparation(issue))
@@ -212,11 +253,16 @@ pub fn[I] prepare_request_effect_model_read_scope(
             identity,
           ).map_err(issue => ModelRead(issue))
       }
+    }
   }
   if result is Ok(_) {
-    owner.effect_plan = Some(plan)
+    owner.model_scope_quote = None
   }
-  owner.phase = EffectPlanReserved
+  owner.phase = if result is Ok(_) {
+    EffectPlanReserved
+  } else {
+    EffectModelScopeQuoted
+  }
   result
 }
 
