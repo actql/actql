@@ -104,43 +104,6 @@ pub fn[P, E] reserve_node_managed_run_operation_controls(
 }
 
 ///|
-// Only these two closed Resource entries consume this immediate result. It
-// never leaves the module as a reusable current proof or retained session.
-fn[P, E] check_node_managed_run_operation_original(
-  value : NodeManagedRunAdmission[P],
-  prepared : P,
-  ledger : Ledger,
-  original : () -> Result[Unit, E],
-) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
-  match check_node_managed_run_mutable_admission(value, prepared, ledger) {
-    Err(issue) => return Err(Admission(issue))
-    Ok(_) => ()
-  }
-  match original() {
-    Err(issue) => return Err(Original(issue))
-    Ok(_) => ()
-  }
-  // The internal continuation carries no authority. Recheck Resource's own
-  // tuple and mutable state without invoking physical current a second time.
-  match check_node_managed_run_preparation(value, prepared) {
-    Err(issue) => return Err(Admission(issue))
-    Ok(_) => ()
-  }
-  guard value.ledger is Some(bound) && physical_equal(bound, ledger) else {
-    return Err(Admission(ForeignOriginal))
-  }
-  match check_imported_original_child_ledger_current(value.child, ledger) {
-    Err(issue) => return Err(Admission(issue))
-    Ok(_) => ()
-  }
-  match check_original_resources_mutable_current(ledger) {
-    Err(issue) => return Err(Admission(Resource(issue)))
-    Ok(_) => ()
-  }
-  Ok(())
-}
-
-///|
 // Same synchronous Resource frame after its original/post-callback fences.
 fn reserve_node_managed_run_operation_control_owned(
   ledger : Ledger,

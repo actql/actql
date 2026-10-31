@@ -67,6 +67,34 @@ pub fn[P] check_node_managed_run_mutable_admission(
 }
 
 ///|
+pub fn[P] reserve_node_managed_run_attempt(
+  value : NodeManagedRunAdmission[P],
+  _prepared : P,
+  _ledger : Ledger,
+  _transfer_bytes : Int64,
+  _retained_bytes : Int64,
+  _execution_bytes : Int64,
+) -> Result[Reservation, ImportedChildLedgerIssue] {
+  match value {
+
+  }
+}
+
+///|
+// The original Node admission has no inhabitants on this target. Preserve
+// the same closed boundary without inventing a resource port or refusal.
+fn[P, E] check_node_managed_run_operation_original(
+  value : NodeManagedRunAdmission[P],
+  _prepared : P,
+  _ledger : Ledger,
+  _original : () -> Result[Unit, E],
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  match value {
+
+  }
+}
+
+///|
 pub fn[P] check_node_managed_run_preparation(
   value : NodeManagedRunAdmission[P],
   _prepared : P,
