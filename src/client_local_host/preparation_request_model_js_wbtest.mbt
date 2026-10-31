@@ -229,6 +229,33 @@ fn request_model_fixture(
 }
 
 ///|
+test "Pure Scope funds its new origin and original census before binding for source-free and captured Plans" {
+  for captured in [false, true] {
+    let (parent, input, plan, construction) = request_model_fixture(captured~)
+    let capacity = parent.program_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    let increment = expected_request_model_scope_controls(
+      plan.max_reservations, plan.max_holdings, plan.max_delegations,
+    )
+    let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok((before.0 + increment, before.1 + increment)),
+    )
+    complete_request_model_preparation(parent, input, plan).unwrap()
+    @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+    let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope, plan.compiled, plan.definition, plan.graph, true,
+      ).unwrap(),
+    )
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "Model Scope cannot adopt a Plan built without selecting its original construction input" {
   let (parent, input, plan, construction) = request_model_fixture(
     model_input=false,

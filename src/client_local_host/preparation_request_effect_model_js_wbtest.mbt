@@ -2,6 +2,28 @@
 // Actual JSON/Parameters/check/compiler/Model Plan and ordinary Node admission.
 // Provider and Scope byte frames are explicit logical component ports, not a
 // complete physical Model/Host recipe, permission or normal runtime acceptance.
+fn expected_request_model_scope_controls(
+  reservations : Int,
+  holdings : Int,
+  delegations : Int,
+) -> Int64 {
+  let initial = @resources.preparation_inventory_initial_control_slots(6, 0, 0).unwrap()
+  let selected = @resources.preparation_inventory_initial_control_slots(
+    Int::max(6, reservations), holdings, delegations,
+  ).unwrap()
+  // Independent field inventory: Model origin has five borrowed references;
+  // Scope has three. Neither copies Program/Graph/CID backing. Resource owns
+  // its census-slot shape; its existing projection supplies that delta.
+  @execution.preparation_representation_cost({
+    record_headers: 2L + selected.0 - initial.0,
+    reference_slots: 8L + selected.1 - initial.1,
+    scalar_words: selected.2 - initial.2,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
   model_initial? : Bool = true,
@@ -70,6 +92,32 @@ fn request_effect_model_plan_fixture(
     e + plan.limits.execution_bytes,
   ).unwrap()
   (parent, input, plan, request, construction)
+}
+
+///|
+test "Effect Scope funds its new origin and original census before binding without reserving runtime Plan twice" {
+  let (parent, input, plan, request, construction) = request_effect_model_plan_fixture()
+  let selected = plan.model.unwrap()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let increment = expected_request_model_scope_controls(
+    selected.max_reservations, selected.max_holdings, selected.max_delegations,
+  )
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input),
+    Ok((before.0 + increment, before.1 + increment)),
+  )
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, selected.compiled, selected.definition, selected.graph, true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
