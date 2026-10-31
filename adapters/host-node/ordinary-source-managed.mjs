@@ -627,10 +627,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               if (moon.clientProgramPreparationBorrowRead(selected) !== prepared) {
                 fail('ForeignInstalledSourceProducer');
               }
-              if (checked(moon.clientProgramPreparationBorrowReturn(state.inventoryHolder)) !== true) {
-                fail('InstalledSourceRunCleanupPending');
-              }
+              // Core consumes this borrower before reporting owner retirement.
+              // false means the selected owner remains live, not a failed
+              // return. A later settlement error must retry the SAME parent,
+              // never invoke a consumed borrow token again.
+              const inventory = state.inventoryHolder;
               state.inventoryHolder = undefined;
+              checked(moon.clientProgramPreparationBorrowReturn(inventory));
             }
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');

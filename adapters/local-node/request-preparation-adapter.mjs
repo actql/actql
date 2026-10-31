@@ -179,14 +179,15 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
     }
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory
-    // borrower as well. Return each SAME holder only after acknowledged
-    // retirement, and clear its alias only after its own return succeeds.
+    // borrower as well. Core consumes each holder before attempting owner
+    // settlement; false is a live owner, and settlement failure retains the
+    // parent duty without making the consumed token returnable again.
     for(const field of ['inventoryHolder','holder']) {
       const holder=state[field];
       if(holder===undefined) continue;
-      if(checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
-        : borrow.clientProgramEffectPreparationInputReturn(holder))!==true) invalid();
       state[field]=undefined;
+      checked(borrow===undefined ? moon.clientProgramPreparationBorrowReturn(holder)
+        : borrow.clientProgramEffectPreparationInputReturn(holder));
     }
   }
   if(state.parent!==undefined) {

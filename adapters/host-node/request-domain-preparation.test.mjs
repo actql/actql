@@ -75,7 +75,7 @@ test('original INFER and Content inventory select their own constructor borrow b
   }
 });
 
-test('domain selection refusal and failed inventory return retain their exact original borrows and failure', async () => {
+test('domain selection refuses once and a consumed inventory return keeps its original parent failure', async () => {
   const refusal = new Error('original-domain-refusal');
   const f = fixture({infers: [{}], refusal});
   await assert.rejects(f.read(), error => error === refusal);
@@ -86,7 +86,7 @@ test('domain selection refusal and failed inventory return retain their exact or
   const g = fixture({serializations: [{}], acquisitions: 1, returned: returnFailure});
   await assert.rejects(g.read(), error => error === returnFailure);
   assert.equal(g.state.holder, g.selected);
-  assert.equal(g.state.inventoryHolder, g.inventory);
+  assert.equal(g.state.inventoryHolder, undefined);
   g.clearReturnFailure();
   await assert.rejects(g.read(), error => error === returnFailure);
   assert.equal(g.calls.filter(value => value === 'content').length, 1);

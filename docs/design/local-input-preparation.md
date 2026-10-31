@@ -3911,7 +3911,10 @@ An effect-free compiler result does not select an ordinary module. The manager
 reads the existing checked INFER and serialization inventories from the same
 Request's Program construction borrow. It retains the selected Model or Content
 construction borrow before returning that inventory borrow. A failed selection
-or return keeps its exact originals on the existing Request cleanup path. Mixed
+keeps its exact originals on the existing Request cleanup path. Core consumes a
+returned borrower before attempting owner settlement: a false result leaves the
+owner live, and a settlement error retains the same parent retry rather than
+making the consumed borrower returnable again. Mixed
 profiles remain subject to their existing typed consumer guards.
 
 The Model Request compiler returns the original raw TaskCompilation. The
