@@ -91,6 +91,45 @@ test('an invalid asynchronous byte observer stays joined after socket close unti
   }
 });
 
+for (const publicThen of ['throwing getter', 'throwing method']) {
+  test(`native byte observer keeps its original pending task despite a ${publicThen}`, async t => {
+    let entered, settle, socketClosed;
+    const original = new Promise(resolve => {settle = resolve;});
+    const observed = new Promise(resolve => {entered = resolve;});
+    const closed = new Promise(resolve => {socketClosed = resolve;});
+    const primary = new Error('original public then observation failed');
+    if (publicThen === 'throwing getter') {
+      Object.defineProperty(original, 'then', {get() {throw primary;}});
+    } else Object.defineProperty(original, 'then', {value() {throw primary;}});
+    let requests = 0;
+    const f = await fixture(t, (request, response) => {
+      requests++; request.socket.once('close', socketClosed);
+      response.writeHead(200); response.end('{}');
+    });
+    let completed = false;
+    const pending = f.call({observeResponseBytes() {entered(); return original;}});
+    const refused = assert.rejects(pending, error => publicThen === 'throwing getter'
+      ? error === primary : error.code === 'InvalidRemoteCredentialResponseByteObserver')
+      .then(() => {completed = true;});
+    try {
+      await observed;
+      await closed;
+      // A deliberately pending child has no timeout-based ACK. Give the old
+      // socket-close continuation a bounded opportunity to expose early release;
+      // this is a lifetime assertion, not a latency/performance measurement.
+      await new Promise(resolve => setTimeout(resolve, 25));
+      assert.equal(completed, false, 'Socket close cannot settle a different native task');
+      assert.deepEqual(f.outcomes, []);
+      assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'pending');
+    } finally {
+      settle(); await refused;
+    }
+    assert.equal(requests, 1); assert.equal(f.claims(), 1);
+    assert.deepEqual(f.outcomes, ['unknown']);
+    assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+  });
+}
+
 test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
   const primary=new Error('original Ledger charge refusal');
   const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end('body');});
