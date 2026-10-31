@@ -543,7 +543,9 @@ function acquireBinding(binding, {scope, control, journal, resolveSecret, bindin
   if (state.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
   if (state.changed) fail('RemoteCredentialBindingChanged');
   if (state.pendingOutcome !== undefined) throw state.pendingOutcome;
-  if (state.active) fail('RemoteCredentialBindingBusy');
+  // A completed call/socket cannot retire an unjoined callback's original.
+  // This applies to unfenced bindings too, before another claim or send.
+  if (state.active || state.unjoinedResponseCustody !== undefined) fail('RemoteCredentialBindingBusy');
   state.active = true;
   return state;
 }
@@ -785,7 +787,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
                     // Constructor/species can refuse before native registration.
                     // Keep that unresolved original under this existing binding;
                     // a socket close or failed join is not its cleanup ACK.
-                    binding.unjoinedResponseCustody = {original: observed, cause};
+                    binding.unjoinedResponseCustody ??= {original: observed, cause};
                     observerPending = false;
                     throw cause;
                   }
@@ -882,7 +884,7 @@ async function callCredentialResource({
     // No join exists to observe this task's retirement. Keep it and its body
     // on this SAME binding; another close attempt cannot infer an ACK from the
     // primary error, a later Promise resolution or the socket's termination.
-    if (binding) binding.unjoinedResponseCustody = {original, cause};
+    if (binding) binding.unjoinedResponseCustody ??= {original, cause};
   });
   if (observeResponseBytes !== undefined &&
       (typeof observeResponseBytes !== 'function' || binding === undefined)) {

@@ -177,6 +177,20 @@ for (const port of ['byte observer', 'response custody']) {
   });
 }
 
+test('unfenced binding remains reusable after its original successful response retires', async t => {
+  let requests = 0;
+  const f = await fixture(t, (request, response) => {
+    requests++; response.writeHead(200); response.end('{}');
+  }, {fenced: false});
+  for (let index = 0; index < 2; index++) {
+    const response = await f.call({});
+    assert.equal(response.body.toString(), '{}');
+  }
+  assert.equal(requests, 2); assert.equal(f.claims(), 2);
+  assert.deepEqual(f.outcomes, ['succeeded', 'succeeded']);
+  assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
 test('a failed byte charge preserves its original error while the same request and binding stop',async t=>{
   const primary=new Error('original Ledger charge refusal');
   const f=await fixture(t,(request,response)=>{response.writeHead(200);response.end('body');});
