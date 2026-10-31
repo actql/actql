@@ -198,3 +198,20 @@ acquisition; its evidence wrapper and native capture remain unchanged when the
 publication plan receives the checked Result policy. The common issuer verifies
 both distinct obligations. An absent or refused checked publication policy
 cannot fall back to a known Source policy or create another invocation.
+
+## Original QueryTime in whole-input construction
+
+Timed whole-input construction consumes the same opaque original invocation
+returned by the existing QueryTime owner. It retains the same Prepared, Request,
+first compilation and Definition; the Host forwards the original Option without
+inspecting or rebuilding its tuple. A missing or foreign invocation refuses
+before the selected whole-input constructor runs. The same Request keeps the
+construction borrower through Plan and module completion, and the adopted Run
+retains that invocation for publication instead of sampling or compiling again.
+
+Original current and retirement fences remain at their existing owners.
+Returning a body does not acknowledge physical stop or retire a pending child.
+Constructor and held-output overlap must already be backed on the original
+parent before allocation, including failed children; the invocation and Plan
+limits do not establish that backing. The untimed constructor retains its
+existing signature and input semantics.
