@@ -78,6 +78,24 @@ This input-reader handoff does not replace the provider's declaration, Mapping,
 Site or operation-construction obligations. Independent profile publication
 and identity inspection retain their separate bounded-reader purpose.
 
+An Effect installation keeps its declaration, generated Mappings and resulting
+Check Environment on that same initial scope. The immutable checked write
+declarations bound their complete coexisting construction before native Mapping
+generation or Environment assembly. The existing Mapping generator still owns
+its semantics; an equal copied context, Mapping list or Environment cannot
+replace the retained original tuple. A failed construction does not retry on
+that scope or refund its consumed work.
+
+The selected Effect role defers Environment assembly until its Mappings exist,
+so it constructs that Environment once. Published schema/facts and writes keep
+their original text-reader and Common declaration/Mapping entrances; no native
+view list is parsed or reserialized before the initial owner reserves it.
+
+The RowEffect adapter retains this scope until the original Site's cleanup
+completes. A rejected or false close leaves the same initial body outstanding.
+The adapter and its loader projection forward the original managed Plan
+preparer unchanged; a projection is not a second preparation or admission.
+
 ## Captured Parameter Values on the Request
 
 The Local Parameter input Owner supplies its existing source/tree limits to

@@ -21,7 +21,8 @@ import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
-  reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading} from './installed-host-services.mjs';
+  reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading,
+  beginInstalledSourceInitialization, finishInstalledSourceInitialization} from './installed-host-services.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -185,31 +186,43 @@ async function loadEffect(path, {root, principalId, moon,
       : reserveInstalledSourceRuntimeIdentity(installationServices);
     const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
     retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
-    const installed = await module.load(checked, {root,
-      principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
-      ledgerRoot: join(root, 'state', 'effects', 'ledger'),
-      ...(installationServices === undefined ? {} : {installationServices}),
-      ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
-    own(installed);
-    verifyInstalledConnectorRegistration(entry, installed);
-    if (typeof installed?.prepareCaptured !== 'function' ||
-        typeof installed.prepareRecovered !== 'function' ||
-        typeof installed.environmentWire !== 'string' ||
-        typeof installed.close !== 'function') {
-      refuse('InvalidInstalledEffectInstallation');
+    const sourceInitialization = installationServices === undefined ? undefined
+      : beginInstalledSourceInitialization(installationServices, entry, checked.connectorId, baseEnvironmentWire, 'effect');
+    let installed;
+    try {
+      installed = await module.load(checked, {root,
+        principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
+        ledgerRoot: join(root, 'state', 'effects', 'ledger'),
+        ...(installationServices === undefined ? {} : {installationServices}),
+        ...(sourceInitialization === undefined ? {} : {sourceInitialization}),
+        ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
+      own(installed);
+      verifyInstalledConnectorRegistration(entry, installed);
+      if (typeof installed?.prepareCaptured !== 'function' ||
+          typeof installed.prepareRecovered !== 'function' ||
+          typeof installed.environmentWire !== 'string' ||
+          typeof installed.close !== 'function') {
+        refuse('InvalidInstalledEffectInstallation');
+      }
+      const adapter = retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
+        connectorBindings: installed.connectorBindings,
+        effectSelectors: installed.effectSelectors,
+        queryUpdateTargets: installedUpdateTargets(installed, queryUpdateTargets),
+        queryTableBindings: installed.queryTableBindings,
+        queryTableWriteAccesses: installed.queryTableWriteAccesses,
+        mappings: installed.mappings,
+        targetReadInventory: installed.targetReadInventory,
+        targetReadAuthorization: installed.targetReadAuthorization,
+        prepareManagedPlan: installed.prepareManagedPlan,
+        prepareCaptured: installed.prepareCaptured,
+        prepareRecovered: installed.prepareRecovered,
+        close: () => installed.close()}));
+      finishInstalledSourceInitialization(sourceInitialization, installed);
+      return adapter;
+    } catch (cause) {
+      finishInstalledSourceInitialization(sourceInitialization, installed, cause, true);
+      throw cause;
     }
-    return retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
-      connectorBindings: installed.connectorBindings,
-      effectSelectors: installed.effectSelectors,
-      queryUpdateTargets: installedUpdateTargets(installed, queryUpdateTargets),
-      queryTableBindings: installed.queryTableBindings,
-      queryTableWriteAccesses: installed.queryTableWriteAccesses,
-      mappings: installed.mappings,
-      targetReadInventory: installed.targetReadInventory,
-      targetReadAuthorization: installed.targetReadAuthorization,
-      prepareCaptured: installed.prepareCaptured,
-      prepareRecovered: installed.prepareRecovered,
-      close: () => installed.close()}));
   });
 }
 

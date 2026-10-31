@@ -4,7 +4,6 @@ import fs from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as common from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {readSourceProfileJson} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -249,6 +248,8 @@ test('Salesforce Source and Effect identity preserve publication text projection
 });
 
 async function salesforceFixture(t) {
+  // GitHub's file-only boundary cases do not need an unrelated Common import.
+  const common = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
   const f = await fixture(t);
   const keyPath = join(f.root, 'credential.key');
   await fs.writeFile(keyPath, generateKeyPairSync('ed25519').privateKey.export({type: 'pkcs8', format: 'pem'}));

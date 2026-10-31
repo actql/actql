@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "fac7f4acb6dccd645225c03a0bd2b77a01dbae02df4c6b55e4943bf53891754b",
+      "sha256": "3fa8bdab3119f4ae56c4c832eb1949fdcd3faa702947c957371ab0d59f825515",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4370,6 +4370,10 @@
             "mappings",
             "commands",
             "environmentWire",
+            "sourceInitialization",
+            "declaration",
+            "declared",
+            "environment",
             "connectorId",
             "connectorRegistration",
             "connectorRevision",
@@ -4507,8 +4511,15 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/adapter/adapter#5",
+          "name": "createRowEffectStage/adapter/init:close/init:close",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/adapter/init:close/init:close/init:close",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -6417,10 +6428,11 @@
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
-            "createRowEffectStage/adapter/adapter#5",
             "createRowEffectStage/adapter/adapter/adapter",
             "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/init:close/init:close",
+            "createRowEffectStage/adapter/init:close/init:close/init:close",
             "createRowEffectStage/admitCapability/admitCapability",
             "createRowEffectStage/admitRow/admitRow",
             "createRowEffectStage/assertPrepared/assertPrepared",
@@ -8411,6 +8423,7 @@
         "./effect-response-recovery.mjs",
         "./installed-connectors.mjs",
         "./installed-effect-plan.mjs",
+        "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",

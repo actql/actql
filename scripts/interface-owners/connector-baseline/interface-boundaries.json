@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "965e089713d80f35016d754a8e1111e2c88a7dd3db739e06c598e6657d0233c8",
+      "sha256": "fe7ab3d99caf96ec4e045caf6b009b796d5f5ffd0048fb7747a5511ef68728ba",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5835,7 +5835,9 @@
             "resolveSecret",
             "ledgerRoot",
             "installation",
-            "installationServices"
+            "installationServices",
+            "configurationReader",
+            "sourceInitialization"
           ],
           "async": true
         },
@@ -5867,19 +5869,12 @@
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
           "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
-          "parameters": [
             "request"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
           "parameters": [
             "request",
             "observation",
@@ -5888,16 +5883,30 @@
           "async": false
         },
         {
+          "name": "loadInstalledGitHubEffect/readers/readers",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "mappingsOf",
           "parameters": [
             "moon",
             "declaration",
-            "writes"
+            "writes",
+            "sourceInitialization",
+            "readOriginalText"
           ],
           "async": true
         },
         {
           "name": "mappingsOf/mappingsOf",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "mappingsOf/mappingsOf#2",
           "parameters": [
             "write"
           ],
@@ -5955,9 +5964,10 @@
             "loadInstalledGitHubEffect/init:request/init:request",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+            "loadInstalledGitHubEffect/readers/readers",
             "mappingsOf",
             "mappingsOf/mappingsOf",
+            "mappingsOf/mappingsOf#2",
             "publishInstalledGitHubEffect",
             "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
             "sameKeys/sameKeys",
@@ -6103,6 +6113,7 @@
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
         "../site/github-comment-create.mjs",
         "../site/github-issue-graphql-read.mjs",
         "./installed-github-source.mjs",
@@ -6116,7 +6127,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87be2b26e67e1f4f6128b2f2e5d7b76b9e03e1a2d23b9bc2dd404eab66c1eb81",
+      "sha256": "00c37ef974f73c0b5309c9bef22d30002d625f9b9b18fc9fc5e94f0d2f6e8525",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6232,6 +6243,7 @@
             "resolveSecret",
             "publication",
             "installation",
+            "sourceInitialization",
             "installationServices"
           ],
           "async": true
@@ -6271,7 +6283,8 @@
           "name": "readGitHubPublication",
           "parameters": [
             "checkedProfile",
-            "site"
+            "site",
+            "read"
           ],
           "async": true
         },
@@ -6279,25 +6292,41 @@
           "name": "readJson",
           "parameters": [
             "path",
-            "code"
+            "code",
+            "read"
           ],
           "async": true
         },
         {
           "name": "readSite",
           "parameters": [
-            "path"
+            "path",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "readSite/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "restore",
           "parameters": [
             "moon",
             "connectorId",
-            "expectedCatalogCid"
+            "expectedCatalogCid",
+            "sourceInitialization",
+            "readOriginalText"
           ],
           "async": true
+        },
+        {
+          "name": "restore/restore",
+          "parameters": [
+            "path"
+          ],
+          "async": false
         },
         {
           "name": "sameKeys/sameKeys",
@@ -6336,7 +6365,9 @@
             "readGitHubPublication",
             "readJson",
             "readSite",
+            "readSite/readers/readers",
             "restore",
+            "restore/restore",
             "sameKeys/sameKeys",
             "text/text"
           ],

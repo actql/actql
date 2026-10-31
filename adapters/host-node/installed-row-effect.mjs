@@ -124,6 +124,8 @@ import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
+  closeInstalledSourceConstruction} from './installed-host-services.mjs';
 
 // Private provenance: copies of an adapter cannot introduce an installation.
 const rowInstallations = new WeakMap();
@@ -766,10 +768,15 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
 // identity profile names the identities issued here; `continuationBinding`
 // is the value the continuation binds the installation by.
 export async function createInstalledRowEffect({moon, mappings = [], commands = [],
-  environmentWire, connectorId, connectorRegistration, connectorRevision,
+  environmentWire, sourceInitialization, declaration, declared, environment,
+  connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
   limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe}) {
+  if (sourceInitialization !== undefined) {
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings);
+    if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
+  }
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
@@ -847,12 +854,21 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       return mapping;
     }));
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
-  return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
+  if (sourceInitialization !== undefined) {
+    // The await may retire the installer. This local association check does
+    // not invoke current or repeat Mapping/Environment admission.
+    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings);
+  }
+  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
     managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, beforeSendCheck,
-    issueOriginalCollectionReference})], environmentWire);
+    issueOriginalCollectionReference, sourceInitialization})], environmentWire);
+  if (sourceInitialization !== undefined) {
+    retainInstalledSourceConstruction(sourceInitialization, adapter, declaration, declared, environment);
+  }
+  return adapter;
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -2699,7 +2715,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return adapter;
   }
   const {installed, installedCommands, owned, connectorId, bindingCid,
-    connectorRegistration, connectorRevision, connection, site} = singular;
+    connectorRegistration, connectorRevision, connection, site, sourceInitialization} = singular;
+  let constructionClosed = false;
   const adapter = Object.freeze({
     environmentWire,
     connectorBindings: Object.freeze([Object.freeze({connectorId,
@@ -2720,7 +2737,18 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       Object.freeze({kind: 'command', target: command.target,
         commandRef: command.commandRef, commandCid: command.commandCid})))]),
     prepareManagedPlan, prepareCaptured, prepareRecovered,
-    close: () => site.close(),
+    close() {
+      const observed = site.close();
+      if (sourceInitialization === undefined) return observed;
+      return Promise.resolve(observed).then(value => {
+        if (value === false) fail('InstalledEffectSiteCleanupPending');
+        if (!constructionClosed) {
+          closeInstalledSourceConstruction(sourceInitialization, adapter);
+          constructionClosed = true;
+        }
+        return value;
+      });
+    },
   });
   rowInstallations.set(adapter, singular);
   return adapter;

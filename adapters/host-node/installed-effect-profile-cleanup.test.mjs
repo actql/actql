@@ -12,6 +12,7 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {loadInstalledGitHubEffect, INSTALLED_GITHUB_EFFECT_VERSION} from '../connectors/github/host/installed-github-effect.mjs';
 
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
@@ -128,7 +129,7 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const version = 'actql-installed-effect-initial-material-fixture/0.1', profilePath = join(root, 'profile.json');
   const runtimePath = join(root, 'identity.mjs'), metadataPath = join(root, 'site.json');
-  const profileWire = JSON.stringify({version}), runtimeWire = 'export const original = true;\n';
+  const profileWire = JSON.stringify({version, connectorId: 'initial-effect-fixture'}), runtimeWire = 'export const original = true;\n';
   const metadataWire = '{"original":"site metadata"}';
   await fs.writeFile(profilePath, profileWire);await fs.writeFile(runtimePath, runtimeWire);await fs.writeFile(metadataPath, metadataWire);
   const initial = {}, input = {}, unit = {}, capacity = {}, events = [], live = new Set();
@@ -293,7 +294,7 @@ for (const malformed of [false, true]) {
 // Actual loader, initial owner, Mapping/Environment constructor and RowEffect
 // adapter together. Native semantic/Resource and Site ports are explicit:
 // this is not a Common, Account, physical Site or normal public execution.
-async function constructionFixture(t, {refuseMapping = false} = {}) {
+async function constructionFixture(t, {refuseMapping = false, beforeAdapter} = {}) {
   const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-construction-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const version = 'actql-installed-effect-construction-fixture/0.1';
@@ -343,7 +344,7 @@ async function constructionFixture(t, {refuseMapping = false} = {}) {
     Object.freeze({target: 'label', field: 'label', null_behavior: 'reject'})])})]);
   const unused = () => assert.fail('No provider/Account operation in this constructor component');
   const site = {issueEffectGrant: unused, issueReadGrant: unused,
-    async close() {if (closePending) throw pendingClose;}};
+    async close() {if (closePending === 'false') return false;if (closePending) throw pendingClose;}};
   const driver = {kinds: ['create'], prepareRequest: unused, requestFacts: unused,
     writeOperation: unused, send: unused, project: unused, footprint: unused};
   const connectorTable = createInstalledConnectorTable([{name: 'effect_construction_fixture',
@@ -363,6 +364,7 @@ async function constructionFixture(t, {refuseMapping = false} = {}) {
             connectorRevision: options.installation.revision, installation: options.installation,
             connection: 'explicit-construction', site, authorization: {authorize: unused},
             runtimeBundleCid: options.runtimeBundleCid, bindingCid: cid, ledgerRoot: join(root, 'ledger'), driver};
+          await beforeAdapter?.(installedOptions);
           return createInstalledRowEffect(installedOptions);
         },
       }),
@@ -370,11 +372,13 @@ async function constructionFixture(t, {refuseMapping = false} = {}) {
   return {run: () => loader.loadInstalledEffect(profilePath, {root, principalId: 'fixture', moon,
     runtimeUrl: pathToFileURL(runtimePath), baseEnvironmentWire: environmentWire, connectorTable, installationServices: services}),
     services, events, refusal, pendingClose, options: () => installedOptions,
-    allowClose() {closePending = false;}, retired: () => nativeRetire};
+    context: () => retained, writes,
+    allowClose() {closePending = false;}, falseClose() {closePending = 'false';}, retired: () => nativeRetire};
 }
 
 test('Effect construction retains original Mapping Environment and adapter until the same Site cleanup', async t => {
   const f = await constructionFixture(t), adapter = await f.run();
+  assert.equal(typeof adapter.prepareManagedPlan, 'function');
   assert.deepEqual(f.events.slice(-4), ['reserve', 'declaration', 'reserve', 'mapping']);
   assert.equal(retireInstalledSourceInitialization(f.services), false);
   await assert.rejects(adapter.close(), error => error === f.pendingClose);
@@ -391,11 +395,74 @@ test('Effect construction refuses Mapping backing before the native Mapping or S
 });
 
 test('Effect construction refuses copied context or changed original Environment without another constructor', async t => {
-  const f = await constructionFixture(t), adapter = await f.run(), original = f.options();
-  for (const changed of [{sourceInitialization: Object.freeze({...original.sourceInitialization})},
-    {environment: Object.freeze({...original.environment})}]) {
-    await assert.rejects(createInstalledRowEffect({...original, ...changed}), {code: 'ForeignInstalledSourceConstruction'});
-  }
+  const f = await constructionFixture(t, {async beforeAdapter(original) {
+    for (const changed of [{sourceInitialization: Object.freeze({...original.sourceInitialization})},
+      {environment: Object.freeze({...original.environment})}, {mappings: Object.freeze([...original.mappings])}]) {
+      await assert.rejects(createInstalledRowEffect({...original, ...changed}), {code: 'ForeignInstalledSourceConstruction'});
+    }
+  }}), adapter = await f.run();
   assert.equal(f.events.filter(value => value === 'mapping').length, 1);
   f.allowClose();await adapter.close();assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect construction false Site close retains the same original initial body', async t => {
+  const f = await constructionFixture(t), adapter = await f.run();f.falseClose();
+  await assert.rejects(adapter.close(), {code: 'InstalledEffectSiteCleanupPending'});
+  assert.equal(retireInstalledSourceInitialization(f.services), false);assert.equal(f.retired(), 0);
+  f.allowClose();await adapter.close();assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect construction failed Mapping reservation is sticky on the same original context', async t => {
+  const f = await constructionFixture(t, {refuseMapping: true});
+  await assert.rejects(f.run(), error => error === f.refusal);
+  assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
+    {code: 'ForeignInstalledSourceInitialization'});
+  assert.equal(f.events.includes('mapping'), false);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('GitHub Effect installer forwards original declaration Mapping and Site context before provider construction', async () => {
+  const events = [], declaration = {}, declared = {}, environment = {wire: 'original-environment'}, mappings = [];
+  const stop = new Error('original Site entrance'), installation = {};
+  const profile = {version: INSTALLED_GITHUB_EFFECT_VERSION, connectorId: 'authored-github',
+    siteProfilePath: '/UNOPENED/github-site.json', publicationPath: '/UNOPENED/github-publication.json',
+    accountConfigurationWire: '{}', writes: [{resource: 'issue_comments',
+      sources: [{target: 'body', field: 'body', null_behavior: 'reject'}]}]};
+  const site = {version: 'actql-installed-github-site/0.1', apiOrigin: 'https://explicit.invalid', owner: 'owner', repo: 'repo',
+    credentialAuthorityId: 'authored-authority', credentialKeyId: 'authored-key',
+    credentialPrivateKeyPath: '/UNOPENED/key', environment: 'authored', journalRoot: '/UNOPENED/journal',
+    namespaceId: 'authored-namespace', siteGeneration: 0, siteKey: 'authored-site', tokenEnvironment: 'ACTQL_AUTHORED_TOKEN'};
+  const publication = {version: 'actql-github-publication/0.1', connectorId: profile.connectorId,
+    apiOrigin: site.apiOrigin, owner: site.owner, repo: site.repo, catalogCid: 'sha256:' + 'a'.repeat(64),
+    repository: {id: 1, node_id: 'authored-repository'}};
+  const initialization = Object.freeze({prepareDeclaration(wire, expected) {
+    assert.equal(this, initialization);assert.equal(expected, publication.catalogCid);
+    assert.equal(wire, originals.get('source-views.json'));events.push('declaration');return {declaration, declared};
+  }, prepareMappings(wire, writes) {
+    assert.equal(this, initialization);assert.equal(wire, originals.get('writes.json'));
+    assert.deepEqual(writes, profile.writes);assert(Object.isFrozen(writes));events.push('mappings');
+    return {declaration, declared, environment, mappings};
+  }});
+  const originals = new Map();
+  const reader = {async readJson(path) {
+    assert.equal(this, reader);events.push(path === profile.siteProfilePath ? 'site-json' : 'publication-json');
+    assert([profile.siteProfilePath, profile.publicationPath].includes(path));
+    return path === profile.siteProfilePath ? site : publication;
+  }, readText() {assert.fail('Published originals have no invented profile ceiling');},
+  async readOriginalText(path) {
+    assert.equal(this, reader);const name = new URL(path).pathname.split('/').at(-1);
+    assert(['source-views.json', 'writes.json'].includes(name));const wire = await fs.readFile(path, 'utf8');
+    originals.set(name, wire);events.push(name);return wire;
+  }};
+  const services = Object.freeze({openRowSite(options) {
+    assert.equal(this, services);assert.equal(options.sourceInitialization, initialization);
+    assert.equal(options.installation, installation);events.push('Site');throw stop;
+  }});
+  // Actual entire installer and shared Site helper; only initial constructor
+  // and Site service ports are explicit. No native Common, grant or I/O Site.
+  await assert.rejects(loadInstalledGitHubEffect(profile, {root: '/UNOPENED/root', principalId: 'authored',
+    moon: {}, providerMoon: {}, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
+    ledgerRoot: '/UNOPENED/ledger', installation, installationServices: services,
+    sourceInitialization: initialization, configurationReader: reader}), cause => cause === stop);
+  assert.deepEqual(events, ['site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
 });

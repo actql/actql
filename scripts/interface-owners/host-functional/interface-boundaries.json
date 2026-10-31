@@ -62907,7 +62907,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6bf7305414333ba760a1811dbb3fb31b0eec8a245264dd4813d3d4d01f2bd956",
+      "sha256": "5da17c113051f92ae7b347cc80f47f25d0750359559fa1ad05ad840f1d9cdb01",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -62965,7 +62965,7 @@
           "async": true
         },
         {
-          "name": "loadEffect/loadEffect/loadEffect",
+          "name": "loadEffect/loadEffect/adapter/adapter",
           "parameters": [],
           "async": false
         },
@@ -63085,7 +63085,7 @@
             "installedEffectPaths",
             "loadEffect",
             "loadEffect/loadEffect",
-            "loadEffect/loadEffect/loadEffect",
+            "loadEffect/loadEffect/adapter/adapter",
             "loadEffect/loadEffect/profile/profile",
             "loadEffect/loadEffect/readers/readers",
             "loadInstalledEffect",
@@ -119645,7 +119645,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "077da93f92f8c61e5a7fca7fc5546bba15cb7ee817bb8d7bcb1b2c2fd02b9b20",
+      "sha256": "f7ed07ea6544ec11053e21b367fe0f6430a0f0b0883ac537e6cd1099e87d6ffc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -119675,7 +119675,8 @@
             "declaration",
             "declared",
             "environment",
-            "providerReader"
+            "providerReader",
+            "mappings"
           ],
           "async": false
         },
@@ -119685,7 +119686,8 @@
             "services",
             "installation",
             "connectorId",
-            "baseEnvironmentWire"
+            "baseEnvironmentWire",
+            "role"
           ],
           "async": false
         },
@@ -119713,6 +119715,48 @@
         {
           "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
+          "parameters": [
+            "writesJson",
+            "writes"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+          "parameters": [
+            "write"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
@@ -120560,6 +120604,12 @@
             "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
             "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
             "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
             "beginInstalledSourceInitialization/prepareOriginalDeclaration",
             "borrowInstalledSourceInitialization",
             "borrowInstalledSourceInitialization/view/init:environment/init:environment",
@@ -120577,13 +120627,13 @@
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
             "installedSourceConfigurationReader/read/read",
+            "installedSourceConfigurationReader/readOriginal",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
             "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
             "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
             "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
             "installedSourceConfigurationReader/reader/init:readText/init:readText",
-            "installedSourceConfigurationReader/readOriginal",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
             "nestedImplementationReaderLimits",
             "nestedImplementationReaderLimits/nestedImplementationReaderLimits",
             "nestedImplementationReaderLimits/original/original",

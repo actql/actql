@@ -1,7 +1,8 @@
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
-import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment} from './installed-row-source.mjs';
+import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
+  rowSourceMapping} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
@@ -25,7 +26,8 @@ function requireSourceConstructor(services, installation, fields, prepared = fal
   const context = field.value, selected = sourceContexts.get(context);
   if (selected?.original !== original || selected.material.phase !== 'working' ||
       !selected.scope.active || selected.scope.installation !== installation ||
-      prepared && selected.scope.prepared === undefined) {
+      prepared && (selected.scope.prepared === undefined ||
+        selected.scope.role === 'effect' && selected.scope.prepared.mappings === undefined)) {
     fail('InstalledSourceInitializationUnavailable');
   }
   return context;
@@ -316,15 +318,16 @@ export async function withInstalledSourceLoading(services, construct) {
 // Provider construction consumes only this original context, never a public
 // numerical capacity. Its declaration, native projection and Environment are
 // retained together by the same Source successor through Request borrowing.
-export function beginInstalledSourceInitialization(services, installation, connectorId, baseEnvironmentWire) {
+export function beginInstalledSourceInitialization(services, installation, connectorId, baseEnvironmentWire, role = 'source') {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
   if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
-      typeof baseEnvironmentWire !== 'string') fail('ForeignInstalledSourceInitialization');
-  const scope = {installation, connectorId, baseEnvironmentWire, prepared: undefined,
+      typeof baseEnvironmentWire !== 'string' || !['source', 'effect'].includes(role) ||
+      role === 'effect' && installation.effect === undefined) fail('ForeignInstalledSourceInitialization');
+  const scope = {installation, connectorId, baseEnvironmentWire, role, prepared: undefined,
     source: undefined, active: true};
   material.contexts.push(scope); material.constructors++;
   function prepareOriginalDeclaration(restore, originalInput, basis, makeWire, expectedCatalogCid) {
@@ -343,9 +346,13 @@ export function beginInstalledSourceInitialization(services, installation, conne
       const declaredWire = Reflect.apply(original.declarationJson, original.moon, [declaration]);
       if (typeof declaredWire !== 'string') fail('InvalidInstalledSourceDeclaration');
       const declared = freezeSourceProjection(JSON.parse(declaredWire));
-      const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
+      // An Effect's one Environment needs its Mappings. Do not first build a
+      // read-only Environment and repeat that work after Mapping generation.
+      const environment = scope.role === 'effect' ? undefined
+        : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
       prepared = Object.freeze({declaration, declared, environment});
       scope.prepared = prepared;
+      scope.declarationBasis = basis;
       material.inputs.push(originalInput, wire, declaration, declaredWire, declared, environment);
       material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
     } finally {material.busy = false;}
@@ -353,6 +360,69 @@ export function beginInstalledSourceInitialization(services, installation, conne
     return prepared;
   }
   const context = Object.freeze({
+    prepareMappings(writesJson, writes) {
+      if (this !== context || !scope.active || scope.prepared === undefined ||
+          scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted || material.phase !== 'working') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      if (material.busy) fail('InstalledSourceInitializationReentry');
+      if (typeof original.prepareMapping !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+      const originalPrepared = scope.prepared;
+      if (typeof writesJson !== 'string' || !Array.isArray(writes) || nodeTypes.isProxy(writes) ||
+          !Object.isFrozen(writes) || writes.length === 0) fail('InvalidInstalledEffectMappings');
+      // Inspect only checked immutable own String DATA before the current/
+      // resize boundary. Do not stringify proportional input before backing.
+      let units = 0n;
+      const field = (value, name) => {
+        if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
+          fail('InvalidInstalledEffectMappings');
+        }
+        const entry = Object.getOwnPropertyDescriptor(value, name);
+        if (!entry || !Object.hasOwn(entry, 'value')) fail('InvalidInstalledEffectMappings');
+        return entry.value;
+      };
+      for (let i = 0; i < writes.length; i++) {
+        const write = field(writes, String(i)), resource = field(write, 'resource'), sources = field(write, 'sources');
+        if (typeof resource !== 'string' || !Array.isArray(sources) || nodeTypes.isProxy(sources) ||
+            !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
+        units += BigInt(resource.length);
+        for (let j = 0; j < sources.length; j++) {
+          const source = field(sources, String(j));
+          for (const name of ['target', 'field', 'null_behavior']) {
+            const value = field(source, name);
+            if (typeof value !== 'string') fail('InvalidInstalledEffectMappings');
+            units += BigInt(name.length + value.length);
+          }
+        }
+      }
+      // Each retained Mapping can expand the original declaration/writes.
+      // The final Environment overlaps those bodies. The SAME proportional
+      // material recipe covers the failed prefix, without a second Resource.
+      const basis = BigInt(writes.length) * (scope.declarationBasis + 6n * BigInt(writesJson.length)) +
+        6n * (units + BigInt(scope.baseEnvironmentWire.length));
+      scope.mappingsAttempted = true;
+      reserveSource(original, material, 4n * basis, 8n * basis, 8n * basis);
+      // Reserve can call the original current fence. Recheck only the local
+      // original tuple, without another current callback or semantic check.
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== originalPrepared ||
+          scope.source !== undefined) fail('ForeignInstalledSourceInitialization');
+      let prepared;
+      material.busy = true;
+      try {
+        const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args) =>
+          Reflect.apply(original.prepareMapping, original.moon, args)});
+        const mappings = Object.freeze(writes.map(write => Object.freeze({resource: write.resource,
+          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources)})));
+        const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, scope.prepared.declared,
+          mappings.map(mapping => mapping.body));
+        prepared = Object.freeze({...scope.prepared, environment, mappings});
+        scope.prepared = prepared;
+        material.inputs.push(writesJson, writes, mappings, environment);
+        material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return prepared;
+    },
     prepareAuthoredDeclaration(viewsWire, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined) {
         fail('ForeignInstalledSourceInitialization');
@@ -372,6 +442,16 @@ export function beginInstalledSourceInitialization(services, installation, conne
         fail('ForeignInstalledSourceInitialization');
       }
       if (material.busy) fail('InstalledSourceInitializationReentry');
+      if (typeof views === 'string') {
+        if (expectedCatalogCid !== undefined && typeof expectedCatalogCid !== 'string') {
+          fail('InvalidInstalledSourceDeclarationViews');
+        }
+        // Already published schema/facts wires keep their exact original
+        // Common entrance. Reserve before parsing or constructing a view list.
+        const units = BigInt(scope.connectorId.length) + BigInt(scope.baseEnvironmentWire.length) + BigInt(views.length);
+        return prepareOriginalDeclaration(original.restoreDeclaration, views,
+          6n * units + 64n, () => views, expectedCatalogCid);
+      }
       if (!Array.isArray(views) || nodeTypes.isProxy(views) ||
           expectedCatalogCid !== undefined && typeof expectedCatalogCid !== 'string') {
         fail('InvalidInstalledSourceDeclarationViews');
@@ -415,12 +495,13 @@ export function beginInstalledSourceInitialization(services, installation, conne
   return context;
 }
 
-export function assertInstalledSourceConstruction(context, declaration, declared, environment, providerReader) {
+export function assertInstalledSourceConstruction(context, declaration, declared, environment, providerReader, mappings) {
   const retained = sourceContexts.get(context), prepared = retained?.scope.prepared;
   if (retained === undefined || prepared === undefined || !retained.scope.active || retained.material.phase !== 'working' ||
       prepared?.declaration !== declaration || prepared.declared !== declared || prepared.environment !== environment) {
     fail('ForeignInstalledSourceConstruction');
   }
+  if (mappings !== undefined && prepared.mappings !== mappings) fail('ForeignInstalledSourceConstruction');
   if (providerReader !== undefined) {
     if (retained.scope.reader !== providerReader || retained.scope.readerDemand === undefined) {
       fail('ForeignInstalledSourceReaderDemand');
@@ -915,9 +996,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const restoreAuthoredDeclaration = moon.clientProgramRowSourceRestoreDeclaration;
   const declarationJson = moon.clientProgramRowSourceDeclarationJson;
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
+  const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts});
+    admitAcquisitionContracts, prepareMapping});
   return services;
 }
 
