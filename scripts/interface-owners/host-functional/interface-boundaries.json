@@ -1948,7 +1948,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ad4d6e561d4f091cfc688aeecb672eb2a4e282e56e857cb9d90ef36fc2fa06e",
+      "sha256": "affa57ebc89120a64f52de7bec03274ccba4dd66e79d39de7083ec568e66082b",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2628,14 +2628,14 @@
         {
           "name": "releasePreparedResults/status/status/status",
           "parameters": [
-            "owner"
+            "value"
           ],
           "async": false
         },
         {
           "name": "releasePreparedResults/status/status/status#2",
           "parameters": [
-            "owner"
+            "value"
           ],
           "async": false
         },
@@ -2643,13 +2643,6 @@
           "name": "releasePreparedResults/status/status/status#3",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "releasePreparedResults/status/status/status#4",
-          "parameters": [
-            "owner"
           ],
           "async": false
         },
@@ -2914,7 +2907,6 @@
             "releasePreparedResults/status/status/status",
             "releasePreparedResults/status/status/status#2",
             "releasePreparedResults/status/status/status#3",
-            "releasePreparedResults/status/status/status#4",
             "retainCompletedEffectDependencyPayloads",
             "retainCompletedEffectDependencyPayloads/adopted/adopted",
             "retainCompletedEffectDependencyPayloads/retainCompletedEffectDependencyPayloads",
@@ -37946,7 +37938,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2f548786243905d306ee99542e0a1fa9cf033a40a7c39e72ba0d348a6aafaff9",
+      "sha256": "a3acde47c5b64a82f18e6b06fabc2003ef42ca449ec038d69081011566deaa07",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -38865,6 +38857,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/runtime-core.mjs",
+        "./effect-ledger-implementation-bounds.mjs",
         "./sqlite-effect-ledger.mjs",
         "node:fs"
       ],
@@ -70732,7 +70725,7 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02893d1aa2a10d7162448da54f567e20386ebda53dc7990aa2ebbb670bc5f1eb",
+      "sha256": "e16c5118b091218dd542ad9fcfc2f787a95e518d441264b76ba22bbfaec8679d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -70809,13 +70802,6 @@
         {
           "name": "releaseInstalledRowCapture/childPending/childPending",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "releaseInstalledRowCapture/childPending/childPending/childPending",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -70906,7 +70892,6 @@
             "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
             "releaseInstalledRowCapture",
             "releaseInstalledRowCapture/childPending/childPending",
-            "releaseInstalledRowCapture/childPending/childPending/childPending",
             "releaseInstalledRowCapture/dependent/dependent",
             "releaseInstalledRowCapture/dependent/dependent/dependent",
             "releaseInstalledRowCapture/dependent/dependent/dependent#2",
@@ -122562,6 +122547,90 @@
         }
       ],
       "referenceQualification": "Exact public R4 source/functional-reference coverage only. References do not prove that their cases ran, actual initializer/private-invoker/Common compatibility, physical backing, permission, normal Read/Result/close/Saved or runtime acceptance."
+    },
+    {
+      "module": "adapters/host-node/effect-ledger-implementation-bounds.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "a39fbd2d6b50ceec6c3a04cc40aabfe41bf28d8bb2aa7e07144f9fb98705fa54",
+      "role": "physical-io",
+      "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
+      "exports": [
+        "effectLedgerImplementationBounds"
+      ],
+      "operations": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "effectLedgerImplementationBounds"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-ledger-implementation-bounds.mjs",
+                "anchor": "The actual Effect Ledger"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous immutable implementation DATA only; no cancellation, physical ACK, permission, Run admission or cleanup owner is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('automatic standard recipe forwards original constructor capacities and keeps all physical phases distinct'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [],

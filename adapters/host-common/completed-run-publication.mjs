@@ -206,15 +206,16 @@ export async function releasePreparedResults(exported, primary, control) {
       ? member(primary, 'code') : 'CompletedRunPublicationFailed',
     primary,
   );
-  const status = () => Object.freeze({
-    pending: owners.some(owner => ownerState(owner).pending),
-    outcome: owners.map(owner => ownerState(owner).outcome)
-      .find(value => value !== undefined),
-    errors: Object.freeze([
-      ...owners.flatMap(owner => ownerState(owner).errors),
-      ...errors,
-    ]),
-  });
+  const status = () => {
+    // One observation per original owner at this synchronous boundary. Do not
+    // call its potentially callbackful status again for each projected field.
+    const observed = owners.map(ownerState);
+    return Object.freeze({
+      pending: observed.some(value => value.pending),
+      outcome: observed.find(value => value.outcome !== undefined)?.outcome,
+      errors: Object.freeze([...observed.flatMap(value => value.errors), ...errors]),
+    });
+  };
   failure.primaryFailure = primary;
   failure.cleanupPending = true;
   failure.cleanupErrors = status().errors;
@@ -260,9 +261,10 @@ export async function releasePreparedResults(exported, primary, control) {
         if (action === 'finished') break;
         fail('InvalidCompletedRunPublicationCleanupProgress');
       }
-      failure.cleanupPending = status().pending;
-      failure.cleanupErrors = status().errors;
-      return status();
+      const observed = status();
+      failure.cleanupPending = observed.pending;
+      failure.cleanupErrors = observed.errors;
+      return observed;
     },
   });
   throw failure;

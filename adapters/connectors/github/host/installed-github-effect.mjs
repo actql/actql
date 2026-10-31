@@ -196,7 +196,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
     const boundaryCid = cid({version: 'actql-github-comment-boundary/0.1',
       api_origin: site.apiOrigin, repository_id: publication.repository.id,
       repository_node_id: publication.repository.node_id});
-    return await createInstalledRowEffect({moon,
+    return await createInstalledRowEffect({moon, providerMoon,
       mappings, declaration, declared, environment, sourceInitialization,
       environmentWire: environment.wire, connectorId: checked.connectorId,
       connectorRegistration: registration, connectorRevision: revision,

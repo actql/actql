@@ -24,6 +24,7 @@ import {
   "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_resources" @resources,
+  "actql/actql/remote_credential" @credential,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/value_admission" @admitted,

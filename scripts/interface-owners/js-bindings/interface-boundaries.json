@@ -66480,7 +66480,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9a9ba8499f28cc82c7f882c3f43d154c6209b52b5c051f19492630de9c6eece1",
+      "sha256": "a50f073ee1c7d264f225a4436582044317ca3be2c135a8c73955921106e73d06",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -66753,6 +66753,7 @@
           "name": "createInstalledRowEffect",
           "parameters": [
             "moon",
+            "providerMoon",
             "mappings",
             "commands",
             "environmentWire",
@@ -67311,14 +67312,19 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
+          "name": "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
+          "name": "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
@@ -69655,8 +69661,9 @@
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
+            "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
-            "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/rows/rows",
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/checkRows/checkRows",
@@ -72281,7 +72288,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "ownInputs(releaseInputs, () => { captureOpen = false; });"
+                "anchor": "ownInputs(releaseInputPins, () => { captureOpen = false; });"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -73101,6 +73108,7 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "./effect-input-export.mjs",
+        "./effect-ledger-implementation-bounds.mjs",
         "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",
         "./effect-plan-verify.mjs",

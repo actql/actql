@@ -89,7 +89,7 @@ async function operationFixture(t,{reply=()=>({body:'{}'})}={}){
   const create=(invoke=send,overrides={})=>implementation.prepareInstalledEffectCredentialChild({run,memberIndex:0,rowIndex:0,operationIndex:2,operation:'create',
     originalSite:site,originalAuthorization:raw,useId:'use',resource:'rows',purpose:'effect',runInvocationCid:'run',dispatchRequestCid:'dispatch',
     maxRequestBytes:1024,maxResponseBytes:64,assertCurrent(){},observeCurrent:async()=>{},requestsRetired:()=>controls.retiredAliases,invoke,...overrides});
-  return {server,run,raw,runtime,controls,create,send};
+  return {server,run,raw,runtime,controls,create,send,site};
 }
 
 test('physical atomic borrow owns current without a preceding callbackful Plan getter', async t => {
@@ -207,6 +207,91 @@ test('an asynchronous current fence remains joined before binding or physical st
   f.controls.retiredAliases=true;assert.equal(await child.release(),false);
   finish();await preparing;
   assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);assert.equal(f.server.seen().length,0);
+});
+
+test('native current fence ignores hostile public then and retains the same capture until settlement', async t => {
+  for (const kind of ['getter', 'method']) {
+    const f = await operationFixture(t);
+    let finish, publicCalls = 0;
+    const original = new Promise(resolve => {finish = resolve;});
+    const hostile = () => {publicCalls++; throw new Error('not the original current task');};
+    Object.defineProperty(original, 'then', kind === 'getter' ? {get: hostile} : {value: hostile});
+    const child = f.create(undefined, {assertCurrent: () => original}), children = [];
+    const observed = prepareInstalledRowCaptureChild({children, create: () => child})
+      .then(value => ({value}), error => ({error}));
+    try {
+      await new Promise(setImmediate);
+      f.controls.retiredAliases = true;
+      assert.equal(await child.release(), false, kind);
+      await children[0].prepared.release();
+      assert.equal(children[0].prepared.status().pending, true);
+      assert.equal(f.controls.settles, 0); assert.equal(publicCalls, 0);
+    } finally {finish(); await observed;}
+    assert.equal((await observed).error?.code, 'InvalidInstalledEffectCurrentFence');
+    await children[0].prepared.retry();
+    assert.equal(children[0].prepared.status().pending, false);
+    assert.equal(f.controls.settles, 1); assert.equal(f.controls.bindings, 0);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
+test('native binding close ignores hostile public then and cannot repeat or retire before its original settles', async t => {
+  for (const kind of ['getter', 'method']) {
+    const f = await operationFixture(t);
+    let finish, publicCalls = 0, closes = 0, settled = false;
+    const original = new Promise(resolve => {finish = () => {settled = true; resolve();};});
+    const hostile = () => {publicCalls++; throw new Error('not the original close task');};
+    Object.defineProperty(original, 'then', kind === 'getter' ? {get: hostile} : {value: hostile});
+    const primary = new Error('original provider prefix');
+    const site = Object.freeze({...f.site, bindRunAcquisition(...args) {
+      const binding = Reflect.apply(f.site.bindRunAcquisition, f.site, args);
+      return Object.freeze({credential: binding.credential, close() {
+        closes++; return settled ? binding.close() : original;
+      }});
+    }});
+    const child = f.create(() => {throw primary;}, {originalSite: site});
+    await assert.rejects(child.prepare(), error => error === primary);
+    f.controls.retiredAliases = true;
+    const observed = Promise.resolve().then(() => child.release()).then(value => ({value}), error => ({error}));
+    try {
+      await new Promise(setImmediate);
+      assert.equal(f.controls.settles, 0);
+      assert.equal(publicCalls, 0);
+      assert.equal(child.status().pending, true);
+      assert.equal(closes, 1);
+    } finally {finish(); await observed;}
+    assert.deepEqual(await observed, {value: false});
+    assert.equal(await child.retry(), true);
+    assert.equal(closes, 2); assert.equal(f.controls.settles, 1);
+    assert.equal(f.server.seen().length, 0);
+  }
+});
+
+test('unobservable native current and close tasks remain in the same original child custody', async t => {
+  for (const phase of ['current', 'close']) {
+    const f = await operationFixture(t);
+    let finish, closes = 0;
+    const original = new Promise(resolve => {finish = resolve;});
+    Object.defineProperty(original, 'constructor', {get() {throw new Error('unavailable original species');}});
+    const primary = new Error('original provider prefix');
+    const site = Object.freeze({...f.site, bindRunAcquisition(...args) {
+      const binding = Reflect.apply(f.site.bindRunAcquisition, f.site, args);
+      return Object.freeze({credential: binding.credential, close() {closes++; return original;}});
+    }});
+    const child = phase === 'current' ? f.create(undefined, {assertCurrent: () => original})
+      : f.create(() => {throw primary;}, {originalSite: site});
+    try {
+      await assert.rejects(child.prepare(), error => phase === 'current'
+        ? error.code === 'InvalidInstalledEffectCurrentFence' : error === primary);
+      f.controls.retiredAliases = true;
+      assert.equal(await child.release(), false);
+    } finally {finish();}
+    await new Promise(setImmediate);
+    assert.equal(await child.retry(), false);
+    assert.equal(child.status().pending, true); assert.equal(f.controls.settles, 0);
+    assert.equal(closes, phase === 'close' ? 1 : 0);
+    assert.equal(f.server.seen().length, 0);
+  }
 });
 
 

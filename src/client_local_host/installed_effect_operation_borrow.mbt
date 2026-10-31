@@ -35,10 +35,15 @@ fn installed_effect_operation_control_capacity(
   // argument vectors. Add only the coordinate and live stable-slot carriers;
   // retain the former larger view allowance after removing its coordinates.
   // Map buckets/nodes/growth come from their existing collection owner.
+  // Add the actual original-task retention slots: pending constructor, joined
+  // current fence, and pending binding close. Native settlement wrappers use
+  // fewer Promise/closure alternatives than the former then/finally chains;
+  // retain that existing record upper. One cleanup retirement cursor is a
+  // scalar in the same fixed capture/cleanup frame, not another owner.
   guard @shape.collection_construction_extent({
       records: 25L * calls,
-      record_references: 64L * calls,
-      record_words: 12L * calls,
+      record_references: (64L + 3L) * calls,
+      record_words: (12L + 1L) * calls,
       reference_arrays: 3L * calls,
       reference_items: 14L * calls,
       scalar_arrays: 0L,

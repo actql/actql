@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d9b265e8888474601060720f9b718841f057fb89ea2068fbfbd0061ab3549a7",
+      "sha256": "ff822212d6dc687ee813c2ab7ad46a4fc1fcaaf48336bb75ab44d0c65673c081",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [

@@ -46200,7 +46200,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "521af46fa44474c7dd83ca6a0fbd1c350cb0c637dbf2986105c330e05aa2b142",
+      "sha256": "05a1d4960b028ffae320fc287c65ed05515e74edb3119cbc23bb8348eced876d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -46209,7 +46209,7 @@
       "operations": [
         {
           "name": "begin_installed_effect_operation_controls",
-          "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "borrow_installed_effect_operation",
@@ -46217,15 +46217,11 @@
         },
         {
           "name": "borrow_installed_effect_operation_original",
-          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
+          "declaration": "borrow_installed_effect_operation_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , lookup_probes ? : Ref [ Int64 ] ?"
         },
         {
           "name": "charge_installed_effect_operation",
           "declaration": "charge_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
-        },
-        {
-          "name": "ensure_installed_effect_operation_controls",
-          "declaration": "ensure_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_effect_operation_control_capacity",
@@ -46237,7 +46233,7 @@
         },
         {
           "name": "require_installed_effect_operation",
-          "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+          "declaration": "require_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , lookup_probes ? : Ref [ Int64 ] ?"
         },
         {
           "name": "retire_installed_effect_operation",
@@ -46256,7 +46252,6 @@
             "borrow_installed_effect_operation",
             "borrow_installed_effect_operation_original",
             "charge_installed_effect_operation",
-            "ensure_installed_effect_operation_controls",
             "installed_effect_operation_control_capacity",
             "mark_installed_effect_operation_transfer_uncertain",
             "require_installed_effect_operation",
@@ -54153,7 +54148,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "173f38d26bb6f51ac15e0eec07b2b3ea6a94672958b4337349abbf7a5f78ae1c",
+      "sha256": "b25e982e944868d7f3cd4ea39e7beeb42cc33766740b3d87efa50b65c75d05d5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -54221,8 +54216,16 @@
           "declaration": "client_program_installed_effect_operation_demand_with_controls_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent , ] , row_extents : Array [ @ client_local_host . ClientInstalledEffectOperationExtent ] , controls_per_row : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_effect_operation_extent_from_capacity_prepare",
+          "declaration": "client_program_installed_effect_operation_extent_from_capacity_prepare ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_extent_prepare",
           "declaration": "client_program_installed_effect_operation_extent_prepare ( operation : String , retained_bytes : Int64 , execution_bytes : Int64 , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_standard_create_recipe_capacities",
+          "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_node_effect_managed_plan_cleanup",
@@ -54248,7 +54251,9 @@
             "client_program_installed_effect_managed_source_read",
             "client_program_installed_effect_operation_demand_prepare",
             "client_program_installed_effect_operation_demand_with_controls_prepare",
+            "client_program_installed_effect_operation_extent_from_capacity_prepare",
             "client_program_installed_effect_operation_extent_prepare",
+            "client_program_installed_standard_create_recipe_capacities",
             "client_program_node_effect_managed_plan_cleanup"
           ],
           "exports": [],
@@ -54311,6 +54316,89 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
                 "anchor": "test \"standard capture extent resolves same checked zero and three rows before its original member borrow\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_standard_create_recipe.mbt",
+      "sha256": "fd6118eb75f081e28408ded230ae3284607d96fde153bccfbbd7ed83c243d650",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_standard_create_recipe_capacities",
+          "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_standard_create_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_standard_create_recipe.mbt",
+                "anchor": "The actual standard implementation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous immutable implementation DATA only; no cancellation, physical ACK, permission, Run admission or cleanup owner is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"automatic standard recipe retains original body header secret and stored response constructor domains\""
               }
             ]
           }

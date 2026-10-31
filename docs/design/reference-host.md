@@ -1726,6 +1726,34 @@ request callback contexts keep their absent form. Shared read body/projection
 callbacks receive the same independently retained mapped value, never another
 read grant or an input inferred from the physical request body.
 
+An installed standard implementation can supply its original native constructor
+profile to the existing Host recipe composition. The Host combines that opaque
+profile with the selected HTTP declaration, actual Credential codec and secret
+policy, and original Ledger constructor bounds. None of these immutable DATA
+projections issues a grant, samples grant time or substitutes a transfer/disk
+quota for constructor backing. Capture, request construction, physical reads,
+physical write and pre-body controls retain distinct original lifetimes. A
+secret-size check after resolution does not fund the resolver's earlier or
+failed construction; that producer must already have its own actual backing.
+
+A synchronous request constructor returning a native Promise is invalid, but
+its original task stays in the same capture child until settlement. Observation
+uses the captured native Promise method before any replaceable public `then`.
+If even native observation fails, the unjoined original remains pending in
+that child. A foreign thenable cannot supply a retirement acknowledgement by
+calling a supplied callback. The same rule applies to invalid asynchronous
+current fences and binding-close observations; neither an observation error
+nor Promise fulfillment implies a physical close acknowledgement.
+
+Capture failure cleanup has one original child inventory. Its input-pin
+callback runs after that inventory has retired, without recursively draining
+the same children and Source payloads again. Direct successful-route disposal
+still drains them before releasing pins. The retained wrappers' retirement is
+monotonic, so a cleanup cursor can advance past their actual retired prefix;
+pending or newly appended children still block parent release. Each synchronous
+cleanup status projects one observation per owner. A retry's external callbacks
+are followed by a new observation, rather than reusing a previous current state.
+
 The Kintone standard CREATE declaration supplies only its fixed endpoint,
 native proposal/body admission, Form request/correspondence and native response
 classification. It selects the original Mapping resource and captures original

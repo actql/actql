@@ -32,6 +32,34 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 const checked=value=>{if(value.error)throw value.error;return value.ok;};
 const cid=character=>`sha256:${character.repeat(64)}`;
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+
+test('actual capture failure input callback retires only its pins after the shared child drain', async () => {
+  const marker = new Error('stop after original cleanup retention'), children = [];
+  const input = {}, events = [];
+  let releaseInputs, finishCapture, observations = 0;
+  const moon = {clientProgramPinEffectSources: () => ({ok: input}),
+    clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
+  const actual = Function('moon', 'checked', 'limits', 'fail', 'releaseInstalledRowCapture',
+    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, {maxPinnedResults: 1}, fail,
+    releaseInstalledRowCapture);
+  await assert.rejects(actual({ownChildren(original) {
+    original.push({prepared: {status() {observations++; return {pending: false};},
+      release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
+    children.push(...original);
+  }, ownInputs(release, finish) {releaseInputs = release; finishCapture = finish; throw marker;}}),
+  error => error === marker);
+  finishCapture();
+  const control = {
+    publicationPreparedReleaseAction(index, count, inspected, pending, attempted) {
+      return index < 0 ? 'finished' : !inspected ? 'inspect' : pending && !attempted ? 'release' : 'advance';
+    },
+  };
+  const primary = new Error('original capture failure');
+  await assert.rejects(releaseInstalledRowCapture({children, releaseInputs, control}, primary), error => error === primary);
+  assert.deepEqual(events, ['pins']);
+  assert.equal(observations, 3, 'the actual input callback does not run another child cleanup owner');
+});
+
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];

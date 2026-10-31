@@ -25,6 +25,10 @@ const count = value => Number.isSafeInteger(value) && value >= 0;
 // parser below. This is an implementation bound, never a caller allowance.
 export const httpsCredentialResponseHeaderByteLimit = maxHeaderSize;
 
+// The actual bearer-header constructor and its logical backing quote use
+// the same fixed prefix. No credential material is exposed by this DATA.
+export const httpsCredentialAuthorizationPrefix = 'Bearer ';
+
 // Acquisition custody stays in the Credential Owner, not in Connector-visible
 // fields. Scope equality is only identity; each operation still claims and
 // authorizes its own nominal use in the original journal.
@@ -705,7 +709,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       ...Object.fromEntries(headers),
       ...(authenticationForm ? {} : binding?.secretPresentation === 'kintone-api-token'
         ? {'x-cybozu-api-token': secret}
-        : {authorization: `Bearer ${secret}`}),
+        : {authorization: httpsCredentialAuthorizationPrefix + secret}),
       ...(body === undefined ? {} : {
         'content-type': bodyMediaType,
         'content-length': requestBytes,

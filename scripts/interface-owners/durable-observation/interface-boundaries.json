@@ -6371,6 +6371,7 @@
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
+        "httpsCredentialAuthorizationPrefix",
         "httpsCredentialResponseHeaderByteLimit",
         "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
@@ -6984,6 +6985,7 @@
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
             "exchangeHttpsCredentialAuthentication",
+            "httpsCredentialAuthorizationPrefix",
             "httpsCredentialResponseHeaderByteLimit",
             "openHttpsCredentialBinding",
             "prepareHttpsCredentialAuthenticationMaterial"
@@ -8096,7 +8098,7 @@
           }
         }
       ],
-      "sha256": "5cf07d972b46171c239a1f7024e50cf727e8bcc1557f678bf6489bf615a93b70",
+      "sha256": "19f0b1294016fe29a3f4f81f8f06862cecd01bbfeb7cbdd3ae27369cdcfa388e",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

@@ -463,6 +463,8 @@ pub fn installed_source_reader_policy() -> Array[Int]
 
 pub fn installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits)]?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
+pub fn installed_standard_create_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits)]?, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+
 pub fn installed_whole_source_acquisition(ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 
 pub fn installed_whole_source_capture_capacity(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledWholeSourceCapacity?

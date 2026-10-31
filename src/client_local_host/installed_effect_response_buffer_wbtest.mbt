@@ -1,4 +1,100 @@
 ///|
+test "automatic standard recipe retains original body header secret and stored response constructor domains" {
+  let native = @execution.execution_capacity(17L, 23L).unwrap()
+  let wire : @source.ParseLimits = {
+    max_input_bytes: 256,
+    max_nodes: 16,
+    max_depth: 4,
+  }
+  let original = Some([
+    (native, Some(wire), wire),
+    (native, Some(wire), wire),
+    (native, Some(wire), wire),
+    (native, Some(wire), wire),
+  ])
+  let selected = installed_standard_create_recipe_capacities(
+    original, 512, 32, 8, 128, 64, 64, 32, true, 16, 7, 32, 1024, 64, 4, 40L,
+  ).unwrap()
+  assert_eq(selected.length(), 6)
+  let write = prepare_installed_effect_operation_extent(
+    "write",
+    selected[3],
+    193L,
+    true,
+  ).unwrap()
+  assert_true(installed_effect_operation_response_backing_fits(write, 64, 32))
+  let read = prepare_installed_effect_operation_extent(
+    "read",
+    selected[5],
+    97L,
+    true,
+  ).unwrap()
+  assert_true(installed_effect_operation_response_backing_fits(read, 32, 32))
+  let fewer = installed_standard_create_recipe_capacities(
+    original, 512, 32, 8, 128, 64, 64, 32, false, 16, 7, 32, 1024, 64, 4, 40L,
+  ).unwrap()
+  let grant = standard_create_grant_capacity().unwrap()
+  // The fifth before-send read has one original grant/control occurrence,
+  // not a refunded or aliased capture/apply/resume slot.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(selected[4]) -
+    @execution.execution_capacity_retained_bytes(fewer[4]),
+    @execution.execution_capacity_retained_bytes(grant),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected[4]) -
+    @execution.execution_capacity_execution_bytes(fewer[4]),
+    @execution.execution_capacity_execution_bytes(grant),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(selected[4]) >
+    @execution.execution_capacity_retained_bytes(selected[2]),
+  )
+}
+
+///|
+test "automatic standard recipe preserves absent checks and refuses incomplete native or logical constructor bounds" {
+  let native = @execution.execution_capacity(0L, 0L).unwrap()
+  let wire : @source.ParseLimits = {
+    max_input_bytes: 128,
+    max_nodes: 8,
+    max_depth: 3,
+  }
+  let original = Some([(native, None, wire), (native, None, wire)])
+  let plain = installed_standard_create_recipe_capacities(
+    original, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4, 0L,
+  ).unwrap()
+  assert_eq(plain.length(), 5)
+  for
+    (check_request, check_response, before_send) in [
+      (1, 0, false),
+      (0, 1, false),
+      (0, 0, true),
+      (1, 1, false),
+    ] {
+    assert_true(
+      installed_standard_create_recipe_capacities(
+        original, 256, 16, 4, 64, 32, check_request, check_response, before_send,
+        16, 7, 32, 256, 64, 4, 0L,
+      )
+      is Err(Unsupported),
+    )
+  }
+  assert_true(
+    installed_standard_create_recipe_capacities(
+      original, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 0, 256, 64, 4, 0L,
+    )
+    is Err(Unsupported),
+  )
+  assert_true(
+    installed_standard_create_recipe_capacities(
+      original, 256, 16, 4, 64, 32, 0, 0, false, 16, 7, 32, 256, 64, 4, -1L,
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
 test "Effect response buffer backing composes pinned Array growth and retains failed receive window" {
   assert_true(installed_effect_response_buffer_construction_capacity(0) is None)
   assert_true(

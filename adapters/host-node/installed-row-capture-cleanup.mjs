@@ -54,9 +54,22 @@ export async function prepareInstalledRowCaptureChild({children, create,
 // an unsuccessful release remains pending in that owner's retained retry handle.
 export async function releaseInstalledRowCapture({payloads = [], children = [], releaseResults,
   releaseInputs, control}, primary) {
-  const childPending = () => children.some(value =>
-    typeof value?.prepared?.status !== 'function' ||
-    value.prepared.status()?.pending !== false);
+  // Capture children are append-only original handles; their retained wrapper
+  // retires monotonically and cannot reopen. Advance only after that actual
+  // retirement report. Each dependent need not rescan the same retired prefix.
+  let retiredChildren = 0;
+  const childPending = () => {
+    while (retiredChildren < children.length) {
+      const index = retiredChildren, value = children[index];
+      if (typeof value?.prepared?.status !== 'function' ||
+          value.prepared.status()?.pending !== false) return true;
+      if (children[index] !== value) return true;
+      // A status callback may reenter this same drain. Never skip the next
+      // original child by advancing an index already consumed by that call.
+      if (retiredChildren === index) retiredChildren++;
+    }
+    return false;
+  };
   const retain = release => {
     let pending = typeof release === 'function';
     let flight;

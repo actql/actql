@@ -1,4 +1,61 @@
 ///|
+extern "js" fn original_node_http_header_bound() -> Int =
+  #|() => process.getBuiltinModule('node:http').maxHeaderSize
+
+///|
+test "GitHub original native standard recipe supplies distinct request response and pre-body quantities" {
+  let original = installed_standard_create_construction_profile()
+  let http = installed_standard_create_http_limits()
+  let secret = @client_host.installed_source_reader_policy()[0]
+  let header = original_node_http_header_bound()
+  let capacities = @client_host.installed_standard_create_recipe_capacities(
+    original,
+    1000000,
+    100000,
+    64,
+    http[0],
+    http[1],
+    http[0],
+    http[1],
+    false,
+    secret,
+    "Bearer ".length(),
+    header,
+    1000000,
+    64,
+    4,
+    0L,
+  ).unwrap()
+  assert_eq(capacities.length(), 6)
+  let extent = @client_host.prepare_installed_effect_operation_extent(
+    "write",
+    capacities[3],
+    (http[0] + http[1] + 1).to_int64(),
+    true,
+  ).unwrap()
+  assert_true(
+    @client_host.installed_effect_operation_response_backing_fits(
+      extent,
+      http[1],
+      header,
+    ),
+  )
+  // This is an original Native-profile constructor quantity observation,
+  // with zero variable installation-metadata units. It is not a checked Run
+  // quote, admission, ordinary timing, minimum or capacity acceptance target.
+  for index, capacity in capacities {
+    println(
+      "standard-recipe-component[" +
+      index.to_string() +
+      "]=" +
+      @execution.execution_capacity_retained_bytes(capacity).to_string() +
+      "/" +
+      @execution.execution_capacity_execution_bytes(capacity).to_string(),
+    )
+  }
+}
+
+///|
 test "GitHub CREATE native inventory covers both escaped request Strings before HTTP admission" {
   // These values satisfy the ORIGINAL native character/unit bounds. Each SOH
   // becomes six units in the body and seven when that body is exported again.

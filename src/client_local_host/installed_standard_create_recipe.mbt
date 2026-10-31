@@ -1,0 +1,303 @@
+///|
+// Same constructor fold as the other installed domains. These quantities do
+// not admit a Run or supply its permission/current/physical cleanup duties.
+fn standard_create_representation_capacity(
+  retained : @execution.PreparationRepresentationUnits,
+  workspace : @execution.PreparationRepresentationUnits,
+) -> @execution.ExecutionCapacity? {
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+fn standard_create_sum_capacities(
+  values : Array[@execution.ExecutionCapacity],
+) -> @execution.ExecutionCapacity? {
+  let mut total = @execution.execution_capacity(0L, 0L).unwrap()
+  for value in values {
+    guard @execution.add_execution_capacity(total, value) is Some(next) else {
+      return None
+    }
+    total = next
+  }
+  Some(total)
+}
+
+///|
+// The SAME remote Credential owner supplies its actual encoder/decoder and
+// signature domains. No Node copy of its limits or serialized grant schema.
+fn standard_create_grant_capacity() -> @execution.ExecutionCapacity? {
+  let profile = @credential.credential_grant_construction_profile()
+  let limits = profile.grant
+  let b = limits.max_input_bytes.to_int64()
+  let preimage = b + profile.signature_preimage_prefix_units.to_int64()
+  let signature = profile.signature_units.to_int64()
+  guard @encode.text_writer_construction_inventory(
+      limits.max_input_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(writer) &&
+    installed_source_response_workspace(
+      limits.max_input_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(decoded) else {
+    return None
+  }
+  // Original Grant, raw Scope, authorization, purpose and issued-use entry.
+  // Their strings borrow the already retained Site/Run metadata. Co-count a
+  // canonical grant body/signature while the synchronous Journal accepts it.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 5L,
+    reference_slots: 32L,
+    scalar_words: 8L,
+    owned_utf16_units: b + signature + profile.cid_units.to_int64(),
+    owned_wire_bytes: 0L,
+  }
+  // The separately re-admitted Grant/envelope, raw signed envelope, two
+  // native projection/argument vectors and current canonical body coexist
+  // with signature verification and the selected Journal insert. The writer
+  // and indexed decoder are original constructor inventories, not a fee.
+  guard @execution.compose_preparation_representation([
+      decoded,
+      {
+        record_headers: writer.record_headers,
+        reference_slots: writer.reference_slots,
+        scalar_words: writer.scalar_words,
+        owned_utf16_units: writer.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: 9L,
+        reference_slots: 56L,
+        scalar_words: 12L,
+        owned_utf16_units: 3L * b + signature,
+        // Signing and verification preimages plus the base64url signature's
+        // decoded bytes. ceil(3L/4) is a representation bound, not an algorithm.
+        owned_wire_bytes: 2L * preimage + (3L * signature + 3L) / 4L,
+      },
+    ])
+    is Some(workspace) else {
+    return None
+  }
+  standard_create_representation_capacity(retained, workspace)
+}
+
+///|
+// Back the admitted secret retained by the SAME original Credential binding,
+// its physical header String and encoded request-header alternatives. The
+// original resolver still owns construction/failed-prefix backing before its
+// return; this cannot turn a late secret-size check into a producer allowance.
+fn standard_create_secret_capacity(
+  bytes : Int,
+  prefix_units : Int,
+) -> @execution.ExecutionCapacity? {
+  if bytes < 1 || prefix_units < 0 {
+    return None
+  }
+  let s = bytes.to_int64()
+  let p = prefix_units.to_int64()
+  standard_create_representation_capacity(
+    {
+      record_headers: 3L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 3L * s + 2L * p,
+      owned_wire_bytes: 2L * (s + p),
+    },
+    {
+      record_headers: 1L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: s + p,
+    },
+  )
+}
+
+///|
+/// The actual standard implementation's constructor capacities. Inputs are
+/// its original Native codec profile, HTTP declaration, Host codec bounds,
+/// SAME Site secret selection and actual Ledger response policy. They are
+/// not user resource knobs or a substitute for the original checked Plan.
+///
+/// Output order is capture fixed/per-row, request constructor, write body,
+/// pre-body controls and (when selected) the independent read body. The Node
+/// owner attaches operation names/phases; Core supplies row multiplicity once
+/// from the existing completed Plan. No occurrence, attempt or transfer is
+/// issued by this immutable DATA constructor.
+pub fn installed_standard_create_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits),
+  ]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  guard original is Some(entries) &&
+    input_bytes > 0 &&
+    input_nodes > 0 &&
+    input_depth > 0 &&
+    request_bytes > 0 &&
+    response_bytes > 0 &&
+    stored_bytes > 0 &&
+    stored_nodes > 0 &&
+    stored_depth > 0 &&
+    metadata_units >= 0L &&
+    metadata_units <= 2147483647L else {
+    return Err(Unsupported)
+  }
+  let checks = check_request_bytes > 0 && check_response_bytes > 0
+  if (
+      !checks &&
+      (check_request_bytes != 0 || check_response_bytes != 0 || before_send)
+    ) ||
+    (checks && entries.length() != 4) {
+    return Err(Unsupported)
+  }
+  let constructors = match
+    installed_standard_create_constructor_capacities(original) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let write_output = if entries.length() == 4 { 2 } else { 1 }
+  guard installed_json_effect_request_construction_capacity(
+      empty, input_bytes, input_nodes, input_depth,
+    )
+    is Some(capture_rows) &&
+    @source.json_literal_construction_extent(
+      input_bytes, input_nodes, input_depth,
+    )
+    is Some(tree) &&
+    standard_create_representation_capacity(
+      {
+        record_headers: tree.record_headers,
+        reference_slots: tree.reference_slots,
+        scalar_words: tree.scalar_words,
+        owned_utf16_units: tree.owned_utf16_units + metadata_units,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        // Recovery serializes binding, individual rows, joined rows and the
+        // final member wire. Their SAME original total-byte guard bounds each.
+        owned_utf16_units: 4L * input_bytes.to_int64() + 2L * metadata_units,
+        owned_wire_bytes: input_bytes.to_int64(),
+      },
+    )
+    is Some(capture_fixed) &&
+    installed_effect_http_response_construction_capacity(
+      response_bytes, header_bytes,
+    )
+    is Some(write_receive) &&
+    standard_create_secret_capacity(secret_bytes, secret_prefix_units)
+    is Some(secret) &&
+    standard_create_grant_capacity() is Some(grant) &&
+    installed_json_effect_response_construction_capacity(
+      empty, stored_bytes, stored_nodes, stored_depth,
+    )
+    is Some(stored) &&
+    standard_create_representation_capacity(
+      {
+        // The selected SQLite response row owns its Uint8Array and the
+        // existing materializer returns Buffer.from of those SAME bytes.
+        // There is no received HTTP child on this saved-response path.
+        record_headers: 2L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 2L * stored_bytes.to_int64(),
+      },
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    )
+    is Some(stored_buffers) &&
+    standard_create_sum_capacities([
+      write_receive,
+      secret,
+      constructors[write_output],
+    ])
+    is Some(write_body) &&
+    // A stored response read/project need not borrow the write occurrence.
+    // Keep its actual Ledger-bound input and native projector on pre-body
+    // controls rather than inventing another physical write or cleanup ACK.
+    standard_create_sum_capacities([
+      stored,
+      stored_buffers,
+      constructors[write_output],
+    ])
+    is Some(recovery) else {
+    return Err(Unsupported)
+  }
+  let mut controls = recovery
+  // Capture/read, apply/read, optional resume/read and the write have distinct
+  // slots. Preserve the existing declared resume occurrence even when this
+  // process has not restored anything; do not alias it to an earlier call.
+  let grant_occurrences = if checks {
+    if before_send {
+      5
+    } else {
+      4
+    }
+  } else {
+    1
+  }
+  for _ in 0..<grant_occurrences {
+    guard @execution.add_execution_capacity(controls, grant) is Some(next) else {
+      return Err(Unsupported)
+    }
+    controls = next
+  }
+  let capacities = [
+    capture_fixed,
+    capture_rows,
+    constructors[0],
+    write_body,
+    controls,
+  ]
+  if checks {
+    guard installed_effect_http_response_construction_capacity(
+        check_response_bytes, header_bytes,
+      )
+      is Some(read_receive) &&
+      standard_create_sum_capacities([
+        read_receive,
+        secret,
+        constructors[1],
+        constructors[3],
+      ])
+      is Some(read_body) else {
+      return Err(Unsupported)
+    }
+    capacities.push(read_body)
+  }
+  Ok(capacities)
+}

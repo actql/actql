@@ -1,8 +1,61 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledEffectRequestChild}
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild}
   from './installed-effect-plan.mjs';
+import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
+import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
+  from '../site-node/https-credential-resource.mjs';
+
+test('automatic standard recipe forwards original constructor capacities and keeps all physical phases distinct', () => {
+  for (const beforeSend of [false,true]) {
+    const profile={}, capacities=Array.from({length:6},()=>Object.freeze({})), calls=[];
+    const write=Object.freeze({operation:'write',maxRequestBytes:128,maxResponseBytes:64});
+    const check=Object.freeze({operation:'read',resource:'form',maxRequestBytes:32,maxResponseBytes:16,beforeSend});
+    const construction=Object.freeze({write,check,metadataTextUnits:17});
+    const credentialSite=Object.freeze({construction:Object.freeze({
+      scope:Object.freeze({principal:'original',siteGeneration:1}),
+      issuer:Object.freeze({authority:'issuer',keyId:'key'}),
+      limits:Object.freeze({maxBindings:91,maxSecretBytes:23})})});
+    const providerMoon={installedStandardCreateConstructionProfile(){assert.equal(this,providerMoon);calls.push('profile');return profile;}};
+    const extents=[];
+    const moon={
+      clientProgramInstalledStandardCreateRecipeCapacities(...args){
+        assert.equal(this,moon);calls.push('capacities');
+        assert.deepEqual(args,[profile,512,32,8,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
+          httpsCredentialResponseHeaderByteLimit,effectLedgerImplementationBounds.maxResponseBytes,
+          effectLedgerImplementationBounds.maxNodes,effectLedgerImplementationBounds.maxDepth,41n]);
+        return {$tag:1,_0:capacities};
+      },
+      clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){
+        assert.equal(this,moon);assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);
+        const extent={capture:true};extents.push(extent);return {$tag:1,_0:extent};
+      },
+      clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){
+        assert.equal(this,moon);const extent={operation,capacity,transfer,physical};extents.push(extent);return {$tag:1,_0:extent};
+      },
+    };
+    const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,credentialSite,
+      limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},resourceTextUnits:7});
+    assert.deepEqual(calls,['profile','capacities']);
+    assert.equal(recipe.memberOperations.length,1);
+    assert.equal(recipe.rowOperations.length,beforeSend?6:5);
+    assert.strictEqual(recipe.controlsPerRow,capacities[4]);
+    assert.deepEqual(recipe.credentialOperations.map(x=>x.phase),beforeSend
+      ?['capture-check','apply-check','resume-check','write-check','write']
+      :['capture-check','apply-check','resume-check','write']);
+    assert.deepEqual(recipe.credentialOperations.map(x=>x.operationIndex),beforeSend?[1,2,3,4,5]:[1,2,3,4]);
+    assert.equal(recipe.rowOperations[0].extent.physical,false);
+    assert.equal(recipe.rowOperations[0].extent.transfer,0n);
+    for(const entry of recipe.credentialOperations){
+      const extent=recipe.rowOperations[entry.operationIndex].extent;
+      assert.equal(extent.physical,true);
+      assert.equal(extent.transfer,entry.phase==='write'?193n:49n);
+      assert.strictEqual(extent.capacity,entry.phase==='write'?capacities[3]:capacities[5]);
+    }
+    assert.equal(new Set(extents).size,extents.length);
+  }
+});
 
 // These are the actual installed Plan selector's ports. No native capacity,
 // Run, Source I/O or Model permission is issued by these caller regressions.
@@ -207,6 +260,66 @@ test('invalid asynchronous constructor remains borrowed through both original se
     await refused;
     assert.equal(child.retry(), true);
     assert.equal(f.debits(), 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('native constructor task ignores hostile public then until the original capture settles', async () => {
+  const {prepareInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  for (const kind of ['getter', 'method']) {
+    let finish, publicCalls = 0;
+    const original = new Promise(resolve => {finish = resolve;});
+    const hostile = () => {publicCalls++; throw new Error('replaceable then is not original settlement');};
+    Object.defineProperty(original, 'then', kind === 'getter' ? {get: hostile} : {value: hostile});
+    const f = constructorControlFixture(() => original), children = [];
+    const child = prepareInstalledEffectRequestChild(f);
+    const observed = prepareInstalledRowCaptureChild({children, create: () => child})
+      .then(value => ({value}), error => ({error}));
+    try {
+      await new Promise(setImmediate);
+      f.retireAliases();
+      assert.equal(child.release(), false, kind);
+      await children[0].prepared.release();
+      assert.equal(children[0].prepared.status().pending, true);
+      assert.equal(f.settlements(), 0);
+      assert.equal(publicCalls, 0);
+    } finally {finish(); await observed;}
+    assert.equal((await observed).error?.code, 'InstalledEffectConstructorNotSynchronous');
+    await children[0].prepared.retry();
+    assert.equal(children[0].prepared.status().pending, false);
+    assert.equal(f.debits(), 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('unobservable native constructor task keeps original unjoined custody after observation failure', async () => {
+  let finish;
+  const original = new Promise(resolve => {finish = resolve;});
+  const primary = new Error('original Promise species is unavailable');
+  Object.defineProperty(original, 'constructor', {get() {throw primary;}});
+  const f = constructorControlFixture(() => original), child = prepareInstalledEffectRequestChild(f);
+  const observed = Promise.resolve().then(() => child.prepare()).then(value => ({value}), error => ({error}));
+  try {
+    assert.strictEqual((await observed).error, primary);
+    f.retireAliases(); assert.equal(child.release(), false);
+    assert.equal(f.settlements(), 0);
+  } finally {finish(); await observed;}
+  await new Promise(setImmediate);
+  assert.equal(child.retry(), false, 'settlement was not observed by this original child');
+  assert.equal(child.status().pending, true); assert.equal(f.settlements(), 0);
+});
+
+test('foreign constructor thenable cannot manufacture retirement through its method or throwing accessor', () => {
+  for (const kind of ['getter', 'method']) {
+    let calls = 0;
+    const primary = new Error('unknown original task');
+    const original = kind === 'getter' ? {get then() {calls++; throw primary;}}
+      : {then(resolve) {calls++; resolve();}};
+    const f = constructorControlFixture(() => original), child = prepareInstalledEffectRequestChild(f);
+    assert.throws(() => child.prepare(), error => kind === 'getter'
+      ? error === primary : error.code === 'InstalledEffectConstructorNotSynchronous');
+    f.retireAliases();
+    assert.equal(child.release(), false); assert.equal(child.retry(), false);
+    assert.equal(child.status().pending, true); assert.equal(f.settlements(), 0);
+    assert.equal(calls, kind === 'getter' ? 1 : 0);
   }
 });
 

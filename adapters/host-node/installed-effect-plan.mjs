@@ -2,9 +2,12 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit}
+import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix}
   from '../site-node/https-credential-resource.mjs';
+import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
+const NativePromise = Promise;
+const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
 
@@ -34,6 +37,77 @@ export function captureInstalledStandardCreateLimits(providerMoon) {
     limits[names[index]] = field.value;
   }
   return Object.freeze(limits);
+}
+
+// One selected standard implementation recipe from original Native/Host/Site
+// constructor facts. This is a private installing-code path, not user tuning,
+// a new Provider framework, a Run admission or a replacement cleanup owner.
+export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, construction, credentialSite, limits,
+  resourceTextUnits}) {
+  if (construction === undefined || construction.check === null ||
+      credentialSite?.construction === undefined ||
+      !Number.isSafeInteger(resourceTextUnits) || resourceTextUnits < 0) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  const originalMethod = (receiver, name) => {
+    if (receiver === null || !['object','function'].includes(typeof receiver) || nodeTypes.isProxy(receiver)) {
+      fail('InstalledStandardCreateRuntimeUnavailable');
+    }
+    const field = Object.getOwnPropertyDescriptor(receiver, name);
+    if (!field || !Object.hasOwn(field,'value') || typeof field.value !== 'function' ||
+        nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+      fail('InstalledStandardCreateRuntimeUnavailable');
+    }
+    return (...args) => Reflect.apply(field.value, receiver, args);
+  };
+  const profile = originalMethod(providerMoon, 'installedStandardCreateConstructionProfile');
+  const capacitiesFor = originalMethod(moon, 'clientProgramInstalledStandardCreateRecipeCapacities');
+  const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
+  const captureFor = originalMethod(moon, 'clientProgramInstalledEffectCaptureExtentPrepare');
+  const {write, check} = construction;
+  const secret = credentialSite.construction;
+  if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
+    secret.limits?.maxSecretBytes,httpsCredentialResponseHeaderByteLimit,
+    ...(check === undefined ? [] : [check.maxRequestBytes,check.maxResponseBytes])]
+    .every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  // Immutable original metadata only. The issuer itself retains and consumes
+  // these same scope/issuer fields; do not query policy or sample grant time.
+  let units = BigInt(construction.metadataTextUnits) + BigInt(resourceTextUnits);
+  for (const value of Object.values(secret.scope)) if (typeof value === 'string') units += BigInt(value.length);
+  for (const value of Object.values(secret.issuer)) units += BigInt(value.length);
+  const capacities = checked(capacitiesFor(profile(), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+    write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
+    check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
+    httpsCredentialResponseHeaderByteLimit, effectLedgerImplementationBounds.maxResponseBytes,
+    effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxDepth, units));
+  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  const memberOperations = [Object.freeze({operation:write.operation,
+    extent:checked(captureFor(write.operation,capacities[0],capacities[1]))})];
+  const rowOperations = [Object.freeze({operation:write.operation,
+    extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
+  const credentialOperations = [];
+  const physical = (phase, selected, capacity) => {
+    const operationIndex = rowOperations.length;
+    const transfer = BigInt(selected.maxRequestBytes) + httpsCredentialResponseWindowBytes(selected.maxResponseBytes);
+    rowOperations.push(Object.freeze({operation:selected.operation,
+      extent:checked(extentFor(selected.operation,capacity,transfer,true))}));
+    credentialOperations.push(Object.freeze({phase,operationIndex,
+      maxRequestBytes:selected.maxRequestBytes,maxResponseBytes:selected.maxResponseBytes}));
+  };
+  if (check !== undefined) {
+    for (const phase of ['capture-check','apply-check','resume-check']) physical(phase,check,capacities[5]);
+    if (check.beforeSend) physical('write-check',check,capacities[5]);
+  }
+  physical('write',write,capacities[3]);
+  return captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations:Object.freeze(memberOperations),rowOperations:Object.freeze(rowOperations),
+    controlsPerRow:capacities[4],captureConstruction:Object.freeze({operationIndex:0}),
+    requestConstruction:Object.freeze({operationIndex:0}),credentialOperations:Object.freeze(credentialOperations),
+  }), rowOperations.length + memberOperations.length);
 }
 
 // The selected Host supplies original typed extents from its actual implementation
@@ -223,6 +297,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   originalConstruct = undefined;
   let state = 'fresh';
   let preparing = false;
+  let pendingConstructor;
   const drain = () => {
     if (state === 'retired') return true;
     if (preparing || requestsRetired() !== true) return false;
@@ -243,22 +318,35 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
       try {
         current();
         const value = construct();
-        const then = value !== null && (typeof value === 'object' || typeof value === 'function')
-          ? value.then : undefined;
-        if (typeof then === 'function') {
-          // Invalid async work remains joined to the SAME retained child until
-          // settlement. A rejected/fulfilled Promise is still not a sync value.
-          return new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]))
-            .then(() => {fail('InstalledEffectConstructorNotSynchronous');},
-              () => {fail('InstalledEffectConstructorNotSynchronous');})
-            .finally(() => {preparing = false; state = 'failed';});
+        if (nodeTypes.isPromise(value)) {
+          pendingConstructor = value;
+          // Observe the native original before any replaceable public then.
+          // Failed species/constructor observation rejects this wrapper, but
+          // leaves the SAME unjoined task and its body in this child's custody.
+          return new NativePromise((resolve, reject) => {
+            const settled = () => {
+              pendingConstructor = undefined;
+              preparing = false;
+              state = 'failed';
+              reject(Object.assign(new Error('InstalledEffectConstructorNotSynchronous'),
+                {code: 'InstalledEffectConstructorNotSynchronous'}));
+            };
+            Reflect.apply(nativePromiseThen, value, [settled, settled]);
+          });
+        }
+        if (value !== null && (typeof value === 'object' || typeof value === 'function')) {
+          pendingConstructor = value;
+          // A foreign thenable or throwing accessor cannot certify settlement.
+          // Do not start it merely to manufacture an asynchronous cleanup ACK.
+          if (typeof value.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
+          pendingConstructor = undefined;
         }
         current();
         state = 'prepared';
         preparing = false;
         return value;
       } catch (error) {
-        preparing = false;
+        if (pendingConstructor === undefined) preparing = false;
         state = 'failed';
         throw error;
       }
@@ -340,13 +428,21 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   originalRecord();
   let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
   let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
-  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,closeFlight,physicalFlight;
+  let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,fenceFlight,pendingClose,closeFlight,physicalFlight;
   const retainFence=value=>{
-    const then=value!==null&&(typeof value==='object'||typeof value==='function')?value.then:undefined;
-    if(typeof then==='function')pendingFence=new Promise((yes,no)=>Reflect.apply(then,value,[yes,no])).then(()=>undefined,()=>undefined);
+    if(value===null||!['object','function'].includes(typeof value))return;
+    pendingFence=value;
+    if(nodeTypes.isPromise(value)){
+      fenceFlight=new NativePromise(resolve=>{
+        const settled=()=>{pendingFence=undefined;resolve();};
+        try{Reflect.apply(nativePromiseThen,value,[settled,settled]);}
+        catch{resolve();} // Observation failure is not settlement of the retained task.
+      });
+    }else if(typeof value.then!=='function')pendingFence=undefined;
   };
   const check=()=>{
     nativeCurrent();
+    if(pendingFence!==undefined)fail('InvalidInstalledEffectCurrentFence');
     const returned=assertCurrent();
     if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectCurrentFence');}
     const current=Reflect.apply(referenceCurrent,site,[]);
@@ -395,17 +491,22 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     if(state==='retired')return true;
     closing=true;
     if(closeFlight!==undefined)return closeFlight;
-    if(pendingFence!==undefined)return false;
+    if(pendingFence!==undefined||pendingClose!==undefined)return false;
     if(acquisition!==undefined&&!bindingClosed){
       if(closeBinding===undefined)return false;
       const result=Reflect.apply(closeBinding,acquisition,[]);
       if(result==='closed')bindingClosed=true;
       else if(result!=='pending'){
-        const then=result!==null&&(typeof result==='object'||typeof result==='function')?result.then:undefined;
-        if(typeof then!=='function')fail('InvalidInstalledEffectBindingCleanup');
-        closeFlight=new Promise((yes,no)=>Reflect.apply(then,result,[yes,no])).then(()=>false,()=>false)
-          .finally(()=>{closeFlight=undefined;});
-        return closeFlight;
+        if(result!==null&&['object','function'].includes(typeof result))pendingClose=result;
+        if(nodeTypes.isPromise(result)){
+          closeFlight=new NativePromise(resolve=>{
+            const settled=()=>{pendingClose=undefined;closeFlight=undefined;resolve(false);};
+            try{Reflect.apply(nativePromiseThen,result,[settled,settled]);}
+            catch{resolve(false);} // Keep the unjoined original; never infer a close ACK.
+          });
+          return closeFlight;
+        }
+        fail('InvalidInstalledEffectBindingCleanup');
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
@@ -440,7 +541,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }catch(error){primaryFailed=true;state='failed';throw error;}
       finally{
         const observed=physicalFlight===undefined?undefined:await physicalFlight;
-        if(pendingFence!==undefined){await pendingFence;pendingFence=undefined;}
+        if(fenceFlight!==undefined){await fenceFlight;fenceFlight=undefined;}
         preparing=false;
         if(!primaryFailed&&observed?.ok===false){state='failed';throw observed.error;}
       }
