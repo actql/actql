@@ -334,7 +334,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
   }
   async function closeSourceRead(original){
     const retained=reads.get(original);
-    if(retained===undefined)fail('ForeignLocalFilesSourcePreparation');
+    if(retained===undefined||retained.keyed===true||retained.read?.keyed===true)fail('ForeignLocalFilesSourcePreparation');
     if(retained.externalClosed===true)return Object.freeze({pending:false});
     const read=retained.read;
     if(!sharedReads.has(read))fail('ForeignLocalFilesSourcePreparation');
@@ -406,9 +406,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             return Object.freeze({runInvocationCid,dispatchRequestCid});
           },
           async close(){
-            for(const read of sharedReads)if(read.entry===entry)await closeRead(read);
-            for(const run of runs.values())for(const read of run.reads.values())
-              if(read.entry===entry)await closeRead(read);}}),
+            for(const read of sharedReads)if(read.entry===entry)await closeRead(read);}}),
         physicalTarget:(resource,fields)=>({connection:entry.connection,root:entry.rootPath,
           resource,fields:[...fields],scope_cid:entry.scopeCid}),
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
@@ -515,7 +513,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           }
           if(options.resource!=='files'||options.listing===undefined)fail('LocalFilesContentReadUnavailable');
           const retained=reads.get(options.rowRun.originalRead);
-          if(retained===undefined)fail('LocalFilesSourcePreparationMismatch');
+          if(retained?.read===undefined)fail('LocalFilesSourcePreparationMismatch');
           const {run,read}=retained;sameRun(run.prepared);
           if(read.closed||read.attempted||read.entry!==entry)fail('LocalFilesSourcePreparationMismatch');
           const shared=sharedRuns.get(run.prepared)===run;
@@ -590,7 +588,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         },
         async prepare(facts){
           const owner=facts.preparedEffect??facts.preparedProgram;
-          const original=sharedRuns.get(owner)??runs.get(owner);
+          const original=sharedRuns.get(owner);
           if(original===undefined||original.failed) {
             if(original?.failed)throw original.failure;
             fail('LocalFilesManagedReadUnavailable');
