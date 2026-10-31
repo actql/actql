@@ -2453,6 +2453,19 @@ cannot retry, fall through to compatibility Library loading or replace the
 original cleanup custody. Current scope and Account are checked before disclosure
 after the durable issuance boundary.
 
+Explicit `lookup-submission` and `lookup-request` use that same selected
+command Read and adopted Journal, without preparing a Program or acquiring a
+business Run. Reference-file input retains its bounded original Reader. The
+request-ID selector checks its independent current RunRead requirement and
+retains the exact admitted Submission record through response projection;
+it does not discard that record and repeat the clock, row selection or full
+admission. Submit authority remains independently required for the existing
+Submission reply. A retained admission joins only its original Journal Run and
+definition, never current Program files. Missing history remains unresolved,
+not nonacceptance proof or permission to submit again. Original Read, current,
+transaction uncertainty and cleanup failures cannot select a compatibility
+Library or another original.
+
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The
 command-owned mappings and trusted runtime lifetime remain separate. Help,

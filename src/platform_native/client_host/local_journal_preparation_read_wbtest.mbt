@@ -59,6 +59,16 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
     is Err(OriginalResourceScopePending),
   )
   assert_true(
+    capture.lookup_submitted_intent_by_request_id_in_original_read(
+      "principal",
+      "connection",
+      "scope",
+      "sha256:" + "a".repeat(64),
+      0.0,
+    )
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
     capture.authority_scope_cid_in_original_read("principal", "connection")
     is Err(OriginalResourceScopePending),
   )
@@ -124,6 +134,16 @@ fn preparation_read_scope_stop() -> (@sqlite.Library, @crypto.Library) raise {
   )
   assert_true(
     capture.authority_scope_cid_in_original_read("principal", "connection")
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.lookup_submitted_intent_by_request_id_in_original_read(
+      "principal",
+      "connection",
+      "scope",
+      "sha256:" + "a".repeat(64),
+      0.0,
+    )
     is Err(OriginalResourceScopePending),
   )
   assert_true(

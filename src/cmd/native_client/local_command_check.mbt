@@ -136,8 +136,13 @@ fn local_command_preparation_operation_selected(
   operation == "explain" ||
   operation == "adopt" ||
   (
-    operation == "new-submission" &&
-    matches.subcommand is Some(("new-submission", _))
+    matches.subcommand is Some((selected, _)) &&
+    selected == operation &&
+    (
+      selected == "new-submission" ||
+      selected == "lookup-submission" ||
+      selected == "lookup-request"
+    )
   ) ||
   (
     matches.subcommand is Some((selected, child)) &&
@@ -400,6 +405,23 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           )
         } else if operation == "new-submission" {
           local_new_submission_reference(settings, capture, child)
+        } else if operation == "lookup-submission" {
+          local_submission_lookup(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "lookup-request" {
+          local_request_lookup(
+            host,
+            settings,
+            crypto,
+            child,
+            capture=Some(capture),
+          )
         } else if operation == "explain" {
           if optional(child, "run") is Some(_) {
             local_saved_run_explain(

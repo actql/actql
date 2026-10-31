@@ -655,12 +655,19 @@ fn local_submission_lookup(
   crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
-  local_submission_lookup_selected(host, settings, crypto, () => {
-    @local_host.admit_native_client_submission_reference(
-      text_file(input_root, required(child, "submission-ref-file"), 4096L),
-    ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
-  })
+  local_submission_lookup_selected(
+    host,
+    settings,
+    crypto,
+    () => {
+      @local_host.admit_native_client_submission_reference(
+        text_file(input_root, required(child, "submission-ref-file"), 4096L),
+      ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+    },
+    capture~,
+  )
 }
 
 ///|
@@ -669,7 +676,40 @@ fn local_request_lookup(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
+  if capture is Some(original) {
+    let scope = local_host_result(
+      original.authority_scope_cid_in_original_read(
+        settings.principal,
+        settings.connection,
+      ),
+    )
+    let observed = original
+      .lookup_submitted_intent_by_request_id_in_original_read(
+        settings.principal,
+        settings.connection,
+        scope,
+        required(child, "request-id"),
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
+      .unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
+    guard observed is @local_host.Submitted(record) else {
+      stop("LocalRequestHistoryUnavailable")
+    }
+    // The same Owner already checked RunRead and Submit around its one clock
+    // and selected row. Keep that admitted row; do not look it up a second time.
+    return local_submission_lookup_reply(
+      host,
+      settings,
+      crypto,
+      @local_host.native_client_submitted_intent_reference(record),
+      scope,
+      observed,
+      capture~,
+    )
+  }
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
   )
@@ -685,8 +725,7 @@ fn local_request_lookup(
       .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
     reference.unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
   })
-  // The shared lookup advances the clock and reads the journal again. Preserve
-  // the selector's current RunRead requirement through that final read as well.
+  // Independent compatibility entrance retains its original read boundary.
   if !local_run_operation_allowed(host, settings, crypto, scope, "read") {
     stop("LocalRequestReadAuthorizationDenied")
   }
@@ -699,42 +738,101 @@ fn local_submission_lookup_selected(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   select_reference : () -> @local_host.NativeClientSubmissionReference raise ClientStop,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
-  guard host.authorize({
-      principal: settings.principal,
-      connection: settings.connection,
-      resource: "run",
-      operation: "submit",
-    })
-    is Ok(Allow(_)) else {
+  let authorized = match capture {
+    Some(original) =>
+      original.authorize_in_original_read({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation: "submit",
+      })
+    None =>
+      host.authorize({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation: "submit",
+      })
+  }
+  guard authorized is Ok(Allow(_)) else {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let reference = select_reference()
   let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+    match capture {
+      Some(original) =>
+        original.authority_scope_cid_in_original_read(
+          settings.principal,
+          settings.connection,
+        )
+      None =>
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        )
+    },
   )
-  let journal = local_host_result(host.run_journal())
-  let epoch = local_host_result(host.epoch_authority())
-  let observed = journal
-    .lookup_submitted_intent(
-      epoch,
-      reference,
-      scope,
-      true,
-      @env.now().to_double(),
-    )
-    .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
-  // Recheck the same adopted account/configuration after the durable clock and
-  // journal read. No saved reference is a substitute for current authority.
-  guard host.authorize({
-      principal: settings.principal,
-      connection: settings.connection,
-      resource: "run",
-      operation: "submit",
-    })
-    is Ok(Allow(_)) else {
-    stop("LocalSubmissionAuthorizationDenied")
+  let observed = match capture {
+    Some(original) =>
+      original
+      .lookup_submitted_intent_in_original_read(
+        settings.principal,
+        settings.connection,
+        scope,
+        reference,
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
+    None => {
+      let journal = local_host_result(host.run_journal())
+      let epoch = local_host_result(host.epoch_authority())
+      let observed = journal
+        .lookup_submitted_intent(
+          epoch,
+          reference,
+          scope,
+          true,
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
+      guard host.authorize({
+          principal: settings.principal,
+          connection: settings.connection,
+          resource: "run",
+          operation: "submit",
+        })
+        is Ok(Allow(_)) else {
+        stop("LocalSubmissionAuthorizationDenied")
+      }
+      observed
+    }
   }
+  local_submission_lookup_reply(
+    host,
+    settings,
+    crypto,
+    reference,
+    scope,
+    observed,
+    capture~,
+  )
+}
+
+///|
+// Projection of the same checked original. It creates no preparation or Run;
+// a retained Run joins only its original Journal record, never current files.
+fn local_submission_lookup_reply(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  reference : @local_host.NativeClientSubmissionReference,
+  scope : String,
+  observed : @local_host.NativeClientSubmittedIntentLookup,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
+) -> String raise ClientStop {
   let reference_json = @json.parse(
     @local_host.native_client_submission_reference_wire(reference),
   ) catch {
@@ -772,13 +870,31 @@ fn local_submission_lookup_selected(
         Some(admission) => {
           // Resolve the original durable Run rather than rebuilding a reference
           // from current settings or treating admission revision as control.
-          let (_, run) = local_resolve_admitted_run(journal, admission, scope, () => {
-            local_submit_allowed(host, settings, crypto, scope)
-          })
-          let definition = @local_host.native_client_run_definition(run)
-          if !local_submit_allowed(host, settings, crypto, scope) {
-            stop("LocalSubmissionAuthorizationDenied")
+          let run = match capture {
+            Some(original) =>
+              original
+              .lookup_submitted_run_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+                admission,
+              )
+              .unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
+            None => {
+              let journal = local_host_result(host.run_journal())
+              let (_, run) = local_resolve_admitted_run(
+                journal,
+                admission,
+                scope,
+                () => local_submit_allowed(host, settings, crypto, scope),
+              )
+              if !local_submit_allowed(host, settings, crypto, scope) {
+                stop("LocalSubmissionAuthorizationDenied")
+              }
+              run
+            }
           }
+          let definition = @local_host.native_client_run_definition(run)
           fields.set("ref", local_original_run_reference(definition, scope))
           fields.set(
             "controlRevision",

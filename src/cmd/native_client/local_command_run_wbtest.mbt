@@ -1,4 +1,36 @@
 ///|
+test "Original submission lookup selects only its same command Read and no business Run" {
+  for
+    (operation, options) in [
+      ("lookup-submission", ["--submission-ref-file", "original.json"]),
+      ("lookup-request", ["--request-id", "sha256:" + "a".repeat(64)]),
+    ] {
+    let argv = ["--mode", "local", operation]
+    for option in options {
+      argv.push(option)
+    }
+    let parsed = command().parse(argv~)
+    assert_true(local_command_preparation_selected(parsed))
+    assert_true(
+      local_command_preparation_operation_selected(parsed, operation, false),
+    )
+    for foreign in ["new-submission", "cancel", "result"] {
+      assert_false(
+        local_command_preparation_operation_selected(parsed, foreign, true),
+      )
+    }
+    let original = native_storage_finite_arithmetic_profile()
+    let (profile, business) = local_command_profile_selection(original, parsed)
+    assert_true(business is None)
+    assert_eq(profile.control_bytes, original.control_bytes)
+    assert_eq(profile.arena_bytes, original.arena_bytes)
+    argv[1] = "remote"
+    assert_false(local_command_preparation_selected(command().parse(argv~)))
+  }
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "Explicit submission reference selects original preparation without a business Run" {
   let parsed = command().parse(argv=[
     "--mode", "local", "new-submission", "--request-id", "original-control",

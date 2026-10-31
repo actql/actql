@@ -113,6 +113,14 @@ pub fn native_client_submitted_intent(
 }
 
 ///|
+/// The same admitted original, not another parse, epoch or acceptance grant.
+pub fn native_client_submitted_intent_reference(
+  value : NativeClientSubmittedIntentRecord,
+) -> NativeClientSubmissionReference {
+  value.reference
+}
+
+///|
 pub fn native_client_submitted_intent_revision(
   value : NativeClientSubmittedIntentRecord,
 ) -> Int64 {
@@ -243,6 +251,23 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   reads? : NativeClientJournalReadAccess? = None,
   runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[@host.ClientSubmittedJournalEncoding, NativeClientRunJournalIssue] {
+  self
+  .inspect_submitted_intent_row_with_record(row, reads~, runs~)
+  .map(pair => pair.0)
+}
+
+///|
+// Preserve the same already-checked Native projection for original-reference
+// consumers. They must not throw this row away and select/decode it again.
+fn NativeClientRunJournal::inspect_submitted_intent_row_with_record(
+  self : NativeClientRunJournal,
+  row : @host.ClientJournalPhysicalRow,
+  reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
+) -> Result[
+  (@host.ClientSubmittedJournalEncoding, NativeClientSubmittedIntentRecord),
+  NativeClientRunJournalIssue,
+] {
   let original = match @host.decode_client_submitted_journal_row(row.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
@@ -267,7 +292,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  Ok(original)
+  Ok((original, record))
 }
 
 ///|
