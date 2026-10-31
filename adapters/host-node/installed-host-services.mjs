@@ -813,7 +813,34 @@ function gmailThreadImplementationReaderLimits(supplied, columns, profile) {
     maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
     maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
   }),sequence:Object.freeze({operation:'gmail:threads:list',maxUses:original.maxPages,
-    childOperation:'gmail:threads:get',childMaxUses:original.maxThreads})});
+    children:Object.freeze([Object.freeze({operation:'gmail:threads:get',maxUses:original.maxThreads})])})});
+}
+
+// All three existing Slack resources use one selected implementation. The
+// messages protocol's original total exchange/occurrence guards remain in its
+// sequence; users/channels additionally need one separately scoped auth.test.
+function slackImplementationReaderLimits(supplied, columns, profile) {
+  const names = [...installedJsonSourceReaderLimitNames, 'maxDeclarationBytes',
+    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
+  if (profile === undefined || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
+    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
+    supplied[name].value < 1 || supplied[name].value > 2147483647)) fail('InvalidInstalledSlackReaderLimits');
+  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
+  if (original.maxPages === 2147483647 || original.pageSize >= 1000 ||
+      columns > profile.value.maxColumns || original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
+      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
+  const children = entries => Object.freeze(entries.map(([operation,maxUses]) => Object.freeze({operation,maxUses})));
+  const sequence = (operation,maxUses,entries) => Object.freeze({operation,maxUses,children:children(entries)});
+  return Object.freeze({original,limits:Object.freeze({...Object.fromEntries(
+    installedJsonSourceReaderLimitNames.map(name => [name,original[name]])),
+    maxPages:original.maxPages+1,maxSecretBytes:original.maxSecretBytes}),
+    sequences:Object.freeze({
+      users:sequence('slack:users:list',original.maxPages,[['slack:workspace:identity',1]]),
+      channels:sequence('slack:channels:list',original.maxPages,[['slack:workspace:identity',1]]),
+      messages:sequence('slack:messages:history',original.maxPages,[
+        ['slack:workspace:identity',original.maxPages],['slack:channels:list',original.maxPages],
+        ['slack:messages:replies',original.maxPages]]),
+    })});
 }
 
 // Snapshot only the existing required Source service methods. The connector
@@ -846,6 +873,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
+  const slackCapacity = moon.clientProgramInstalledSlackSourceReaderCapacity;
   const current = () => {
     if (Reflect.apply(assertCurrent, receiver, []) !== undefined) fail('InstalledHostServiceCurrentCheckNotSynchronous');
   };
@@ -900,11 +928,15 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
       const profile = sourceProfiles.get(selection);
-      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits;
+      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits, slackLimits;
       if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
           Object.hasOwn(supplied, 'maxThreads')) {
         threadLimits = gmailThreadImplementationReaderLimits(supplied, columns, profile);
         supplied = Object.getOwnPropertyDescriptors(threadLimits.limits);
+      }
+      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'slack') {
+        slackLimits = slackImplementationReaderLimits(supplied, columns, profile);
+        supplied = Object.getOwnPropertyDescriptors(slackLimits.limits);
       }
       if (Object.hasOwn(supplied, 'maxRequestBytes')) {
         // Only the complete original nested grammar has the selected request
@@ -951,17 +983,22 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             threadLimits !== undefined && Object.keys(threadLimits.original).some(function threadSelectionChanged(name) {
               return previous.threadLimits.original[name] !== threadLimits.original[name];
             }) ||
+            (previous.slackLimits === undefined) !== (slackLimits === undefined) ||
+            slackLimits !== undefined && Object.keys(slackLimits.original).some(function slackSelectionChanged(name) {
+              return previous.slackLimits.original[name] !== slackLimits.original[name];
+            }) ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
       if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      const capacity = Reflect.apply(threadLimits === undefined ? sourceCapacity : gmailThreadCapacity, moon,
+      if (slackLimits !== undefined && typeof slackCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
+      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? sourceCapacity : gmailThreadCapacity, moon,
         [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
-          ...(threadLimits === undefined ? [] : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
+          ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined ? [] : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, value}));
       return value;
     },
     createSourceReader(options) {
@@ -985,11 +1022,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // The normal JSON page recipe does not back a retained query/property
       // sequence. Keep this entry refused until that same Source recipe owns
       // constructor, prefix, output and failed-child overlap before use.
-      if (managedSequence && implementation.threadLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
+      if (managedSequence && implementation.threadLimits === undefined && implementation.slackLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
       if (implementation.nestedLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
+      if (implementation.slackLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       if (implementation.threadLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
-      const limits = implementation.value.limits, nested = implementation.nestedLimits, threads = implementation.threadLimits;
+      const limits = implementation.value.limits, nested = implementation.nestedLimits, threads = implementation.threadLimits, slack = implementation.slackLimits;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
@@ -1007,11 +1045,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         constructor.scope.reader = factory;
         constructor.scope.readerDemand = Object.freeze({nested: nested !== undefined,
           ...(threads === undefined ? {} : {sequence:threads.sequence}),
+          ...(slack === undefined ? {} : {sequences:slack.sequences}),
           responses: nested?.responses ?? limits.maxPages, queryPages: limits.maxPages,
           propertyPages: nested?.propertyPages, propertyOccurrences: nested?.propertyOccurrences,
           maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
           maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
-          transferBytes: nested === undefined && threads === undefined || all < prefix ? all : prefix});
+          transferBytes: nested === undefined && threads === undefined && slack === undefined || all < prefix ? all : prefix});
       }
       return factory;
     },

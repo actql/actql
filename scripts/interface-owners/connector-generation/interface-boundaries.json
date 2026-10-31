@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "43f8b3b9bb8c70d15883dde48a4a3e2fa517c9ffc7faa55b069cad8084d64a6a",
+      "sha256": "cdc0d2276cc8c9eea676629d781768f27e295143b1ee96217da75ebfdf74f9a8",
       "exports": [
         "installedConnectors"
       ],
@@ -369,7 +369,7 @@
               },
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
-                "anchor": "path: \"adapters/connectors/slack/host/message-source-reader.mjs\""
+                "anchor": "path: \"adapters/connectors/slack/site/slack-source-read.mjs\""
               }
             ],
             "identity": [

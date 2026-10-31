@@ -317,3 +317,93 @@ pub fn installed_gmail_thread_reader_capacity(
   }
   @execution.add_execution_capacity(json, sequence)
 }
+
+///|
+/// Slack's installed reader retains the original conversation pages and the
+/// Catalog history/reply controls through coalescence, including failed child
+/// prefixes. Compose this selected inventory with the existing JSON/HTTP
+/// recipe; neither amount issues an Account grant or a new Resource owner.
+pub fn installed_slack_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol_pages : Int,
+) -> @execution.ExecutionCapacity? {
+  guard limits.length() == 16 &&
+    columns == 11 &&
+    protocol_pages > 0 &&
+    protocol_pages < 2147483647 &&
+    limits[6] == protocol_pages + 1 &&
+    installed_json_source_reader_capacity(limits, columns, secret_bytes)
+    is Some(json) else {
+    return None
+  }
+  let pages = limits[6].to_int64()
+  let rows = limits[5].to_int64()
+  let fields = columns.to_int64()
+  // The messages caller counts conversation, history AND reply rows against
+  // the same total before retaining them. One history per selected channel,
+  // one reply control per original history row, at most two controls per row.
+  let controls = 2L * rows
+  guard @execution.checked_preparation_add_product(0L, rows, fields)
+    is Some(cells) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      rows,
+      fields + 2L * limits[11].to_int64(),
+    )
+    is Some(values) &&
+    @execution.checked_preparation_add_product(0L, cells, limits[12].to_int64())
+    is Some(value_text) &&
+    @execution.checked_preparation_add_product(
+      value_text,
+      pages,
+      limits[8].to_int64() + 2L * limits[9].to_int64() + 256L,
+    )
+    is Some(text) else {
+    return None
+  }
+  // Sequence frame/closures, captured 39 provider functions, two sets and
+  // original page/id vectors. Per control: the <=20-field Catalog control,
+  // page/comparison limits, pending Option/request and cursor/id maps. Per
+  // page: original response hash/rows/cursor/facts and request associations.
+  // Three row/field reference views cover original, replies and coalescence;
+  // checked values are retained once while all views overlap. The existing
+  // 11-field message schema has two composite cells (reactions/files); the
+  // other cells and both list schemas are scalar, not columns * valueNodes.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 24L + 39L + 12L * controls + 8L * pages + 8L * rows,
+    reference_slots: 70L +
+    39L +
+    60L * controls +
+    24L * pages +
+    20L * rows +
+    3L * cells,
+    scalar_words: 24L + 30L * controls + 12L * pages + 6L * rows,
+    owned_utf16_units: text,
+    owned_wire_bytes: 0L,
+  }
+  // Original request JSON/target, comparison ancestry and coalescence maps
+  // coexist with the received body and the full retained prefix. The existing
+  // JSON recipe already funds its Source parser/NFC and row-wire workspace.
+  let workspace : @execution.PreparationRepresentationUnits = {
+    record_headers: 12L + 3L * rows,
+    reference_slots: 40L + 8L * rows + 3L * cells,
+    scalar_words: 16L + 4L * rows,
+    owned_utf16_units: 6L * (limits[8].to_int64() + 2L * limits[9].to_int64()) +
+    256L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.preparation_execution_capacity({
+      retained,
+      workspace,
+      retained_nodes: values,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(sequence) else {
+    return None
+  }
+  @execution.add_execution_capacity(json, sequence)
+}

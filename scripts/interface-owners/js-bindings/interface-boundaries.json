@@ -74553,7 +74553,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4949285d4dda99ac789b5e542b7cc43bf9bffe57ae627ebfcdca5affe9c65531",
+      "sha256": "d5028a7493822179d7068e75bf7a45117ee4df630768385eaa871eafb5d68ebb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74697,6 +74697,20 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
+          "parameters": [
+            "entry"
+          ],
           "async": false
         },
         {
@@ -76467,7 +76481,9 @@
             "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
-            "createInstalledRowSource/verifyKeyedRead/recheck/recheck"
+            "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected"
           ],
           "exports": [
             "createInstalledRowSource"

@@ -2456,7 +2456,7 @@ export async function createInstalledRowSource({moon, declaration,
       const operation = operationBindings.get(owner.resource);
       const issueGrant = () => site.issueReadGrant({operation,
         decision: granted, resource: owner.resource, runInvocationCid,
-        dispatchRequestCid, maxUses: readerDemand?.sequence?.maxUses ?? limits.maxPages});
+        dispatchRequestCid, maxUses: (readerDemand?.sequences?.[owner.resource] ?? readerDemand?.sequence)?.maxUses ?? limits.maxPages});
       // Preserve a selected driver's original grant/attempt order. The
       // ordinary JSON/listing path keeps its existing post-begin issuance.
       // A local original read has no credential to issue. A managed provider
@@ -2465,7 +2465,7 @@ export async function createInstalledRowSource({moon, declaration,
       const credentialRead = owner.originalRead === undefined ||
         owner.managedRun !== undefined && originalReader !== undefined;
       let grant = credentialRead && grantBeforeBegin ? issueGrant() : undefined;
-      const readChildGrants = new Map();
+      const readChildGrants = new Map(), readChildUses = new Map();
       const readChildOriginals = new WeakMap();
       let readChildIndex = 0, rootReadUses = 0, propertyOccurrences = 0;
       const beginPageLimits = owner.wholeInput ? managedPageLimits ?? pageLimits : pageLimits;
@@ -2507,18 +2507,21 @@ export async function createInstalledRowSource({moon, declaration,
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
         }, authorizeReadChild: async (childOperation,index,occurrence) => {
-          if (readerDemand?.sequence !== undefined) {
-            const sequence = readerDemand.sequence;
-            if (operation !== sequence.operation || !Number.isSafeInteger(index) || index !== readChildIndex ||
+          if (readerDemand?.sequence !== undefined || readerDemand?.sequences !== undefined) {
+            const sequence = readerDemand.sequences?.[owner.resource] ?? readerDemand.sequence;
+            if (sequence === undefined || operation !== sequence.operation || !Number.isSafeInteger(index) || index !== readChildIndex ||
                 index >= readerDemand.responses || occurrence === null || typeof occurrence !== 'object' ||
                 nodeTypes.isProxy(occurrence) || readChildOriginals.has(occurrence)) fail('InvalidInstalledSourceReadChild');
             if (childOperation === sequence.operation) {
               if (rootReadUses >= sequence.maxUses) fail('InstalledSourceQueryUseLimit');
               rootReadUses++;
-            } else if (childOperation === sequence.childOperation) {
-              if (propertyOccurrences >= sequence.childMaxUses) fail('InstalledSourceReadChildUseLimit');
-              propertyOccurrences++;
-            } else fail('InvalidInstalledSourceReadChild');
+            } else {
+              const selected = sequence.children.find(entry => entry.operation === childOperation);
+              if (selected === undefined) fail('InvalidInstalledSourceReadChild');
+              const used = readChildUses.get(childOperation) ?? 0;
+              if (used >= selected.maxUses) fail('InstalledSourceReadChildUseLimit');
+              readChildUses.set(childOperation,used+1);
+            }
             readChildIndex++;
             // Spend the original occurrence before any reentrant current or
             // Site callback. Failure cannot restore a consumed request/use.
@@ -2529,7 +2532,7 @@ export async function createInstalledRowSource({moon, declaration,
             let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
             if (original === undefined) {
               original = site.issueReadGrant({operation:childOperation,decision:childGranted,
-                resource:owner.resource,runInvocationCid,dispatchRequestCid,maxUses:sequence.childMaxUses});
+                resource:owner.resource,runInvocationCid,dispatchRequestCid,maxUses:sequence.children.find(entry => entry.operation === childOperation).maxUses});
               readChildGrants.set(childOperation,original);
             }
             const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`

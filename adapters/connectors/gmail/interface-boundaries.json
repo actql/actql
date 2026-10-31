@@ -1719,7 +1719,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "dispatchRequestCid, maxUses: readerDemand?.sequence?.maxUses ?? limits.maxPages});"
+                "anchor": "dispatchRequestCid, maxUses: (readerDemand?.sequences?.[owner.resource] ?? readerDemand?.sequence)?.maxUses ?? limits.maxPages});"
               }
             ],
             "synchronization": [
@@ -1787,7 +1787,7 @@
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
-                "anchor": "is bounded by min((P + T) × B, L + B)"
+                "anchor": "is bounded by min((P + T) \u00d7 B, L + B)"
               }
             ],
             "extension": [

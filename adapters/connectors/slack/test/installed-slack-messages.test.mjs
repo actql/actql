@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installedSlackMessagesFixture as fixture} from './installed-slack-messages.fixture.mjs';
@@ -23,9 +24,9 @@ test('installed Slack messages uses original messages Account decisions and one 
     assert.equal(new URL(f.state.requests[1].path,f.scope.resourceOrigin).searchParams.get('types'),
       'public_channel,private_channel,mpim,im');
     assert.equal(f.state.resolutions,8);
-    const held=f.common.clientProgramMultiCapturedLedgerUsage(p.ledger);
-    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),held);
+    await opened.close();
+    assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),
+      ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
   }
 });
 

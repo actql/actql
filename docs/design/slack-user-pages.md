@@ -118,7 +118,7 @@ encoding workspace follows the bounded cursor's encoded size before the final
 target ceiling check. Shape/length checks precede set allocation and Unicode
 scanning of the bounded original selection and workspace id.
 
-The reader always reports `cleanupConfirmed: false`: raw observations escape to
+The explicit Credential reader reports `cleanupConfirmed: false`: raw observations escape to
 the result, failure and callbacks. Socket close, a settled Promise, cancellation,
 freezing, dropping a reference or GC cannot acknowledge their retirement. The
 existing trusted custody-transfer/retirement owner must close that responsibility
@@ -138,29 +138,34 @@ certificate are part of the original physical binding. Closed profile and Site
 readers snapshot own data properties without invoking accessors; Unicode is
 neither normalized nor used to infer a workspace identifier.
 
-The adapter borrows the original acquisition, RowRun and declared reader
-capacity after Common begins the same session. Its synchronous factory performs
-no I/O. It captures each provider, Site and Host callback with its original
-receiver, then admits one read only. Before network work it rechecks the
-original current Account decision. The same Site issues a separate workspace
-identity grant for the original invocation; the users grant is never retargeted.
-The exact identity response consumes its original observation charge, while
-each data page consumes its own ticket in that same RowRun. The aggregate raw
-byte ceiling must fit the generic Source's declared finite transfer budget;
-this consistency check does not issue a capacity reservation or permission.
+The installed loader uses the same Source initialization and Host services as
+other installed readers. It retains its selected complete limits and asks Core
+for `installed_slack_source_reader_capacity` before constructing a read. This
+composes the existing JSON response/parser/NFC/row recipe with the actual
+conversation pages, original history/reply controls, checked scalar/composite
+values, coalescence, request and failed-child overlap. The original checked
+acquisition admits that declaration on its same parent before callbacks; the
+quote itself grants neither backing nor permission. Public profile numbers
+cannot substitute an original capacity, and no external readerCapacity port or
+standalone reader factory remains in the normal loader.
 
-The wrapper retains the actual reader before method capture or awaits, along
-with its original binding, separate grants, read/stop Promises, provider and
-callback receivers, signal graph and error/result aliases. The configuration,
-workspace and TLS original bytes, decoded declaration, request/target wires,
-canonical binding hash workspace and those reader holdings overlap. A current
-failure or stop closes the transport without preparing another reader or
-replaying a request. Escaped observations still keep cleanup unconfirmed, and
-the existing recovery Owner retains the same Run and reservation on failure.
-Site close, Promise settlement and weak-reference collection do not retire
-those aliases. Missing original reader capacity remains unavailable at the
-normal Host entrance; neither profile bounds nor startup-only capacity fills
-that independent supplier responsibility.
+The service captures each provider and Host method with its original receiver.
+The actual Source owner spends each physical request occurrence before awaiting
+currentness, retains the original authorization and issues a separate grant for
+each declared operation. In particular auth.test checks the exact selected
+workspace on the same retained token; its observation never grants users,
+channels, history or replies. Each previous response charge is consumed before
+constructing the next original request. Queries still admit complete declared
+rows, including omitted and later-filtered fields.
+
+The managed reader retains its actual protocol before read awaits, and keeps
+pending or invalid-async borrowers through settlement. Its existing retirement
+joins protocol closure, response aliases, Resource child and original Credential
+binding retirement. Only this same acknowledged cleanup releases live parent
+holdings; it does not refund consumed attempts or erase durable Journal Unknown.
+A completed row, closed protocol, socket close, settled Promise or process exit
+alone remains insufficient. The explicit low-level Credential profiles retain
+their separate escaped-response custody law.
 
 ## Channels Source
 
@@ -186,15 +191,12 @@ workspace-identity grant on the original token. Account/current/abort checks
 remain per original read. The plural Source binding identifies a new installed
 generation; no saved Run or predecessor publication is rewritten.
 
-Channel response bytes, parse/decode trees, exact numeric-token text, normalized
-integer/UTC text, checked values and rows-wire workspace overlap. The page,
-identifier/cursor sets, original callbacks, reader failures, returned responses
-and escaped aliases remain retained. The installation also retains its two
-reader factories, acquisition memberships and declaration callbacks. Declared
-bounds are not a Resource supplier. Missing normal reader capacity refuses;
-transport closure, Journal success and GC never establish raw retirement or
-return the original reservation. Cleanup remains unconfirmed until its actual
-owner can prove those duties complete.
+Channel response bytes, parse/decode trees, exact numeric-token text,
+checked values and rows-wire workspace overlap with the original response and
+identifier/cursor sets. The installed shared reader owns this selected prefix
+on the same Source parent and joins its actual retirement duties. The separate
+explicit Credential reader still retains any escaped response/failure aliases;
+its protocol observer alone does not acknowledge physical cleanup.
 
 ## Original Command request encoding
 
@@ -550,7 +552,7 @@ identity, history and replies, each bound to that same messages acquisition,
 Run invocation and dispatch. Current Account/Site checks remain before work
 and across awaits; each use has its own original identifier.
 
-The physical factory captures provider/Site/Host methods and receivers once.
+The managed Source sequence captures provider/Host methods and receivers once.
 It realizes a broad conversation request with all four kinds, admits the whole
 returned known record set, and selects each actual page/index for history.
 Replies are read from original history rows; Common coalesces those completed
@@ -574,17 +576,23 @@ For messages, the supplied page ceiling bounds total authorized exchanges,
 including workspace observations, across the acquisition. Total response bytes
 and observed row occurrences are bounded across all child readers, in addition
 to the existing per-response limits. Coalescence uses bounded comparison,
-occurrence, work and encoding controls; these controls and the supplied provider
-capacity are not proof of normal physical funding. Exhaustion retains the
+occurrence, work and encoding controls; these controls and the selected capacity
+quote do not themselves perform the same-parent admission. Exhaustion retains the
 original pending/partial custody rather than retrying or increasing a limit.
 
-The factory retains its acquisition key, RowRun/Host callbacks, provider and
-Site callbacks/receivers, credential binding, per-operation grants, child
-handles and captured read/stop/observe methods, channel page tokens, history
-and reply selections, coalesced outputs, signals, pending charge and failure
-references. Those overlap raw response bodies, cursor and decoder workspace,
-checked contracts, equality state and canonical row encoding/copying in the
-existing Host receiver. Closing transport does not retire escaped aliases or
-return the original reservation. The observer remains `cleanupConfirmed:false`
-without a separate physical retirement supplier. Normal installation funding,
-live Slack and complete public workflow acceptance are separate qualifications.
+The shared reader retains original RowRun/Host callbacks, provider and Site
+receivers, credential binding, separate operation grants, pending Resource
+child, actual channel pages, original history/reply controls and coalesced
+outputs. Core's selected recipe bounds their simultaneous scalar/composite
+holdings and request/comparison workspace, alongside the existing JSON and
+failed-response recipe. Messages retains its original global maxPages ceiling
+across identity, conversation, history and reply exchanges. Users/channels add
+one identity exchange to their separate data-page bound. These are protocol
+occurrences, not new user tuning dimensions or permission from DATA.
+
+Retirement waits for any actual in-flight reader or invalid asynchronous
+projection, closes each original Catalog control, and severs its own aliases
+before the shared Resource/Credential owner can acknowledge release. No failed
+prefix is retried, completed partially or promoted from physical cleanup to
+business success. Live Slack and full public workflow acceptance remain
+separate qualifications from this Source connection.

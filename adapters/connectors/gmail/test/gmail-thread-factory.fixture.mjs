@@ -96,14 +96,13 @@ export async function threadFactoryFixture(t,{account='allow'}={}){
     const grant=capturedSite.issueReadGrant({operation:GMAIL_THREAD_LIST_OPERATION,decision,resource:'threads',
       runInvocationCid:rowRun.runInvocationCid,dispatchRequestCid:rowRun.dispatchRequestCid,maxUses:threadReadLimits.maxPages});
     const ports={readerDemand:{responses:threadReadLimits.maxPages+threadReadLimits.maxThreads,sequence:{
-      operation:GMAIL_THREAD_LIST_OPERATION,maxUses:threadReadLimits.maxPages,childOperation:'gmail:threads:get',
-      childMaxUses:threadReadLimits.maxThreads}},operation:GMAIL_THREAD_LIST_OPERATION,nodeTypes,currentRead,
+      operation:GMAIL_THREAD_LIST_OPERATION,maxUses:threadReadLimits.maxPages,children:[{operation:'gmail:threads:get',maxUses:threadReadLimits.maxThreads}]}},operation:GMAIL_THREAD_LIST_OPERATION,nodeTypes,currentRead,
       fail:code=>{throw Object.assign(new Error(code),{code});},prepared:{},access:{},signal:options.signal,
       owner:{resource:options.resource},site:capturedSite,
       runInvocationCid:rowRun.runInvocationCid,dispatchRequestCid:rowRun.dispatchRequestCid,grant,directReadIdentity:undefined,
       nonce:rowRun.requestId,text:value=>typeof value==='string'&&value.length>0};
     const actual=Function(...Object.keys(ports),'let readChildIndex=0,rootReadUses=0,propertyOccurrences=0;'+
-      'const readChildOriginals=new WeakMap(),readChildGrants=new Map();return {'+
+      'const readChildOriginals=new WeakMap(),readChildGrants=new Map(),readChildUses=new Map();return {'+
       'authorizationFor:'+callbacks.authorizationFor+',authorizeReadChild:'+callbacks.authorizeReadChild+'};')(...Object.values(ports));
     const readerOptions={resource:options.resource,columns:options.columns,signal:options.signal,originalAuthorization:grant,
       verifyRead:currentRead,...actual,

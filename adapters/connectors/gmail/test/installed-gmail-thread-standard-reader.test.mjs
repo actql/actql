@@ -125,13 +125,13 @@ test('actual RowRun child admission spends each original before current reentry 
   const site={issueReadGrant(input){assert.equal(this,site);assert.equal(input.decision,decision);
     assert.equal(input.operation,'gmail:threads:get');assert.equal(input.maxUses,3);events.push('grant');return child;}};
   const ports={readerDemand:{responses:5,sequence:{operation:'gmail:threads:list',maxUses:2,
-    childOperation:'gmail:threads:get',childMaxUses:3}},operation:'gmail:threads:list',nodeTypes,
+    children:[{operation:'gmail:threads:get',maxUses:3}]}},operation:'gmail:threads:list',nodeTypes,
     fail:code=>{throw Object.assign(new Error(code),{code});},
     currentRead:async()=>{events.push('current');await reenter?.();return decision;},
     prepared:{},access:{},signal:undefined,owner:{},site,runInvocationCid:'run',dispatchRequestCid:'dispatch',grant,
     directReadIdentity:undefined,nonce:'request',text:value=>typeof value==='string'&&value.length>0};
   authorize=Function(...Object.keys(ports),'let readChildIndex=0,rootReadUses=0,propertyOccurrences=0;'+
-    'const readChildOriginals=new WeakMap(),readChildGrants=new Map();return '+arrow+';')(...Object.values(ports));
+    'const readChildOriginals=new WeakMap(),readChildGrants=new Map(),readChildUses=new Map();return '+arrow+';')(...Object.values(ports));
   const list={};assert.equal((await authorize('gmail:threads:list',0,list)).originalAuthorization,grant);
   const get={};reenter=async()=>{
     reenter=undefined;await assert.rejects(authorize('gmail:threads:get',1,get),{code:'InvalidInstalledSourceReadChild'});

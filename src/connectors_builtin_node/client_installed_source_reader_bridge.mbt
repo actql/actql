@@ -42,3 +42,16 @@ pub fn client_program_installed_gmail_thread_reader_capacity(
     limits, columns, secret_bytes, list_pages, mailbox_bytes,
   )
 }
+
+///|
+#export_name("clientProgramInstalledSlackSourceReaderCapacity")
+pub fn client_program_installed_slack_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol_pages : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_slack_source_reader_capacity(
+    limits, columns, secret_bytes, protocol_pages,
+  )
+}

@@ -9442,7 +9442,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "4949285d4dda99ac789b5e542b7cc43bf9bffe57ae627ebfcdca5affe9c65531",
+      "sha256": "d5028a7493822179d7068e75bf7a45117ee4df630768385eaa871eafb5d68ebb",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -9573,6 +9573,20 @@
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
+          "parameters": [
+            "entry"
+          ],
           "async": false
         },
         {
@@ -11170,7 +11184,9 @@
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected"
           ],
           "exports": [
             "createInstalledRowSource",

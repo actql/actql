@@ -55434,6 +55434,216 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/installed_source_reader_capacity.mbt",
+      "sha256": "98c5f0b373397a5f7b042e1074ed89fcbd9562fe60c560e82939bdd2c5cbe08f",
+      "operations": [
+        {
+          "name": "installed_gmail_thread_reader_capacity",
+          "declaration": "installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_source_reader_capacity",
+          "declaration": "installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_slack_source_reader_capacity",
+          "declaration": "installed_slack_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , protocol_pages : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_source_reader_policy",
+          "declaration": "installed_source_reader_policy ( ) - > Array [ Int ]"
+        },
+        {
+          "name": "installed_source_response_workspace",
+          "declaration": "installed_source_response_workspace ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Core Source reader representation and original parent admission owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_gmail_thread_reader_capacity",
+            "installed_json_source_reader_capacity",
+            "installed_slack_source_reader_capacity",
+            "installed_source_reader_policy",
+            "installed_source_response_workspace"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "export function prepareSlackSourceReadSequence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/slack/catalog/message_history.mbt",
+                "anchor": "pub fn prepare_slack_message_history_from_channel("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "if(pending)return false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "No failed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Retirement waits for any actual in-flight reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_slack_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "occurrences, not new user tuning dimensions"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
+                "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+      "sha256": "4593df941a5c737f7393d7e7c3f2def6d4314ced68e8f608abec7fa2b7e161ff",
+      "operations": [
+        {
+          "name": "client_program_installed_gmail_thread_reader_capacity",
+          "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_capacity",
+          "declaration": "client_program_installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_profile",
+          "declaration": "client_program_installed_json_source_reader_profile ( metadata_responses : Int , origin_units : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_installed_slack_source_reader_capacity",
+          "declaration": "client_program_installed_slack_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , protocol_pages : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_source_reader_policy",
+          "declaration": "client_program_installed_source_reader_policy ( ) - > Array [ Int ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Core Source reader representation and original parent admission owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_gmail_thread_reader_capacity",
+            "client_program_installed_json_source_reader_capacity",
+            "client_program_installed_json_source_reader_profile",
+            "client_program_installed_slack_source_reader_capacity",
+            "client_program_installed_source_reader_policy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "export function prepareSlackSourceReadSequence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/slack/catalog/message_history.mbt",
+                "anchor": "pub fn prepare_slack_message_history_from_channel("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "if(pending)return false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "No failed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Retirement waits for any actual in-flight reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_slack_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "occurrences, not new user tuning dimensions"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
+                "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
