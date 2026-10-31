@@ -461,8 +461,10 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
   // Actual entire installer and shared Site helper; only initial constructor
   // and Site service ports are explicit. No native Common, grant or I/O Site.
   await assert.rejects(loadInstalledGitHubEffect(profile, {root: '/UNOPENED/root', principalId: 'authored',
-    moon: {}, providerMoon: {}, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
+    moon: {}, providerMoon: {installedStandardCreateHttpLimits() {
+      events.push('native-http-limits');return [300000, 100000, 10000, 32];
+    }}, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
     ledgerRoot: '/UNOPENED/ledger', installation, installationServices: services,
     sourceInitialization: initialization, configurationReader: reader}), cause => cause === stop);
-  assert.deepEqual(events, ['site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
+  assert.deepEqual(events, ['native-http-limits', 'site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
 });
