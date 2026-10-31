@@ -196,6 +196,66 @@ test "Effect operation constructor fences same-parent reentry before current cal
 }
 
 ///|
+test "one Effect operation borrow observes original current once for Plan and Ledger" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls : Ref[Int] = Ref(0)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let before = calls.val
+  let operation = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  assert_eq(calls.val - before, 1)
+  retire_installed_effect_operation(operation, true).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "atomic Effect borrow refuses callback retirement before any operation reservation" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let invalidate : Ref[Bool] = Ref(false)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => {
+      if invalidate.val && selected.val is Some(owner) {
+        owner.ledger = None
+      }
+    },
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  selected.val = Some(owner)
+  let ledger = owner.ledger.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  invalidate.val = true
+  assert_true(
+    borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, true, 2, 0, "operation",
+    )
+    is Err(Retired),
+  )
+  assert_true(owner.effect_operations.is_empty())
+  assert_eq(@resources.ledger_usage(ledger), before)
+  // The whitebox callback invalidated only this original owner's local link.
+  // Restore that same link solely to discharge the fixture's cleanup duties.
+  invalidate.val = false
+  owner.ledger = Some(ledger)
+  retire_installed_managed_run(owner).unwrap()
+  selected.val = None
+}
+
+///|
 extern "js" fn effect_plan_node_original(
   loader : PublicationTestLoader,
   prepared : @publication_host.PreparedClientEffectComputation,

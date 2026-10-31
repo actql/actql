@@ -273,6 +273,23 @@ pub fn installed_effect_managed_operation_plan(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  require_installed_effect_operation_plan(value, prepared, request).map(pair => {
+    pair.0
+  })
+}
+
+///|
+// One synchronous original-current boundary supplies both retained DATA and
+// its Ledger. The existing require call checks the same original preparation
+// again after its callback; this pair never escapes as a reusable proof.
+fn require_installed_effect_operation_plan(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  (ClientInstalledEffectManagedPlan, @resources.Ledger),
+  ClientInstalledManagedRunIssue,
+] {
   guard value.preparation is Some(PlannedEffectManaged(_, plan)) else {
     return Err(Unsupported)
   }
@@ -280,7 +297,7 @@ pub fn installed_effect_managed_operation_plan(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  require_installed_managed_run(value).map(_ => plan)
+  require_installed_managed_run(value).map(ledger => (plan, ledger))
 }
 
 ///|

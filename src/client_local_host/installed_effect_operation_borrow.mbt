@@ -144,9 +144,9 @@ fn borrow_installed_effect_operation_original(
   ClientInstalledEffectOperationBorrow,
   ClientInstalledManagedRunIssue,
 ] {
-  let plan = match
-    installed_effect_managed_operation_plan(owner, prepared, request) {
-    Ok(plan) => plan
+  let (plan, ledger) = match
+    require_installed_effect_operation_plan(owner, prepared, request) {
+    Ok(original) => original
     Err(issue) => return Err(issue)
   }
   if !physical_equal(plan, expected_plan) ||
@@ -168,10 +168,6 @@ fn borrow_installed_effect_operation_original(
       prior.row_index == row_index {
       return Err(AlreadyBound)
     }
-  }
-  let ledger = match require_installed_managed_run(owner) {
-    Ok(ledger) => ledger
-    Err(issue) => return Err(issue)
   }
   let retained = @execution.execution_capacity_retained_bytes(extent.capacity)
   let execution = @execution.execution_capacity_execution_bytes(extent.capacity)
