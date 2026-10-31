@@ -1766,6 +1766,16 @@ physical write and pre-body controls retain distinct original lifetimes. A
 secret-size check after resolution does not fund the resolver's earlier or
 failed construction; that producer must already have its own actual backing.
 
+Managed Sheets initialization captures the original configuration methods
+before its first awaited read. Its CA remains the exact original byte object
+from the initializer's observed-FD reader, without text conversion or a secret
+byte ceiling. The same context prepares the authored declaration and Mappings;
+the returned Environment and complete immutable Mapping array pass unchanged
+through the original Site service into the common Effect constructor. Missing
+initialized readers or constructors refuse rather than select raw-file,
+standalone declaration or another Environment preparation. Physical publication
+and unfinished reader/constructor migrations keep their separate obligations.
+
 The Sheets append constructor uses the same closed literal document/cell
 builders as its actual mapper. Its immutable schema and the original Host input
 bound select native parser/index, scalar arrays, supplied-width closed-object

@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "ebb71f6fc0e04b841d917288fd90add2a5e73a134613fc7185a00b8d0e0bd91d",
+    "sha256": "36c5e129c4fb1618fb48f77696e1d07bdd6f47b363ef58fc54834796e1a211fb",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -204,6 +204,11 @@
         "async": false
       },
       {
+        "name": "load/readers/readers",
+        "parameters": [],
+        "async": false
+      },
+      {
         "name": "loadInstalledSheetsEffect/loadInstalledSheetsEffect",
         "parameters": [
           "profile",
@@ -225,7 +230,15 @@
           "moon",
           "profile",
           "site",
-          "declaration"
+          "declaration",
+          "sourceInitialization"
+        ],
+        "async": false
+      },
+      {
+        "name": "mappingOf/sources/sources",
+        "parameters": [
+          "source"
         ],
         "async": false
       },
@@ -313,7 +326,8 @@
       {
         "name": "readJson",
         "parameters": [
-          "path"
+          "path",
+          "originalRead"
         ],
         "async": true
       },
@@ -322,7 +336,8 @@
         "parameters": [
           "profile",
           "site",
-          "declared"
+          "declared",
+          "originalRead"
         ],
         "async": true
       },
@@ -330,7 +345,8 @@
         "name": "readSite",
         "parameters": [
           "path",
-          "providerMoon"
+          "providerMoon",
+          "configurationReader"
         ],
         "async": true
       },
@@ -339,6 +355,11 @@
         "parameters": [
           "column"
         ],
+        "async": false
+      },
+      {
+        "name": "readSite/readers/readers",
+        "parameters": [],
         "async": false
       },
       {
@@ -355,7 +376,8 @@
           "providerMoon",
           "profile",
           "site",
-          "expectedCatalogCid"
+          "expectedCatalogCid",
+          "sourceInitialization"
         ],
         "async": false
       },
@@ -391,6 +413,7 @@
       "../../../host-node/installed-row-effect.mjs",
       "../../../host-node/installed-row-source.mjs",
       "../../../host-node/local-account-config.mjs",
+      "../../../host-node/source-profile-json.mjs",
       "../site/sheets-exchange.mjs",
       "./sheets-clear-command.mjs",
       "./sheets-range-command.mjs",
@@ -432,7 +455,9 @@
           "text/text",
           "bindSheetsAppendConstructionProfile",
           "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
-          "readSite/columns/columns"
+          "readSite/columns/columns",
+          "mappingOf/sources/sources",
+          "readSite/readers/readers"
         ],
         "exports": [
           "SHEETS_EFFECT_VERSION",
@@ -582,7 +607,8 @@
           "publishInstalledSheetsEffect/publishInstalledSheetsEffect",
           "publishInstalledSheetsSource/publishInstalledSheetsSource",
           "load/init:body/init:body",
-          "load/init:project/init:project"
+          "load/init:project/init:project",
+          "load/readers/readers"
         ],
         "exports": [
           "loadInstalledSheetsEffect",
@@ -705,6 +731,10 @@
             {
               "path": "adapters/host-node/installed-row-write.test.mjs",
               "anchor": "Effect Site uses the same Host factory and provider binding"
+            },
+            {
+              "path": "adapters/host-node/installed-row-write.test.mjs",
+              "anchor": "test('actual Sheets initial caller keeps original configuration declaration Mapping and Site owner through installation'"
             }
           ]
         }

@@ -910,3 +910,34 @@ test('actual Sheets initial CA reader is captured before await and preserves the
   assert.equal(typeof complete,'function');complete();
   const selected=await pending;assert.equal(selected.ca,ca);assert.equal(reads,1);
 });
+
+test('Sheets initialized loading refuses missing original reader before a legacy producer', async () => {
+  const load=selectedSheetsInitialization({
+    fail:code=>{throw Object.assign(new Error(code),{code});},
+    readFile(){assert.fail('Missing initialized reader cannot select raw files');}});
+  await assert.rejects(load({}, {sourceInitialization:{}}, true),
+    {code:'InstalledSheetsConfigurationReaderUnavailable'});
+});
+
+test('Sheets original declaration method refuses missing inherited or accessor substitutions without invoking them', () => {
+  const site=initializedSheetsSite(),profile={connectorId:'sheet'};
+  const restore=selectedSheetsInitialization({registration:'sheets',revision:'sheets/0.1',checked,
+    fail:code=>{throw Object.assign(new Error(code),{code});}},'restore');
+  let getters=0,legacy=0;
+  const accessor=Object.defineProperty({},'prepareAuthoredDeclaration',{get(){getters++;return ()=>{};}});
+  for(const foreign of [{},accessor,Object.create({prepareAuthoredDeclaration(){assert.fail('Inherited constructor');}})]) {
+    assert.throws(()=>restore({clientProgramRowSourceRestoreDeclaration(){legacy++;}}, {},profile,site,undefined,foreign),
+      {code:'InstalledSheetsInitializationUnavailable'});
+  }
+  assert.equal(getters,0);assert.equal(legacy,0);
+});
+
+test('Sheets original Mapping constructor preserves thrown undefined without another Mapping or Site', () => {
+  const mappingOf=selectedSheetsInitialization({SHEETS_APPEND_OPERATION,
+    fail:code=>{throw Object.assign(new Error(code),{code});},rowSourceMapping(){assert.fail('No legacy fallback');}},'mappingOf');
+  const original={prepareMappings(wire,writes){assert.equal(this,original);throw undefined;}};
+  let caught=false,failure;
+  try {mappingOf({}, {sources:[{target:'name',field:'name',null_behavior:'reject'}]},
+    initializedSheetsSite(),{},original);}catch(error){caught=true;failure=error;}
+  assert.equal(caught,true);assert.equal(failure,undefined);
+});

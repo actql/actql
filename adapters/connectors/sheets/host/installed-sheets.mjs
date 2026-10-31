@@ -5,6 +5,7 @@ import {types as nodeTypes} from 'node:util';
 import {mkdir, readFile, rename, rm, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {canonicalJson, contentCid} from '../../../host-node/local-account-config.mjs';
@@ -58,13 +59,19 @@ function checkProfile(profile, effect) {
 export const checkInstalledSheetsSourceProfile = profile => checkProfile(profile, false);
 export const checkInstalledSheetsEffectProfile = profile => checkProfile(profile, true);
 
-async function readJson(path) {
+async function readJson(path, originalRead) {
+  if (originalRead !== undefined) return originalRead(path, {maxBytes: 1_048_576});
   const bytes = await readFile(path);
   if (bytes.length > 1_048_576) fail('SheetsConfigurationLimit');
   return JSON.parse(bytes.toString('utf8'));
 }
-async function readSite(path, providerMoon) {
-  const {version, caPath, ...site} = await readJson(path);
+async function readSite(path, providerMoon, configurationReader) {
+  // Select original methods before the first awaited read, including the
+  // exact-byte CA reader. A mutable adapter cannot swap it after Site input.
+  const readers = configurationReader === undefined ? undefined
+    : captureConfigurationReaders(configurationReader, undefined,
+      () => fail('InstalledSheetsConfigurationReaderUnavailable'));
+  const {version, caPath, ...site} = await readJson(path, readers?.readJson);
   let origin;
   try { origin = new URL(site.apiOrigin); } catch { /* Refused below. */ }
   if (version !== SHEETS_SITE_VERSION || !exact(site, siteKeys) ||
@@ -83,10 +90,14 @@ async function readSite(path, providerMoon) {
   // The MoonBit codec checks the declared scalar schema and rectangular bound.
   checkSheetsGridConfiguration(providerMoon, site.columns, site.gridRange);
   const columns = Object.freeze(site.columns.map(column => Object.freeze({...column})));
-  return Object.freeze({...site, columns, ca: caPath === undefined ? undefined : await readFile(caPath)});
+  if (caPath !== undefined && readers !== undefined && readers.readOriginalBytes === undefined) {
+    fail('InstalledSheetsConfigurationReaderUnavailable');
+  }
+  return Object.freeze({...site, columns, ca: caPath === undefined ? undefined
+    : await (readers === undefined ? readFile(caPath) : readers.readOriginalBytes(caPath))});
 }
 
-function restore(moon, providerMoon, profile, site, expectedCatalogCid) {
+function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceInitialization) {
   if (profile.rangeCommand) {
     const schema = Object.fromEntries(site.columns.map(({name, type, nullable}) =>
       [name, {type, nullable}]));
@@ -108,18 +119,34 @@ function restore(moon, providerMoon, profile, site, expectedCatalogCid) {
   }
   const views = JSON.stringify({views: [{resource: 'rows', resource_kind: 'sheet_rows',
     fields: site.columns}]});
+  if (sourceInitialization !== undefined) {
+    const constructor = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');
+    if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
+      fail('InstalledSheetsInitializationUnavailable');
+    }
+    return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]);
+  }
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
     profile.connectorId, registration, revision, views, expectedCatalogCid));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
   return {declaration, declared};
 }
-function mappingOf(moon, profile, site, declaration) {
+function mappingOf(moon, profile, site, declaration, sourceInitialization) {
   const writes = JSON.stringify({writes: [{resource: 'append_rows',
     resource_kind: 'sheet_collection', primary_identity: null,
     collection_identity: {spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId},
     fields: site.columns, create: {fields: site.columns.map(column => column.name),
       required: site.columns.map(column => column.name),
       permission: SHEETS_APPEND_OPERATION, approval: 'required'}}]});
+  if (sourceInitialization !== undefined) {
+    const constructor = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareMappings');
+    if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
+      fail('InstalledSheetsInitializationUnavailable');
+    }
+    const sources = Object.freeze(profile.sources.map(source => Object.freeze({...source})));
+    return Reflect.apply(constructor.value, sourceInitialization,
+      [writes, Object.freeze([Object.freeze({resource: 'append_rows', sources})])]);
+  }
   return rowSourceMapping(moon, declaration, writes, 'append_rows', profile.sources);
 }
 const bindingFacts = site => ({api_origin: site.apiOrigin,
@@ -135,8 +162,8 @@ export const installedSheetsSourceIdentityParts = (profile, providerProfile, rea
 export const installedSheetsEffectIdentityParts = (profile, read) =>
   identityParts(checkInstalledSheetsEffectProfile(profile), read);
 
-async function readPublication(profile, site, declared) {
-  const publication = await readJson(profile.publicationPath);
+async function readPublication(profile, site, declared, originalRead) {
+  const publication = await readJson(profile.publicationPath, originalRead);
   const {publication_cid, ...preimage} = publication;
   if (!exact(publication, ['version', 'connectorId', 'catalogCid', 'binding', 'publication_cid']) ||
       publication.version !== publicationVersion || publication.connectorId !== profile.connectorId ||
@@ -170,7 +197,9 @@ async function openSite(profile, site, options, publication, installationService
       fail('InvalidInstalledEffectSiteServices');
     }
     ({authorization, site: opened} = await Reflect.apply(open.value, installationServices, [{
-      installation, accountConfiguration: profile.accountConfigurationWire,
+      installation,
+      ...(options.sourceInitialization === undefined ? {} : {sourceInitialization: options.sourceInitialization}),
+      accountConfiguration: profile.accountConfigurationWire,
       connection, ...configuration}]));
   } else {
     authorization = await installRowSourceAuthorization({
@@ -266,13 +295,26 @@ function bindSheetsAppendConstructionProfile(providerMoon, columns) {
 }
 
 async function load(profile, options, effect) {
-  const {moon, providerMoon, baseEnvironmentWire} = options;
-  const site = await readSite(profile.siteProfilePath, providerMoon);
-  const {declaration, declared, rangeCommand} = restore(moon, providerMoon, profile, site);
-  const publication = await readPublication(profile, site, declared);
-  const mapping = effect && rangeCommand === undefined ? mappingOf(moon, profile, site, declaration) : undefined;
-  let environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared,
-    mapping === undefined ? [] : [mapping.body]);
+  const {moon, providerMoon, baseEnvironmentWire, sourceInitialization, configurationReader} = options;
+  if (sourceInitialization !== undefined && configurationReader === undefined) {
+    fail('InstalledSheetsConfigurationReaderUnavailable');
+  }
+  const readers = configurationReader === undefined ? undefined
+    : captureConfigurationReaders(configurationReader, undefined,
+      () => fail('InstalledSheetsConfigurationReaderUnavailable'));
+  const site = await readSite(profile.siteProfilePath, providerMoon, readers);
+  const restored = restore(moon, providerMoon, profile, site, undefined, sourceInitialization);
+  const {declaration, declared, rangeCommand} = restored;
+  const publication = await readPublication(profile, site, declared, readers?.readJson);
+  const prepared = effect && rangeCommand === undefined
+    ? mappingOf(moon, profile, site, declaration, sourceInitialization) : undefined;
+  const mappings = effect && rangeCommand === undefined ? sourceInitialization === undefined
+    ? [{resource: 'append_rows', mappingRef: prepared.mappingRef,
+      mappingCid: prepared.mappingCid, body: prepared.body}] : prepared.mappings : undefined;
+  const mapping = mappings?.[0];
+  let environment = sourceInitialization === undefined || rangeCommand !== undefined
+    ? rowSourceCheckEnvironment(baseEnvironmentWire, declared, mapping === undefined ? [] : [mapping.body])
+    : effect ? prepared.environment : restored.environment;
   if (rangeCommand !== undefined) {
     const {evidence_bundle_cid: _, ...body} = JSON.parse(environment.wire);
     if (!Array.isArray(body.command_contracts) || body.command_contracts.length !== 0) {
@@ -289,7 +331,7 @@ async function load(profile, options, effect) {
   try {
     if (!effect) {
       const adapter = await createInstalledRowSource({moon, declaration, declared,
-      environmentWire: environment.wire, connectorId: profile.connectorId,
+      environment, sourceInitialization, environmentWire: environment.wire, connectorId: profile.connectorId,
       connectorRegistration: registration, connectorRevision: revision,
       site: opened.site, authorization: opened.authorization, readOperation: SHEETS_READ_OPERATION,
       bindingCid: opened.bindingCid, physicalTarget: (resource, fields) => {
@@ -331,8 +373,8 @@ async function load(profile, options, effect) {
       api_origin: site.apiOrigin, spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId});
     return await createInstalledRowEffect({moon,
       providerMoon: bindSheetsAppendConstructionProfile(providerMoon, site.columns),
-      mappings: [{resource: 'append_rows', mappingRef: mapping.mappingRef,
-        mappingCid: mapping.mappingCid, body: mapping.body}], environmentWire: environment.wire,
+      mappings, declaration, declared, environment, sourceInitialization,
+      environmentWire: environment.wire,
       connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,
       connection: opened.connection, site: opened.site, authorization: opened.authorization,
       runtimeBundleCid: options.runtimeBundleCid, bindingCid: opened.bindingCid,
