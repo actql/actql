@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "50a2bb6e9fc22c84ce1526e7b594c0267f0bf557e668233720b33dad8fba4a28",
+      "sha256": "31bdc57da5ed90fea363394081a6031c63ece76810e3573d151fc037687ac41d",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -286,11 +286,6 @@
           "result": "InstallationCleanupStatus"
         },
         {
-          "name": "InstalledRowEffect/close",
-          "parameters": [],
-          "result": "void"
-        },
-        {
           "name": "InstalledRowProviderReader/observe",
           "parameters": [],
           "result": "Readonly<{cleanupConfirmed: boolean}>"
@@ -311,11 +306,6 @@
             "sourceRef: string"
           ],
           "result": "boolean"
-        },
-        {
-          "name": "InstalledRowSource/close",
-          "parameters": [],
-          "result": "void"
         },
         {
           "name": "installRowSourceAuthorization",
@@ -652,12 +642,10 @@
             "InstallationCloseOwner/close",
             "InstallationFailure/retry",
             "InstallationFailure/status",
-            "InstalledRowEffect/close",
             "InstalledRowProviderReader/observe",
             "InstalledRowProviderReader/read",
             "InstalledRowProviderReader/requestStop",
             "InstalledRowSource/admitsSource",
-            "InstalledRowSource/close",
             "installRowSourceAuthorization",
             "invokeScopedCredentialOperation",
             "openRowSourceCredentialSite",

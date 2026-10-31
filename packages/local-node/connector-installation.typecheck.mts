@@ -9,7 +9,7 @@ import type {
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
   RowEffectDriver, RowEffectRequestChild,
-  RestSourceInstallationDefinition, RestSourceTransform,
+  RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from './host-policy.js';
 
@@ -354,3 +354,14 @@ const missingRestOriginal: RestSourceInstallationDefinition = {registration: 'ac
   profileVersion: 'actql-installed-acme-rest-source/0.1', origin: 'https://api.acme.invalid',
   auth: {kind: 'bearer'}, sources: []};
 void [restSitePath, asyncRestTransform, missingRestOriginal];
+
+// Preserve the same existing cleanup Owner return instead of erasing it to
+// void. This is compile-only correspondence, never a physical cleanup ACK.
+type ExactCleanupReturn<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends
+  (<T>() => T extends B ? 1 : 2) ? true : false;
+type RequireCleanupReturn<T extends true> = T;
+type SourceCleanupOriginal = RequireCleanupReturn<ExactCleanupReturn<
+  ReturnType<typeof source.close>, ReturnType<InstallationCloseOwner['close']>>>;
+type EffectCleanupOriginal = RequireCleanupReturn<ExactCleanupReturn<
+  ReturnType<typeof effect.close>, ReturnType<InstallationCloseOwner['close']>>>;

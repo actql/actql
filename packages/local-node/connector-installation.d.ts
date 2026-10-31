@@ -257,7 +257,7 @@ export interface InstalledRowProviderReader {
   observe(): Readonly<{cleanupConfirmed: boolean}>;
 }
 /** The installed Host owns preparation and execution through this object. */
-export interface InstalledRowSource {
+export interface InstalledRowSource extends InstallationCloseOwner {
   readonly realizationKey: 'row-source-acquired';
   readonly supportsRetainedRelationOutput: true;
   readonly connectorRegistration: string;
@@ -265,7 +265,6 @@ export interface InstalledRowSource {
   readonly environmentWire: string;
   readonly connectorBindings: readonly InstalledConnectorBinding[];
   admitsSource(sourceRef: string): boolean;
-  close(): void;
 }
 export declare function createInstalledRowSource(options: Readonly<{
   moon: ConnectorRuntimeOwner;
@@ -468,7 +467,7 @@ export interface RowEffectLimits {
   readonly body: RowEffectLimits['key'];
 }
 /** The Host retains the returned preparation, ledger and recovery owner. */
-export interface InstalledRowEffect {
+export interface InstalledRowEffect extends InstallationCloseOwner {
   readonly environmentWire: string;
   readonly connectorBindings: readonly InstalledConnectorBinding[];
   readonly connectorRegistration: string;
@@ -476,7 +475,6 @@ export interface InstalledRowEffect {
   readonly connection: string;
   readonly mappings: readonly Readonly<{
     resource: string; target: string; mappingRef: string; mappingCid: string}>[];
-  close(): void;
 }
 export declare function createInstalledRowEffect<Request extends object,
   Current = unknown, Kind extends RowEffectKind = RowEffectValueKind>(options: Readonly<{
