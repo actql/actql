@@ -839,6 +839,27 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    prepareModelRun(prepared, request, identity, model, constructPlan) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+          state.adopting || state.preparing || typeof constructPlan !== 'function') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const compilation = view.prepareModelCompilation(prepared, request, model.graph);
+      state.preparing = true;
+      let plan;
+      try {
+        // Existing trusted Host constructor, on this SAME nominal parent and
+        // input. The caller retains partial modules before its next check.
+        plan = Reflect.apply(constructPlan, undefined, [state.parent, producer.receipt, compilation]);
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      } finally {state.preparing = false;}
+      return view.adoptModelPreparation(prepared, identity, plan, model);
+    },
     adoptModelPreparation(prepared, identity, modelPlan, model) {
       current();
       const request = callbacks.request(originals, prepared);

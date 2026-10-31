@@ -2143,11 +2143,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   const localPreparationCustody = installLocalPreparationRegistry(prepared => {
     if (preparation?.canRetireManagedPreparation?.() !== true) return false;
     if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
-        moon.clientProgramAcquisitionCount(prepared) !== 0 &&
-          preparation.managesInstalledSources?.() !== true ||
         moon.clientProgramSerializationOccurrences(prepared).length !== 0) return false;
     const inventory = moon.clientProgramComposedInferOccurrences(prepared);
-    return runtimeIsOk(inventory) && runtimeField(inventory, 0).length === 0;
+    if (!runtimeIsOk(inventory)) return false;
+    const count = runtimeField(inventory, 0).length;
+    // This selects custody only. The registry still requires the SAME
+    // Request's actual Core borrower, not an INFER shape or a permission.
+    if (count !== 0) return count === 1 && typeof moon.clientProgramPreparationBorrowSibling === 'function';
+    return moon.clientProgramAcquisitionCount(prepared) === 0 ||
+      preparation.managesInstalledSources?.() === true;
   }, prepared => {
     const finish = preparation?.retireManagedComputeRun(prepared);
     prepareSubmit.retireOriginal(prepared);
@@ -5399,7 +5403,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     for (const run of record.computeLiveRuns ?? []) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
-      if (run.preparationKind === 'effect-plan' && run.preparationFunded) {
+      if (run.preparationKind === 'model-plan' || run.preparationKind === 'effect-plan' && run.preparationFunded) {
         const finish = preparation.retireManagedComputeRun(run.prepared);
         finish?.();
         continue;
@@ -5812,6 +5816,49 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked}).value;
     },
+    prepareManagedModelRun(runtime, prepared, request, model) {
+      const manager = sourceManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareModelRun !== 'function' ||
+          record.mockSourceProfile === undefined || model.control !== runtimeCore(runtime).publicationControl) {
+        throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+      }
+      assertSourceManagedInstallationCurrent(manager, originals);
+      const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
+      originalInstallation.computeRuns = runs;
+      const prior = runs.get(prepared);
+      if (prior !== undefined) {
+        if (Object.hasOwn(prior, 'failure')) throw prior.failure;
+        if (prior.closed || prior.runtime !== runtime || prior.model !== model || prior.request !== request ||
+            prior.manager !== manager || prior.sourceProfile !== record.mockSourceProfile) {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request]));
+        return prior;
+      }
+      if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
+      const run = {runtime, prepared, request, model, manager, sourceProfile: record.mockSourceProfile,
+        preparationKind: 'model-plan', original: undefined, value: undefined, closed: false, selecting: true,
+        queryTimePreparation: model.queryTimePreparation};
+      runs.set(prepared, run); liveRuns.add(run);
+      try {
+        run.retire = runtime.clientProgramInstalledManagedRunRetire;
+        run.check = runtime.clientProgramInstalledManagedRunCheck;
+        run.releaseModelAliases = model.releaseAliases;
+        if (![run.retire, run.check, run.releaseModelAliases].every(method => typeof method === 'function')) {
+          throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+        }
+        const original = originalSourceManagedHostRequest(originals, prepared);
+        const adopted = manager.prepareModelRun(prepared, original, request, model,
+          (parent, input, compilation) => prepareRequestMockModelPlan(originals,
+            run, model, compilation, parent, input));
+        run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
+        run.preparedSequences = run.modelPlan = run.modelAcquisitions = undefined;
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        assertSourceManagedInstallationCurrent(manager, originals);
+        return run;
+      } catch (cause) {run.failure = cause; throw cause;}
+      finally {run.selecting = false;}
+    },
     prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) {
@@ -5914,12 +5961,31 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
       if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
+      if (run.preparationKind === 'model-plan' && run.value === undefined) {
+        // Construction unwound; a Scope can predate a refused completion.
+        // This failed preparation has entered neither dispatch nor a read.
+        const model = run.model;
+        if (model.taken || model.read !== undefined) throw clientOperationError('InstalledMockModelCleanupPending');
+        if (model.scope !== undefined && model.scopeFinished !== true) {
+          if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+            model.runDefinition, model.graph, model.scope, true) !== true) {
+            throw clientOperationError('InstalledMockModelCleanupPending');
+          }
+          model.scopeFinished = true;
+        }
+        Reflect.apply(run.releaseModelAliases, model, []);
+        record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
+        for (const key of Object.keys(run)) run[key] = undefined;
+        run.closed = true;
+        return;
+      }
       if (run.preparationFunded) {
         try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
         catch (cause) {
           if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
         }
         run.manager.severPreparation(prepared,run.original);
+        if (run.preparationKind === 'model-plan') Reflect.apply(run.releaseModelAliases, run.model, []);
         run.prepared=undefined;run.closed=true;
         run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
@@ -6104,14 +6170,18 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         nativeFilesystem, effectResources,
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
-    installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
+    async installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
-      return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
+      const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
-        readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
+        readAsset: path => readInitialControlInstallationAsset(control, originals, path),
+        prepareManagedModelRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon,
+          prepared, request, model)});
+      record.mockSourceProfile = profile;
+      return profile;
     },
     async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
       sourceBinding) {
