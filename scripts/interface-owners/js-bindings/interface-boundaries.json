@@ -6144,7 +6144,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
+      "sha256": "2272a587afb945e1cec9f705fe3ffaaa7cfe30081f0e076ed5362beeff32ff36",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
