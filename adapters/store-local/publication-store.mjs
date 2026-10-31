@@ -4118,6 +4118,7 @@ async function openOriginalLocalPublicationStore(
       if (receivedBytes !== expectedBytes) {
         fail('InvalidPublicationPhysicalHoldingStore');
       }
+      let plaintext;
       try {
         let envelope;
         try { envelope = JSON.parse(bytes.toString('utf8')); }
@@ -4132,7 +4133,7 @@ async function openOriginalLocalPublicationStore(
         const decipher = createDecipheriv('aes-256-gcm', key, nonce);
         decipher.setAAD(privateEvidenceAad(name, semanticCid));
         decipher.setAuthTag(tag);
-        const plaintext = decipher.update(ciphertext);
+        plaintext = decipher.update(ciphertext);
         // Authentication must complete before any plaintext escapes. Reuse
         // the owned block only after final succeeds with no additional bytes;
         // otherwise preserve the complete authenticated concatenation.
@@ -4140,6 +4141,10 @@ async function openOriginalLocalPublicationStore(
         return final.byteLength === 0 ? plaintext
           : Buffer.concat([plaintext, final]);
       } catch (error) {
+        // update() can materialize unauthenticated plaintext before final()
+        // rejects. That failed child never reaches the outer consumer, so its
+        // SAME backing must be retired here rather than at consumer cleanup.
+        plaintext?.fill(0);
         if (error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
         fail('PublicationPrivateEvidenceCorrupt', error);
       }
@@ -4147,8 +4152,31 @@ async function openOriginalLocalPublicationStore(
       key.fill(0);
     }
   };
-  const readPrivateEvidence = (name, semanticCid, holdingCid) =>
-    readPrivateEvidenceObject(name, semanticCid, holdingCid);
+  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume) => {
+    if (consume === undefined) {
+      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
+    }
+    active();
+    if (typeof consume !== 'function') fail('InvalidPublicationPrivateEvidence');
+    cidHex(holdingCid);
+    // The existing reader census protects this SAME private holding until
+    // its trusted consumer has completed decode/admission, including awaits.
+    // It supplies no memory credit or semantic/physical cleanup ACK. The
+    // caller's original Request/Run reservation must precede acquisition.
+    const release = retainPhysicalHoldingReader(holdingCid);
+    let plaintext;
+    try {
+      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid);
+      return await consume(plaintext);
+    } finally {
+      // This overload never hands byte custody to its caller. Typed values
+      // may retain their own strings; the temporary decrypted backing stops
+      // here even when decode or its original child rejects.
+      plaintext?.fill(0);
+      plaintext = undefined;
+      release();
+    }
+  };
   const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
@@ -6106,9 +6134,10 @@ async function openOriginalLocalPublicationStore(
         const recordCid = contractControl.effectComputationRecordHoldingCid(
           chain.runDefinition, configuration.storeAuthorityCid);
         try {
-          captureRecord = JSON.parse((await readPrivateEvidence(
+          captureRecord = await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, recordCid,
-          )).toString('utf8'));
+            plaintext => JSON.parse(plaintext.toString('utf8')),
+          );
         } catch (error) {
           fail('InvalidEffectfulCaptureRecord', error);
         }
@@ -6159,9 +6188,10 @@ async function openOriginalLocalPublicationStore(
         }
         let record;
         try {
-          record = captureRecord ?? JSON.parse((await readPrivateEvidence(
+          record = captureRecord ?? await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, candidate,
-          )).toString('utf8'));
+            plaintext => JSON.parse(plaintext.toString('utf8')),
+          );
         } catch (error) {
           fail('InvalidEffectfulCaptureRecord', error);
         }

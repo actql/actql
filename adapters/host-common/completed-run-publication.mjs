@@ -854,13 +854,41 @@ export async function retireCompletedEffectfulCapture({store, control,
       record.objects.length !== 1) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  let body;
+  let consuming = false, holdingCids;
   try {
-    body = JSON.parse((await store.readPrivateEvidence('effect_capture',
-      record.manifest_cid, recordCid)).toString('utf8'));
+    holdingCids = await store.readPrivateEvidence('effect_capture',
+      record.manifest_cid, recordCid, plaintext => {
+        if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
+        consuming = true;
+        return prepareCompletedEffectfulCaptureRetirement(store, control, run,
+          contractLimits, record, recordCid, captureCid, plaintext);
+      });
   } catch (error) {
-    fail('InvalidCompletedEffectfulCaptureRecord', error);
+    if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord', error);
+    throw error;
   }
+  if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord');
+  for (const holdingCid of holdingCids) {
+    const retired = await store.retirePhysicalHolding(holdingCid);
+    if (retired.cleanup.status().pending) {
+      const error = new CompletedRunPublicationError(
+        'CompletedEffectfulCaptureCleanupPending');
+      error.cleanupPending = true;
+      error.cleanupHandle = retired.cleanup;
+      throw error;
+    }
+  }
+  await store.forgetEffectCaptureCustody(run);
+  return true;
+}
+
+// Validate the complete remaining original inventory while its encrypted
+// record is still protected. Deletion starts only after this reader returns.
+async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
+  contractLimits, record, recordCid, captureCid, plaintext) {
+  let body;
+  try { body = JSON.parse(plaintext.toString('utf8')); }
+  catch (error) { fail('InvalidCompletedEffectfulCaptureRecord', error); }
   if (!exactKeys(body, [
     'version', 'store_authority_cid', 'run_definition', 'invocation',
     'definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
@@ -973,19 +1001,7 @@ export async function retireCompletedEffectfulCapture({store, control,
        previewHolding.manifest_cid !== previewBinding.semanticCid)) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  for (const holdingCid of [...sourceCids, captureCid,
-    previewBinding.holdingCid, recordCid]) {
-    const retired = await store.retirePhysicalHolding(holdingCid);
-    if (retired.cleanup.status().pending) {
-      const error = new CompletedRunPublicationError(
-        'CompletedEffectfulCaptureCleanupPending');
-      error.cleanupPending = true;
-      error.cleanupHandle = retired.cleanup;
-      throw error;
-    }
-  }
-  await store.forgetEffectCaptureCustody(run);
-  return true;
+  return [...sourceCids, captureCid, previewBinding.holdingCid, recordCid];
 }
 
 // Recover a completed computation without re-running its physical work. The
@@ -1029,12 +1045,32 @@ export async function recoverCompletedEffectfulComputation(options) {
       record.objects.length !== 1) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  let captured;
-  let captureRecordWire;
+  let consuming = false;
   try {
-    captureRecordWire = (await store.readPrivateEvidence(
-      'effect_capture', record.manifest_cid, recordHoldingCid,
-    )).toString('utf8');
+    const recovered = await store.readPrivateEvidence('effect_capture', record.manifest_cid,
+      recordHoldingCid, plaintext => {
+        if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
+        consuming = true;
+        return recoverCompletedEffectfulPlaintext(store, control, contractLimits, admittedRun,
+          captureHoldingCid, recordHoldingCid, record, plaintext);
+      });
+    if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord');
+    return recovered;
+  } catch (error) {
+    // Store read/authentication failures retain the old capture-record refusal;
+    // typed/physical child failures keep their exact original cleanup carrier.
+    if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord', error);
+    throw error;
+  }
+}
+
+// One trusted consumer of the same temporary decrypted backing. The Store's
+// original reader spans the complete typed/schema construction and its awaits.
+async function recoverCompletedEffectfulPlaintext(store, control, contractLimits,
+  admittedRun, captureHoldingCid, recordHoldingCid, record, plaintext) {
+  let captured, captureRecordWire;
+  try {
+    captureRecordWire = plaintext.toString('utf8');
     captured = JSON.parse(captureRecordWire);
   } catch (error) {
     fail('InvalidCompletedEffectfulCaptureRecord', error);
