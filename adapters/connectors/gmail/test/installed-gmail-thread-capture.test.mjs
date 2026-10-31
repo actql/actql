@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {createPublicKey} from 'node:crypto';
+import {join} from 'node:path';
 import {installedGmailFixture} from './installed-gmail.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
+import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 
 for(const format of ['sql','aql'])test(`installed Gmail threads ${format} binds list and dependent gets to the original installed capture`,async t=>{
   const f=await installedGmailFixture(t,{resource:'threads'});
@@ -22,9 +27,9 @@ for(const format of ['sql','aql'])test(`installed Gmail threads ${format} binds 
   assert.equal(targets[2].searchParams.get('format'),'metadata');
   assert.deepEqual(targets[2].searchParams.getAll('metadataHeaders'),['Subject','Date']);
   assert.equal(source.sourceReadAccesses[0].resource,'threads');
-  const usage=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-  await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),usage);
+  await opened.close();
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),
+    ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
   assert.equal(f.state.requests.length,4);
 });
 
@@ -50,9 +55,27 @@ test('installed Gmail threads lost get response retains Unknown without another 
   f.state.beforeResponse=request=>{if(f.state.requests.length===2)request.socket.destroy();};
   const source=await f.load(),preparation=await f.prepare(source);let original;
   await assert.rejects(source.openCapture(preparation),error=>{
-    original=error;return error.outcome==='unknown'&&error.recovery?.cleanupPending()===true;
+    original=error;
+    for(let cause=error,depth=0;cause!==undefined&&depth<8;cause=cause.cause,depth++){
+      if(cause.code==='ECONNRESET')return true;
+    }
+    return false;
   });
-  await f.retain(original.recovery,preparation.ledger);
-  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
-  assert.equal(original.recovery.cleanupPending(),true);assert.equal(f.state.requests.length,2);
+  // The original durable use stays Unknown even after the SAME reader really
+  // retires its transport/response graph. Neither fact substitutes for the other.
+  await f.retain(original,preparation.ledger);
+  if(original.recovery!==undefined){
+    await original.recovery.close();assert.notEqual(await original.recovery.cleanup(),false);
+    assert.equal(original.recovery.cleanupPending(),false);
+  }
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),
+    ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
+  await source.close();
+  const publicKey=createPublicKey(await readFile(join(f.root,'credential-authority.pub')));
+  const journal=openSqliteCredentialJournal(f.site.journalRoot,{credentialAuthorities:new Map([
+    [f.site.credentialAuthorityId,new Map([[f.site.credentialKeyId,publicKey]])]])});
+  try{const recovered=journal.recover();assert.deepEqual(recovered.map(use=>use.outcome),['succeeded','unknown']);
+    assert.notEqual(recovered[0].grantCid,recovered[1].grantCid);}
+  finally{journal.close();}
+  assert.equal(f.state.requests.length,2);
 });

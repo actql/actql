@@ -70,7 +70,8 @@ test('ordinary installed Gmail entrance discovers the real factory and refuses m
   await writeFile(path,JSON.stringify(f.profile));
   await assert.rejects(loadInstalledSource(path,{...f.options,
     runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url)}),
-  {code:'GmailSourceInitializationUnavailable'});
+  error=>error.code==='InstalledHostInitializationFailed'&&
+    error.primaryFailure?.code==='GmailSourceInitializationUnavailable'&&error.cause===error.primaryFailure);
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
