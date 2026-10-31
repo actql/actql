@@ -2,6 +2,7 @@
 import asyncio
 import copy
 from dataclasses import replace
+import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,6 +16,51 @@ import test_local_submission_append as append_fixture
 
 
 class LocalSubmissionLookupTests(unittest.TestCase):
+    def submit_body(self, reference):
+        intent = {'kind': 'aql', 'input': {'text': 'SELECT 7', 'format': 'sql'},
+                  'parameters': {}}
+        preimage = json.dumps({'version': 'actql-submitted-intent/0.1', 'intent': intent},
+            sort_keys=True, separators=(',', ':')).encode()
+        return {'connection': {'mode': 'local', 'owner': 'local', 'durability': 'durable',
+                    'consentRefs': [], 'runners': []}, **intent,
+                'submissionRef': reference,
+                'intentCid': 'sha256:' + hashlib.sha256(preimage).hexdigest(),
+                'attemptRef': {'operation': 'submit', 'attemptId': 'later-original-attempt'}}
+
+    def test_public_ready_submit_uses_same_saved_admission_before_any_preparation(self):
+        admission = {'ref': {'namespaceId': 'local',
+            'authorityScopeCid': 'sha256:' + 'a' * 64,
+            'runDefinitionCid': 'sha256:' + 'd' * 64},
+            'durability': 'durable', 'revision': 7}
+        identity = self.submit_body({})['intentCid']
+        with TemporaryDirectory(prefix='actql-ready-submit-') as directory:
+            host, _, calls, counters, reference = self.fixture(directory, {
+                'kind': 'ready', 'intentCid': identity,
+                'admission': json.dumps(admission, separators=(',', ':'))})
+            body = self.submit_body(reference)
+            async def submit():
+                response = await host.open('submit-intent', json.dumps(body).encode())
+                try:
+                    return json.loads(await response.aread())
+                finally:
+                    await response.aclose()
+            with (patch.object(host, '_accept_original',
+                              side_effect=AssertionError('Saved ready must not prepare again')),
+                 patch.object(host._installation._store, 'compare_exchange_many_inspected',
+                              side_effect=AssertionError('Saved ready must not write again'))):
+                result = asyncio.run(submit())
+            self.assertEqual(result, {'kind': 'already_satisfied',
+                'attemptRef': body['attemptRef'], 'outcome': {'kind': 'ready',
+                    'submissionRef': reference, 'intentCid': identity, 'admission': admission}})
+            self.assertEqual(counters['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
+            self.assertFalse(host._physical_work)
+            self.assertFalse(host._public_run_references)
+            self.assertFalse(any(family in ('program', 'compute', 'publication')
+                                 for family, _, _ in calls))
+            self.assertTrue(host.close())
+
     def fixture(self, directory, observed, *, run_reference=None, result_name=None):
         fixture = append_fixture.LocalSubmissionAppendTests()
         host, core, calls, _ = fixture.host(Path(directory))
