@@ -14,9 +14,7 @@ pub fn client_program_installed_effect_model_demand_prepare(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   let selected = match
-    @infer_host.original_composed_bounds(
-      compiled, definition, occurrence, graph,
-    ) {
+    original_composed_model_limits(compiled, definition, occurrence, graph) {
     Err(_) => return Err(ForeignOriginal)
     Ok(value) => value
   }
