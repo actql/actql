@@ -21,7 +21,6 @@ import subprocess
 import sys
 import time
 import shutil
-from python_release_cohort import select_release_version
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
@@ -89,6 +88,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
     if package_version is not None:
+        from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
             raise ValueError('Package version belongs to the Native client, not the resident helper')
         package_version = select_release_version(package_version)['version']
@@ -250,6 +250,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           entry: str = ENTRY, package_version: str | None = None) -> dict[str, object]:
     entry_package = selected_entry(entry)
     if package_version is not None:
+        from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
             raise ValueError('Only the Native client has a release package version')
         package_version = select_release_version(package_version)['version']
