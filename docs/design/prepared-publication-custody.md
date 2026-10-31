@@ -96,3 +96,27 @@ nor marks operations closed. Repeated failures can remain pending indefinitely;
 only their original successful close/stop/settlement transitions advance it.
 The execution settles once, and an Unknown reader still cannot be treated as
 stopped because a diagnostic slot was replaced or an input reader disappeared.
+
+## Publication retry diagnostic prefixes
+
+A publication failure can initially collect separate diagnostics from its
+original prepared payload, export or Transfer children. Preserve that finite
+initial prefix, and capture its length once before exposing retry. The shared
+diagnostic operation retains the first and latest subsequent retry failure
+after that prefix. It never recomputes the prefix from a growing history.
+Commit-pin confirmation, pending writer cancellation and schema release use
+the same operation with an empty prefix. Delivery keeps its initial record
+failure; Unknown publication keeps its separate reconciliation/record facts.
+
+Transfer retains the prefix on its existing state so source-stop and
+destination-recovery helpers follow the same rule as the outer cleanup handle.
+Its aggregate close and source-release handles preserve their initial
+per-entry failures too. The existing original child inventory, cursor,
+single-flight guard and physical status decide progress. Replacing a diagnostic
+does not drop a child record, resolve Unknown, repeat a mutation, release a pin
+or settle capacity. Earlier frozen snapshots retain their original contents.
+
+These diagnostic references and the fixed prefix selector are retained caller
+controls. Their presence neither supplies the complete physical construction
+recipe nor permits a Store quota or protocol byte ceiling to substitute for
+that caller's live memory/failed-child backing.

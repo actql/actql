@@ -1,3 +1,4 @@
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Complete publication of every checked Named Result retained by one finished
 // Effect-free Run. MoonBit issues and validates every semantic contract. This
 // coordinator only sequences bounded export and durable Store effects.
@@ -199,6 +200,7 @@ export async function releasePreparedResults(exported, primary, control) {
     } catch (error) { return {pending: true, errors: [error]}; }
   };
   if (!owners.some(owner => ownerState(owner).pending)) throw primary;
+  const initialErrorCount = errors.length;
   const failure = new CompletedRunPublicationError(
     typeof member(primary, 'code') === 'string'
       ? member(primary, 'code') : 'CompletedRunPublicationFailed',
@@ -244,7 +246,7 @@ export async function releasePreparedResults(exported, primary, control) {
         if (action === 'retry') {
           retryAttempted = true;
           try { await owners[currentOwner].handle.retry(); }
-          catch (error) { errors.push(error); }
+          catch (error) { retainFirstAndLatestCleanupError(errors, error, initialErrorCount); }
           continue;
         }
         if (action === 'advance') {

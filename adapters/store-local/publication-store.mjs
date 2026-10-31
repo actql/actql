@@ -2986,7 +2986,7 @@ async function openOriginalLocalPublicationStore(
         try {
           return await resolveConfirmed(await confirmCommittedIndex(key));
         } catch (error) {
-          owner.errors.push(error);
+          retainFirstAndLatestCleanupError(owner.errors, error);
           throw error;
         }
       },
@@ -3019,7 +3019,7 @@ async function openOriginalLocalPublicationStore(
         if (status.reservationHeld || status.custodyPending) {
           await writer.cancel();
         }
-      } catch (error) { cleanupErrors.push(error); }
+      } catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error); }
       if (!writer.status().reservationHeld &&
           !writer.status().custodyPending) throw primaryFailure;
       const code = typeof primaryFailure?.code === 'string'
@@ -3037,7 +3037,7 @@ async function openOriginalLocalPublicationStore(
           if (writer.status().reservationHeld ||
               writer.status().custodyPending) {
             try { await writer.cancel(); }
-            catch (error) { cleanupErrors.push(error); }
+            catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error); }
           }
           failure.cleanupPending = status().pending;
           failure.cleanupErrors = status().errors;
@@ -3444,7 +3444,7 @@ async function openOriginalLocalPublicationStore(
       return true;
     });
     holder.releasing = flight.catch(error => {
-      holder.errors.push(error);
+      retainFirstAndLatestCleanupError(holder.errors, error);
       throw error;
     }).finally(() => { holder.releasing = undefined; });
     return holder.releasing;

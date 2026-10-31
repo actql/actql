@@ -6,9 +6,12 @@
 // refusal and the latest refusal. Throwable identity includes primitives and
 // undefined; equality or a status snapshot is never a retirement witness.
 // This mutates only diagnostics, not the original cleanup/progress owner.
-export function retainFirstAndLatestCleanupError(errors, error) {
-  if (errors.length < 2) errors.push(error);
-  else errors[1] = error;
+export function retainFirstAndLatestCleanupError(errors, error, retainedPrefix = 0) {
+  // A caller may already retain a finite initial diagnostic for each original
+  // child. Preserve that prefix; only this owner's subsequent retry tail has
+  // first/latest roles. The prefix is captured once, not recomputed per retry.
+  if (errors.length < retainedPrefix + 2) errors.push(error);
+  else errors[retainedPrefix + 1] = error;
 }
 
 const member = (value, name) => {

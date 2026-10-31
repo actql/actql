@@ -166,6 +166,39 @@ function fixture(api, control, options = {}) {
 export {fixture as createResultDeliveryFixture};
 
 export const deliveryAcceptanceCases = {
+  async 'repeated cleanup retains first/latest failures without repeating the original delivery'(api, control) {
+    const original = Object.freeze(new Error('initial streaming append failure'));
+    const retries = [undefined, Object.freeze(new Error('retry failure')), 'primitive retry', null];
+    let appends = 0, allow = false;
+    const wires = [];
+    const f = fixture(api, control, {beforeAppend: async record => {
+      wires.push(record.wire);
+      if (++appends === 1) throw original;
+      if (!allow) throw retries[appends - 2];
+    }});
+    let failure;
+    await assert.rejects(f.deliver(), error => {failure = error; return true;});
+    const initial = failure.cleanupHandle.status();
+    assert.deepEqual(initial.errors, [original]);
+    for (let index = 0; index < retries.length; index++) {
+      const status = await failure.cleanupHandle.retry();
+      assert.equal(status.pending, true);
+      assert.deepEqual(status.errors, [original, retries[index]]);
+      assert.deepEqual(initial.errors, [original]);
+      assert.equal(f.state.readers, 0); assert.deepEqual(f.state.chunks, []);
+      assert.equal(f.state.finishes, 0); assert.deepEqual(f.state.records, []);
+      assert.equal(wires.at(-1), wires[0]);
+    }
+    allow = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(failure.cause, original); assert.equal(failure.primaryFailure, original);
+    assert.deepEqual(failure.cleanupErrors, [original, retries.at(-1)]);
+    assert.deepEqual(f.state.records.map(wire => JSON.parse(wire).state), ['streaming', 'failed']);
+    assert.equal(f.state.readers, 0); assert.deepEqual(f.state.chunks, []);
+    assert.equal(f.state.finishes, 0);
+    const finishedAppends = appends;
+    await failure.cleanupHandle.retry(); assert.equal(appends, finishedAppends);
+  },
   async 'concurrent cleanup shares one pending append and retry Promise'(api, control) {
     let entered, release, appends = 0;
     const arrived = new Promise(resolve => { entered = resolve; });
