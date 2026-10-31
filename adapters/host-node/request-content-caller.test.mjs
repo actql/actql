@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {installNodeContentRun} from './installed-content-run.mjs';
+import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
@@ -81,7 +82,7 @@ function hostFixture({constructFailure}={}) {
     if(constructFailure)throw constructFailure;return{original,value};
   },severPreparation(p,o){assert.deepEqual([p,o],[prepared,original]);calls.push('sever');
     if(severFailure){const failure=severFailure;severFailure=undefined;throw failure;}}};
-  const ports={sourceManaged:manager,computeManaged:undefined,moon,record,originalInstallation,originals,
+  const ports={sourceManaged:manager,computeManaged:undefined,moon,record,originalInstallation,originals,finishInstalledEffectModelScope,
     runtimeCore:()=>({contentGenerationControl:content}),clientOperationError:code=>Object.assign(new Error(code),{code}),
     assertSourceManagedInstallationCurrent:()=>{},originalSourceManagedHostRequest:()=>sdkRequest,checked:v=>v,
     managedPreparationRetirementContinuation:run=>{assert(run.serializationCleaned);return()=>calls.push('finish');}};
