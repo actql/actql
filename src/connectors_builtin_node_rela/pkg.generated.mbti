@@ -1761,6 +1761,8 @@ pub fn client_program_requires_query_time(@run_publication_host.PreparedClientPr
 
 pub fn client_program_requires_task_compilation(@run_publication_host.PreparedClientProgram) -> Bool
 
+pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
 pub fn client_program_reserve_request_snapshot(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int64, Int64) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_resolve_installed_model_defaults(@run_publication_host.ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
