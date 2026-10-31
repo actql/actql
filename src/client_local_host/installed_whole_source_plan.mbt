@@ -328,6 +328,91 @@ pub fn prepare_installed_managed_whole_source_plan(
     @local.ManagedProvider,
   ],
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  prepare_installed_managed_whole_source_plan_owned(
+    prepared,
+    request,
+    source,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    None,
+    retained_output~,
+    provider_factory~,
+  )
+}
+
+///|
+/// Consume an already bound original invocation, never another clock, compiler
+/// or Definition. The same Request constructor must already back and retain
+/// its input, output, helpers and failed-child overlap before this DATA call.
+pub fn prepare_installed_managed_whole_source_plan_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  source : ClientInstalledWholeSourceCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  guard invocation is Some((original, original_request, compiled, definition)) &&
+    physical_equal(original_request, request) else {
+    return Err(ForeignOriginal)
+  }
+  match
+    @publication_host.client_query_time_preparation_context_for_run(
+      original, prepared, compiled, definition, request,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(_) => ()
+  }
+  prepare_installed_managed_whole_source_plan_owned(
+    prepared,
+    request,
+    source,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    Some(original),
+    retained_output~,
+    provider_factory~,
+  )
+}
+
+///|
+fn prepare_installed_managed_whole_source_plan_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  source : ClientInstalledWholeSourceCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
     @publication_host.client_request_program_cid(request) ||
@@ -359,6 +444,7 @@ pub fn prepare_installed_managed_whole_source_plan(
       values_body,
       fragment_body,
       ordered_body,
+      query_time=query_time.map(original => (original, request)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -436,7 +522,7 @@ pub fn prepare_installed_managed_whole_source_plan(
   Ok({
     prepared,
     request,
-    _observed_query_time: None,
+    _observed_query_time: query_time,
     captures: [],
     whole_input: Some(source),
     graph,

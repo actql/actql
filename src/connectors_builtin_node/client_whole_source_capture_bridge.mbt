@@ -280,6 +280,47 @@ pub fn client_program_prepare_installed_managed_whole_source_plan(
 }
 
 ///|
+/// The caller forwards the SAME opaque Option from the existing pre-module
+/// invocation getter. Core checks all originals; no JS tuple is constructed.
+#export_name("clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime")
+pub fn client_program_prepare_installed_managed_whole_source_plan_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  transfer : Int64,
+  scratch : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_source_plan_at_query_time(
+    prepared,
+    request,
+    capacity,
+    transfer,
+    scratch,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    invocation,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledManagedWholeSourceRead")
 pub fn client_program_installed_managed_whole_source_read(
   owner : @client_local_host.ClientInstalledManagedRun,
