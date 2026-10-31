@@ -18,6 +18,8 @@ struct ClientInstalledManagedKeyedPreparation {
   direct_execution_bytes : Int64
   fragment_selected : Bool
   ordered_selected : Bool
+  serialization_task : Int
+  serialization_step : Int
 }
 
 ///|
@@ -101,6 +103,8 @@ pub fn prepare_installed_managed_keyed_content(
     direct_execution_bytes: transport_execution_bytes[0],
     fragment_selected: fragment_body is Some(_),
     ordered_selected: ordered_body is Some(_),
+    serialization_task: task,
+    serialization_step: step,
   })
 }
 
@@ -211,7 +215,7 @@ pub fn begin_installed_managed_keyed_content_run(
     request,
     ledger,
   )
-  value.content = KeyedContent(selected)
+  value.content = KeyedContent(selected, None)
   require_installed_managed_run(value).map(_ => value)
 }
 
@@ -238,7 +242,7 @@ pub fn begin_installed_managed_keyed_source_read(
     Err(issue) => return Err(ManagedRun(issue))
     Ok(_) => ()
   }
-  guard value.content is KeyedContent(selected) &&
+  guard value.content is KeyedContent(selected, _) &&
     physical_equal(selected.keyed, keyed) &&
     physical_equal(selected.declaration, declaration) &&
     @publication_host.client_keyed_request_matches_acquisition(request, keyed) else {
@@ -306,7 +310,7 @@ fn require_installed_keyed_source_read(
   }
   guard value.parent is Some(parent) &&
     value.selected is Some(selected) &&
-    parent.content is KeyedContent(original) &&
+    parent.content is KeyedContent(original, _) &&
     physical_equal(original, selected) &&
     parent.keyed_reads.any(read => physical_equal(read, value)) else {
     return Err(ForeignOriginal)
@@ -465,7 +469,7 @@ fn prepare_retained_installed_keyed_content_ledger(
   ordered_body : String?,
   ledger : @resources.Ledger,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
-  guard run.content is KeyedContent(original) &&
+  guard run.content is KeyedContent(original, _) &&
     physical_equal(original, selected) &&
     run.ledger is Some(original_ledger) &&
     physical_equal(original_ledger, ledger) &&

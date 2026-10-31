@@ -41,11 +41,11 @@ pub fn[I] borrow_request_content_plan_input(
   let (r, e) = if reserved {
     (r, e)
   } else {
-    // Selected Plan and original Request links:2H2R2W. Fields are prepaid at entry.
+    // Plan, Request and optional compiler links:3H4R3W. Fields are prepaid at entry.
     guard @execution.preparation_representation_cost({
-        record_headers: 2L,
-        reference_slots: 2L,
-        scalar_words: 2L,
+        record_headers: 3L,
+        reference_slots: 4L,
+        scalar_words: 3L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       })
@@ -84,6 +84,57 @@ pub fn[I] prepare_request_serialization_compilation(
   @publication_host.ClientTaskCompilation,
   ClientRequestProgramPlanIssue,
 ] {
+  prepare_request_serialization_compilation_owned(
+    owner,
+    input,
+    component,
+    contracts,
+    None,
+    manifests,
+    compilation_limits,
+  )
+}
+
+///|
+/// Compile the acquired Serialization component selected by this original
+/// keyed Content Plan. The Plan already retains the checked Source/transport
+/// requirements; its exact task, step and contracts are not inferred from a
+/// count or reconstructed from a legacy Node admission.
+pub fn[I] prepare_request_keyed_serialization_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  selected : ClientInstalledManagedKeyedPreparation,
+  component : @publication_host.ClientSerializationPlanGraph,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  prepare_request_serialization_compilation_owned(
+    owner,
+    input,
+    component,
+    selected.installed_contracts,
+    Some(selected),
+    manifests,
+    compilation_limits,
+  )
+}
+
+///|
+fn[I] prepare_request_serialization_compilation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  component : @publication_host.ClientSerializationPlanGraph,
+  contracts : ClientInstalledSequenceContracts,
+  keyed : ClientInstalledManagedKeyedPreparation?,
+  manifests : @publication_host.ClientCompilationManifests,
+  compilation_limits : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
   guard owner.phase == ContentPlanReserved &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
@@ -96,13 +147,24 @@ pub fn[I] prepare_request_serialization_compilation(
     owner.program_artifact_work_issue is None else {
     return Err(Preparation(ForeignOriginal))
   }
-  guard @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
-    @publication_host.prepared_client_composed_infer_occurrences(prepared)
-    is Some(infers) &&
-    infers.is_empty() &&
-    @publication_host.prepared_client_serialization_occurrences(prepared) ==
-    [(component.task, component.step)] else {
-    return Err(Installed(Unsupported))
+  match keyed {
+    None => {
+      guard @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+        @publication_host.prepared_client_composed_infer_occurrences(prepared)
+        is Some(infers) &&
+        infers.is_empty() &&
+        @publication_host.prepared_client_serialization_occurrences(prepared) ==
+        [(component.task, component.step)] else {
+        return Err(Installed(Unsupported))
+      }
+    }
+    Some(selected) => {
+      guard physical_equal(selected.prepared, prepared) &&
+        component.task == selected.serialization_task &&
+        component.step == selected.serialization_step else {
+        return Err(Preparation(ForeignOriginal))
+      }
+    }
   }
   match owner.program_domain_compilation_inputs {
     Some(
@@ -113,9 +175,26 @@ pub fn[I] prepare_request_serialization_compilation(
         old_component
       )
     ) => {
-      guard physical_equal(old_manifests, manifests) &&
+      guard keyed is None &&
+        physical_equal(old_manifests, manifests) &&
         old_limits == compilation_limits &&
         physical_equal(old_contracts, contracts) &&
+        physical_equal(old_component, component) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+    }
+    Some(
+      RequestKeyedSerializationCompilation(
+        old_manifests,
+        old_limits,
+        old_keyed,
+        old_component
+      )
+    ) => {
+      guard keyed is Some(selected) &&
+        physical_equal(old_keyed, selected) &&
+        physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
         physical_equal(old_component, component) else {
         return Err(Preparation(ForeignOriginal))
       }
@@ -123,9 +202,16 @@ pub fn[I] prepare_request_serialization_compilation(
     Some(_) => return Err(Preparation(ForeignOriginal))
     None =>
       owner.program_domain_compilation_inputs = Some(
-        RequestSerializationCompilation(
-          manifests, compilation_limits, contracts, component,
-        ),
+        match keyed {
+          None =>
+            RequestSerializationCompilation(
+              manifests, compilation_limits, contracts, component,
+            )
+          Some(selected) =>
+            RequestKeyedSerializationCompilation(
+              manifests, compilation_limits, selected, component,
+            )
+        },
       )
   }
   owner.phase = Selecting
@@ -191,13 +277,27 @@ pub fn[I] complete_request_content_preparation(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
+  let compilation = match owner.program_domain_compilation_inputs {
+    None => None
+    Some(RequestKeyedSerializationCompilation(_, _, original, component)) => {
+      guard physical_equal(original, selected) &&
+        owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
+        @publication_host.client_task_compilation_serialization(compilation)
+        is Some(compiled_component) &&
+        physical_equal(compiled_component, component) else {
+        return Err(ForeignOriginal)
+      }
+      owner.program_compilation
+    }
+    Some(_) => return Err(ForeignOriginal)
+  }
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
   owner.phase = Selecting
-  owner.program_content = KeyedContent(selected)
+  owner.program_content = KeyedContent(selected, compilation)
   owner.program_content_request = Some(request)
   owner.program_body_attempted = true
   let result = @resources.complete_preparation_capacity(
@@ -312,14 +412,15 @@ pub fn[I] begin_request_content_managed_run(
   }
   owner.phase = Selecting
   let result = match owner.program_content {
-    KeyedContent(selected) =>
-      begin_preparation_owned_installed_content_run(
+    KeyedContent(selected, _) =>
+      adopt_preparation_owned_content_original(
         owner.initial,
         input,
         capacity,
         prepared,
         request,
-        selected,
+        owner.program_content,
+        selected.limits,
       )
     SerializationContent(selected) =>
       begin_preparation_owned_installed_serialization_run(

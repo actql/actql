@@ -625,7 +625,9 @@ fn[I] prepare_request_compilation_owned(
   let domain = owner.program_domain_compilation_inputs
   let continuation_phase = match domain {
     Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
-    Some(RequestSerializationCompilation(_, _, _, _)) => ContentPlanReserved
+    Some(RequestSerializationCompilation(_, _, _, _))
+    | Some(RequestKeyedSerializationCompilation(_, _, _, _)) =>
+      ContentPlanReserved
     None => ProgramPlanReserved
   }
   let sequence = @publication_host.prepared_client_values_sequence_limits(
@@ -648,7 +650,8 @@ fn[I] prepare_request_compilation_owned(
                   [graph],
                   limits,
                 )
-              Some(RequestSerializationCompilation(_, _, _, component)) =>
+              Some(RequestSerializationCompilation(_, _, _, component))
+              | Some(RequestKeyedSerializationCompilation(_, _, _, component)) =>
                 @publication_host.prepared_client_serialization_measurement_storage(
                   prepared, component, limits,
                 )
@@ -699,7 +702,8 @@ fn[I] prepare_request_compilation_owned(
               limits.max_nodes,
               limits.max_depth,
             )
-          Some(RequestSerializationCompilation(_, _, _, component)) =>
+          Some(RequestSerializationCompilation(_, _, _, component))
+          | Some(RequestKeyedSerializationCompilation(_, _, _, component)) =>
             @publication_host.measure_prepared_client_serialization_compilation_construction(
               prepared, component, manifests, limits,
             )
@@ -769,63 +773,67 @@ fn[I] prepare_request_compilation_owned(
   let attempted : Result[
     @publication_host.ClientRunCompilation,
     ClientRequestProgramPlanIssue,
-  ] = if domain is Some(RequestModelCompilation(_, _, _, graph)) {
-    @publication_host.observe_prepared_client_multi_infer_plan_encoding(
-      prepared,
-      [graph],
-      manifests,
-      sequence,
-      limits.max_facts,
-      limits.max_witnesses,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-      nodes_out=owner.program_artifact_plan_encoding_nodes,
-    )
-    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
-    .map_err(issue => TaskCompilation(issue))
-  } else if domain is Some(RequestSerializationCompilation(_, _, _, component)) {
-    @publication_host.observe_prepared_client_serialization_plan_encoding(
-      prepared,
-      component,
-      manifests,
-      limits.max_facts,
-      limits.max_witnesses,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-      nodes_out=owner.program_artifact_plan_encoding_nodes,
-    )
-    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
-    .map_err(issue => TaskCompilation(issue))
-  } else if geometry.tasks {
-    @publication_host.observe_prepared_client_task_plan_encoding(
-      prepared,
-      manifests,
-      sequence,
-      limits.max_facts,
-      limits.max_witnesses,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-      nodes_out=owner.program_artifact_plan_encoding_nodes,
-    )
-    .map(value => @publication_host.ClientRunCompilation::Tasks(value))
-    .map_err(issue => TaskCompilation(issue))
-  } else {
-    @publication_host.observe_prepared_client_values_plan_encoding(
-      prepared,
-      manifests,
-      sequence,
-      limits.max_facts,
-      limits.max_witnesses,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-      nodes_out=owner.program_artifact_plan_encoding_nodes,
-    )
-    .map(value => @publication_host.ClientRunCompilation::Values(value))
-    .map_err(issue => ValuesCompilation(issue))
+  ] = match domain {
+    Some(RequestModelCompilation(_, _, _, graph)) =>
+      @publication_host.observe_prepared_client_multi_infer_plan_encoding(
+        prepared,
+        [graph],
+        manifests,
+        sequence,
+        limits.max_facts,
+        limits.max_witnesses,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        nodes_out=owner.program_artifact_plan_encoding_nodes,
+      )
+      .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+      .map_err(issue => TaskCompilation(issue))
+    Some(RequestSerializationCompilation(_, _, _, component))
+    | Some(RequestKeyedSerializationCompilation(_, _, _, component)) =>
+      @publication_host.observe_prepared_client_serialization_plan_encoding(
+        prepared,
+        component,
+        manifests,
+        limits.max_facts,
+        limits.max_witnesses,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        nodes_out=owner.program_artifact_plan_encoding_nodes,
+      )
+      .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+      .map_err(issue => TaskCompilation(issue))
+    None =>
+      if geometry.tasks {
+        @publication_host.observe_prepared_client_task_plan_encoding(
+          prepared,
+          manifests,
+          sequence,
+          limits.max_facts,
+          limits.max_witnesses,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          nodes_out=owner.program_artifact_plan_encoding_nodes,
+        )
+        .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+        .map_err(issue => TaskCompilation(issue))
+      } else {
+        @publication_host.observe_prepared_client_values_plan_encoding(
+          prepared,
+          manifests,
+          sequence,
+          limits.max_facts,
+          limits.max_witnesses,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          nodes_out=owner.program_artifact_plan_encoding_nodes,
+        )
+        .map(value => @publication_host.ClientRunCompilation::Values(value))
+        .map_err(issue => ValuesCompilation(issue))
+      }
   }
   match finish_request_program_artifact_work(owner) {
     Err(issue) => return Err(Preparation(issue))

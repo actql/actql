@@ -344,3 +344,178 @@ test "source-free Serialization compilation remains on original Request capacity
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+fn request_keyed_serialization_component(
+  prepared : @publication_host.PreparedClientProgram,
+  selected : ClientInstalledManagedKeyedPreparation,
+) -> @publication_host.ClientSerializationPlanGraph {
+  @publication_host.issue_prepared_client_acquired_serialization_plan_graph(
+    prepared,
+    selected.serialization_task,
+    selected.serialization_step,
+    3,
+    4096,
+    1000000,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+}
+
+///|
+test "same Request keyed Serialization retains its one original compiler through Content adoption and retirement" {
+  let (parent, input, prepared, selected, request) = request_content_fixture()
+  let holder = borrow_request_content_plan_input(parent, input).unwrap()
+  let component = request_keyed_serialization_component(prepared, selected)
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let before = @resources.ledger_usage(parent.ledger)
+  // The source-free constructor remains confined to its original purpose.
+  assert_true(
+    prepare_request_serialization_compilation(
+      parent,
+      input,
+      component,
+      selected.installed_contracts,
+      manifests~,
+      compilation_limits=limits,
+    )
+    is Err(Installed(Unsupported)),
+  )
+  let compilation = prepare_request_keyed_serialization_compilation(
+    parent,
+    input,
+    selected,
+    component,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let spent = parent.program_artifact_work_spent
+  assert_true(spent > 0L)
+  assert_eq(spent, parent.program_artifact_plan_encoding_nodes.val)
+  assert_true(
+    @publication_host.client_task_compilation_serialization(compilation)
+    is Some(original) &&
+    physical_equal(original, component),
+  )
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "request-keyed-content", "same-original", "2026-10-31T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  @publication_host.validate_client_run_binding(
+    request, prepared, compiled, definition,
+  ).unwrap()
+  let compiled_usage = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_keyed_serialization_compilation(
+      parent,
+      input,
+      selected,
+      component,
+      manifests~,
+      compilation_limits=limits,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), compiled_usage)
+  assert_eq(parent.program_artifact_work_spent, spent)
+  complete_request_content_preparation(parent, input, request, selected).unwrap()
+  let held = borrow_request_program_preparation(parent).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  let run = begin_request_content_managed_run(parent, request).unwrap()
+  assert_true(
+    parent.program_compilation is None &&
+    parent.program_domain_compilation_inputs is None,
+  )
+  assert_true(
+    run.content
+    is KeyedContent(original, Some(@publication_host.Tasks(artifact))) &&
+    physical_equal(original, selected) &&
+    physical_equal(artifact, compilation),
+  )
+  assert_true(
+    run.ledger is Some(original) && physical_equal(original, parent.ledger),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+  assert_eq(parent.program_artifact_work_spent, spent)
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(run.content is NoContent)
+  assert_true(
+    @resources.preparation_body_borrow_value(held) is Some(original) &&
+    physical_equal(original, prepared),
+  )
+  assert_true(@resources.return_preparation_body_borrow(held).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  let retired = @resources.ledger_usage(parent.ledger)
+  assert_eq(retired.live_reservations, 0)
+  assert_eq(retired.reserved_retention_bytes, 0L)
+  assert_eq(retired.reserved_execution_bytes, 0L)
+  assert_eq(parent.program_artifact_work_spent, spent)
+}
+
+///|
+test "keyed Request compiler refuses foreign input Plan coordinates and completion without changing its original artifact" {
+  let (parent, input, prepared, selected, request) = request_content_fixture()
+  let (foreign, _, other_prepared, other, _) = request_content_fixture()
+  let component = request_keyed_serialization_component(prepared, selected)
+  let other_component = request_keyed_serialization_component(
+    other_prepared, other,
+  )
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let before = request_preparation_accounting(parent)
+  for
+    (candidate_input, candidate, graph) in [
+      ([77], selected, component),
+      (input, other, other_component),
+      (
+        input,
+        { ..selected, serialization_step: selected.serialization_step + 1, },
+        component,
+      ),
+    ] {
+    assert_true(
+      prepare_request_keyed_serialization_compilation(
+        parent,
+        candidate_input,
+        candidate,
+        graph,
+        manifests~,
+        compilation_limits=limits,
+      )
+      is Err(Preparation(ForeignOriginal)),
+    )
+    assert_eq(request_preparation_accounting(parent), before)
+  }
+  let compilation = prepare_request_keyed_serialization_compilation(
+    parent,
+    input,
+    selected,
+    component,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let copied = { ..selected, }
+  let after = request_preparation_accounting(parent)
+  assert_true(
+    complete_request_content_preparation(parent, input, request, copied)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(request_preparation_accounting(parent), after)
+  assert_true(
+    parent.program_compilation is Some(@publication_host.Tasks(original)) &&
+    physical_equal(original, compilation),
+  )
+  abort_request_preparation_after_cleanup(foreign).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

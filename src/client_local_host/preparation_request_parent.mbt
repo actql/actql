@@ -46,6 +46,12 @@ priv enum ClientRequestDomainCompilationInputs {
     ClientInstalledSequenceContracts,
     @publication_host.ClientSerializationPlanGraph
   )
+  RequestKeyedSerializationCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledManagedKeyedPreparation,
+    @publication_host.ClientSerializationPlanGraph
+  )
 }
 
 ///|
