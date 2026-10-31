@@ -146,3 +146,23 @@ test('Request keyed child history and original request are not refilled by physi
   assert.equal((await child.close()).pending,false);assert.equal((await f.child().close()).pending,false);
   assert.throws(()=>f.child(),{code:'InstalledSourcePreparationMismatch'});await f.profile.close();
 });
+
+test('actual planFor forwards its original keyed selection through adoption before the Task issuer',async()=>{
+  const f=await fixture(),source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');let selected;
+  const walk=n=>{if(!n||typeof n!=='object')return;
+    if(n.type==='VariableDeclarator'&&n.id?.name==='planFor')selected=n.init;
+    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
+  walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
+  const ports={prepareSubmit:{assertOwned:p=>assert.equal(p,f.prepared),originalInferRun:()=>undefined},
+    earlyMockInferPlans:new WeakMap(),earlyContentPlans:new WeakMap(),inferSelections:new WeakMap(),
+    preparation:{},moon:{clientProgramSerializationOccurrences:()=>[{}],clientProgramAcquisitionCount:()=>2},
+    control:{},authorityScopeCid:'authority',namespaceId:'namespace',storeAuthorityCid:'store',now:()=> '2026-10-31T00:00:00.000Z',
+    installedResultDataPolicy:{},runContent:f.content,
+    selectInstalledSerializationGraph:options=>{assert.equal(options.preparedProgram,f.prepared);return f.graph;},
+    serializationTaskRunAdmission:options=>{assert.equal(options.compilationOriginal,f.compilation);assert.equal(options.serializationGraph,f.graph);
+      assert.equal(options.requestIdentity,f.request);f.calls.push('task-run');return f.plan;},
+    diagnostic:()=>assert.fail('No successful-path diagnostic'),clientOperationError:code=>Object.assign(new Error(code),{code})};
+  const planFor=Function(...Object.keys(ports),`return (${source.slice(selected.start,selected.end)});`)(...Object.values(ports));
+  assert.equal(planFor({preparedProgram:f.prepared,requestId:'original-request'},undefined,f.request,f.keyed),f.plan);
+  assert.deepEqual(f.calls,['prefix','selected','compile','complete','adopt','task-run']);await f.profile.close();
+});
