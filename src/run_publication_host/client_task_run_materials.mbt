@@ -7,6 +7,53 @@ pub(all) struct ClientTaskRunMaterials {
   compilation : ClientTaskCompilation
   admission : @publication.RunPublicationAdmission
   run_definition : @publication.PublicationContract
+  retained_input : ClientTaskRunMaterialsRetainedInput
+}
+
+///|
+/// Exact checked codec input. Private fields prevent a caller from attaching
+/// independently prepared input or a replacement wire to an admitted task.
+pub struct ClientTaskRunMaterialsRetainedInput {
+  prepared : PreparedClientProgram
+  materials_wire : String
+  program : String
+  environment_wire : String
+  parameters_wire : String?
+}
+
+///|
+pub fn client_task_run_materials_retained_input(
+  materials : ClientTaskRunMaterials,
+) -> ClientTaskRunMaterialsRetainedInput {
+  materials.retained_input
+}
+
+///|
+pub fn client_task_run_materials_retained_program(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> PreparedClientProgram {
+  input.prepared
+}
+
+///|
+pub fn client_task_run_materials_retained_document(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String {
+  input.program
+}
+
+///|
+pub fn client_task_run_materials_retained_environment(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String {
+  input.environment_wire
+}
+
+///|
+pub fn client_task_run_materials_retained_parameters(
+  input : ClientTaskRunMaterialsRetainedInput,
+) -> String? {
+  input.parameters_wire
 }
 
 ///|
@@ -151,7 +198,19 @@ fn admit_client_task_run_materials_compilation(
   match
     bind_client_task_run(input.prepared, compilation, admission, run_definition) {
     Ok(_) =>
-      Ok({ prepared: input.prepared, compilation, admission, run_definition, })
+      Ok({
+        prepared: input.prepared,
+        compilation,
+        admission,
+        run_definition,
+        retained_input: {
+          prepared: input.prepared,
+          materials_wire: input.materials_wire,
+          program: input.program,
+          environment_wire: input.environment_wire,
+          parameters_wire: input.parameters_wire,
+        },
+      })
     Err(issue) => Err(Binding(issue))
   }
 }
@@ -163,6 +222,9 @@ fn admit_client_task_run_materials_compilation(
 pub fn client_task_run_materials_compiled_original(
   materials : ClientTaskRunMaterials,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  if !physical_equal(materials.prepared, materials.retained_input.prepared) {
+    return Err(ForeignOwner)
+  }
   let value : ClientCompiledRun = {
     owner: materials.prepared,
     compilation: Tasks(materials.compilation),

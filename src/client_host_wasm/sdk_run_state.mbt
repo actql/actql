@@ -1,4 +1,56 @@
 ///|
+/// Project only an already saved SDK observation from the original admitted
+/// Submission/Run snapshot. Its observation counter/key remains independent of
+/// the SQL and Run control revisions. This neither refreshes availability nor
+/// issues a replacement observation, preparation, publication or start claim.
+fn saved_sdk_run_state_wire(
+  snapshot : @host.ClientSavedSubmissionSnapshot?,
+) -> Result[Bytes, Int] {
+  guard snapshot is Some(snapshot) &&
+    @host.client_saved_submission_run_row(snapshot) is Some(row) &&
+    @host.client_saved_submission_state_original(snapshot) is Some(state) else {
+    return Err(-42)
+  }
+  let submitted = @host.client_saved_submission_record(snapshot)
+  guard submitted.run_admission is Some(_) &&
+    submitted.run_state_original == Some(state.wire()) &&
+    submitted.run_state_observation is Some((revision, Some(key))) else {
+    return Err(-42)
+  }
+  // A decoded row is not enough: the snapshot's existing nested validator has
+  // already admitted these same originals. Require their SDK provenance too.
+  guard @host.decode_client_run_journal_row_with_observation_originals(row.body)
+    is Ok((run, Some(_), Some(_))) &&
+    @publication.run_definition_run_id(run.definition) is Ok(run_id) else {
+    return Err(-32)
+  }
+  saved_sdk_run_state_observation_wire(state, run_id, revision, key)
+}
+
+///|
+// Match the existing Native saved-state reader's exact observation binding.
+// Never infer a public revision or availability from a row/COMMIT scalar.
+fn saved_sdk_run_state_observation_wire(
+  state : @host.ClientRunStateOriginal,
+  run_id : String,
+  revision : Int64,
+  key : String,
+) -> Result[Bytes, Int] {
+  let observation = match
+    @publication.prepare_run_state_observation(
+      state.state_wire(), run_id, revision, 65536, 8192, 64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-32)
+  }
+  if observation.key() != key ||
+    observation.wire(revision).to_option() != Some(state.state_wire()) {
+    return Err(-32)
+  }
+  Ok(@utf8.encode(state.state_wire()))
+}
+
+///|
 fn sdk_run_state_snapshot(
   value : Instance,
   run : Int,

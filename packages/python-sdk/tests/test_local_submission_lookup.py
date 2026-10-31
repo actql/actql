@@ -61,10 +61,104 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                                  for family, _, _ in calls))
             self.assertTrue(host.close())
 
-    def fixture(self, directory, observed, *, run_reference=None, result_name=None):
+    def test_public_saved_intent_conflict_refuses_before_preparation_or_write(self):
+        admission = {'ref': {'namespaceId': 'local',
+            'authorityScopeCid': 'sha256:' + 'a' * 64,
+            'runDefinitionCid': 'sha256:' + 'd' * 64},
+            'durability': 'durable', 'revision': 7}
+        for kind in ('ready', 'preparing'):
+            with self.subTest(kind=kind), TemporaryDirectory(prefix='actql-intent-conflict-') as directory:
+                observed = {'kind': kind, 'intentCid': 'sha256:' + 'e' * 64}
+                if kind == 'ready':
+                    observed['admission'] = json.dumps(admission)
+                host, _, _, counters, reference = self.fixture(directory, observed)
+                body = self.submit_body(reference)
+                async def submit():
+                    response = await host.open('submit-intent', json.dumps(body).encode())
+                    try:
+                        return json.loads(await response.aread())
+                    finally:
+                        await response.aclose()
+                with (patch.object(host, '_accept_original', side_effect=AssertionError('Conflict prepared')),
+                      patch.object(host._installation._store, 'compare_exchange_many_inspected',
+                                   side_effect=AssertionError('Conflict wrote'))):
+                    result = asyncio.run(submit())
+                self.assertEqual(result, {'kind': 'conflict', 'attemptRef': body['attemptRef'],
+                    'submissionRef': reference, 'intentCid': body['intentCid'], 'reason': 'intent'})
+                self.assertEqual(counters['produce'], 1)
+                self.assertFalse(host._run_loans)
+                self.assertFalse(host._physical_work)
+                self.assertTrue(host.close())
+
+    def test_public_saved_lookup_refusal_does_not_fall_through_to_preparation(self):
+        with TemporaryDirectory(prefix='actql-submit-lookup-refusal-') as directory:
+            host, core, _, _, reference = self.fixture(directory, {'kind': 'missing'})
+            with (patch.object(core, 'validate_submission_lookup',
+                               side_effect=LocalCoreError('validate_submission_lookup', -32)),
+                  patch.object(host, '_accept_original', side_effect=AssertionError('Refused lookup prepared'))):
+                with self.assertRaises(LocalCoreError):
+                    asyncio.run(host.open('submit-intent', json.dumps(self.submit_body(reference)).encode()))
+            output = host._projections[-1]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._physical_work)
+            self.assertTrue(host.close())
+
+    def test_public_cold_status_returns_exact_saved_original_without_live_run(self):
+        from test_local_public_run_observation import STATE
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        with TemporaryDirectory(prefix='actql-cold-status-') as directory:
+            host, _, calls, counters, _ = self.fixture(directory, STATE,
+                run_reference=reference, saved_state=True)
+            async def observe():
+                response = await host.open('status', json.dumps({'connection': {
+                    'mode': 'local', 'owner': 'local', 'durability': 'durable',
+                    'consentRefs': [], 'runners': []}, 'ref': reference}).encode())
+                try:
+                    return json.loads(await response.aread())
+                finally:
+                    await response.aclose()
+            with (patch.object(host, '_prepare_original', side_effect=AssertionError('Cold status prepared')),
+                  patch.object(host._installation._store, 'compare_exchange_many_inspected',
+                               side_effect=AssertionError('Cold status wrote'))):
+                self.assertEqual(asyncio.run(observe()), STATE)
+            self.assertEqual(counters['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
+            self.assertFalse(host._physical_work)
+            self.assertFalse(host._public_run_references)
+            self.assertFalse(any(family in ('program', 'task', 'compute', 'publication')
+                                 for family, _, _ in calls))
+            self.assertTrue(host.close())
+
+    def test_public_cold_status_missing_or_refused_original_keeps_custody_without_preparation(self):
+        from test_local_public_run_observation import STATE
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        for code in (-42, -32):
+            with self.subTest(code=code), TemporaryDirectory(prefix='actql-cold-status-refusal-') as directory:
+                host, core, _, _, _ = self.fixture(directory, STATE,
+                    run_reference=reference, saved_state=True)
+                with (patch.object(core, 'produce_submission_lookup',
+                                   side_effect=LocalCoreError('produce_submission_lookup', code)),
+                      patch.object(host, '_prepare_original', side_effect=AssertionError('Refusal prepared'))):
+                    with self.assertRaises(LocalCoreError) as failed:
+                        asyncio.run(host.open('status', json.dumps({'connection': {
+                            'mode': 'local', 'owner': 'local', 'durability': 'durable',
+                            'consentRefs': [], 'runners': []}, 'ref': reference}).encode()))
+                self.assertEqual(failed.exception.code, code)
+                output = host._projections[-1]
+                self.assertIs(core._loans[output.ticket], output)
+                self.assertFalse(host._run_loans)
+                self.assertFalse(host._prepared_inputs)
+                self.assertFalse(host._physical_work)
+                self.assertTrue(host.close())
+
+    def fixture(self, directory, observed, *, run_reference=None, result_name=None, saved_state=False):
         fixture = append_fixture.LocalSubmissionAppendTests()
         host, core, calls, _ = fixture.host(Path(directory))
-        if result_name is not None:
+        if result_name is not None or saved_state:
             # Scalar metadata selects this transport branch only. It does not
             # prove actual SDK Account/profile/Run admission or Core execution.
             host._configuration = replace(host._configuration, sdk=True)
@@ -82,12 +176,12 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             return callbacks
 
         def call(family, name, *args):
-            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6):
+            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6, 7):
                 # Reserve output custody before entering its physical Read.
                 callbacks = core._journal_callbacks(host._installation.binding._current.ticket)
                 self.assertIsNone(callbacks.reader)
                 handle = 100 + args[3]
-                self.assertEqual(args[2], 6 if result_name is not None else 4 if run_reference is None else 5)
+                self.assertEqual(args[2], 7 if saved_state else 6 if result_name is not None else 4 if run_reference is None else 5)
                 sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'produce' and args[0] in sources:

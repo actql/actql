@@ -81,7 +81,7 @@ fn observe_submission_lookup(
   let inspect_run = row => {
     submission_run_inspection_with_identity(row, identity)
   }
-  if record.kind == 5 || record.kind == 6 {
+  if record.kind == 5 || record.kind == 6 || record.kind == 7 {
     guard @decode.closed_object(
         cursor,
         if record.kind == 6 {
@@ -314,6 +314,9 @@ fn produce_submission_lookup(
   if record.output_closed {
     return -5
   }
+  if record.kind == 7 && configuration.sdk is None {
+    return -32
+  }
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
     Err(code) => return code
@@ -342,13 +345,23 @@ fn produce_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
-  let wire = match submission_lookup_wire(snapshot) {
+  let projected = if record.kind == 7 {
+    saved_sdk_run_state_wire(snapshot)
+  } else {
+    submission_lookup_wire(snapshot)
+  }
+  let wire = match projected {
     Ok(value) => value
     Err(code) => return code
   }
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
     Err(code) => return code
+  }
+  if record.kind == 7 {
+    // Retain the actual admitted rows before transferring their saved state.
+    // Later validation must reobserve this exact original, not an equal reply.
+    record.saved_state = snapshot
   }
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, wire),
@@ -367,7 +380,7 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    (record.kind == 4 || record.kind == 5 || record.kind == 6) &&
+    (record.kind == 4 || record.kind == 5 || record.kind == 6 || record.kind == 7) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
@@ -380,11 +393,25 @@ fn validate_submission_lookup(
       Err(code) => code
     }
   }
-  let snapshot = match observe_submission_lookup(value, record, configuration) {
+  if record.kind == 7 && record.saved_state is None {
+    return -42
+  }
+  let snapshot = match
+    observe_submission_lookup(
+      value,
+      record,
+      configuration,
+      original=record.saved_state,
+    ) {
     Ok(value) => value
     Err(code) => return code
   }
-  let wire = match submission_lookup_wire(snapshot) {
+  let projected = if record.kind == 7 {
+    saved_sdk_run_state_wire(snapshot)
+  } else {
+    submission_lookup_wire(snapshot)
+  }
+  let wire = match projected {
     Ok(value) => value
     Err(code) => return code
   }

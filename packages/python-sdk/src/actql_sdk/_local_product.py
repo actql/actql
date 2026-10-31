@@ -354,27 +354,50 @@ class InstalledLocalHost:
                     'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
                 if body['intentCid'] != identity:
                     raise ValueError('Invalid original Local submitted intent identity')
-                run, admission = self._accept_original(body['submissionRef'],
-                    wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
-                saved = _object(admission, 4096)
-                if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
-                        or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
-                    raise ValueError('Invalid original saved Local admission wire')
-                # The invocation envelope correlates this call with the saved
-                # Owner admission, as in the existing Host transport. It does
-                # not manufacture a Run terminal, dispatch or Result response.
-                value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
-                    'kind': 'ready', 'submissionRef': body['submissionRef'],
-                    'intentCid': identity, 'admission': saved}}
-                if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
-                    raise ValueError('Invalid original Local Submission response')
-                self._register_original_run_reference(run, admission)
-                raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
+                observed = _object(self._lookup_original_submission(body['submissionRef']), 1048576)
+                if observed.get('kind') in ('ready', 'preparing') and observed.get('intentCid') != identity:
+                    value = {'kind': 'conflict', 'attemptRef': body['attemptRef'],
+                        'submissionRef': body['submissionRef'], 'intentCid': identity, 'reason': 'intent'}
+                    if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
+                        raise ValueError('Invalid original Local Submission conflict')
+                    raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+                elif observed.get('kind') == 'ready':
+                    # The saved admission is DATA, not a restored executable
+                    # Run. Never prepare, dispatch or issue another Run here.
+                    value = {'kind': 'already_satisfied', 'attemptRef': body['attemptRef'],
+                        'outcome': observed}
+                    if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
+                        raise ValueError('Invalid original saved Local Submission response')
+                    raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+                else:
+                    run, admission = self._accept_original(body['submissionRef'],
+                        wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
+                    saved = _object(admission, 4096)
+                    if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                            or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+                        raise ValueError('Invalid original saved Local admission wire')
+                    # The invocation envelope correlates this call with the saved
+                    # Owner admission, as in the existing Host transport. It does
+                    # not manufacture a Run terminal, dispatch or Result response.
+                    value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
+                        'kind': 'ready', 'submissionRef': body['submissionRef'],
+                        'intentCid': identity, 'admission': saved}}
+                    if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
+                        raise ValueError('Invalid original Local Submission response')
+                    self._register_original_run_reference(run, admission)
+                    raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+                    work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
             elif operation in ('status', 'wait'):
                 if operation == 'wait' and (body['until'] not in (None, 'terminal')
                         or body['since'] is not None):
                     raise ValueError('Original Local wait condition supplier is unavailable')
+                if not self._has_live_original_run_reference(body['ref']):
+                    raw = self._read_original_reference(body['ref'], kind=7)
+                    stream = OriginalLocalResponseStream(self, raw, maximum=1048576)
+                    response = httpx.Response(200, headers={'content-type': 'application/json',
+                        'content-encoding': 'identity'}, stream=stream)
+                    stream._attached = True
+                    return response
                 # Submission waits for its original physical work. Both forms
                 # reobserve the same completed publication; the SDK's existing
                 # wait validator still requires an actual stable Owner state.
@@ -915,7 +938,7 @@ class InstalledLocalHost:
             if kind == 4:
                 installation._epoch.identity(captured_reference)
                 body = {'reference': wire_bytes(captured_reference).decode('utf-8')}  # type: ignore[no-untyped-call]
-            elif kind == 5 and wire.valid(captured_reference, 'run_ref'):  # type: ignore[no-untyped-call]
+            elif kind in (5, 7) and wire.valid(captured_reference, 'run_ref'):  # type: ignore[no-untyped-call]
                 body = captured_reference
             else:
                 raise ValueError('Invalid original Local reference selection')
@@ -930,6 +953,16 @@ class InstalledLocalHost:
                 captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
             installation.binding.inspect(observe)
             original = captured[0]
+            if kind == 7:
+                # Core selects the same saved original state, observation key
+                # and revision under the full current snapshot. This branch
+                # neither refreshes availability nor reconstructs a Run.
+                if not wire.valid(original, 'run_state'):  # type: ignore[no-untyped-call]
+                    raise ValueError('Invalid original saved Local RunState')
+                raw = wire_bytes(original)  # type: ignore[no-untyped-call]
+                if not self._close_projection(output):
+                    raise LocalProductCleanupPending(self)
+                return raw
             observed_kind = original.get('kind')
             fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
                       if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}

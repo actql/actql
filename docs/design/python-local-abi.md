@@ -67,6 +67,12 @@ Check allowance while preserving the smaller existing metadata-response limit.
 It does not turn a report into a reusable checked Program or bypass ordinary
 submission checking and current authorization.
 
+When an in-process Local submission loses its response or refuses its response
+wire, the SDK's existing Unknown carrier retains the same underlying Local
+failure for diagnosis. That reference supplies no retry or nonexecution proof.
+Remote transport diagnostics remain private, and cancellation retains its
+original carrier rather than becoming Unknown.
+
 ## Durable SDK Run observations
 
 Fresh Local acceptance issues the existing observation counter/key marker in the
@@ -2835,6 +2841,20 @@ missing or refused index exports preserve the pending pair. The observation
 action alone is neither acknowledgement nor a public RunState observation.
 
 ### Saved Run observations and Result reads
+
+A repeated submit first observes the authenticated original submission under
+the same current Store snapshot. A ready record with the same intent returns
+its existing admission without preparation, dispatch or a new executable Run.
+A different retained intent returns the existing intent-conflict outcome;
+lookup refusal cannot fall through to fresh preparation. This DATA response
+does not supply the retained prepared input needed for executable restoration.
+
+Cold status uses the existing reference-only submission projection and retains
+its original saved snapshot until output cleanup. It returns only a saved SDK
+state whose original observation key and public revision match the same Run.
+It neither refreshes availability nor issues an observation clock or counter.
+Missing historical state remains unavailable, and refused validation retains
+the same output/input loans. The live Run status/observation path stays separate.
 
 A durable Client reference identifies saved originals, rather than a process-local
 Run object. The original installation binding reads the complete submitted-row

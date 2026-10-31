@@ -42,10 +42,10 @@ class LocalSubmissionAppendTests(unittest.TestCase):
         def call(family, name, *args):
             if family == 'submission' and name == 'reserve':
                 projections[100 + args[3]] = (args[1], args[2])
-                if args[2] == 3:
+                if args[2] in (3, 4):
                     calls.append((family, name, args))
                     return 100 + args[3]
-            if family == 'submission' and name == 'produce' and projections[args[0]][1] in (2, 3):
+            if family == 'submission' and name == 'produce' and projections[args[0]][1] in (2, 3, 4):
                 calls.append((family, name, args))
                 source, kind = projections[args[0]]
                 fields = json.loads(core._inputs[source - 100].payload)
@@ -56,6 +56,21 @@ class LocalSubmissionAppendTests(unittest.TestCase):
                     outputs[args[0]] = json.dumps({'epoch_wire': body.decode(),
                         'epoch_cid': 'sha256:' + hashlib.sha256(body).hexdigest(),
                         'request_id': REQUEST, 'validity': 'admissible'}).encode()
+                elif kind == 4:
+                    # Explicit scalar lookup port for the public first-admission
+                    # caller. No Core execution or original readiness is claimed.
+                    read_count()
+                    rows = []
+                    current().read('client_submitted_intents', REQUEST, lambda row: rows.append(row))
+                    if rows[0] is None:
+                        outputs[args[0]] = b'{"kind":"missing"}'
+                    else:
+                        self.assertEqual(rows[0][1].payload, PREPARING)
+                        original = json.loads(INTENT)
+                        preimage = json.dumps({'intent': original, 'version': 'actql-submitted-intent/0.1'},
+                            ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+                        outputs[args[0]] = json.dumps({'kind': 'preparing',
+                            'intentCid': 'sha256:' + hashlib.sha256(preimage).hexdigest()}).encode()
                 else:
                     counters['append_produce'] += 1
                     self.assertEqual(fields['intent'].encode(), INTENT)
@@ -76,6 +91,9 @@ class LocalSubmissionAppendTests(unittest.TestCase):
                             ensure_ascii=False).encode()
                 return 0
             if family == 'submission' and name == 'validate_append':
+                if projections[args[0]][1] == 4:
+                    current()
+                    return 0
                 calls.append((family, name, args))
                 counters['append_validate'] += 1
                 self.assertEqual(args[1], host._installation.binding._current.handle)
