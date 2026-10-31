@@ -153,7 +153,10 @@ pub fn client_program_installed_effect_operation_controls_begin(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
   @client_local_host.begin_installed_effect_operation_controls(
     owner, prepared, request, plan,
   )

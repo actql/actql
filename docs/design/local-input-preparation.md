@@ -3872,3 +3872,65 @@ The actual keyed Plan adds its two scalar coordinates to constructor backing;
 full Graph/provider/output/failed-child overlap still belongs to the caller's
 same-parent construction backing before allocation. These link and coordinate
 facts do not establish that physical backing or normal Host acceptance.
+
+### Run-owned Effect operation coordinates
+
+The existing operation-control slot retains its original capacity reservation
+and a private index from the declared member/row/operation coordinates to an
+append-only slot. A live slot holds the exact original operation view. Membership
+compares that original at its stable position, including after the Run's current
+callback, rather than scanning every earlier operation.
+
+Only actual same-child cleanup and settlement clear a live slot. The lightweight
+coordinate remains spent until Run retirement; releasing a body does not refill
+attempts, work or its logical occurrence. A later operation appends a new slot
+and cannot make an old handle current again. Pending or uncertain cleanup keeps
+the original view and its backing. The Run's existing retirement gate clears
+the index only after all original children have acknowledged cleanup.
+
+The selected Plan retains one conservative per-occurrence control bound and
+uses the common collection representation owner for its index and growth.
+The same control reservation precedes index construction. Its count comes from
+the checked Plan and original implementation inventory, without another profile,
+per-wrapper phase, numerical policy, Resource owner or provider-authored recipe.
+
+### Same-boundary Effect reservation
+
+An operation borrow reads its immutable Plan and extent, then enters the
+existing Resource admission once. After its original physical current callback,
+a non-escaping internal Core continuation checks the same Local owner, Ledger,
+preparation and control/index links before any reservation or history mutation.
+Resource then rechecks its own original tuple, lifetime and park state without
+another callback, and uses its existing private control/body allocators.
+The continuation is neither retained nor exposed to JavaScript or connector
+authors. It issues no reusable current proof, Bool grant or new cleanup Owner.
+External I/O, await, Start, permission and other actual current boundaries stay
+separate.
+
+If the body quota refuses after a control was admitted, the closed call returns
+that original control with the typed body refusal. The same Run stores it first;
+no control serial, peak or charge is rolled back or refunded. Local original,
+Resource admission and control/body quota failures retain their distinct typed
+projections. The two physical/construction backings and their retirement remain
+the existing operation's duties.
+
+The opening latch permits one such synchronous Core call at a time. Its fixed
+frame uses one additional existing conservative Host-call envelope in the same
+aggregate control quote. Per-occurrence bounds remain proportional to the
+actual admitted operation inventory; no per-closure recipe, provider knob,
+new quotation phase or logical limit is introduced.
+The full same-parent frame/backing must exist before entering this call; the
+new control returned afterwards cannot fund an earlier allocation. The normal
+prepaid-control entrance and the original Run prelude retain those separate
+construction obligations. Independent Plan reads and real external/I/O/await
+boundaries keep their own current checks.
+
+Control initialization uses the same closed original boundary without creating
+a dummy operation body. The existing controls entrance returns its same
+immutable Plan after reserving/reusing the original control; it does not issue
+current authority. This lets an immediate same-original caller consume that
+result without obtaining the same Plan again. An independent later read still
+uses its actual bound getter. Any intervening callback or I/O keeps its own
+currentness obligations and original-state fences; no prechecked-Plan cache is
+introduced. The same opening latch and fixed aggregate call envelope apply to
+control initialization and body borrowing, with no additional capacity phase.
