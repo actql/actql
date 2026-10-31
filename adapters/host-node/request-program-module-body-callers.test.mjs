@@ -29,6 +29,8 @@ const ports = () => ({
   clientProgramPrepareRequestProgramModuleBody() {},
   clientProgramRequestProgramModuleIssueCode() {},
   clientProgramBorrowRequestProgramPlanInput() {},
+  clientProgramComposedInferOccurrences: () => [],
+  clientProgramSerializationOccurrences: () => [],
   clientProgramAcquisitionCount() {return 0;},
   clientProgramAdoptRequestProgramPreparation() {},
   clientProgramReserveRequestSnapshot() {},

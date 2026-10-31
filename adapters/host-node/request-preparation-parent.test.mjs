@@ -53,6 +53,8 @@ async function fixture({beginFailure, environment, control=[1024n,0n], policyLim
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
     clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
+    clientProgramComposedInferOccurrences: () => ok([]),
+    clientProgramSerializationOccurrences: () => [],
     clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };

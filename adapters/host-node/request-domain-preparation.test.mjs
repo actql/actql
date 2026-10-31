@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 
 // Execute the existing manager method with explicit Core original/phase ports.
 // These cases do not supply physical Model/Content construction backing.
@@ -99,4 +100,38 @@ test('mixed inventories and foreign domain originals refuse before ordinary or d
   assert.equal(foreign.state.holder, foreign.selected);
   assert.equal(foreign.state.inventoryHolder, foreign.inventory);
   assert(!foreign.calls.includes('return-inventory'));
+});
+
+test('original Request cleanup retains both family borrows until each acknowledged return', () => {
+  const parent = {}, prepared = {}, inventory = {}, selected = {}, failure = new Error('inventory-return');
+  const calls = [];
+  let failReturn = true, retired = 0;
+  const state = {parent, holder: selected, inventoryHolder: inventory, prepared,
+    compilationKind: 'effect_free', compilationFamily: 'model'};
+  const ok = value => ({$tag: 1, _0: value});
+  const moon = {
+    clientProgramAbortRequestPreparation(owner) {
+      assert.equal(owner, parent); calls.push('abort');
+      return state.holder !== undefined || state.inventoryHolder !== undefined
+        ? {$tag: 0, _0: 'retained-original-borrows'} : ok();
+    },
+    clientProgramPreparationBorrowRetirementStarted(holder) {
+      assert(holder === inventory || holder === selected); return true;
+    },
+    clientProgramPreparationBorrowReturn(holder) {
+      calls.push(holder === inventory ? 'inventory' : 'selected');
+      if (holder === inventory && failReturn) throw failure;
+      return ok(true);
+    },
+  };
+  state.context = {runtime: moon};
+  const retire = actual => {assert.equal(actual, prepared); retired++;};
+  assert.throws(() => cleanupRequestInput(state, retire), error => error === failure);
+  assert.equal(state.inventoryHolder, inventory); assert.equal(state.holder, selected);
+  assert.equal(state.prepared, undefined); assert.equal(retired, 1);
+  failReturn = false;
+  cleanupRequestInput(state, retire);
+  assert.equal(state.inventoryHolder, undefined); assert.equal(state.holder, undefined);
+  assert.equal(state.parent, undefined); assert.equal(retired, 1);
+  assert.deepEqual(calls, ['abort', 'inventory', 'abort', 'inventory', 'selected', 'abort']);
 });

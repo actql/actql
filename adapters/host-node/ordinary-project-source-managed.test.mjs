@@ -46,6 +46,8 @@ async function fixture() {
     clientProgramRequestProgramModuleIssueCode() {},
     clientProgramBorrowRequestProgramPlanInput: () => ok(holder),
     clientProgramPreparationBorrowRead: value => {assert.strictEqual(value, holder); return prepared;},
+    clientProgramComposedInferOccurrences: () => ok([]),
+    clientProgramSerializationOccurrences: () => [],
     clientProgramAcquisitionCount: () => 1,
     clientProgramRequestParametersOriginal: () => ok(undefined),
     clientProgramAdoptRequestProgramPreparation: () => assert.fail('No source-free adoption'),
