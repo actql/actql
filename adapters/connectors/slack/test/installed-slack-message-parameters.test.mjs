@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {installedSlackMessagesFixture} from './installed-slack-messages.fixture.mjs';
+import {assertRetiredSlackCapture} from './installed-slack.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 const parameterDeclarations='{"channel":{"type":"string"},"count":{"type":"int64"}}';
@@ -80,8 +81,8 @@ test('installed Slack acquisition refuses copied and foreign original preparatio
 
 test('installed Slack Parameter residuals cannot hide an invalid original excluded message',async t=>{
   const f=await installedSlackMessagesFixture(t);f.state.replies.C1[1].text=[];
-  const source=await f.load(),p=await f.prepare(source,options('aql'));let recovery;
-  await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
-  await f.retain(recovery,p.ledger);
-  assert.equal(f.state.requests.length,5);assert.equal(recovery.cleanupPending(),true);
+  const source=await f.load(),p=await f.prepare(source,options('aql'));let original;
+  await assert.rejects(source.openCapture(p),error=>{original=error;return error.code==='MoonBitHostFailure';});
+  await f.retain(original,p.ledger);
+  assert.equal(f.state.requests.length,5);await assertRetiredSlackCapture(f,p,original);
 });

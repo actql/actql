@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 const common=await import(process.env.ACTQL_TEST_SLACK_COMMON_MODULE ??
   new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
 const providerUrl=process.env.ACTQL_SLACK_PROVIDER_MODULE ??
@@ -19,6 +20,18 @@ import {createInstalledConnectorTable,installedConnectorForTable} from '../../..
 import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
 const retainedWitnesses=new Set();
 const repo=new URL('../../../../',import.meta.url);
+// Durable Unknown is separate from physical retention. The original shared
+// reader may already acknowledge retirement before its failure is returned.
+// A remaining recovery, when present, must itself release the same resources.
+export async function assertRetiredSlackCapture(f,preparation,error){
+  assert.equal(error.outcome,'stopped');
+  if(error.recovery!==undefined){
+    await error.recovery.close();assert.notEqual(await error.recovery.cleanup(),false);
+    assert.equal(error.recovery.cleanupPending(),false);
+  }
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),
+    ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']),[0n,0n,0n,0n]);
+}
 export async function installedSlackFixture(t,{account='allow'}={}){
   const lifetime=installedSourceFixtureLifetime(t);
   const f=await userListFixture(lifetime.transportContext,{accounted:false});
