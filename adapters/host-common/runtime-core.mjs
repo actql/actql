@@ -3376,6 +3376,31 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramInstalledMockModelSourceFreePlanPrepare;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      // These are the original module, selected Limits and Run tokens. The
+      // existing typed constructor checks their complete tuple; this binding
+      // issues no Scope/Run and does not select bounds or compile again.
+      return checked(Reflect.apply(prepare, moon, [original, request, value,
+        token(definition), occurrence, graph, selected]));
+    },
+    bindCheckedClientMockModelCapturePlan(original, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const bind = moon.clientProgramInstalledMockModelCapturePlanBind;
+      if (typeof bind !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(bind, moon, [original, value, token(definition),
+        occurrence, graph, selected]));
+    },
     checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
       declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
       const value = compiledRunTokens.get(compiled);
