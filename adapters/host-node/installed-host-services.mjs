@@ -782,6 +782,40 @@ function nestedImplementationReaderLimits(supplied, columns, profile) {
     propertyOccurrences: Number(occurrences < responses ? occurrences : responses), propertyPages: original.maxPropertyPages});
 }
 
+// Original Gmail list/get grammar, not a caller-supplied byte quote. The same
+// service retains every selected bound and asks Core to compose its nominal
+// prefix with the existing JSON response/row recipe before constructing it.
+function gmailThreadImplementationReaderLimits(supplied, columns, profile) {
+  const names = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','pageSize','maxPages',
+    'maxThreads','maxMailboxBytes','maxTargetBytes','maxIdBytes','maxTokenBytes','maxMessages','maxLabels',
+    'maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueNodes','maxValueTextBytes',
+    'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',
+    'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
+  const mayBeZero = ['maxMessages','maxLabels','maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueTextBytes'];
+  if (profile === undefined || columns !== 5 || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
+    !Object.hasOwn(supplied[name] ?? {},'value') || !Number.isSafeInteger(supplied[name].value) ||
+    supplied[name].value < (mayBeZero.includes(name) ? 0 : 1) || supplied[name].value > 2147483647)) {
+    fail('InvalidInstalledGmailThreadReaderLimits');
+  }
+  const original = Object.freeze(Object.fromEntries(names.map(name => [name,supplied[name].value])));
+  if (original.pageSize > 500 || original.maxPages > 2147483647 - original.maxThreads ||
+      original.maxMailboxBytes > profile.value.maxIdentityBytes ||
+      original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
+      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
+  const responses = original.maxPages + original.maxThreads;
+  return Object.freeze({original,responses,limits:Object.freeze({
+    maxResponseBytes:original.maxResponseBytes,maxTotalResponseBytes:original.maxTotalResponseBytes,
+    maxNodes:original.maxNodes,maxDepth:original.maxDepth,maxRows:1,maxTotalRows:original.maxThreads,
+    maxPages:responses,pageSize:original.pageSize,maxCursorBytes:original.maxTokenBytes,maxIdentityBytes:original.maxIdBytes,
+    maxTargetBytes:original.maxTargetBytes,maxValueNodes:original.maxValueNodes,
+    // The quote's positive slot does not replace Gmail's valid zero-text guard.
+    maxValueTextBytes:original.maxValueTextBytes === 0 ? 1 : original.maxValueTextBytes,
+    maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
+    maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
+  }),sequence:Object.freeze({operation:'gmail:threads:list',maxUses:original.maxPages,
+    childOperation:'gmail:threads:get',childMaxUses:original.maxThreads})});
+}
+
 // Snapshot only the existing required Source service methods. The connector
 // chooses its own unavailable error and retains its explicit legacy branch.
 // This view issues no service, installation, capacity or cleanup observation.
@@ -811,6 +845,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourcePolicy = moon.clientProgramInstalledSourceReaderPolicy;
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
+  const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
   const current = () => {
     if (Reflect.apply(assertCurrent, receiver, []) !== undefined) fail('InstalledHostServiceCurrentCheckNotSynchronous');
   };
@@ -865,7 +900,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
       const profile = sourceProfiles.get(selection);
-      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits;
+      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits;
+      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
+          Object.hasOwn(supplied, 'maxThreads')) {
+        threadLimits = gmailThreadImplementationReaderLimits(supplied, columns, profile);
+        supplied = Object.getOwnPropertyDescriptors(threadLimits.limits);
+      }
       if (Object.hasOwn(supplied, 'maxRequestBytes')) {
         // Only the complete original nested grammar has the selected request
         // constructor inventory. A method/body allowance alone is not a recipe.
@@ -907,15 +947,21 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             calendarLimits !== undefined && Object.keys(calendarLimits).some(function calendarSelectionChanged(name) {
               return previous.calendarLimits[name] !== calendarLimits[name];
             }) ||
+            (previous.threadLimits === undefined) !== (threadLimits === undefined) ||
+            threadLimits !== undefined && Object.keys(threadLimits.original).some(function threadSelectionChanged(name) {
+              return previous.threadLimits.original[name] !== threadLimits.original[name];
+            }) ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
-      const capacity = Reflect.apply(sourceCapacity, moon,
-        [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes]);
+      if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
+      const capacity = Reflect.apply(threadLimits === undefined ? sourceCapacity : gmailThreadCapacity, moon,
+        [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
+          ...(threadLimits === undefined ? [] : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, value}));
       return value;
     },
     createSourceReader(options) {
@@ -939,10 +985,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // The normal JSON page recipe does not back a retained query/property
       // sequence. Keep this entry refused until that same Source recipe owns
       // constructor, prefix, output and failed-child overlap before use.
-      if (managedSequence) fail('InstalledSourceReaderReadChildCapacityUnavailable');
+      if (managedSequence && implementation.threadLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
       if (implementation.nestedLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
+      if (implementation.threadLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
-      const limits = implementation.value.limits, nested = implementation.nestedLimits;
+      const limits = implementation.value.limits, nested = implementation.nestedLimits, threads = implementation.threadLimits;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
@@ -952,17 +999,19 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
-          maxRequestBytes: nested.original.maxRequestBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});
+          ...(nested === undefined ? {} : {maxRequestBytes:nested.original.maxRequestBytes}),
+          maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});
       if (constructor !== undefined) {
         const all = BigInt(nested?.responses ?? limits.maxPages) * BigInt(limits.maxResponseBytes);
         const prefix = BigInt(limits.maxTotalResponseBytes) + BigInt(limits.maxResponseBytes);
         constructor.scope.reader = factory;
         constructor.scope.readerDemand = Object.freeze({nested: nested !== undefined,
+          ...(threads === undefined ? {} : {sequence:threads.sequence}),
           responses: nested?.responses ?? limits.maxPages, queryPages: limits.maxPages,
           propertyPages: nested?.propertyPages, propertyOccurrences: nested?.propertyOccurrences,
           maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
           maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
-          transferBytes: nested === undefined || all < prefix ? all : prefix});
+          transferBytes: nested === undefined && threads === undefined || all < prefix ? all : prefix});
       }
       return factory;
     },

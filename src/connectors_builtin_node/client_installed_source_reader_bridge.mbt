@@ -28,3 +28,17 @@ pub fn client_program_installed_json_source_reader_profile(
     metadata_responses, origin_units,
   )
 }
+
+///|
+#export_name("clientProgramInstalledGmailThreadReaderCapacity")
+pub fn client_program_installed_gmail_thread_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  list_pages : Int,
+  mailbox_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_gmail_thread_reader_capacity(
+    limits, columns, secret_bytes, list_pages, mailbox_bytes,
+  )
+}

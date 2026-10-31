@@ -118258,7 +118258,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "39d4592c770137d8e0661aed0c3f5e39b4e4aed276aed98596e3ed727e579429",
+      "sha256": "2ee6349eeab84f91d0d34d24031d6a62e801babd48758632fee7e6b4297e115a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -118421,6 +118421,16 @@
           "async": true
         },
         {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation/init:consumeObservation",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePage/init:consumePage",
           "parameters": [
             "rows"
@@ -118444,6 +118454,15 @@
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire/init:consumePageWire",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:project/init:project",
+          "parameters": [
+            "method",
+            "receiver",
+            "args"
+          ],
+          "async": false
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild",
@@ -118761,10 +118780,13 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation/init:consumeObservation",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePage/init:consumePage",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePage/init:consumePage/init:consumePage",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire/init:consumePageWire",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:project/init:project",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/received/received",
@@ -119664,7 +119686,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "d8260e0d5d095762390c6181d927a336921e58a1d4c1949adfe8bdc2af0730bf",
+      "sha256": "4efe44144a2d2cc60c777760fc53700fbea199c0a10d79cfe168790b6bb04d17",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -119999,6 +120021,13 @@
           "async": false
         },
         {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
           "parameters": [
             "options"
@@ -120055,6 +120084,29 @@
           "name": "freezeSourceProjection",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "gmailThreadImplementationReaderLimits",
+          "parameters": [
+            "supplied",
+            "columns",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "gmailThreadImplementationReaderLimits/original/original",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -120384,6 +120436,7 @@
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
@@ -120650,6 +120703,9 @@
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
+            "gmailThreadImplementationReaderLimits",
+            "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
+            "gmailThreadImplementationReaderLimits/original/original",
             "installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",

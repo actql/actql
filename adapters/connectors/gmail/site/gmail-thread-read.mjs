@@ -72,88 +72,151 @@ function prepareRead(options) {
     basePath: `/gmail/v1/users/${component(mailbox)}/threads`});
 }
 
+// One list/get protocol for both the explicit Credential caller and the
+// installed managed reader. Only the original consumer supplies IO/current,
+// response custody and charge consumption. Provider callbacks stay synchronous
+// under that consumer's invalid-async borrowing fence.
+export function prepareGmailThreadReadSequence({moon, mailbox, names, limits}, applySynchronousProjection) {
+  if (typeof applySynchronousProjection !== 'function' || !Array.isArray(names)) fail('InvalidGmailThreadRead');
+  let provider = Object.freeze(Object.fromEntries(providerNames.map(name => {
+    const field = Object.getOwnPropertyDescriptor(moon ?? {}, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') fail('InvalidGmailThreadRead');
+    return [name, (...args) => applySynchronousProjection(field.value, moon, args)];
+  })));
+  const bound = Object.freeze({...limits});
+  if (!positiveLimits.every(name => integer(bound[name]) && bound[name] > 0) ||
+      !nonnegativeLimits.every(name => integer(bound[name])) || bound.pageSize > 500 ||
+      bound.maxPages > 2147483647 - bound.maxThreads || typeof mailbox !== 'string' ||
+      mailbox.length === 0 || !mailbox.isWellFormed() || !mailbox.includes('@') ||
+      /[\s\u0000-\u001f\u007f]/u.test(mailbox) || Buffer.byteLength(mailbox) > bound.maxMailboxBytes) {
+    fail('InvalidGmailThreadRead');
+  }
+  const basePath = `/gmail/v1/users/${component(mailbox)}/threads`;
+  let started = false, pending = false, retired = false, control;
+  return Object.freeze({async read(context) {
+    if (started || retired) fail('GmailThreadReaderAlreadyStarted');
+    started = true;pending = true;
+    try {
+      context.project(() => {
+        const columns = provider.gmailThreadColumnNames();
+        if (new Set(names).size !== names.length || names.some(name => !columns.includes(name))) fail('InvalidGmailThreadRead');
+        // Complete declared rows retain key evidence, independently of SELECT.
+        names = Object.freeze(columns.slice());
+        control = checked(provider.gmailPrepareThreadRead(mailbox, bound.maxResponseBytes,
+          bound.maxNodes, bound.maxDepth, bound.pageSize, bound.maxIdBytes, bound.maxTokenBytes,
+          bound.maxMessages, bound.maxLabels, bound.maxHeaders, bound.maxHeaderUnits,
+          bound.maxCommentDepth, bound.maxValueNodes, bound.maxValueTextBytes, bound.maxPages, bound.maxThreads));
+      }, undefined, []);
+      for (let index = 0; index <= bound.maxPages + bound.maxThreads; index++) {
+        const selected = context.project(() => {
+          const next = checked(provider.gmailNextThreadRequest(control));
+          if (next.length === 0) {
+            if (!provider.gmailThreadReadCompleted(control)) fail('IncompleteGmailThreadRead');
+            return undefined;
+          }
+          if (next.length !== 1 || !provider.gmailThreadRequestMatches(control, next[0])) fail('ForeignGmailThreadRequest');
+          const original = next[0], fields = JSON.parse(provider.gmailThreadRequestJson(original));
+          if (fields.mailbox !== mailbox || fields.ordinal !== index) fail('ForeignGmailThreadRequest');
+          return {original, fields};
+        }, undefined, []);
+        if (selected === undefined) return;
+        const {original, fields} = selected;
+        const operation = fields.isList ? GMAIL_THREAD_LIST_OPERATION : GMAIL_THREAD_GET_OPERATION;
+        const value = await context.readChild({operation, prepare() {
+          const path = fields.isList ? basePath : `${basePath}/${component(fields.threadId)}`;
+          const query = fields.isList
+            ? [['maxResults', String(bound.pageSize)], ['fields', 'threads(id,snippet,historyId),nextPageToken,resultSizeEstimate']]
+            : [['format', 'metadata'], ['metadataHeaders', 'Subject'], ['metadataHeaders', 'Date'],
+              ['fields', 'id,messages(id,threadId,labelIds,internalDate,payload(headers(name,value)))']];
+          if (fields.isList && fields.pageToken !== null) query.push(['pageToken', fields.pageToken]);
+          if (Buffer.byteLength(requestTarget(path, query)) > bound.maxTargetBytes) fail('GmailThreadTargetLimit');
+          return {original, request: {method:'GET', path, query, headers:[['accept','application/json']], responseHeaders:[]},
+            project(response) {
+              if (!provider.gmailThreadRequestMatches(control, original)) fail('ForeignGmailThreadRequest');
+              if (!response.accepted || response.statusCode !== 200) fail('GmailThreadReadRejected');
+              if (fields.isList) return {page: checked(provider.gmailAcceptThreadList(control, original, response.body))};
+              const thread = checked(provider.gmailAcceptThread(control, original, response.body));
+              if (!provider.gmailThreadProjectionMatchesRequest(thread, original)) fail('ForeignGmailThreadProjection');
+              const rows = JSON.parse(checked(provider.gmailThreadRowsWire(thread, names,
+                bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
+              return {thread, rows};
+            }};
+        }});
+        if (fields.isList) await context.consumeObservation();
+        else await context.consumePage(value.rows);
+        // Consume each actual charge before the next nominal request, not
+        // merely before sending it. No retry or early next occurs.
+      }
+      fail('GmailThreadRequestLimit');
+    } finally {pending = false;}
+  },retire() {
+    if (pending) return false;
+    if (retired) return true;
+    if (control !== undefined) provider.gmailCloseThreadRead(control);
+    control = provider = names = undefined;retired = true;
+    return true;
+  }});
+}
+
 async function executeRead(prepared, received, retainControl) {
-  const {provider, context, mailbox, names, signal, basePath} = prepared;
+  const {provider, context, mailbox, names, signal} = prepared;
   const bound = context.limits, observations = [], exchanges = [];
-  let control, totalBytes = 0, rowCount = 0, pageCount = 0;
+  let totalBytes = 0, rowCount = 0, pageCount = 0, lastCharge;
   const verify = async operation => {
     signal.throwIfAborted();
     await context.callbacks.current(operation);
     signal.throwIfAborted();
   };
+  const originalPrepare = provider.gmailPrepareThreadRead;
+  const selectedProvider = Object.freeze({...provider, gmailPrepareThreadRead(...args) {
+    const value = originalPrepare(...args);
+    retainControl(checked(value));
+    return value;
+  }});
+  const sequence = prepareGmailThreadReadSequence({moon:selectedProvider, mailbox, names, limits:bound},
+    (method, receiver, args) => Reflect.apply(method, receiver, args));
   try {
     await verify(GMAIL_THREAD_LIST_OPERATION);
-    control = checked(provider.gmailPrepareThreadRead(mailbox, bound.maxResponseBytes,
-      bound.maxNodes, bound.maxDepth, bound.pageSize, bound.maxIdBytes, bound.maxTokenBytes,
-      bound.maxMessages, bound.maxLabels, bound.maxHeaders, bound.maxHeaderUnits,
-      bound.maxCommentDepth, bound.maxValueNodes, bound.maxValueTextBytes,
-      bound.maxPages, bound.maxThreads));
-    retainControl(control);
-    // Every transition follows the same original consumer's successful charge
-    // consumption and a fresh current fence. No later ticket proves the prefix.
-    for (let index = 0; index <= bound.maxPages + bound.maxThreads; index++) {
-      await verify(GMAIL_THREAD_LIST_OPERATION);
-      const next = checked(provider.gmailNextThreadRequest(control));
-      if (next.length === 0) {
-        if (!provider.gmailThreadReadCompleted(control)) fail('IncompleteGmailThreadRead');
-        return Object.freeze({pages: pageCount, rowCount, observations: Object.freeze(observations.slice())});
-      }
-      if (next.length !== 1) fail('ForeignGmailThreadRequest');
-      const pending = next[0];
-      if (!provider.gmailThreadRequestMatches(control, pending)) fail('ForeignGmailThreadRequest');
-      const original = JSON.parse(provider.gmailThreadRequestJson(pending));
-      if (original.mailbox !== mailbox || original.ordinal !== index) fail('ForeignGmailThreadRequest');
-      const operation = original.isList ? GMAIL_THREAD_LIST_OPERATION : GMAIL_THREAD_GET_OPERATION;
-      const path = original.isList ? basePath : `${basePath}/${component(original.threadId)}`;
-      const query = original.isList
-        ? [['maxResults', String(bound.pageSize)], ['fields', 'threads(id,snippet,historyId),nextPageToken,resultSizeEstimate']]
-        : [['format', 'metadata'], ['metadataHeaders', 'Subject'], ['metadataHeaders', 'Date'],
-          ['fields', 'id,messages(id,threadId,labelIds,internalDate,payload(headers(name,value)))']];
-      if (original.isList && original.pageToken !== null) query.push(['pageToken', original.pageToken]);
-      if (Buffer.byteLength(requestTarget(path, query)) > bound.maxTargetBytes) fail('GmailThreadTargetLimit');
-      await verify(operation);
-      const authorization = ownInvocationAuthorization(await context.callbacks.authorizationFor(
-        Object.freeze({operation, index, originalRequest: pending})));
-      if (authorization.scope.operation !== operation ||
-          !invocationBindingsMatch(authorization.scope, context.scope)) fail('ForeignGmailThreadAuthorization');
-      await verify(operation);
-      const exchange = {originalRequest: pending, authorization, operation, path,
-        query: Object.freeze(query.map(pair => Object.freeze(pair.slice())))};
-      exchanges.push(exchange);
-      const response = await invokeScopedCredentialOperation({authorization, credential: context.credential,
-        callResource: options => context.callbacks.callResource({...options, currentBeforeSend: () => verify(operation)}),
-        operation, method: 'GET', path, query: exchange.query, headers: [['accept', 'application/json']],
-        responseHeaders: [], maxResponseBytes: bound.maxResponseBytes, signal});
-      exchange.response = response;
-      observations.push(response);
-      received(response);
-      const charge = await context.callbacks.chargeResponse(response.body);
-      exchange.charge = charge;
-      await verify(operation);
-      if (response.body.byteLength > bound.maxTotalResponseBytes - totalBytes) fail('GmailThreadResponseLimit');
-      totalBytes += response.body.byteLength;
-      if (!response.accepted || response.statusCode !== 200) fail('GmailThreadReadRejected');
-      if (original.isList) {
-        exchange.page = checked(provider.gmailAcceptThreadList(control, pending, response.body));
-        pageCount++;
-        await context.callbacks.consumeObservation(charge);
-      } else {
-        const thread = checked(provider.gmailAcceptThread(control, pending, response.body));
-        exchange.thread = thread;
-        if (!provider.gmailThreadProjectionMatchesRequest(thread, pending)) fail('ForeignGmailThreadProjection');
-        const rows = JSON.parse(checked(provider.gmailThreadRowsWire(thread, names,
-          bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
-        await context.callbacks.consumePage(rows, Object.freeze({charge, originalRequest: pending, originalThread: thread}));
-        rowCount++;
-      }
-      await verify(operation);
-    }
-    fail('GmailThreadRequestLimit');
-  } catch (cause) {
-    throw new GmailThreadReadFailure(cause, observations, exchanges);
-  } finally {
-    if (control !== undefined) provider.gmailCloseThreadRead(control);
-  }
+    await sequence.read({project:(method,receiver,args) => Reflect.apply(method,receiver,args),
+      async readChild(input) {
+        if (lastCharge !== undefined) {
+          await context.callbacks.consumeObservation(lastCharge);lastCharge = undefined;
+        }
+        await verify(input.operation);
+        const selected = input.prepare(), originalRequest = selected.original;
+        const fields = JSON.parse(provider.gmailThreadRequestJson(originalRequest));
+        const authorization = ownInvocationAuthorization(await context.callbacks.authorizationFor(
+          Object.freeze({operation:input.operation,index:fields.ordinal,originalRequest})));
+        if (authorization.scope.operation !== input.operation ||
+            !invocationBindingsMatch(authorization.scope,context.scope)) fail('ForeignGmailThreadAuthorization');
+        await verify(input.operation);
+        const {path,query} = selected.request;
+        const exchange = {originalRequest,authorization,operation:input.operation,path,
+          query:Object.freeze(query.map(pair=>Object.freeze(pair.slice())))};
+        exchanges.push(exchange);
+        const response = await invokeScopedCredentialOperation({authorization,credential:context.credential,
+          callResource:options=>context.callbacks.callResource({...options,currentBeforeSend:()=>verify(input.operation)}),
+          operation:input.operation,...selected.request,maxResponseBytes:bound.maxResponseBytes,signal});
+        exchange.response=response;observations.push(response);received(response);
+        lastCharge=await context.callbacks.chargeResponse(response.body);exchange.charge=lastCharge;
+        await verify(input.operation);
+        if(response.body.byteLength>bound.maxTotalResponseBytes-totalBytes)fail('GmailThreadResponseLimit');
+        totalBytes+=response.body.byteLength;
+        const projected=selected.project(response);Object.assign(exchange,projected);
+        if(fields.isList)pageCount++;
+        await verify(input.operation);return projected;
+      },async consumeObservation() {
+        await context.callbacks.consumeObservation(lastCharge);lastCharge=undefined;
+        await verify(GMAIL_THREAD_LIST_OPERATION);
+      },async consumePage(rows) {
+        const exchange=exchanges[exchanges.length-1];
+        await context.callbacks.consumePage(rows,Object.freeze({charge:lastCharge,
+          originalRequest:exchange.originalRequest,originalThread:exchange.thread}));
+        lastCharge=undefined;rowCount++;await verify(exchange.operation);
+      }});
+    return Object.freeze({pages:pageCount,rowCount,observations:Object.freeze(observations.slice())});
+  } catch(cause) {throw new GmailThreadReadFailure(cause,observations,exchanges);}
+  finally {sequence.retire();}
 }
 
 export function createGmailThreadReader(options) {

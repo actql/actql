@@ -118,7 +118,8 @@ export function createInstalledCredentialSourceReader(options) {
       let transportFailure, hadTransportFailure = false, cleanupRunning = false, primary;
       let unconfirmedCharge;
       let responses = [], responseCount = 0, responseBytes = 0n, rowCount = 0;
-      let provider, fetchPage, decodePage, runSequence, onError, setupFailure, setupFailed = false;
+      let provider, fetchPage, decodePage, runSequence, providerRetire, providerRetired = false;
+      let onError, setupFailure, setupFailed = false;
       const pendingCallbacks = new Set();
       const check = () => {
         if (retired || stopped) fail('InstalledSourceReaderClosed');
@@ -159,13 +160,17 @@ export function createInstalledCredentialSourceReader(options) {
               Reflect.apply(childObserve, child, []).cleanupConfirmed === true;
           }
           if (!closed || child !== undefined && !childRetired) return false;
+          if (providerRetire !== undefined && !providerRetired) {
+            providerRetired = callProjection(providerRetire, provider, []) === true;
+            if (!providerRetired) return false;
+          }
           // Borrowed metadata binding retirement belongs to this SAME reader,
           // after every callback/response duty, not merely its socket stop.
           if (retireBinding !== undefined && sync(Reflect.apply(retireBinding, acquisition, [])) !== true) return false;
           responses.length = 0;
           responses = child = childRead = childStop = childRetire = childObserve = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = constructor = sequence = signal = stop = primary = undefined;
-          provider = fetchPage = decodePage = runSequence = onError = setupFailure = undefined;
+          provider = fetchPage = decodePage = runSequence = providerRetire = onError = setupFailure = undefined;
           verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
@@ -211,7 +216,10 @@ export function createInstalledCredentialSourceReader(options) {
         try {
           provider = callProjection(managedSequence ? prepareReadSequence : preparePageReader, undefined, [Object.freeze({resource: options.resource,
             columns: Object.freeze([...options.columns]), requestWire: options.requestWire}), applySynchronousProjection]);
-          if (managedSequence) runSequence = ownMethod(provider, 'read');
+          if (managedSequence) {
+            runSequence = ownMethod(provider, 'read');
+            providerRetire = ownMethod(provider, 'retire');
+          }
           else {fetchPage = ownMethod(provider, 'fetchPage'); decodePage = ownMethod(provider, 'decodePage');}
           const field = Object.getOwnPropertyDescriptor(provider, 'onError');
           if (field !== undefined) {
@@ -339,6 +347,21 @@ export function createInstalledCredentialSourceReader(options) {
           }
         };
         const context = Object.freeze({
+          project(method, receiver, args) {
+            current();
+            if (pending !== undefined || typeof method !== 'function' || !Array.isArray(args) || types.isProxy(args)) {
+              fail('InstalledSourceReadChildBusy');
+            }
+            const value = callProjection(method, receiver, args);
+            current();
+            return value;
+          },
+          consumeObservation() {
+            return perform(async () => {
+              if (lastCharge === undefined) fail('InvalidInstalledSourceReadChildObservation');
+              await verify();await observe();await verify();
+            });
+          },
           readChild(options) {
             return perform(async () => {
               const childOperation = Object.getOwnPropertyDescriptor(options ?? {}, 'operation');

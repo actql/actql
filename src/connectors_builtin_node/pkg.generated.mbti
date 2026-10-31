@@ -1594,6 +1594,8 @@ pub fn client_program_installed_effect_plan_matches_model_demand(@client_local_h
 
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

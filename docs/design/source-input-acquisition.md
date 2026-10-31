@@ -260,3 +260,29 @@ This immutable read performs no current callback, compiler work, reservation or
 provider construction. It does not admit execution, supply physical backing or
 acknowledge cleanup. Source-specific input and Ledger reads retain their own
 captured-Plan restrictions and existing current boundaries.
+
+
+## Installed Gmail thread sequence
+
+The installed Gmail THREADS route uses its original Source initialization and
+Host reader services. The service retains the selected complete list/get limits
+and requests `installed_gmail_thread_reader_capacity` once. Core composes the
+existing JSON response, row and failed-response workspace with the actual Gmail
+control's retained pages, nominal requests, checked thread values and control
+frames using the shared representation tariff. The quote is DATA; only the same
+checked acquisition and parent admit that backing before reader construction.
+No profile number supplies an original capacity or an authorization.
+
+The existing Gmail protocol is shared by the explicit Credential reader and the
+installed managed reader. It consumes a list observation or a complete thread
+row before issuing the next nominal request. The Source owner gives each request
+its own monotonically consumed occurrence, keeps the original list grant bounded
+by list pages and the separate get grant bounded by threads, and checks current
+Account/Site state before physical use. Copies and reentrant repeats cannot
+restore an already selected occurrence or consumed physical work.
+
+Gmail control closure only retires the protocol graph. The shared reader retains
+that graph through pending original consumers and invalid asynchronous provider
+callbacks; it then joins protocol retirement with its existing response, physical
+binding and original binding-retirement duties. A closed protocol, completed row,
+process exit or stopped socket alone is not a physical cleanup acknowledgement.

@@ -141,7 +141,7 @@ pub fn installed_json_source_reader_capacity(
   // Original installation/schema/Account/Journal backing remains borrowed.
   // The same reader retains one optional direct sequence reference in its
   // existing frame until original read/binding retirement; no child Owner.
-  let common_fields = 35L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
+  let common_fields = 37L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
   // One resolver-close carrier (six fields), its original binding field and
@@ -227,4 +227,93 @@ pub fn installed_json_source_reader_capacity(
     retained_bytes: 0L,
     workspace_bytes: 0L,
   })
+}
+
+///|
+/// The existing Gmail list/get control retains all nominal pages, requests and
+/// admitted thread projections until its original reader retires. Compose that
+/// actual inventory with the SAME JSON response/row/failed-body recipe. Neither
+/// this quote nor a matching operation name issues a grant or an admission.
+pub fn installed_gmail_thread_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  list_pages : Int,
+  mailbox_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  guard limits.length() == 16 &&
+    columns == 5 &&
+    list_pages > 0 &&
+    mailbox_bytes > 0 &&
+    limits[4] == 1 &&
+    limits[5] > 0 &&
+    list_pages <= 2147483647 - limits[5] &&
+    limits[6] == list_pages + limits[5] &&
+    installed_json_source_reader_capacity(limits, columns, secret_bytes)
+    is Some(json) else {
+    return None
+  }
+  let pages = list_pages.to_int64()
+  let threads = limits[5].to_int64()
+  guard @execution.checked_preparation_add_product(
+      0L,
+      threads,
+      limits[11].to_int64(),
+    )
+    is Some(values) &&
+    @execution.checked_preparation_add_product(
+      mailbox_bytes.to_int64() + 71L * (pages + threads),
+      threads,
+      limits[12].to_int64(),
+    )
+    is Some(text) else {
+    return None
+  }
+  // GmailThreadRead(16), its two original limits(6+10), retained list pages(3),
+  // ThreadProjection(5), original Request(3), request kind/Option wrappers,
+  // page/thread vectors and seen-id/token maps. The generic JSON reader already
+  // covers raw bodies, id/token text and its own response/custody bindings.
+  // The managed sequence's original context/project/perform/observe closures,
+  // original reader/retirement state and captured eleven provider callbacks
+  // remain alongside that control, including on a failed child.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 15L + 5L + 11L + 2L * pages + 7L * threads,
+    reference_slots: 16L +
+    6L +
+    10L +
+    27L +
+    11L +
+    4L * pages +
+    12L * threads +
+    2L * pages +
+    2L * threads,
+    scalar_words: 12L + 4L * pages + 4L * threads,
+    owned_utf16_units: text,
+    owned_wire_bytes: 0L,
+  }
+  // One original request's JSON projection may escape each JSON character;
+  // mailbox/id/token are bounded independently. The current request and DTO
+  // overlap its admitted response and the retained nominal prefix. The fixed
+  // spelling/decimal fields fit within the original 128-unit syntax inventory.
+  let workspace : @execution.PreparationRepresentationUnits = {
+    record_headers: 12L,
+    reference_slots: 36L,
+    scalar_words: 8L,
+    owned_utf16_units: 6L *
+    (mailbox_bytes.to_int64() + limits[8].to_int64() + limits[9].to_int64()) +
+    128L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.preparation_execution_capacity({
+      retained,
+      workspace,
+      retained_nodes: values,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(sequence) else {
+    return None
+  }
+  @execution.add_execution_capacity(json, sequence)
 }
