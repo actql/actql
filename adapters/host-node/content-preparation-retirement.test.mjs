@@ -64,7 +64,7 @@ test('Content live limit stays bounded through pending cleanup and releases exac
   const f=fixture(),live=Array.from({length:4096},()=>f.open());
   assert.throws(()=>f.open(),{message:'InstalledContentRunLimit'});
   const first=live[0],o=f.origins.get(first.run.value);o.allowed=false;
-  assert.throws(first.retire,{code:'OriginalCleanupPending'});
+  assert.throws(first.retire,e=>e.code==='MoonBitHostFailure'&&e.cause.code==='OriginalCleanupPending');
   assert.equal(f.retained[0].retired,false);assert.equal(o.observations,1);
   assert.throws(()=>f.open(),{message:'InstalledContentRunLimit'});
   o.allowed=true;first.retire();assert.equal(f.retained[0].retired,true);
@@ -112,7 +112,7 @@ test('failed Content construction keeps its aliases until the same Request abort
         Function(...Object.keys(ports),`return ({${host.slice(selected.start,selected.end)}}).retireManagedComputeRun;`)(...Object.values(ports))(p);
         assert.equal(value.closed,true);
       }};
-    assert.throws(()=>cleanupRequestInput(state,retire),e=>e===failure);
+    assert.throws(()=>cleanupRequestInput(state,retire),e=>e.code==='MoonBitHostFailure'&&e.cause===failure);
     assert.equal(original.retired,false);assert.equal(initialRetirements,0);assert.equal(returns,0);
     ready=true;assert.throws(()=>cleanupRequestInput(state,retire),e=>e===returnFailure);
     assert.equal(original.retired,true);assert.equal(state.contentPreparation,undefined);assert.equal(state.holder,undefined);
