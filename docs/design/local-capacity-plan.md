@@ -284,6 +284,15 @@ The control reservation stays live after individual bodies retire and retires
 with the same managed Run. A constructor quantity is not a permission or a
 physical cleanup acknowledgement.
 
+The managed Credential custody retains the same immutable Scope definition,
+selected Secret limits and original signing issuer that its grant constructor
+actually uses. The existing private Site projection forwards those original
+facts for construction quoting. Reading them neither samples grant time nor
+selects the policy again. The later grant still takes its own original time,
+authorization and durable use path; a metadata view cannot replace any of
+those decisions. The unselected legacy signing purpose keeps its existing
+scope construction and does not acquire this managed projection.
+
 The Node request and physical children perform local original-record fences
 before the atomic Core borrow. That borrow already owns the same Plan/current
 check and reservation; a preceding callbackful Plan getter would repeat this

@@ -9434,7 +9434,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "97d8fa710f334612d4c59010be4f0934004cacde3d2a5f701876fc6bf8a317f0",
+      "sha256": "26771036b20b5316e4ee4b2aa8ef8b980a830f50e9068124a1701a0aabc7ed86",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10461,6 +10461,11 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/originalScopeFields/originalScopeFields",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/readChildCredential",
           "parameters": [
             "acquisition",
@@ -11137,6 +11142,7 @@
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
             "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+            "openRowSourceCredentialCustody/originalScopeFields/originalScopeFields",
             "openRowSourceCredentialCustody/retainRunBinding",
             "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",

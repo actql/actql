@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
+import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
@@ -81,7 +82,10 @@ function fixture({child=false,inventoryError,managed=false}={}){
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
   const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3};
-  const canonicalRows=expression('canonicalRows',{limits,moon,checked,runtimeField,fail,parseExactJson:JSON.parse});
+  const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
+  const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
+    `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
+      expression('parseExactJson',{fail}));
   const entryOf=expression('entryOf',{ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/,targeted:()=>false,fail});
   const requestEntry=expression('requestEntry',{entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),targeted:()=>false,fail});
   const resourceFields=value=>{assert.strictEqual(value,member);return {runOriginal};};
@@ -93,7 +97,7 @@ function fixture({child=false,inventoryError,managed=false}={}){
     resourceFields,currents:[],rowsOf:[],observations:[],commandContentBorrower:()=>assert.fail('No Command borrow'),
     control:{},prepared,identity,inputs:{},sourceSet:{members:[{payload:{}}]},limits,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
-    requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,canonicalRows,fail,
+    requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
     managedEffect,prepareInstalledEffectRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
@@ -267,6 +271,8 @@ test('actual capture operation retains the original bound child before invoking 
       assert.equal(original,plan);assert.deepEqual([memberIndex,perRow,index,operation],[2,true,3,'form-read']);return {$tag:1,_0:extent};},
     clientProgramInstalledEffectOperationExtentPhysical:()=>true,
     clientProgramInstalledEffectOperationExtentTransfer:()=>129n,
+    clientProgramInstalledEffectOperationResponseBackingFits(original,bytes,headers){
+      assert.equal(original,extent);assert.equal(bytes,64);assert.equal(headers,maxHeaderSize);return true;},
     clientProgramInstalledEffectOperationBorrow(){events.push('borrow');return {$tag:1,_0:token};},
     clientProgramInstalledEffectOperationStart:()=>({$tag:1,_0:undefined}),
     clientProgramInstalledEffectOperationCharge:()=>({$tag:1,_0:undefined}),

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {readFile,mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -20,6 +21,12 @@ async function originalSourceSigner(t) {
   const signStart = source.indexOf('  function sign({operation, runInvocationCid, taskAttempt = 1,');
   const signEnd = source.indexOf('  function authorizationPurpose(authorization)', signStart);
   assert(checkStart > 0 && signStart > checkStart && signEnd > signStart);
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const custody = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'openRowSourceCredentialCustody').declaration;
+  const scopeFields = custody.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'originalScopeFields'));
+  assert(scopeFields);
   const root = await mkdtemp(join(process.env.ACTQL_SOURCE_CREDENTIAL_SCRATCH ?? tmpdir(), 'source-original-grant-'));
   const keys = generateKeyPairSync('ed25519');
   const profile = Object.freeze({credentialAuthorityId: 'source-authority', credentialKeyId: 'source-key',
@@ -35,7 +42,11 @@ async function originalSourceSigner(t) {
     signRemoteCredentialGrant, issuedRunAuthorizations: issued, grantCode: 'InvalidRowSourceGrantRequest',
     cidPattern: /^sha256:[0-9a-f]{64}$/u,
     ensureOpen() {}, fail(code) {throw Object.assign(new Error(code), {code});}};
-  const sign = new Function(...Object.keys(bindings), source.slice(checkStart, signEnd) + ';return sign;')(...Object.values(bindings));
+  // This original signer fixture selects the unchanged legacy purpose. Its
+  // scope fields still come from the SAME actual issuer declaration above.
+  const sign = new Function(...Object.keys(bindings), source.slice(scopeFields.start, scopeFields.end) +
+    ';const scopeDefinition=undefined,construction=undefined;' + source.slice(checkStart, signEnd) +
+    ';return sign;')(...Object.values(bindings));
   const purpose = Object.freeze({kind: 'read', resource: 'customers', decision: Object.freeze({})});
   const input = Object.freeze({operation: 'read', runInvocationCid: cid('b'),
     dispatchRequestCid: cid('c'), maxUses: 2, issuerPurpose: purpose});

@@ -255,6 +255,7 @@ function retainCredentialOperationSite(site, custody, identity, enabled) {
     const child = custody.readChildCredential;
     operationSites.set(site.credential, Object.freeze({
       ...identity, site, credential: site.credential, callResource: site.callResource,
+      construction: custody.construction,
       referenceCurrent: custody.referenceCurrent,
       bindRunAcquisition: (authorization, current) =>
         Reflect.apply(bind, custody, [authorization, current]),
@@ -285,6 +286,20 @@ export function openRowSourceCredentialCustody({profile, principalId,
     new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]);
   const [authority, originalKeys] = credentialAuthorities.entries().next().value;
   const metadataIssuer = Object.freeze({authority, keyId: originalKeys.keys().next().value});
+  // Define the immutable managed scope once in the SAME issuer that consumes
+  // it. These original strings/limits are constructor DATA, not a grant,
+  // current observation, copied credential or another policy selection.
+  const originalScopeFields = () => ({
+    issuerAuthority: profile.credentialAuthorityId, principal: principalId,
+    namespaceId: profile.namespaceId, environment: profile.environment,
+    siteKey: profile.siteKey, siteGeneration: profile.siteGeneration,
+    runtimeBundleCid, connectorRegistration, connectorRevision,
+    resourceOrigin: profile.resourceOrigin,
+  });
+  const scopeDefinition = acquisitionLimits === undefined ? undefined
+    : Object.freeze(originalScopeFields());
+  const construction = scopeDefinition === undefined ? undefined
+    : Object.freeze({scope: scopeDefinition, limits: acquisitionLimits, issuer: metadataIssuer});
   const journal = openCredentialJournal(journalRoot, {credentialAuthorities});
   let closing = false;
   let released = false;
@@ -326,19 +341,20 @@ export function openRowSourceCredentialCustody({profile, principalId,
     dispatchRequestCid, maxUses, issuerPurpose}) {
     ensureOpen();
     checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses, taskAttempt);
-    const scope = Object.freeze({
-      issuerAuthority: profile.credentialAuthorityId, principal: principalId,
-      namespaceId: profile.namespaceId, environment: profile.environment,
-      siteKey: profile.siteKey, siteGeneration: profile.siteGeneration,
-      runtimeBundleCid, connectorRegistration, connectorRevision,
-      resourceOrigin: profile.resourceOrigin, operation, runInvocationCid,
-      taskAttempt, dispatchRequestCid,
-      expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
-    });
+    // The legacy branch fills its original one scope record directly; it
+    // does not allocate a temporary field record only to spread it again.
+    const scope = scopeDefinition === undefined ? originalScopeFields() : {...scopeDefinition};
+    scope.operation = operation;
+    scope.runInvocationCid = runInvocationCid;
+    scope.taskAttempt = taskAttempt;
+    scope.dispatchRequestCid = dispatchRequestCid;
+    scope.expiresUnixMilliseconds = BigInt(now() + grantLifetimeMs);
+    scope.maxUses = maxUses;
+    Object.freeze(scope);
     // Re-admitting this signed scope never refills its durable use inventory.
     const grant = control.prepare(scope);
     journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
-      keyId: profile.credentialKeyId, privateKey}), control);
+      keyId: construction === undefined ? profile.credentialKeyId : construction.issuer.keyId, privateKey}), control);
     const authorization = Object.freeze({grant, scope});
     issuedRunAuthorizations?.set(authorization, {state: 'unused', issuerPurpose});
     return authorization;
@@ -604,6 +620,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     }});
   }
   return Object.freeze({credential, sign, signInstallationMetadata,
+    ...(construction === undefined ? {} : {construction}),
     installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
     checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
