@@ -978,13 +978,46 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
       const selection = requireSourceConstructor(services, installation,
         Object.getOwnPropertyDescriptors(options ?? {}), true);
+      // An Effect has no Source reader from which to forward these limits.
+      // Select the SAME Core implementation policy once on its original
+      // constructor. These are rejection bounds only: the adopted Run's
+      // operation extent must still back every actual binding/secret before
+      // construction, and Account/claim still authorize each physical use.
+      const constructor = sourceContexts.get(selection);
+      let effectCredentialLimits;
+      if (constructor?.scope.role === 'effect') {
+        const {scope} = constructor;
+        if (Object.hasOwn(options, 'runAcquisitionLimits') || scope.credentialSelecting) {
+          fail('InstalledEffectCredentialSelectionUnavailable');
+        }
+        if (scope.credentialLimits === undefined) {
+          if (typeof sourcePolicy !== 'function') fail('InstalledEffectCredentialPolicyUnavailable');
+          scope.credentialSelecting = true;
+          try {
+            const policy = Reflect.apply(sourcePolicy, moon, []);
+            if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
+              !Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+              fail('InstalledEffectCredentialPolicyUnavailable');
+            }
+            // This is a local original/lifetime fence after the selected
+            // callback, not a second current or semantic policy admission.
+            if (requireSourceConstructor(services, installation,
+              Object.getOwnPropertyDescriptors(options), true) !== selection) {
+              fail('InstalledEffectCredentialSelectionUnavailable');
+            }
+            scope.credentialLimits = Object.freeze({maxBindings: policy[1], maxSecretBytes: policy[0]});
+          } finally {scope.credentialSelecting = false;}
+        }
+        effectCredentialLimits = scope.credentialLimits;
+      }
       // The caller supplies provider configuration only. It cannot replace the
       // original Host/runtime/current association with equal or copied DATA.
       const implementation = implementations.get(installation);
       if (implementation?.constructing) fail('InstalledEffectDefinitionSelectionReentry');
       if (implementation !== undefined) implementation.sealed = true;
-      return openInstalledRowSite({...options, root, principalId, commonMoon: moon,
-        runtimeBundleCid, assertCurrent: current,
+      return openInstalledRowSite({...options,
+        ...(effectCredentialLimits === undefined ? {} : {runAcquisitionLimits: effectCredentialLimits}),
+        root, principalId, commonMoon: moon, runtimeBundleCid, assertCurrent: current,
         configurationReader: installedSourceConfigurationReader(services)}).then(original => {
           sites.set(original.site, implementation);
           siteInstallations.set(original.site, selection);

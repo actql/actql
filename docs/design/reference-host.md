@@ -1621,6 +1621,14 @@ does not create another grant. CREATE checks, refreshed checks and the claimed
 write remain independently authorized operations. The durable dispatch claim
 still precedes the write child, and raw response custody precedes projection.
 
+An installed Effect selects the existing Core credential implementation bounds
+once on its original initial-material constructor before opening its Site.
+The shared Site preserves that immutable selection and refuses caller-supplied
+replacement amounts or reentrant selection. It does not borrow a Source reader
+or treat its codec bounds as a Run allowance. Each later binding, secret and
+failed child still requires its selected operation backing on the same adopted
+Plan; consumed grant/binding attempts retain their existing retirement rules.
+
 Transport accounting observes exact outbound body bytes and every consumed
 binary response chunk before copying or protocol refusal. A response body
 bound and its one-byte refusal window describe a funded read extent, not an

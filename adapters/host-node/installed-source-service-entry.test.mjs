@@ -249,3 +249,26 @@ test('Source Site preserves its original selected reader bounds without Effect p
   assert.equal(opened.options.runAcquisitionLimits, runAcquisitionLimits);
   assert.deepEqual(f.events, ['current', 'open']);
 });
+
+
+test('Effect Site same-constructor reentry cannot open another binding policy selection', async () => {
+  const f = await effectCredentialSelectionFixture({policy: [19, 37, 5]});
+  f.duringPolicy(() => {
+    assert.throws(() => f.services.openRowSite(f.input),
+      {code: 'InstalledEffectCredentialSelectionUnavailable'});
+    assert.equal(f.calls(), 0);
+  });
+  const opened = await f.services.openRowSite(f.input);
+  assert.deepEqual(opened.options.runAcquisitionLimits, {maxBindings: 37, maxSecretBytes: 19});
+  assert.equal(f.events.filter(event => event === 'policy').length, 1);
+  assert.equal(f.calls(), 1);
+});
+
+test('Effect Site copied constructor cannot select policy or reach physical opening', async () => {
+  const f = await effectCredentialSelectionFixture();
+  assert.throws(() => f.services.openRowSite({...f.input,
+    sourceInitialization: Object.freeze({...f.context})}),
+  {code: 'InstalledSourceInitializationUnavailable'});
+  assert.deepEqual(f.events, ['current']);
+  assert.equal(f.calls(), 0);
+});

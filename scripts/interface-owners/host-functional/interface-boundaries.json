@@ -119645,7 +119645,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "f7ed07ea6544ec11053e21b367fe0f6430a0f0b0883ac537e6cd1099e87d6ffc",
+      "sha256": "d8260e0d5d095762390c6181d927a336921e58a1d4c1949adfe8bdc2af0730bf",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -119890,6 +119890,13 @@
         },
         {
           "name": "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite#2",
           "parameters": [
             "original"
           ],
@@ -120348,6 +120355,7 @@
             "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader/init:createSourceReader",
             "createInstalledHostServices/services/init:openRowSite/init:openRowSite",
             "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite",
+            "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite#2",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/capacity/capacity",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation",
