@@ -1,3 +1,4 @@
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Common sequencing for one authorized Result delivery. MoonBit owns grant,
 // attempt, receipt, serialization, and transition semantics. Store and sink
 // adapters own durable effects and exact byte-exposure observations.
@@ -243,7 +244,7 @@ function pendingRecordFailure(
             nextRecord++;
           } catch (error) {
             if (pendingChild === undefined) retainChild(error);
-            errors.push(error);
+            retainFirstAndLatestCleanupError(errors, error);
             break;
           }
         }

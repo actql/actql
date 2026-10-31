@@ -267,6 +267,8 @@ export {payload};\n`);
     'result-access.mjs': ["export {value} from '../../packages/client-wire/index.mjs';\n",
       "export {value} from '@actql/client-wire';\n"],
     'result-delivery.mjs': ['export const delivery = 1;\n', 'export const delivery = 1;\n'],
+    'managed-failure.mjs': [readFileSync(join(root, 'adapters/host-common/managed-failure.mjs'), 'utf8'),
+      readFileSync(join(root, 'adapters/host-common/managed-failure.mjs'), 'utf8')],
     'publication-action.mjs': [
       'export const action = 1;\nexport const publicationAction = () => action;\n',
       'export const action = 1;\nexport const publicationAction = () => action;\n'],
@@ -429,7 +431,7 @@ for (const name of Object.keys(packages)) {
   });
 }
 
-for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-action.mjs']) {
+for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-action.mjs', 'managed-failure.mjs']) {
   test(`runtime-only build refuses the old tracked ${wrapper} without repairing it`, t => {
     const {result, calls, directory} = run(t, [], {wrapper});
     assert.notEqual(result.status, 0);
@@ -438,6 +440,16 @@ for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-
     assert.equal(readFileSync(join(directory, `packages/run-host-core/${wrapper}`), 'utf8'), 'stale wrapper\n');
   });
 }
+
+test('run-host-core includes the unchanged canonical cleanup dependency as a private package member', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'packages/run-host-core/package.json')));
+  assert(manifest.files.includes('managed-failure.mjs'));
+  assert(!Object.hasOwn(manifest.exports, './managed-failure'));
+  assert.deepEqual(readFileSync(join(root, 'packages/run-host-core/managed-failure.mjs')),
+    readFileSync(join(root, 'adapters/host-common/managed-failure.mjs')));
+  assert.deepEqual(readFileSync(join(root, 'packages/run-host-core/result-delivery.mjs')),
+    readFileSync(join(root, 'adapters/host-common/result-delivery.mjs')));
+});
 
 test('run-host-core refuses a stale Checkpoint payload before subsequent work', t => {
   const {result, calls, directory} = run(t, ['run-host-core', 'coordinator-core'], {

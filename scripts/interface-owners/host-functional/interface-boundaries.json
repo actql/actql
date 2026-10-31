@@ -103368,7 +103368,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c79e6f144fdfac73e7c3a08b69231a7780e602e9242c3929f0789826101603c",
+      "sha256": "e032cc69d1f487e90f937e7a1e14c581f1738dd27962c92f542d61ccc542d0a5",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -104086,7 +104086,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "./managed-failure.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -122663,6 +122665,767 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "packages/run-host-core/managed-failure.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1b1f23b9a0b5fea54842627497dbebaf16cb145f62d1aeeb97910d9644296662",
+      "role": "physical-io",
+      "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
+      "exports": [
+        "beginManagedFailureProgress",
+        "recordManagedFailureExecutionSettled",
+        "retainFirstAndLatestCleanupError",
+        "settleFailedManagedOperations"
+      ],
+      "operations": [
+        {
+          "name": "beginManagedFailureProgress",
+          "parameters": [
+            "moon",
+            "additionalClosed",
+            "cleanupRefreshed"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginManagedFailureProgress/beginManagedFailureProgress",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupState/cleanupState",
+          "parameters": [
+            "handle",
+            "required"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedProgress/managedProgress",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "member/member",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedFailure",
+          "parameters": [
+            "reason",
+            "fallbackCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "recordManagedFailureExecutionSettled",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "recordProgress/recordProgress",
+          "parameters": [
+            "owner",
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainFirstAndLatestCleanupError",
+          "parameters": [
+            "errors",
+            "error",
+            "retainedPrefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations",
+          "parameters": [
+            "operations",
+            "checked",
+            "reason",
+            "progressOwner",
+            "additionalCleanup"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/action/action",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/additional/additional",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/additionalClosed/additionalClosed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/additionalClosed/additionalClosed/additionalClosed",
+          "parameters": [
+            "cleanup"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/additionalPending/additionalPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/additionalPending/additionalPending/additionalPending",
+          "parameters": [
+            "cleanup"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/closeAdditional/closeAdditional",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/drive/drive",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/handle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "settleFailedManagedOperations/observeAdditionalClosed/observeAdditionalClosed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/record/record",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/refresh/refresh",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/settle/settle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/status/status/extra/extra",
+          "parameters": [
+            "cleanup"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/status/status/status",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/stopped/stopped",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "beginManagedFailureProgress",
+            "beginManagedFailureProgress/beginManagedFailureProgress",
+            "cleanupState/cleanupState",
+            "managedProgress/managedProgress",
+            "member/member",
+            "ownedFailure",
+            "recordManagedFailureExecutionSettled",
+            "recordProgress/recordProgress",
+            "settleFailedManagedOperations",
+            "settleFailedManagedOperations/action/action",
+            "settleFailedManagedOperations/additional/additional",
+            "settleFailedManagedOperations/additionalClosed/additionalClosed",
+            "settleFailedManagedOperations/additionalClosed/additionalClosed/additionalClosed",
+            "settleFailedManagedOperations/additionalPending/additionalPending",
+            "settleFailedManagedOperations/additionalPending/additionalPending/additionalPending",
+            "settleFailedManagedOperations/close/close",
+            "settleFailedManagedOperations/closeAdditional/closeAdditional",
+            "settleFailedManagedOperations/drive/drive",
+            "settleFailedManagedOperations/handle/init:retry/init:retry",
+            "settleFailedManagedOperations/observeAdditionalClosed/observeAdditionalClosed",
+            "settleFailedManagedOperations/record/record",
+            "settleFailedManagedOperations/refresh/refresh",
+            "settleFailedManagedOperations/settle/settle",
+            "settleFailedManagedOperations/status/status",
+            "settleFailedManagedOperations/status/status/extra/extra",
+            "settleFailedManagedOperations/status/status/status",
+            "settleFailedManagedOperations/stopped/stopped"
+          ],
+          "exports": [
+            "beginManagedFailureProgress",
+            "recordManagedFailureExecutionSettled",
+            "settleFailedManagedOperations"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// settlement waits for the latter, while close is attempted immediately."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// settlement waits for the latter, while close is attempted immediately."
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// Failure settlement for synchronous managed implementations. A returned"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "} catch { return undefined; }"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// Promise and a stopped representation reader are different facts: reservation"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "if (initiallyFinished && cleanupErrors.length === 0) {"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/managed-failure.test.mjs",
+                "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// settlement waits for the latter, while close is attempted immediately."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// settlement waits for the latter, while close is attempted immediately."
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// Failure settlement for synchronous managed implementations. A returned"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "} catch { return undefined; }"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "// Promise and a stopped representation reader are different facts: reservation"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "if (initiallyFinished && cleanupErrors.length === 0) {"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/managed-failure.mjs",
+                "anchor": "export function beginManagedFailureProgress("
+              },
+              {
+                "path": "docs/design/physical-strategy-execution.md",
+                "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Managed retained execution profile"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/managed-failure.test.mjs",
+                "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
+              },
+              {
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
+                "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainFirstAndLatestCleanupError"
+          ],
+          "exports": [
+            "retainFirstAndLatestCleanupError"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
+                "anchor": "test('metadata cleanup keeps first/latest original diagnostics"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "anchor": "test('Result cleanup keeps first/latest original diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Canonical byte-checked package copy of adapters/host-common/managed-failure.mjs under the SAME existing execution/cleanup Owners. No new resource issuer, admission, physical acknowledgement or ordinary acceptance is established.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [],
@@ -122675,10 +123438,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 180,
-    "operations": 4518,
-    "exports": 1082,
-    "explicitContractGroups": 285
+    "modules": 185,
+    "operations": 4776,
+    "exports": 1121,
+    "explicitContractGroups": 495
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
