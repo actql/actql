@@ -10,6 +10,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import * as labelModule from '../site/gmail-label-list-read.mjs';
+import {gmailThreadReaderLimitNames} from '../site/gmail-thread-limits.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {openHttpsCredentialBinding, closeHttpsCredentialBinding, callHttpsCredentialResource}
@@ -87,7 +88,7 @@ function fixture({implementationFailure, sourceFailure, foreignCapacity = false}
     sourceInitialization.prepareDeclaration = () => assert.fail('late declaration constructor');
     return siteProfile;
   }, readText() {assert.fail('No CA selected');}};
-  const ports = {createHash, isAbsolute, nodeTypes, canonicalJson, checked, captureConfigurationReaders,
+  const ports = {createHash, isAbsolute, nodeTypes, canonicalJson, checked, captureConfigurationReaders, gmailThreadReaderLimitNames,
     readSourceProfileJson: path => configurationReader.readJson(path),
     readBoundedConfigurationText: () => assert.fail('No CA selected'),
     captureInstalledSourceServices, GMAIL_LABEL_LIST_OPERATION: 'gmail:labels:list',

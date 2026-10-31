@@ -156,6 +156,21 @@ child workspace with the existing shared representation tariff. Byte ceilings
 alone do not account for those holdings or admit a parent reservation. The
 ordinary caller still needs its actual same-Plan funding and retirement.
 
+The former installed thread factory is retired. The installed loader and its
+existing Account/Site tests consume the shared managed reader and the original
+Host's operation-authorization callbacks. The Host keeps the immutable Run tuple;
+a mutable caller container cannot retarget it. A second data preparation cannot
+bind the same consumed original Site authorization to another acquisition.
+
+`gmail-thread-limits.mjs` owns the existing list/get limit names and pure DATA
+validation used by the installed loader and explicit protocol reader. The
+loader freezes its selected snapshot before provider construction. These
+synchronous predicates preserve the existing finite bounds and refusal names;
+they issue no reader capacity, permission, current observation or cleanup ACK.
+They introduce no await or cancellation boundary. The shared reader retains
+the original transport and failed-child retirement duties, and explicit test
+parent reservations remain separate from normal Request-owned backing.
+
 ## Installed label preparation
 
 The connector-owned Host manifest selects the label Source factory through the

@@ -10,7 +10,7 @@ import {createInstalledRowSource} from '../../../host-node/installed-row-source.
 import {types as nodeTypes} from 'node:util';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import {prepareGmailLabelListPages,GMAIL_LABEL_LIST_OPERATION} from '../site/gmail-label-list-read.mjs';
-import {checkGmailThreadReaderLimits} from './thread-reader.mjs';
+import {checkGmailThreadReaderLimits,gmailThreadReaderLimitNames} from '../site/gmail-thread-limits.mjs';
 import {prepareGmailThreadReadSequence,GMAIL_THREAD_LIST_OPERATION} from '../site/gmail-thread-read.mjs';
 
 export const INSTALLED_GMAIL_SOURCE_VERSION='actql-installed-gmail-source/0.1';
@@ -23,10 +23,7 @@ const readLimitKeys=['maxResponseBytes','maxNodes','maxDepth','maxRows','maxMail
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 const extraLimitKeys=['maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
 const limitKeys=[...readLimitKeys,...extraLimitKeys];
-const threadLimitKeys=['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','pageSize','maxPages',
-  'maxThreads','maxMailboxBytes','maxTargetBytes','maxIdBytes','maxTokenBytes','maxMessages','maxLabels',
-  'maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueNodes','maxValueTextBytes',
-  'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',...extraLimitKeys];
+const threadLimitKeys=[...gmailThreadReaderLimitNames,...extraLimitKeys];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);

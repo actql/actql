@@ -6,6 +6,7 @@ import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatc
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
+import {gmailThreadReaderLimitsValid} from './gmail-thread-limits.mjs';
 
 export const GMAIL_THREAD_LIST_OPERATION = 'gmail:threads:list';
 export const GMAIL_THREAD_GET_OPERATION = 'gmail:threads:get';
@@ -13,13 +14,7 @@ const providerNames = ['gmailPrepareThreadRead', 'gmailNextThreadRequest', 'gmai
   'gmailThreadRequestMatches', 'gmailAcceptThreadList', 'gmailAcceptThread',
   'gmailThreadProjectionMatchesRequest', 'gmailThreadReadCompleted', 'gmailCloseThreadRead',
   'gmailThreadRowsWire', 'gmailThreadColumnNames'];
-const positiveLimits = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth',
-  'pageSize', 'maxPages', 'maxMailboxBytes', 'maxTargetBytes', 'maxIdBytes', 'maxTokenBytes',
-  'maxValueNodes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
-const nonnegativeLimits = ['maxThreads', 'maxMessages', 'maxLabels', 'maxHeaders',
-  'maxHeaderUnits', 'maxCommentDepth', 'maxValueTextBytes'];
 const fail = code => {throw Object.assign(new Error(code), {code});};
-const integer = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
 const component = value => encodeURIComponent(value).replace(/[!'()*]/gu, char =>
   `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 const readers = new WeakMap();
@@ -53,9 +48,7 @@ function prepareRead(options) {
   const context = ownInvocationContext({authorization: initialAuthorization, credential, limits, callbacks});
   const bound = context.limits;
   if (providerNames.some(name => provider[name] === undefined) ||
-      !positiveLimits.every(name => integer(bound[name]) && bound[name] > 0) ||
-      !nonnegativeLimits.every(name => integer(bound[name])) || bound.pageSize > 500 ||
-      bound.maxPages > 2147483647 - bound.maxThreads ||
+      !gmailThreadReaderLimitsValid(bound) ||
       !context.credential.binding || typeof context.credential.binding !== 'object' ||
       typeof mailbox !== 'string' || mailbox.length === 0 || !mailbox.isWellFormed() ||
       !mailbox.includes('@') || /[\s\u0000-\u001f\u007f]/u.test(mailbox) ||
@@ -84,9 +77,7 @@ export function prepareGmailThreadReadSequence({moon, mailbox, names, limits}, a
     return [name, (...args) => applySynchronousProjection(field.value, moon, args)];
   })));
   const bound = Object.freeze({...limits});
-  if (!positiveLimits.every(name => integer(bound[name]) && bound[name] > 0) ||
-      !nonnegativeLimits.every(name => integer(bound[name])) || bound.pageSize > 500 ||
-      bound.maxPages > 2147483647 - bound.maxThreads || typeof mailbox !== 'string' ||
+  if (!gmailThreadReaderLimitsValid(bound) || typeof mailbox !== 'string' ||
       mailbox.length === 0 || !mailbox.isWellFormed() || !mailbox.includes('@') ||
       /[\s\u0000-\u001f\u007f]/u.test(mailbox) || Buffer.byteLength(mailbox) > bound.maxMailboxBytes) {
     fail('InvalidGmailThreadRead');

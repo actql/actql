@@ -11,7 +11,7 @@ import {captureConfigurationReaders} from '../../../host-node/source-profile-jso
 import {captureInstalledSourceServices,createInstalledHostServices,retainInstalledHostServiceInstallation}
   from '../../../host-node/installed-host-services.mjs';
 import {installedJsonSourceReaderProfileLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
-import {checkGmailThreadReaderLimits} from '../host/thread-reader.mjs';
+import {checkGmailThreadReaderLimits,gmailThreadReaderLimitNames} from '../site/gmail-thread-limits.mjs';
 
 // Actual loader body and original service receivers, with explicit Core/Site
 // ports. This does not issue capacity, an Account grant or a physical read.
@@ -61,7 +61,7 @@ function fixture({sourceFailure} = {}) {
   const configurationReader={readJson(path){assert.equal(this,configurationReader);assert.equal(path,profile.siteProfilePath);
     events.push('configuration');return siteProfile;},readText(){assert.fail('No CA selected');}};
   const ports={createHash,isAbsolute,nodeTypes,canonicalJson,checked,captureConfigurationReaders,captureInstalledSourceServices,
-    checkGmailThreadReaderLimits,GMAIL_THREAD_LIST_OPERATION:'gmail:threads:list',
+    checkGmailThreadReaderLimits,gmailThreadReaderLimitNames,GMAIL_THREAD_LIST_OPERATION:'gmail:threads:list',
     prepareGmailThreadReadSequence(){assert.fail('No acquisition in loader scope');},
     createInstalledRowSource(input){assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.declaration,declaration);assert.equal(input.environment,environment);assert.equal(input.providerReader,reader);
