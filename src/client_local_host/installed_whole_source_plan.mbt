@@ -26,12 +26,40 @@ pub fn select_installed_source_input(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
+  select_installed_source_input_graph(
+    @publication_host.prepared_client_graph(prepared),
+    stage,
+    source_index,
+  )
+}
+
+///|
+/// The same immutable selection for an Effect's checked captured prefix.
+/// This projects Requests only; the retained Plan constructs its acquisition.
+pub fn select_installed_effect_source_input(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  stage : Int,
+  source_index : Int,
+) -> Result[@sourceviews.SourceAcquisitionRoute, ClientInstalledManagedRunIssue] {
+  if !installed_effect_managed_request_matches(prepared, request) {
+    return Err(ForeignOriginal)
+  }
+  select_installed_source_input_graph(
+    installed_managed_owner_graph(Effect(prepared)),
+    stage,
+    source_index,
+  )
+}
+
+///|
+fn select_installed_source_input_graph(
+  graph : @strategy.CheckedDAG,
+  stage : Int,
+  source_index : Int,
+) -> Result[@sourceviews.SourceAcquisitionRoute, ClientInstalledManagedRunIssue] {
   guard @context.program_identity_stage_requests(
-      @checked.source_identity(
-        @strategy.graph_program(
-          @publication_host.prepared_client_graph(prepared),
-        ),
-      ),
+      @checked.source_identity(@strategy.graph_program(graph)),
       stage,
     )
     is Some(requests) else {

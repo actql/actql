@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "354b24e37d70dc1ec122fa6b7c3e2aac4f60dad7a293cd2553e8ec45e2de5ab4",
+      "sha256": "f789f443f1b66c02e2020a301f09b08eb403383d1e8674600945e3d0b6d9d884",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -56,7 +56,9 @@
             "assertUpdateSelectionCurrent",
             "assertContinuationCurrent",
             "originalPreparation",
-            "originalModelPlan"
+            "originalModelPlan",
+            "originalModelComponent",
+            "originalModelSelection"
           ],
           "async": true
         },
@@ -276,40 +278,40 @@
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation#2",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
           "parameters": [
             "issuance",
             "modelEvidence"
           ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#3",
-          "parameters": [],
           "async": false
         },
         {
@@ -432,12 +434,12 @@
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#3",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#4",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#5",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#3",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput"
           ],
           "exports": [
@@ -6379,7 +6381,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "e232a2babe2026d991534391111b5d9c58ff592044b0de6157db82cd7b9f97a0",
+      "sha256": "33ac4e86c657d1b0a67f966dc302bea2dd1ebadec90d613a199c00977bc19fbe",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6750,6 +6752,14 @@
           "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
           "parameters": [
             "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
+          "parameters": [
+            "prepared",
             "request",
             "model"
           ],
@@ -7005,7 +7015,7 @@
             "facts",
             "selection",
             "inputs",
-            "model"
+            "modelSelection"
           ],
           "async": false
         },
@@ -7832,6 +7842,15 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
+          "parameters": [
+            "prepared",
+            "scope",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
           "parameters": [
             "facts"
@@ -7862,6 +7881,16 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
           "parameters": [
             "configurations",
             "handlePause"
@@ -7869,7 +7898,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
           "parameters": [
             "event",
             "detail"
@@ -7877,7 +7906,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
           "parameters": [
             "execution"
           ],
@@ -8213,7 +8242,8 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/originalSourceFreeRequest/originalSourceFreeRequest",
           "parameters": [
             "preparedProgram",
-            "requestId"
+            "requestId",
+            "effectful"
           ],
           "async": false
         },
@@ -9785,6 +9815,7 @@
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
             "embeddedInstallationIdentity",
             "embeddedInstallationIdentity/identities/identities",
             "embeddedInstallationIdentity/identity/identity",
@@ -9838,6 +9869,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
@@ -9849,6 +9881,8 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
@@ -10089,7 +10123,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10175,7 +10209,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10277,7 +10311,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10367,7 +10401,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10461,7 +10495,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10543,7 +10577,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10621,7 +10655,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10719,7 +10753,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10801,7 +10835,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10887,7 +10921,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -10959,7 +10993,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -12778,7 +12812,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model)"
+                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -14475,7 +14509,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -16315,7 +16349,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16401,7 +16435,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16503,7 +16537,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16593,7 +16627,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16687,7 +16721,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16769,7 +16803,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16847,7 +16881,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16945,7 +16979,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -17027,7 +17061,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -17113,7 +17147,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -17185,7 +17219,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -17327,7 +17361,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -19106,7 +19140,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -19404,7 +19438,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -19925,7 +19959,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

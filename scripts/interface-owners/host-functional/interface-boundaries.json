@@ -16555,11 +16555,12 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6fce7aa380a1f21c00754c7578644d631ee69623197d9b6988290652b2dcbaba",
+      "sha256": "e6babc13949a617e6a46957a0e30528a08bff4f25ab1a67d536250328620fa18",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "prepareInstalledAcquiredEffectLedger",
+        "selectAcquiredEffectPlanInputs",
         "selectAcquiredEffectSources"
       ],
       "operations": [
@@ -16644,6 +16645,32 @@
           "async": false
         },
         {
+          "name": "selectAcquiredEffectPlanInputs",
+          "parameters": [
+            "moon",
+            "preparedEffect",
+            "requestIdentity",
+            "sourceProfile",
+            "queryContract",
+            "evidenceContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "selectAcquiredEffectSources",
           "parameters": [
             "moon",
@@ -16668,10 +16695,14 @@
             "prepareInstalledAcquiredEffectLedger/ledger/ledger",
             "prepareInstalledAcquiredEffectLedger/ledger/ledger#2",
             "prepareInstalledAcquiredEffectLedger/ledger/ledger#3",
+            "selectAcquiredEffectPlanInputs",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#2",
             "selectAcquiredEffectSources"
           ],
           "exports": [
             "prepareInstalledAcquiredEffectLedger",
+            "selectAcquiredEffectPlanInputs",
             "selectAcquiredEffectSources"
           ],
           "attributes": {
@@ -22761,7 +22792,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5be047cbec8663089b7de795123f8088b3a1cd34e70fdfdc6fbe1b6ab535586",
+      "sha256": "8ba240adb6978fe88a4e43ab2896bfa41e78491095fbc39f64a1049886bab8ac",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -22793,6 +22824,7 @@
             "execute",
             "prepareDefinition",
             "assertRequestedStopAvailable",
+            "requestIdentityFor",
             "inferPlanFor",
             "resultPolicyOriginalFor",
             "validateInstallation",
@@ -26919,7 +26951,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27082,7 +27114,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27714,7 +27746,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -67640,7 +67672,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "9bc88b01649697eba50066ef47b941ca484f1da0560291a60fccac8348fdd181",
+      "sha256": "eed2e86943ac0eb550398758bd5c47f9919fd9dd7ed361552174ea4ccb064346",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -67671,7 +67703,8 @@
             "baseEnvironmentWire",
             "authorizationFor",
             "readAsset",
-            "prepareManagedModelRun"
+            "prepareManagedModelRun",
+            "effectManagedRun"
           ],
           "async": true
         },
@@ -67689,12 +67722,21 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockSources/adapter/init:closeSourceRead/init:closeSourceRead",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
           "name": "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead",
           "parameters": [
             "checkedOwner",
             "effectful",
             "selected",
-            "occurrence"
+            "occurrence",
+            "managedRun",
+            "originalRead"
           ],
           "async": false
         },
@@ -67709,8 +67751,22 @@
           "async": true
         },
         {
+          "name": "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/init:readPages",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/close/close",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/closePhysicalRead",
+          "parameters": [
+            "read"
+          ],
           "async": true
         },
         {
@@ -68047,9 +68103,12 @@
             "installPreparedProjectMockSources",
             "installPreparedProjectMockSources/adapter/adapter",
             "installPreparedProjectMockSources/adapter/adapter#2",
+            "installPreparedProjectMockSources/adapter/init:closeSourceRead/init:closeSourceRead",
             "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead",
             "installPreparedProjectMockSources/adapter/init:readPages/init:readPages",
+            "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/init:readPages",
             "installPreparedProjectMockSources/close/close",
+            "installPreparedProjectMockSources/closePhysicalRead",
             "installPreparedProjectMockSources/closeRead",
             "installPreparedProjectMockSources/closeSource",
             "installPreparedProjectMockSources/current/current",
@@ -68105,7 +68164,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "run.reads[slot] = read;"
+                "anchor": "reads[slot] = read;"
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
@@ -116204,7 +116263,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1495d16d755bae89bf9aaf4115e78875584fd04435cdbdd3423f24351230288",
+      "sha256": "647040fd21fc4e7222b383664388c6b8ea1ea71c13bc82f0573bae3b78d5305a",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -117371,7 +117430,7 @@
       "sha256": "39d4592c770137d8e0661aed0c3f5e39b4e4aed276aed98596e3ed727e579429",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -118085,12 +118144,13 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "11822342693e6ff104dd8189e73a00e853fb07de583e2ebefdf5bff99673d855",
+      "sha256": "d714768cf2b2df5190da3d988a8e93fd79685588741704575e1113a0c8a3ff54",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
+        "installedEffectModelPreparation",
         "prepareInstalledEffectManagedPlanRun",
         "readInstalledEffectManagedPlanRun"
       ],
@@ -118116,7 +118176,12 @@
             "scope",
             "admission",
             "original",
-            "beginOperations"
+            "beginOperations",
+            "modelSelection",
+            "component",
+            "sourceInputs",
+            "modelControl",
+            "modelDefinition"
           ],
           "async": false
         },
@@ -118137,6 +118202,42 @@
           "async": false
         },
         {
+          "name": "installedEffectModelPreparation",
+          "parameters": [
+            "run",
+            "publicationCapacity",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/installedEffectModelPreparation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/view/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/view/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectManagedPlanRun",
           "parameters": [
             "runs",
@@ -118151,6 +118252,8 @@
             "inputs",
             "sourceProfile",
             "model",
+            "modelSelection",
+            "publicationControl",
             "assertCurrent",
             "checked"
           ],
@@ -118248,6 +118351,8 @@
         }
       ],
       "imports": [
+        "./acquired-effect-sources.mjs",
+        "./infer-operation.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -118257,6 +118362,12 @@
           "operations": [
             "fail/fail",
             "finishInstalledEffectModelScope",
+            "installedEffectModelPreparation",
+            "installedEffectModelPreparation/current/current",
+            "installedEffectModelPreparation/installedEffectModelPreparation",
+            "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
+            "installedEffectModelPreparation/view/init:retain/init:retain",
+            "installedEffectModelPreparation/view/init:retire/init:retire",
             "prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
@@ -118269,6 +118380,7 @@
           ],
           "exports": [
             "finishInstalledEffectModelScope",
+            "installedEffectModelPreparation",
             "prepareInstalledEffectManagedPlanRun",
             "readInstalledEffectManagedPlanRun"
           ],
@@ -118724,7 +118836,7 @@
       "sha256": "077da93f92f8c61e5a7fca7fc5546bba15cb7ee817bb8d7bcb1b2c2fd02b9b20",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",

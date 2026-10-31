@@ -1678,7 +1678,7 @@ export async function createInstalledRowSource({moon, declaration,
     let planned;
     let wholeInput = false;
     if (effectful) {
-      if (managedRun === undefined || originalReader === undefined ||
+      if (managedRun === undefined || originalReader === undefined && prepareSourceRead === undefined ||
           typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function') {
         fail('InstalledEffectPlanUnavailable');
       }
@@ -2617,7 +2617,7 @@ export async function createInstalledRowSource({moon, declaration,
     sourceAccess,
     sourceReadAccesses,
     ...(originalReader === undefined ? {} : {managedCaptureCapacity: managedProviderCaptureCapacity,
-      managedWholeSourceCapacity,
+      managedWholeSourceCapacity}),
       managedEffectPlanSelection() {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
@@ -2625,11 +2625,14 @@ export async function createInstalledRowSource({moon, declaration,
         if (prepareAcquisition !== undefined || listingPolicy !== undefined || prepareRead !== undefined) {
           fail('InstalledSourcePlanConstructorUnavailable');
         }
-        if (typeof providerSiteCurrent !== 'function' ||
-            Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
-        return Object.freeze({declaration, provider: originalReader.capacity,
+        if (originalReader === undefined && typeof prepareSourceRead !== 'function') {
+          fail('InstalledSourcePlanConstructorUnavailable');
+        }
+        if (originalReader !== undefined && (typeof providerSiteCurrent !== 'function' ||
+            Reflect.apply(providerSiteCurrent, site, []) !== true)) fail('InstalledSourceReaderNotCurrent');
+        return Object.freeze({declaration, provider: originalReader?.capacity,
           transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});
-      }}),
+      },
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
     retainedCapture(prepared) {

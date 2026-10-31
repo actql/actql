@@ -7,11 +7,18 @@ import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mj
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
+// Execute the unchanged shared retirement body with the existing explicit
+// completion-observer port; the private runtime marker is not manufactured.
+const retirementSource = readFileSync(new URL('./infer-operation.mjs', import.meta.url), 'utf8');
+const retirementNode = parse(retirementSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.declaration?.id?.name === 'retireNodeInferOriginalRead').declaration;
+const retirementFor = observer => Function('inferOriginalReadCleanupComplete',
+  'return ' + retirementSource.slice(retirementNode.start, retirementNode.end))(observer);
 const source = readFileSync(new URL('../local-node/installed-project-mock.mjs', import.meta.url), 'utf8');
 const outer = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(node => node.declaration?.id?.name === 'installPreparedProjectMockSources').declaration;
 const names = ['sameRun', 'prepareManagedMockModelRun', 'modelPreparation', 'retireModelRead',
-  'retireRunRecord', 'closeRead', 'closeSource', 'close'];
+  'retireRunRecord', 'closeRead', 'closePhysicalRead', 'closeSource', 'close'];
 const slices = outer.body.body.filter(node => node.type === 'FunctionDeclaration' && names.includes(node.id.name) ||
   node.type === 'VariableDeclaration' && names.includes(node.declarations[0].id.name))
   .map(node => source.slice(node.start, node.end)).join('\n');
@@ -64,9 +71,9 @@ function fixture({callback = true, refuse, missingScope = false} = {}) {
     return {original, value};
   };
   const api = Function('current', 'records', 'fail', 'checked', 'moon', 'sources', 'closedSources',
-    'inferOriginalReadCleanupComplete', 'prepareRequestModel',
-    `let closing=false;${slices};return {prepareManagedMockModelRun,modelPreparation,close};`)(
-    current, records, fail, value => value, moon, sources, closedSources, () => false, prepareRequestModel);
+    'retireNodeInferOriginalRead', 'prepareRequestModel',
+    `let closing=false;const effectRuns=new WeakMap(),effectReads=new Set();${slices};return {prepareManagedMockModelRun,modelPreparation,close};`)(
+    current, records, fail, value => value, moon, sources, closedSources, retirementFor(() => false), prepareRequestModel);
   sources.push(...[0, 1].map(index => ({close: async () => {
     for (const record of records.values()) for (const read of record.reads) {
       if (read?.source === index && !read.closed) {
@@ -377,4 +384,54 @@ test('Model Source prepare forwards its original adopted Run and Request and rec
       assert.equal(await pending, result); assert.equal(preparedReads.get(result), run);
     }
   }
+});
+
+test('Mock Effect reader consumes the same planned original and retires physical bytes separately', async () => {
+  const properties = new Map();
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && ['prepareSourceRead', 'readPages', 'closeSourceRead'].includes(node.key?.name)) {
+      properties.set(node.key.name, node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(outer); assert.equal(properties.size, 3);
+  const prepared = {}, request = {}, parent = {}, nativeRead = {}, declaration = {}, raw = {},
+    row = {}, acquisition = {}, charge = {}, bytes = Buffer.from('original document');
+  const run = {preparationKind: 'effect-plan', prepared, request, value: parent};
+  const originalReads = new WeakMap(), effectReads = new Set();
+  let reads = 0, closes = 0, retires = 0, pending = true;
+  raw.readOriginalBytes = () => {reads++; return bytes;};
+  raw.close = () => {closes++; return {pending};};
+  const moon = {clientProgramEffectAcquisitionCount: p => {assert.strictEqual(p, prepared); return 1;},
+    clientProgramInstalledManagedRunSourceRead() {assert.fail('no second Source original');},
+    clientProgramInstalledSourceReadRetire(value) {assert.strictEqual(value, nativeRead); retires++;},
+    clientProgramMockChurnRiskAcceptChargedDocument(r, c, a, left, right, actualBytes, bound) {
+      same([r, c, a, left, right, actualBytes, bound], [row, charge, acquisition, declaration, declaration, bytes, 2097152]);
+    }};
+  const sourceManaged = {assertCurrent() {}, prepareRead(p, d, original, occurrence) {
+    same([p, d, original], [prepared, declaration, parent]); assert.equal(occurrence.stage, 0); return raw;
+  }};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const closeFunctions = outer.body.body.filter(node => node.type === 'FunctionDeclaration' &&
+    ['closeRead', 'closePhysicalRead'].includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
+  const same = (actual, expected) => actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
+  const ports = {moon, sourceManaged, originalReads, effectReads, declaration, index: 0,
+    bundle: {sources: [{declaration}, {declaration}]}, checked: value => value, fail,
+    sameRun(p) {assert.strictEqual(p, prepared); return run;}};
+  const code = [...properties.values()].map(node => source.slice(node.start, node.end)).join(',');
+  const api = Function(...Object.keys(ports), closeFunctions + ';return {callbacks:{' + code + '},closeRead};')(...Object.values(ports));
+  assert.strictEqual(api.callbacks.prepareSourceRead({checkedOwner: prepared, effectful: true, declaration,
+    occurrence: {stage: 0, input: 0}, managedRun: parent, originalRead: nativeRead}), nativeRead);
+  assert.equal(effectReads.size, 1);
+  await api.callbacks.readPages({rowRun: {originalRead: nativeRead, run: row, acquisition},
+    chargePage: value => {assert.strictEqual(value, bytes); return charge;}, verifyRead: async () => {}});
+  await assert.rejects(api.callbacks.closeSourceRead(nativeRead), {code: 'InstalledMockSourceCleanupPending'});
+  assert.equal(retires, 0); assert.equal(reads, 1); assert.equal(run.mockSourceReads[0].closed, false);
+  pending = false; assert.equal((await api.callbacks.closeSourceRead(nativeRead)).pending, false);
+  assert.equal(retires, 0); await api.closeRead(run.mockSourceReads[0]);
+  assert.equal(retires, 1); assert.equal(reads, 1); assert.equal(closes, 2);
+  assert.equal(run.mockSourceReads[0].raw, undefined); assert.equal(run.mockSourceReads[0].observedBytes, undefined);
 });

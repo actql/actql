@@ -25,6 +25,16 @@ const observePromise = Promise.prototype.then;
 export function inferOriginalReadCleanupComplete(read) {
   return cleanedOriginalReads.has(read);
 }
+
+// The same original parent's read retirement for Pure and Effect consumers.
+// A completed consuming execution does not settle its owning reservation.
+export function retireNodeInferOriginalRead({control, compiled, runDefinition, graph, scope, read}) {
+  if (read === undefined) return;
+  if (!inferOriginalReadCleanupComplete(read)) {
+    control.stopCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, scope, read);
+  }
+  control.settleCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, read, true);
+}
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
@@ -1109,13 +1119,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
-  durableCalls = false, restoredInput, generatedInput, originalPreparation}) {
+  durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false}) {
   if (selected?.occurrence === undefined ||
-      typeof retainOperation !== 'function') {
+      typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
+      deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
   }
   let prepareRead = originalPreparation?.prepareRead;
-  const deferredRead = prepareRead !== undefined;
+  let deferredRead = prepareRead !== undefined;
   if (deferredRead && (typeof prepareRead !== 'function' ||
       generatedInput !== undefined || restoredInput !== undefined)) {
     throw new TypeError('InvalidComposedInferOriginalPreparation');
@@ -1123,15 +1134,23 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let readAttempted = false;
   let operation;
   let failure;
+  let failureRecorded = false;
+  const recordFailure = cause => {
+    if (!failureRecorded) {failure = cause; failureRecorded = true;}
+  };
+  let bound = !deferred, attempted = false;
   const computePrefix = selected.computePrefix;
   const selectProvider = generatedInput === undefined
     ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
   const provider = selectProvider(
     selected.occurrence, inputs => {
       try {
-        if (operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
-          throw failure ?? new Error('ComposedInferAlreadyOpened');
+        if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
+          if (failureRecorded) throw failure;
+          throw new Error('ComposedInferAlreadyOpened');
         }
+        attempted = true;
+        if (!bound) throw new Error('ComposedInferOriginalContextUnavailable');
         let preparation = originalPreparation;
         if (deferredRead) {
           // The parent already retains the Scope. Claim its read only after
@@ -1173,13 +1192,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           observeAt: now});
         return activeOperations.get(operation);
       } catch (error) {
-        if (deferredRead) failure ??= error;
-        else failure = error;
+        recordFailure(error);
         return undefined;
       }
     }, issue => {
-      failure ??= Object.assign(new Error('ComposedInferComponentFailed'),
-        {code: 'MoonBitHostFailure', cause: issue});
+      recordFailure(Object.assign(new Error('ComposedInferComponentFailed'),
+        {code: 'MoonBitHostFailure', cause: issue}));
     }, active => {
       try {
         if (operation === undefined || activeOperations.get(operation) !== active) {
@@ -1187,15 +1205,34 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         }
         return retainCompleted?.(operation) !== false;
       } catch (error) {
-        failure = error;
+        recordFailure(error);
         return false;
       }
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
       operation.cleanupPending() === false,
     ...(generatedInput === undefined ? [computePrefix] : []));
-  return Object.freeze({provider, operation: () => operation,
-    failure: () => failure});
+  const component = Object.freeze({provider, operation: () => operation,
+    failure: () => failure,
+    ...(deferred ? {bindOriginal(context) {
+      if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
+      const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
+      if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {
+        throw new TypeError('InvalidComposedInferOriginalContext');
+      }
+      const preparation = read('originalPreparation'), prepare = preparation?.prepareRead;
+      if (prepare !== undefined && (typeof prepare !== 'function' || read('restoredInput') !== undefined)) {
+        throw new TypeError('InvalidComposedInferOriginalPreparation');
+      }
+      sources = read('sources'); control = read('control'); plan = read('plan');
+      principalId = read('principalId'); now = read('now'); signal = read('signal');
+      retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
+      durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
+      originalPreparation = preparation; prepareRead = prepare; deferredRead = prepare !== undefined;
+      bound = true;
+      return component;
+    }} : {})});
+  return component;
 }
 
 // This is physical stepping of the existing checked Result transformer, not

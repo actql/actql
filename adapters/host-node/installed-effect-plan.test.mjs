@@ -13,6 +13,16 @@ for (const model of [false, true]) test(`Effect Plan forwards the same retained 
     evidenceContract: 'original-evidence-contract', transferBytes: Object.freeze([37n]),
     executionBytes: Object.freeze([19n])});
   const calls = [], facts = Object.freeze({prepared, identity, queryTimePreparation: undefined});
+  const originalArguments = (actual, expected) => {
+    assert.equal(actual.length, expected.length);
+    actual.forEach((value, index) => {
+      if (!Array.isArray(expected[index])) assert.strictEqual(value, expected[index]);
+      else {
+        assert.equal(value.length, expected[index].length);
+        value.forEach((entry, slot) => assert.strictEqual(entry, expected[index][slot]));
+      }
+    });
+  };
   const moon = {
     clientProgramEffectAcquisitionCount: actual => {assert.equal(actual, prepared); return 1;},
     clientProgramInstalledEffectOperationDemandPrepare(p, stage, member, metadata, rows) {
@@ -21,14 +31,14 @@ for (const model of [false, true]) test(`Effect Plan forwards the same retained 
     },
     clientProgramInstalledEffectManagedProviderPlanPrepare(...actual) {
       assert.equal(this, moon); assert.equal(model, false);
-      assert.deepEqual(actual, [prepared, identity, sourceInputs.declarations, sourceInputs.providers,
+      originalArguments(actual, [prepared, identity, sourceInputs.declarations, sourceInputs.providers,
         sourceInputs.queryContract, sourceInputs.evidenceContract, sourceInputs.transferBytes,
         sourceInputs.executionBytes, installedContracts, 'values', 'fragment', 'ordered', [demand]]);
       calls.push('plan'); return {$tag: 1, _0: plan};
     },
     clientProgramInstalledEffectModelManagedPlanPrepare(...actual) {
       assert.equal(this, moon); assert.equal(model, true);
-      assert.deepEqual(actual, [prepared, identity, sourceInputs.declarations, sourceInputs.providers,
+      originalArguments(actual, [prepared, identity, sourceInputs.declarations, sourceInputs.providers,
         sourceInputs.queryContract, sourceInputs.evidenceContract, sourceInputs.transferBytes,
         sourceInputs.executionBytes, installedContracts, 'values', 'fragment', 'ordered', [demand],
         modelDemand, [component], undefined]);

@@ -35,6 +35,15 @@ pub fn client_program_installed_effect_model_demand_prepare(
 }
 
 ///|
+/// Read the window retained by the SAME already prepared Model demand.
+#export_name("clientProgramInstalledEffectModelReadWindow")
+pub fn client_program_installed_effect_model_read_window(
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+) -> Array[Int64] {
+  @client_local_host.installed_effect_model_read_window(model)
+}
+
+///|
 /// Retain the actual early selected bounds. This later original binding does
 /// not invoke their numerical selector again or accept a raw Ledger vector.
 #export_name("clientProgramInstalledMockModelSourceFreePlanPrepare")

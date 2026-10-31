@@ -385,6 +385,8 @@ pub fn installed_effect_managed_run_requirements(@run_publication_host.PreparedC
 
 pub fn installed_effect_mock_model_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
+pub fn installed_effect_model_read_window(ClientInstalledEffectModelDemand) -> Array[Int64]
+
 pub fn installed_effect_operation_extent_capacity(ClientInstalledEffectOperationExtent) -> @execution_relation.ExecutionCapacity
 
 pub fn installed_effect_operation_extent_physical(ClientInstalledEffectOperationExtent) -> Bool
@@ -842,6 +844,8 @@ pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, C
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
+
+pub fn select_installed_effect_source_input(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, ClientInstalledManagedRunIssue]
 
 pub fn select_installed_source_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, ClientInstalledManagedRunIssue]
 

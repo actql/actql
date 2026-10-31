@@ -1732,6 +1732,37 @@ Native constructor tests with an explicit initial carrier demonstrate only
 their stated same-parent reservation and original projection boundaries, not
 complete ordinary installation backing or physical provider acceptance.
 
+## Original Source and Model inputs of an installed Effect Plan
+
+The installed Effect Plan selects each Source from the checked Request
+inventory, in occurrence order. Its immutable selection supplies the original
+declaration, reader capacity and transport bounds. The Plan constructs and
+retains the actual requirement and acquisition once. Execution borrows those
+originals; installation order and a second Query preparation cannot replace
+them. A base row reader keeps its original acquisition capture, while a
+provider reader additionally retains the same installed provider capacity.
+
+The Model component in the Plan configuration is the same native provider
+used by execution. The existing component may retain its original occurrence
+before Source acquisition and bind its physical context once after capture.
+Opening before that binding, rebinding after an attempt, or creating a late
+replacement provider is unavailable. The original compiled JS holder is
+unwrapped only through its existing private control association; its public
+fields are not a native compiled Run.
+
+The Request retains the original Model Scope before adoption. The component
+borrows its read when Local supplies the actual inputs. Read retirement and
+Scope retirement remain separate from transport completion and from each
+other. A physical Mock document child closes separately from the Core row
+capture, while correspondence between the charged original documents remains
+checked across Source occurrences. Failed cleanup keeps the same original
+child and cannot reissue the read or refund consumed work.
+
+These identity and lifetime connections do not establish constructor funding.
+The installing Request must fund all simultaneous construction, component,
+read, output and failed-child backing before allocation, and retain it until
+the corresponding original aliases and physical duties have retired.
+
 ## Model demand on the original installed Effect Plan
 
 The Node bridge obtains Model/read/bootstrap bounds through the same checked

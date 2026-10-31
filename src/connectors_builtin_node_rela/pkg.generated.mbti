@@ -1943,6 +1943,8 @@ pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforc
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
 
+pub fn client_program_select_installed_effect_source_input(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_select_installed_source_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_select_project_model_task(@run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelTaskSelectionIssue]

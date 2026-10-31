@@ -84,7 +84,8 @@ import {installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun, finishInstalledEffectModelScope}
+import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun, finishInstalledEffectModelScope,
+  installedEffectModelPreparation}
   from './installed-effect-managed-run.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
@@ -1289,7 +1290,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     : new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
-  const earlyMockEffectPlans = new WeakMap();
   const earlyContentPlans = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -2842,10 +2842,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   // reconstruction that the live Run's exact-original fence must refuse.
   // Weak ownership neither keeps the Prepared alive nor grants another Run.
   const sourceFreeRequestIdentities = new WeakMap();
-  const originalSourceFreeRequest = (preparedProgram, requestId) => {
+  const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {
     let original = sourceFreeRequestIdentities.get(preparedProgram);
     if (original === undefined) {
-      const requested = moon.clientProgramRequestIdentity(preparedProgram,
+      const requested = (effectful ? moon.clientProgramEffectRequestIdentity : moon.clientProgramRequestIdentity)(preparedProgram,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (requested === undefined) throw clientOperationError('ClientProgramNeedsInputs');
       original = Object.freeze({requestId, requested});
@@ -2860,29 +2860,18 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
       const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
       const acquired = count > 0;
+      const requested = originalSourceFreeRequest(preparedProgram, requestId, true);
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
         try {
-          const requiresQueryTime = typeof moon.clientProgramEffectRequiresQueryTime === 'function'
-            ? checked(moon.clientProgramEffectRequiresQueryTime(preparedProgram,
-              localContractLimits.maxNodes, localContractLimits.maxNodes)) : false;
-          if (typeof requiresQueryTime !== 'boolean') throw new Error('InvalidQueryTimeRequirement');
-          // Checking does not sample. A time-dependent physical requirement is
-          // sealed from the winning admitted Run before any Source preparation.
-          if (!requiresQueryTime) selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
-            sourceProfile, registry, values, fragment, ordered});
+          selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
+            requestIdentity: requested, sourceProfile, registry, values, fragment, ordered});
         } catch (cause) {
           throw clientOperationError('ClientProgramUnsupported', cause);
         }
       }
       const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
       if (occurrence !== undefined) prepareInferSelection(preparedProgram, occurrence);
-      const requested = moon.clientProgramEffectRequestIdentity(
-        preparedProgram, authorityScopeCid, requestId,
-        moon.clientProgramSourceFreeInputIntentCid());
-      if (requested === undefined) {
-        throw clientOperationError('ClientProgramNeedsInputs');
-      }
       const resultNames = [];
       for (let index = 0;
         index < moon.clientProgramEffectResultCount(preparedProgram);
@@ -3538,16 +3527,19 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
+                    originalModelComponent: managedEffect.modelComponent,
+                    originalModelSelection: managedEffect.modelSelection,
                     sourceProfile, registry, values, fragment, ordered,
                     sourceAccess: sourceProfile?.sourceAccess, signal, now,
                     assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
                     assertContinuationCurrent: activeResume?.assertCurrent,
                     retainComputationOwner, infer: inferSelections.get(facts.prepared),
-                    ...(earlyMockEffectPlans.has(facts.prepared) ? {
-                      originalModelPlan: earlyMockEffectPlans.get(facts.prepared),
-                      originalPreparation: sourceProfile.modelPreparation(facts.prepared,
-                        earlyMockEffectPlans.get(facts.prepared)),
-                    } : {}),
+                    ...(managedEffect.model === undefined ? {} : {
+                      originalModelPlan: {compiled: managedEffect.model.compiled, runDefinition: facts.runDefinition},
+                      originalPreparation: installedEffectModelPreparation(managedEffect,
+                        () => preparation.modelPublicationCapacity(facts.prepared),
+                        () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)),
+                    }),
                     computeConfigurations: {local: localSnapshotConfiguration},
                     withComputePauseHandler: (configurations, handlePause) => ({
                       ...configurations,
@@ -3589,6 +3581,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
+      requestIdentityFor({prepared, authorityScopeCid: scope, requestId}) {
+        if (scope !== authorityScopeCid) throw clientOperationError('ClientProgramNeedsInputs');
+        return originalSourceFreeRequest(prepared, requestId, true);
+      },
       assertRequestedStopAvailable() {
         if (checkpoints === undefined) {
           throw clientOperationError('ClientProgramUnsupported',
@@ -3601,7 +3597,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const selected = selectedInstalledEffect(facts);
         selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
         preparation.prepareManagedEffectPlanRun(moon, facts, selected,
-          {registry, values, fragment, ordered, sourceProfile});
+          {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared));
         if (mockEffectObservation !== undefined) retainMockEffectRunOriginal(facts);
       },
       updateTargetOriginals,
@@ -5813,7 +5809,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
     },
-    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model) {
+    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
       const current = () => (computeManaged === undefined
@@ -5821,12 +5817,19 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       current();
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
+      const model = modelSelection === undefined ? undefined : runs.get(facts.prepared)?.model ??
+        Object.freeze({kind: 'local-mock', compiled: facts.modelCompiled, definition: facts.definition,
+          occurrence: modelSelection.occurrence, graph: modelSelection.graph});
+      const hasSources = runtime.clientProgramEffectAcquisitionCount(facts.prepared) !== 0;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
         requestInput: originalSourceManagedHostRequest(originals, facts.prepared),
         selection, facts, inputs: Object.freeze({...inputs,
+          queryContract: hasSources ? readInitialControlInstallationAsset(control, originals, 'spec/contracts/actql-query-acquisition.json') : undefined,
+          evidenceContract: hasSources ? readInitialControlInstallationAsset(control, originals, 'spec/contracts/actql-query-process-evidence.json') : undefined,
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
-        sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
+        sourceProfile: inputs.sourceProfile, model, modelSelection,
+        publicationControl: runtimeCore(runtime).publicationControl, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
       return preparation.effectManagedPlanRun(runtime, prepared, request).value;
@@ -6180,6 +6183,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.modelAliasesReleased = true;
           }
           run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+          run.modelSelection=run.modelComponent=run.modelComponents=run.sourceInputs=undefined;
+          run.publicationControl=run.modelRunDefinition=run.modelPreparation=run.modelRead=undefined;
+          run.mockSourceReads=undefined;
           run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
           run.contentGraph = run.contentRecipe = run.selectedKeyed = run.contentCompilation = undefined;
           run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
@@ -6397,6 +6403,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path),
+        effectManagedRun: (prepared, request) => preparation.effectManagedPlanRun(moon, prepared, request),
         prepareManagedModelRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon,
           prepared, request, model)});
       record.mockSourceProfile = profile;

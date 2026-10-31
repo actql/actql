@@ -1554,6 +1554,8 @@ pub fn client_program_installed_effect_model_demand_prepare(@run_publication_hos
 
 pub fn client_program_installed_effect_model_managed_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], Array[@execution_relation.ExecutionCapacity]?, String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand], @client_local_host.ClientInstalledEffectModelDemand, Array[@local.ManagedProvider], @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_model_read_window(@client_local_host.ClientInstalledEffectModelDemand) -> Array[Int64]
+
 pub fn client_program_installed_effect_operation_borrow(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_charge(@client_local_host.ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -3169,6 +3171,8 @@ pub fn client_program_salesforce_site(String, String, String, String, String, St
 pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
+
+pub fn client_program_select_installed_effect_source_input(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_select_installed_source_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int, Int) -> Result[@sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledManagedRunIssue]
 

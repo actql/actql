@@ -2,6 +2,57 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
 
+test('a prepared Effect Plan retains one Model provider and binds its original execution context once', () => {
+  const occurrence = {}, graph = {}, prefix = {}, provider = {}, sources = {},
+    selected = Object.freeze({occurrence, graph, computePrefix: prefix, provider: {}});
+  let start, constructors = 0, attempts = 0;
+  const original = new Error('actual original Model start');
+  const moon = {
+    clientProgramComposedInferLocalProvider(actual, open, _issue, _retain, _cleanup, sequence) {
+      assert.strictEqual(actual, occurrence); assert.strictEqual(sequence, prefix);
+      constructors++; start = open; return provider;
+    },
+    clientProgramStartComposedInferExecution(actual, plan, sequence, inputs, physical, admitted) {
+      assert.strictEqual(actual, occurrence); assert.strictEqual(plan, graph);
+      assert.strictEqual(sequence, prefix); assert.strictEqual(physical, selected.provider);
+      assert.strictEqual(admitted, sources); assert.strictEqual(inputs, input);
+      attempts++; throw original;
+    },
+  };
+  const input = [], component = openNodeComposedInferProvider({moon, selected, deferred: true});
+  assert.strictEqual(component.provider, provider); assert.equal(constructors, 1); assert.equal(attempts, 0);
+  const context = {selected, sources, retainOperation() {assert.fail('start did not issue a child');}};
+  assert.strictEqual(component.bindOriginal(context), component);
+  assert.throws(() => component.bindOriginal(context), {message: 'ComposedInferAlreadyBound'});
+  assert.equal(start(input), undefined); assert.strictEqual(component.failure(), original);
+  assert.equal(constructors, 1); assert.equal(attempts, 1);
+});
+
+test('a Model provider cannot start before its original Effect context or replace it after failure', () => {
+  const selected = Object.freeze({occurrence: {}, graph: {}});
+  let start;
+  const moon = {clientProgramComposedInferLocalProvider(_owner, open) {start = open; return {};}};
+  const component = openNodeComposedInferProvider({moon, selected, deferred: true});
+  assert.equal(start([]), undefined);
+  assert.equal(component.failure().message, 'ComposedInferOriginalContextUnavailable');
+  assert.throws(() => component.bindOriginal({selected, retainOperation() {}}),
+    {message: 'ComposedInferAlreadyBound'});
+});
+
+test('the original undefined Model start failure remains failed without reopening or secondary replacement', () => {
+  const selected = Object.freeze({occurrence: {}, graph: {}, provider: {}});
+  let start, issue, attempts = 0;
+  const moon = {clientProgramComposedInferLocalProvider(_original, open, observe) {
+    start = open; issue = observe; return {};
+  }, clientProgramStartComposedInferExecution() {attempts++; throw undefined;}};
+  const component = openNodeComposedInferProvider({moon, selected, deferred: true});
+  component.bindOriginal({selected, retainOperation() {assert.fail('no child returned');}});
+  assert.equal(start([]), undefined); assert.strictEqual(component.failure(), undefined);
+  issue({secondary: true}); assert.equal(start([]), undefined);
+  assert.strictEqual(component.failure(), undefined); assert.equal(attempts, 1);
+  assert.throws(() => component.bindOriginal({selected, retainOperation() {}}), {message: 'ComposedInferAlreadyBound'});
+});
+
 test('composed Local start retains the original Model before Run and dispatch binding', async () => {
   const active = {};
   const occurrence = {};

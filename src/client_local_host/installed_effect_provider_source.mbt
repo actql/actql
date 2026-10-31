@@ -32,11 +32,19 @@ pub fn begin_installed_effect_managed_source_read(
     Ok(original) => original
   }
   guard physical_equal(selected, declaration) &&
-    capacity.provider is Some((original, provider)) &&
+    capacity.acquisition is Some(original) &&
     physical_equal(original, acquisition) &&
-    installed_provider_row_capture_capacity_matches(
+    physical_equal(capacity.requirement, requirement) else {
+    return Err(ForeignOriginal)
+  }
+  // Base installed row reads (including the original Mock file reader) use
+  // the Plan's complete acquisition capture. A provider-backed reader must
+  // additionally retain its same selected provider capacity; neither branch
+  // admits caller numbers or substitutes another equal acquisition.
+  if capacity.provider is Some((_, provider)) &&
+    !installed_provider_row_capture_capacity_matches(
       capacity, acquisition, provider,
-    ) else {
+    ) {
     return Err(ForeignOriginal)
   }
   // The Run retains this same partially attached read before any later

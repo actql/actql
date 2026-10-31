@@ -152,6 +152,15 @@ fn effect_model_plan_for_prepared(
 }
 
 ///|
+test "Effect Model read window projects its original selected demand without another quote" {
+  let (_, _, _, model) = effect_model_plan_inputs()
+  let window = installed_effect_model_read_window(model)
+  assert_eq(window, [500L, 700L])
+  window[0] = 0L
+  assert_eq(installed_effect_model_read_window(model), [500L, 700L])
+}
+
+///|
 fn effect_model_plan_fixture(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,

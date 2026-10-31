@@ -9279,7 +9279,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "87ac1b1dbefe45ab709aaaac708ad61b680311179e279550c1f2b10a44ab80fb",
+      "sha256": "eec397613335e9218978fa676e14ddb27b7978cd96620cbff7db1675a4e5d900",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -15302,6 +15302,20 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectRequestChild",
           "parameters": [
             "run",
@@ -15381,7 +15395,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5e6dac02544871c5ff12c98c491126ee076015a6e8615d97f22e95fe4f869cf1",
+      "sha256": "3054fa406c3474f984df565c0d7139668dd31a18074d92bd7ad6ae523e8e3dd6",
       "contracts": [
         {
           "operations": [
@@ -15428,6 +15442,8 @@
             "prepareInstalledEffectManagedPlan/demands/demands",
             "prepareInstalledEffectManagedPlan/demands/demands/demands",
             "prepareInstalledEffectManagedPlan/demands/demands/demands#2",
+            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
+            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
             "prepareInstalledEffectRequestChild/current/current",
             "prepareInstalledEffectRequestChild/drain/drain",

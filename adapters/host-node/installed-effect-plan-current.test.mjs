@@ -86,7 +86,8 @@ test('public Record and Model Plan readers use one exact bound getter and no pre
 test('public Plan getter cannot replace the original tuple or retained Model Scope', () => {
   for (const withModel of [false, true]) {
     for (const field of ['value', 'prepared', 'request', 'runtime', 'operationPlan', 'readPlan',
-      'definitionOriginal', 'manager', 'selection', 'sourceProfile', 'model', 'modelDemand', 'modelScope']) {
+      'definitionOriginal', 'manager', 'selection', 'sourceProfile', 'model', 'modelDemand', 'modelScope',
+      'modelSelection', 'modelComponent', 'sourceInputs', 'publicationControl', 'modelRunDefinition']) {
       const f = fixture(withModel); prepare(f.options);
       f.controls.onRead = run => {run[field] = {};};
       assert.throws(() => read(f.options), {code: 'ForeignInstalledEffectManagedRun'});

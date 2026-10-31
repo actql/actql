@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4680,7 +4680,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4934,7 +4934,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5187,7 +5187,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -6146,7 +6146,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8838,7 +8838,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10606,7 +10606,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "eb81ffdafaae658b50714ba81985105d94841ec0ff42e623149fbdfe494c79c1",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceWriteDriver"
@@ -11666,7 +11666,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11930,7 +11930,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4d936df5c6b3ee4f15eeedc8917e887f2c189cd378f7ec1151b7f7c849eb91ea",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "readSalesforceManagedQuery",
         "readSalesforceQuery"
@@ -13259,7 +13259,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -15106,7 +15106,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15603,7 +15603,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -15852,9 +15852,9 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "aa4f2a3ecdec56158ee0cb1e2f23687187a3a1b6c0b78c6d7d2828b3bfa8e6a2",
+      "sha256": "98dc5f3a52742c8dabc2ce5036a01c0639defb94b0cccec546f14ac6d51916eb",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
@@ -19758,6 +19758,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
           "parameters": [
             "compiled",
@@ -23314,7 +23326,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -24418,6 +24430,7 @@
             "publicationControl/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
             "publicationControl/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
+            "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
             "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
@@ -25790,7 +25803,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28752,7 +28765,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28777,7 +28790,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -29029,7 +29042,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -29396,9 +29409,9 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "354b24e37d70dc1ec122fa6b7c3e2aac4f60dad7a293cd2553e8ec45e2de5ab4",
+      "sha256": "f789f443f1b66c02e2020a301f09b08eb403383d1e8674600945e3d0b6d9d884",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -29446,7 +29459,9 @@
             "assertUpdateSelectionCurrent",
             "assertContinuationCurrent",
             "originalPreparation",
-            "originalModelPlan"
+            "originalModelPlan",
+            "originalModelComponent",
+            "originalModelSelection"
           ],
           "async": true
         },
@@ -29666,40 +29681,40 @@
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation#2",
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
           "parameters": [
             "issuance",
             "modelEvidence"
           ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#3",
-          "parameters": [],
           "async": false
         },
         {
@@ -29819,12 +29834,12 @@
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#3",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#4",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#5",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/init:retainOperation/init:retainOperation/init:retainOperation#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#3",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput"
           ],
           "exports": [
@@ -30243,7 +30258,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -31267,7 +31282,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -32728,7 +32743,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5fbb22537949bd82e86d3b121a994441c294d81457947abbef46421c79d938d3",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -35341,7 +35356,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -35564,7 +35579,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -35795,7 +35810,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -38764,7 +38779,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -39186,7 +39201,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -41468,9 +41483,9 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e232a2babe2026d991534391111b5d9c58ff592044b0de6157db82cd7b9f97a0",
+      "sha256": "33ac4e86c657d1b0a67f966dc302bea2dd1ebadec90d613a199c00977bc19fbe",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -41841,6 +41856,14 @@
           "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
           "parameters": [
             "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
+          "parameters": [
+            "prepared",
             "request",
             "model"
           ],
@@ -42096,7 +42119,7 @@
             "facts",
             "selection",
             "inputs",
-            "model"
+            "modelSelection"
           ],
           "async": false
         },
@@ -42923,6 +42946,15 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
+          "parameters": [
+            "prepared",
+            "scope",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
           "parameters": [
             "facts"
@@ -42953,6 +42985,16 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
           "parameters": [
             "configurations",
             "handlePause"
@@ -42960,7 +43002,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
           "parameters": [
             "event",
             "detail"
@@ -42968,7 +43010,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
           "parameters": [
             "execution"
           ],
@@ -43304,7 +43346,8 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/originalSourceFreeRequest/originalSourceFreeRequest",
           "parameters": [
             "preparedProgram",
-            "requestId"
+            "requestId",
+            "effectful"
           ],
           "async": false
         },
@@ -44867,7 +44910,8 @@
           "operations": [
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
             "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
-            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2"
+            "connectEmbeddedLocal/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
+            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/profile/profile#3"
           ],
           "exports": [],
           "attributes": {
@@ -45096,7 +45140,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -45138,6 +45182,9 @@
             "openInstalledHost/closeHostPublicationOwnership",
             "openInstalledHost/closeHostRequestJournal",
             "openInstalledHost/hostJournalExclusion",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/openHostRequestJournal",
             "openInstalledHost/retireModelPreparationReferences",
             "originalSourceManagedHostRequest",
@@ -47806,7 +47853,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model)"
+                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -50102,7 +50149,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50168,7 +50215,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50254,7 +50301,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50336,7 +50383,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50414,7 +50461,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50484,7 +50531,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50554,7 +50601,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50640,7 +50687,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50714,7 +50761,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -50844,7 +50891,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId) => {"
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -51173,7 +51220,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -54476,7 +54523,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -54604,7 +54651,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -55281,7 +55328,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -56395,13 +56442,14 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4a4fe5df15808b3926f5d587c062374ff6d7f0725f0063e8c08239b2a74f2ebf",
+      "sha256": "29505909c00d3eb486f39b07d5f5775f7603db4bd22619e0c4319e0d4f23271e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
+        "retireNodeInferOriginalRead",
         "selectOriginalInferMetadataAcquisition",
         "selectOriginalInferResourceCodecAcquisition",
         "selectOriginalInferStoreBootstrapAcquisition",
@@ -56460,18 +56508,33 @@
             "durableCalls",
             "restoredInput",
             "generatedInput",
-            "originalPreparation"
+            "originalPreparation",
+            "deferred"
           ],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/openNodeComposedInferProvider",
+          "name": "openNodeComposedInferProvider/component/component",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/openNodeComposedInferProvider#2",
+          "name": "openNodeComposedInferProvider/component/component#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -56511,6 +56574,13 @@
           "name": "openNodeComposedInferProvider/provider/provider#4",
           "parameters": [
             "active"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/recordFailure/recordFailure",
+          "parameters": [
+            "cause"
           ],
           "async": false
         },
@@ -57323,6 +57393,18 @@
           "async": false
         },
         {
+          "name": "retireNodeInferOriginalRead",
+          "parameters": [
+            "control",
+            "compiled",
+            "runDefinition",
+            "graph",
+            "scope",
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "selectOriginalInferMetadataAcquisition",
           "parameters": [
             "handle",
@@ -57412,9 +57494,12 @@
       "contracts": [
         {
           "operations": [
-            "codecInt/codecInt"
+            "codecInt/codecInt",
+            "retireNodeInferOriginalRead"
           ],
-          "exports": [],
+          "exports": [
+            "retireNodeInferOriginalRead"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -57750,13 +57835,16 @@
         {
           "operations": [
             "openNodeComposedInferProvider",
-            "openNodeComposedInferProvider/openNodeComposedInferProvider",
-            "openNodeComposedInferProvider/openNodeComposedInferProvider#2",
+            "openNodeComposedInferProvider/component/component",
+            "openNodeComposedInferProvider/component/component#2",
+            "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
+            "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider#4",
-            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation"
+            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
+            "openNodeComposedInferProvider/recordFailure/recordFailure"
           ],
           "exports": [
             "openNodeComposedInferProvider"
@@ -59238,7 +59326,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A \u2014 existing Model raw custody projection",
+      "owner": "A — existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -60309,7 +60397,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -60542,7 +60630,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8553aadb109cca8383e4e0ae12a4cb266a553bb2d0ac2463085766e444f5c18e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -61345,7 +61433,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -61852,7 +61940,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -62569,7 +62657,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -64536,7 +64624,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -66394,7 +66482,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "00010a124069b93d81587b9ba2b2a08ca82de52d781bad2e3423a4a5d82e6237",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -72883,7 +72971,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "14e886f3bc62e5ce5627d1461de0ad51f9c5829e81ba17f8d44aec539a9b5dbb",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -74129,9 +74217,9 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "87ac1b1dbefe45ab709aaaac708ad61b680311179e279550c1f2b10a44ab80fb",
+      "sha256": "eec397613335e9218978fa676e14ddb27b7978cd96620cbff7db1675a4e5d900",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -78858,7 +78946,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "90247d18abc6db953b021cc7efa9191bbcbbbb3dbd70b80c34b9b62f8af0f15b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -80665,7 +80753,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7bf26a25ed7436009277c3fce30007912d782c17bf944148dff083cdf6ac04af",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -81415,7 +81503,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -83683,7 +83771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -85515,7 +85603,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -85720,7 +85808,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -86487,7 +86575,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -86867,7 +86955,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -87285,7 +87373,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -88650,7 +88738,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -89195,7 +89283,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -90414,7 +90502,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -92261,7 +92349,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -102992,7 +103080,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -104839,7 +104927,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -106686,7 +106774,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -108533,7 +108621,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -134424,7 +134512,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -135698,7 +135786,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -135949,7 +136037,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -137796,7 +137884,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",

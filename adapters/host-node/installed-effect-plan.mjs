@@ -96,11 +96,27 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       typeof moon.clientProgramInstalledEffectOperationDemandPrepare !== 'function') {
     fail('InstalledEffectOperationDemandUnavailable');
   }
-  // Source acquisition originals cannot be inferred from profile DATA or
-  // prepared again under another parent. This first existing connection
-  // selects a Source-free Effect; Source/Model supply keeps its own owner.
-  if (moon.clientProgramEffectAcquisitionCount(facts.prepared) !== 0 ||
-      inputs.modelDemand !== undefined) fail('InstalledEffectPlanInputsUnavailable');
+  // The installing Source supplies its original declaration/reader bounds;
+  // Core constructs the acquisition once on this same checked Plan. Missing
+  // inputs cannot select a zero-Source or ordinary-purpose replacement.
+  const count = moon.clientProgramEffectAcquisitionCount(facts.prepared);
+  const sources = inputs.sourceInputs;
+  if (!Number.isSafeInteger(count) || count < 0 ||
+      count !== 0 && sources === undefined || sources !== undefined &&
+      (sources === null || typeof sources !== 'object' || !Object.isFrozen(sources) ||
+       !['declarations', 'transferBytes', 'executionBytes'].every(name =>
+         Array.isArray(sources[name]) && Object.isFrozen(sources[name]) && sources[name].length === count) ||
+       sources.providers !== undefined && (!Array.isArray(sources.providers) ||
+         !Object.isFrozen(sources.providers) || sources.providers.length !== count) ||
+       typeof sources.queryContract !== 'string' || typeof sources.evidenceContract !== 'string' ||
+       count !== 0 && (!sources.queryContract || !sources.evidenceContract) ||
+       [...sources.transferBytes, ...sources.executionBytes].some(value => typeof value !== 'bigint' || value < 0n))) {
+    fail('InstalledEffectPlanInputsUnavailable');
+  }
+  if (inputs.modelDemand !== undefined && (!Array.isArray(inputs.modelComponents) ||
+      !Object.isFrozen(inputs.modelComponents) || inputs.modelComponents.length === 0)) {
+    fail('InstalledEffectPlanInputsUnavailable');
+  }
   const demands = members.map(member => {
     const recipe = recipeFor(member);
     if (recipe === undefined) fail('InstalledEffectOperationDemandUnavailable');
@@ -109,14 +125,22 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       recipe.memberOperations.map(entry => entry.extent),
       recipe.rowOperations.map(entry => entry.extent)));
   });
-  const construct = facts.queryTimePreparation === undefined
-    ? moon.clientProgramInstalledEffectManagedPlanPrepare
-    : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
+  const model = inputs.modelDemand !== undefined, providers = sources?.providers;
+  const construct = model ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
+    : providers !== undefined ? facts.queryTimePreparation === undefined
+      ? moon.clientProgramInstalledEffectManagedProviderPlanPrepare
+      : moon.clientProgramInstalledEffectManagedProviderPlanPrepareAtQueryTime
+    : facts.queryTimePreparation === undefined
+      ? moon.clientProgramInstalledEffectManagedPlanPrepare
+      : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
   if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
   const original = [facts.prepared, facts.identity,
-    ...(facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
-    [], '', '', [], [], inputs.installedContracts,
-    inputs.values, inputs.fragment, inputs.ordered, demands];
+    ...(model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
+    sources?.declarations ?? [], ...(model || providers !== undefined ? [providers] : []),
+    sources?.queryContract ?? '', sources?.evidenceContract ?? '',
+    sources?.transferBytes ?? [], sources?.executionBytes ?? [], inputs.installedContracts,
+    inputs.values, inputs.fragment, inputs.ordered, demands,
+    ...(model ? [inputs.modelDemand, inputs.modelComponents, facts.queryTimePreparation] : [])];
   // Empty query/evidence strings are unused arguments only for zero Sources;
   // they issue no query contract. Existing Core validates the checked graph.
   return checked(Reflect.apply(construct, moon, original));

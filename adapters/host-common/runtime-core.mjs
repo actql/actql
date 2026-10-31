@@ -3407,6 +3407,17 @@ function publicationControl(moon) {
         limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
         limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
     },
+    prepareCheckedClientEffectModelDemand(prepared, compiled, compilation, definition, occurrence, graph) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      // The nominal JS holder is not the native compiled Run. Unwrap only
+      // its existing private association; Core binds the complete original
+      // Effect/compilation/definition/occurrence tuple without another issuer.
+      return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
+        prepared, value, compilation, token(definition), occurrence, graph));
+    },
     prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
       occurrence, graph, selected) {
       const value = compiledRunTokens.get(compiled);

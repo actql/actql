@@ -16,6 +16,22 @@ pub fn client_program_select_installed_source_input(
 }
 
 ///|
+#export_name("clientProgramSelectInstalledEffectSourceInput")
+pub fn client_program_select_installed_effect_source_input(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  stage : Int,
+  source_index : Int,
+) -> Result[
+  @acquisition.SourceAcquisitionRoute,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.select_installed_effect_source_input(
+    prepared, request, stage, source_index,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareWholeSourceCapacity")
 pub fn client_program_prepare_whole_source_capacity(
   prepared : @publication_host.PreparedClientProgram,

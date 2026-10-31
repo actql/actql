@@ -23,7 +23,7 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  prepareDefinition, assertRequestedStopAvailable,
+  prepareDefinition, assertRequestedStopAvailable, requestIdentityFor,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
@@ -31,6 +31,7 @@ export function installNodeClientEffectRun({moon,
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
       (prepareDefinition !== undefined && typeof prepareDefinition !== 'function') ||
+      (requestIdentityFor !== undefined && typeof requestIdentityFor !== 'function') ||
       (assertRequestedStopAvailable !== undefined &&
         typeof assertRequestedStopAvailable !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
@@ -162,8 +163,10 @@ export function installNodeClientEffectRun({moon,
       const policy = await authorizeRequest(Object.freeze({prepared,
         authorityScopeCid, requestId, namespaceId, principalId, connection}));
       if (policy === null || typeof policy !== 'object') throw denied();
-      const identity = moon.clientProgramEffectRequestIdentity(prepared,
-        authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
+      const identity = requestIdentityFor === undefined
+        ? moon.clientProgramEffectRequestIdentity(prepared,
+          authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid())
+        : requestIdentityFor(Object.freeze({prepared, authorityScopeCid, requestId}));
       if (identity === undefined) throw denied();
       let requestedStop = false;
       if (submission !== undefined) {

@@ -5,12 +5,19 @@ import {parse} from 'acorn';
 
 // Execute the actual retained initialization functions with explicit ports.
 // This checks ordering/partial custody, not a Core issuer or physical grant.
+// Execute the unchanged shared retirement body with the existing explicit
+// completion-observer port; the private runtime marker is not manufactured.
+const retirementSource = readFileSync(new URL('./infer-operation.mjs', import.meta.url), 'utf8');
+const retirementNode = parse(retirementSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.declaration?.id?.name === 'retireNodeInferOriginalRead').declaration;
+const retirementFor = observer => Function('inferOriginalReadCleanupComplete',
+  'return ' + retirementSource.slice(retirementNode.start, retirementNode.end))(observer);
 const source=readFileSync(new URL('../local-node/installed-project-mock.mjs',import.meta.url),'utf8');
 const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
 const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead',
-  'closeSource','closeRead','close','retireRunRecord'];
+  'closeSource','closeRead','closePhysicalRead','close','retireRunRecord'];
 const slices=outer.body.body.flatMap(node=>{
   if(node.type==='FunctionDeclaration'&&functions.includes(node.id.name))return[source.slice(node.start,node.end)];
   if(node.type==='VariableDeclaration'&&['sameRun','close'].includes(node.declarations[0].id.name))return[source.slice(node.start,node.end)];
@@ -78,10 +85,10 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,acquisitionCount
     releaseRequestAliases=()=>Reflect.apply(model.releaseAliases,model,[]);
     return{original,value};
   };
-  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','inferOriginalReadCleanupComplete','prepareRequestModel',
-    'let closing=false;'+slices+';return {prepareManagedRun,prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
+  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','retireNodeInferOriginalRead','prepareRequestModel',
+    'let closing=false;const effectRuns=new WeakMap(),effectReads=new Set();'+slices+';return {prepareManagedRun,prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
       current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources,
-      value=>cleanedModelReads.has(value),prepareRequestModel);
+      retirementFor(value=>cleanedModelReads.has(value)),prepareRequestModel);
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
   return{...api,calls,records,prepared,request,plan,selection,compilation,control,original,admission,value,scope,
