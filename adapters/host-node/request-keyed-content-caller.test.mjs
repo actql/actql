@@ -9,6 +9,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {AcquisitionOpenError} from '../host-common/acquisition-outcome.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
+import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 
 // Actual Local constructor -> Host bag -> Request manager -> runtime port.
 // Core nominal/Resource/current interfaces are explicit fixture ports. This is
@@ -22,7 +23,7 @@ function method(file, name, ports) {
   return Function(...Object.keys(ports),`return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
-async function fixture({failurePhase,failure,failKeyedRead}={}) {
+async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false}={}) {
   const prepared={},request={},sdkRequest={},parent={},input={},holder={},original={},value={},selected={},compilation={};
   const graph=Object.freeze({task:0,step:1}),rawGraph={},keyed={},declaration={},calls=[];
   const plan={kind:'serialization',serializationGraph:graph,compiled:{},runDefinition:{}};
@@ -39,7 +40,7 @@ async function fixture({failurePhase,failure,failKeyedRead}={}) {
     clientProgramPrepareRequestKeyedSerializationCompilation(p,i,s,g){assert.equal(this,moon);assert.deepEqual([p,i,s,g],[parent,input,selected,rawGraph]);
       assert.equal(state.contentPlan,selected);calls.push('compile');if(failurePhase==='compile')throw failure;return ok(compilation);},
     clientProgramInstalledManagedRunCheck(v,p,r){assert.deepEqual([v,p,r],[value,prepared,request]);return ok();},
-    clientProgramInstalledManagedRunRetire(){assert.fail('Local child cannot retire its Host parent');},
+    clientProgramInstalledManagedRunRetire(v){assert.equal(v,value);if(!hostRetirement)assert.fail('Local child cannot retire its Host parent');return ok();},
     clientProgramInstalledManagedKeyedSourceRead(v,k,r,d){
       assert.deepEqual([v,k,d],[value,keyed,declaration]);calls.push('keyed-read');
       if(failKeyedRead)throw failKeyedRead;return ok({originalRequest:r});
@@ -106,7 +107,7 @@ async function fixture({failurePhase,failure,failKeyedRead}={}) {
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},
     preparedRunRequired:true,assertRunCurrent(){},registry:'{}',values:'{}',ownerPrincipal:'fixture',
     prepareKeyedManagedRun:(p,r,g,recipe)=>profile.prepareManagedContentRun(p,r,recipe,g),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger borrowed')});
-  return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,
+  return{calls,content,profile,prepared,request,plan,graph,keyed,compilation,record,state,control,selected,localOptions,declaration,moon,view,original,
     child:(r={})=>view.prepareKeyedRead(prepared,declaration,original,r),failCurrent:e=>{currentFailure=e;},
     compile:(changes={})=>content.prepareManagedKeyedCompilation({preparedProgram:prepared,request,serializationGraph:graph,keyedAcquisition:keyed,...changes}),
     bind:()=>content.prepareManagedKeyedRun({preparedProgram:prepared,request,plan,keyedAcquisition:keyed})};
@@ -189,4 +190,19 @@ test('Local partial keyed reader keeps its original child without inventing a Co
   assert.throws(()=>f.localOptions.prepareKeyedSourceRead({checkedOwner:f.prepared,keyedAcquisition:f.keyed,request,declaration:f.declaration}),{code:'LocalFilesSourcePreparationMismatch'});
   await f.localOptions.site.close();await f.profile.close();
   assert.equal(f.calls.filter(x=>x==='keyed-read').length,1);assert.equal(f.calls.includes('keyed-retire'),false);
+});
+
+
+test('Request keyed Host cuts raw compiler aliases before its consumed parent return can fail',async()=>{
+  const f=await fixture({hostRetirement:true});f.compile();const run=f.record.computeRuns.get(f.prepared);
+  const primary=new Error('same consumed preparation return');let returns=0;
+  f.view.severPreparation=(p,o)=>{assert.equal(p,f.prepared);assert.equal(o,f.original);
+    for(const name of['contentCompilation','contentGraph','contentRecipe','selectedKeyed'])assert.equal(run[name],undefined);
+    if(++returns===1)throw primary;};
+  const retire=method('./embedded-local.mjs','retireManagedComputeRun',{
+    moon:f.moon,record:f.record,checked,finishInstalledEffectModelScope,
+    clientOperationError:code=>Object.assign(new Error(code),{code}),
+    managedPreparationRetirementContinuation:original=>{assert.equal(original,run);assert.equal(run.closed,true);return()=>{};}});
+  assert.throws(()=>retire(f.prepared),e=>e===primary);const finish=retire(f.prepared);finish();
+  assert.equal(returns,2);assert.equal(run.closed,true);await f.profile.close();
 });
