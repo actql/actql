@@ -356,6 +356,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
+      initial_host_signing: settings.initial_host_signing,
     }),
     stage=Some("journal-open"),
   )

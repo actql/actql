@@ -6,6 +6,7 @@ struct PreparedResolutionProof {
   checkpoint : SealedCheckpoint
   body : @json.CanonicalValue
   actor : String
+  decision : ResolutionDecision
   preimage : String
   limits : WireLimits
 }
@@ -40,7 +41,7 @@ pub fn prepare_resolution_proof(
     if string_field(value, "version") != Some(RESOLUTION_VERSION) {
       raise ResolutionFailed(ResolutionInvalidField("version"))
     }
-    ignore(resolution_decision_evidence(value))
+    let (decision, _) = resolution_decision_evidence(value)
     ignore(text_of(value, "resolution_id", ""))
     let actor = text_of(value, "actor", "")
     let decided_at = time_field(value, "decided_at", "")
@@ -53,7 +54,7 @@ pub fn prepare_resolution_proof(
       Some(value) => value
       None => raise ResolutionFailed(ResolutionEncoding)
     }
-    Ok({ checkpoint, body: value, actor, preimage, limits, })
+    Ok({ checkpoint, body: value, actor, decision, preimage, limits, })
   } catch {
     ResolutionFailed(issue) => Err(issue)
   }
@@ -72,6 +73,16 @@ pub fn PreparedResolutionProof::checkpoint(
 /// acquiring any signing use; this getter does not authenticate that actor.
 pub fn PreparedResolutionProof::actor(self : PreparedResolutionProof) -> String {
   self.actor
+}
+
+///|
+/// Original already-validated decision DATA. The Host must still recheck
+/// cancellation/current eligibility and obtain independent authentication;
+/// this getter grants no approval, signing use or continuation permission.
+pub fn PreparedResolutionProof::decision(
+  self : PreparedResolutionProof,
+) -> ResolutionDecision {
+  self.decision
 }
 
 ///|

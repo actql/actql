@@ -23,6 +23,10 @@ fn retained_effect_preview_inputs(
     @client.NativeClientEffectSourceWork,
     @client.NativeClientRunJournal,
   )? = None,
+  initial_reviewer? : (
+    PairedInitialReviewerFixture,
+    @client.NativeClientSubmissionReference,
+  )? = None,
 ) -> Unit raise {
   let owner = materials.prepared
   let retention = retained_compute_effect_retention()
@@ -327,6 +331,7 @@ fn retained_effect_preview_inputs(
       None
     },
     original_work~,
+    initial_reviewer~,
   )
   public_capture.output.cancel()
   assert_true(

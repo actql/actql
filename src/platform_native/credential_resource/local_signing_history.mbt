@@ -88,12 +88,13 @@ pub fn prepare_native_local_signing_history_candidate(
 /// History of the one-original-signature Local operation. Its retained grant
 /// selects the exact use; no caller ID, new ordinal or live use authorization
 /// is accepted. The generic multi-use history reader remains unchanged.
-pub fn prepare_native_local_original_signing_history_candidate(
+fn local_original_signing_history_for_purpose(
+  purpose : @credential.LocalSigningPurpose,
   database : @sqlite.Database,
   grant : @credential.LocalSigningCredentialGrant,
 ) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
   let scope = @credential.local_signing_credential_grant_scope(grant)
-  if scope.purpose != @credential.ReviewerProof {
+  if scope.purpose != purpose {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
   let candidate = match
@@ -154,4 +155,30 @@ pub fn NativeLocalSigningHistoryCandidate::observed_outcome(
   self : NativeLocalSigningHistoryCandidate,
 ) -> NativeLocalSigningHistoryOutcome {
   self.observed_outcome
+}
+
+///|
+/// Original Reviewer-only entry; Host purpose remains unavailable here.
+pub fn prepare_native_local_original_signing_history_candidate(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
+  local_original_signing_history_for_purpose(
+    @credential.ReviewerProof,
+    database,
+    grant,
+  )
+}
+
+///|
+/// Explicit initial Host entry. The actual Host must authenticate its staged full wrapper, current Sign account, original key and paired subject before/after this storage phase.
+pub fn prepare_native_local_initial_host_signing_history_candidate(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
+  local_original_signing_history_for_purpose(
+    @credential.HostAttestation,
+    database,
+    grant,
+  )
 }

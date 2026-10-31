@@ -242,12 +242,12 @@ pub fn authenticate_native_effect_reviewer(
 }
 
 ///|
-fn native_reviewer_resolution_wire(
-  verified_wire : String,
+fn native_reviewer_canonical_value(
+  wire : String,
   limits : @checkpoint.WireLimits,
-) -> String? {
+) -> @canonical.CanonicalValue? {
   let source = match
-    @source.parse_json_bytes_preserving(@utf8.encode(verified_wire), {
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
       max_input_bytes: limits.max_wire_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
@@ -255,28 +255,104 @@ fn native_reviewer_resolution_wire(
     Ok(value) => value
     Err(_) => return None
   }
-  try {
-    let value = @canonical.from_source(
+  Some(
+    @canonical.from_source(
       source,
       limits.max_nodes,
       limits.max_depth,
       limits.max_wire_bytes,
       data_keys=true,
-    )
-    guard @canonical.object_field(value, "resolution") is Some(resolution) else {
-      return None
-    }
-    Some(
-      @canonical.stringify_value(
-        resolution,
-        limits.max_wire_bytes,
-        limits.max_nodes,
-        limits.max_depth,
-      ),
-    )
-  } catch {
+    ),
+  ) catch {
     _ => None
   }
+}
+
+///|
+fn native_reviewer_canonical_wire(
+  value : @canonical.CanonicalValue,
+  limits : @checkpoint.WireLimits,
+) -> String? {
+  Some(
+    @canonical.stringify_value(
+      value,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ),
+  ) catch {
+    _ => None
+  }
+}
+
+///|
+fn native_reviewer_resolution_wire(
+  verified_wire : String,
+  limits : @checkpoint.WireLimits,
+) -> String? {
+  guard native_reviewer_canonical_value(verified_wire, limits) is Some(value) &&
+    @canonical.object_field(value, "resolution") is Some(resolution) else {
+    return None
+  }
+  native_reviewer_canonical_wire(resolution, limits)
+}
+
+///|
+// Same physical verification boundary and current registration as the original
+// Resolution port. Equality is complete canonical wire, including the actual
+// proof and self identity, not just the unsigned proof preimage.
+fn authenticate_native_wrapper_reviewer_with(
+  selected : NativeEffectReviewerSelection,
+  wrapper_wire : String,
+  original_resolution_wire : String,
+  current_site : () -> Bool,
+  read_current : (NativeEffectReviewerSelection, String) -> NativeEffectReviewerRegistration?,
+  verify : (String, Bytes, String) -> Result[
+    Bool,
+    @signature.NativeSignatureIssue,
+  ],
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  (@checkpoint.HostAuthentication, NativeEffectReviewerRegistration),
+  NativeResidentEffectResolutionIssue,
+] {
+  if !current_site() {
+    return Err(AuthorityDenied)
+  }
+  guard native_reviewer_resolution_wire(wrapper_wire, limits) is Some(actual) &&
+    native_reviewer_canonical_value(original_resolution_wire, limits)
+    is Some(original) &&
+    native_reviewer_canonical_wire(original, limits) == Some(actual) else {
+    return Err(AttestationRejected)
+  }
+  authenticate_native_reviewer_with(
+    selected, actual, current_site, read_current, verify, limits,
+  )
+}
+
+///|
+/// Authenticate the proof actually embedded in this proposed wrapper against
+/// the complete retained signed Resolution. The wrapper is not trusted or
+/// admitted here: independent Host signature, full common Checkpoint/evidence,
+/// commit and resume gates remain mandatory. No key is selected from its wire.
+pub fn authenticate_native_effect_wrapper_reviewer(
+  installation : NativeEffectReviewerInstallation,
+  selected : NativeEffectReviewerSelection,
+  wrapper_wire : String,
+  original_resolution_wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[@checkpoint.HostAuthentication, NativeResidentEffectResolutionIssue] {
+  authenticate_native_wrapper_reviewer_with(
+    selected,
+    wrapper_wire,
+    original_resolution_wire,
+    installation.current_site,
+    installation.read_current,
+    (key, bytes, signature) => {
+      installation.crypto.verify_ed25519(key, bytes, signature)
+    },
+    limits,
+  ).map(value => value.0)
 }
 
 ///|

@@ -118,6 +118,7 @@ fn request_lookup_fixture(
     read_file: None,
     run_policy_profile_file: None,
     reviewer_file: None,
+    initial_host_signing: None,
   }
   (host, settings, crypto)
 }

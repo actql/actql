@@ -6,6 +6,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/filesystem",
@@ -25,7 +26,7 @@ import {
 }
 
 // Values
-pub fn acquire_native_remote_retained_task_output(NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, NativeRemoteStandardRowCodec, @execution_relation.GeneratedSequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, NativeRemoteRetainedInputCurrent) -> Result[NativeRemoteRetainedTaskOutput, NativeRemoteRetainedTaskSourceIssue]
+pub fn acquire_native_remote_retained_task_output(NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, NativeRemoteStandardRowCodec, @execution_relation.GeneratedSequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, NativeRemoteRetainedInputCurrent, (@physical_resources.Ledger, @physical_resources.Reservation)) -> Result[NativeRemoteRetainedTaskOutput, NativeRemoteRetainedTaskSourceIssue]
 
 pub fn acquire_native_remote_retained_task_source(NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, NativeRemoteRetainedInputCurrent) -> Result[NativeRemoteStandardTransferSource, NativeRemoteRetainedTaskSourceIssue]
 

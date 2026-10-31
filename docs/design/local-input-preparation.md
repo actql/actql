@@ -519,6 +519,36 @@ construction inventory before using the pre-Run module path. The unconverted
 fixed Body/raw paths retain their existing obligations; a caller-only source
 connection cannot qualify them or a runtime built from older typed APIs.
 
+## Native resident acquisition and retained consumers
+
+The Native resident caller selects each original generated task sequence and
+estimate against the actual checked graph before Source acquisition. It prepares
+the Local and Native modules on the same per-Run parent Ledger that will own the
+captured DAG. Capturing the Source binds that original preparation; it does not
+compile another static Native plan or initialize a replacement Ledger.
+
+For a retained consumer, the pure retained projection exposes the exact checked
+view used by its existing opener. Module preparation uses that view before the
+independently owned destination reader is borrowed. The completed producer and
+original task coordinates remain bound by the existing projection and module
+checks. The live captured DAG belongs to the canonical Host package; immutable
+checked graphs and projections remain in the pure strategy package.
+
+Preparation and module capacity accessors do not establish physical backing for
+the initial constructors or the complete Native engine. Source and destination
+currentness, exclusive start, physical reservation and pending cleanup remain
+with their original owners. Search and estimate configuration still bind the
+actual captured Run, and neither preparation nor binding issues approval.
+
+The existing reserved-attempt budget is consumed only at possible physical use:
+before opening the admitted Source, on the retained decoder's actual stream
+entry after metadata/codec/limit/current checks, and at the Native task runner
+before retained-file or transaction work. The decoder receives the caller's
+original Ledger and Reservation; it does not initialize or substitute either.
+The existing common task-use operation checks the original live TaskExecution.
+Plan preparation, capacity reservation and pre-I/O refusal do not consume an
+attempt. Started, failed and unknown physical uses are never refunded.
+
 ## Recorded Model demand in an Effect plan
 
 A selected Model purpose retains its original checked Effect, compiled Run,
@@ -2538,6 +2568,28 @@ existing typed continuation and adds its complete representation quote before
 constructing material. The maximum representable borrower counter is only an
 integer representation fence; it supplies no preallocated slots, work, physical
 attempts, capacity or authority.
+
+The input, working capacity, one selection and close fence are the same for
+Node and a backed Native initialization. Backend acquisition remains separate:
+Node retains its fixed Node preparation supplier. Native selects an explicit
+initialization purpose on a fresh live child before frame issuance; an existing
+Read or worker cannot be relabelled. Its nominal preparation admission binds the
+same original input as the live runtime. The physical issuer starts and takes
+that child once and installs its actual funded bootstrap census. The portable
+Host body consumes that prepared original without a second start or take.
+Missing census, foreign input and repeated consumption refuse; this boundary
+does not choose slot counts or imply that a Read census fits Source material.
+
+Native retains the same frame for partial-start, logical stop, C-context
+retirement and reporting in its existing physical order. The portable body
+does not copy Node's report/stop sequence or manufacture a physical ACK.
+Backed initialization close remains pending until the original physical
+issuer's after-owner-ACK retirement is recorded, outstanding usage is settled
+and unknown report/stop outcomes remain absent. Original zero-sized tokens
+must retire too; equal zero byte balances are insufficient. Only then can the
+shared Host close release its input alias. The actual Native initialization
+constructor, its complete representation recipe and the physical retirement observation
+are separate obligations; a nominal carrier supplies none of them by itself.
 
 The original installation, input and Resource identities remain unchanged. No
 JavaScript Ledger getter, late Environment/sequence context, completed Request,
