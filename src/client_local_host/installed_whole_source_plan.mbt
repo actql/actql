@@ -151,14 +151,29 @@ pub fn installed_managed_acquisition_result_publication(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Bool, ClientInstalledManagedRunIssue] {
-  match installed_managed_source_input_kind(value, prepared, request) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  guard value.captured_preparation is Some(plan) else {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.ledger is Some(_) &&
+    value.preparation is Some(PureManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    physical_equal(value.request, request) else {
     return Err(ForeignOriginal)
   }
-  Ok(@strategy.graph_requires_acquisition_result_publication(plan.graph))
+  let graph = if value.captured_preparation is Some(plan) {
+    guard physical_equal(plan.prepared, prepared) &&
+      physical_equal(plan.request, request) else {
+      return Err(ForeignOriginal)
+    }
+    plan.graph
+  } else {
+    guard value.source_free_preparation is Some(plan) &&
+      plan.owner is Pure(original) &&
+      physical_equal(original, prepared) else {
+      return Err(ForeignOriginal)
+    }
+    installed_managed_owner_graph(plan.owner)
+  }
+  Ok(@strategy.graph_requires_acquisition_result_publication(graph))
 }
 
 ///|

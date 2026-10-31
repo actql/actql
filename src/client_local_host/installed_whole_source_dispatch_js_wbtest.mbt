@@ -194,7 +194,77 @@ test "source-free dispatch reads its retained Request Plan without a captured So
   match placement {
     Ok(false) => ()
     Ok(true) => fail("Values Result must not require acquisition publication")
-    Err(ForeignOriginal) => fail("RetainedSourceFreePlanRefusedAsForeignOriginal")
+    Err(ForeignOriginal) =>
+      fail("RetainedSourceFreePlanRefusedAsForeignOriginal")
     Err(_) => fail("UnexpectedSourceFreeResultPlacementIssue")
   }
+}
+
+///|
+test "source-free Result placement refuses foreign missing and retired originals" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_program_body_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "source-free-placement-originals",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  let original = run.source_free_preparation.unwrap()
+  let foreign = single_source_free_capacity_prepared()
+  let foreign_plan = request_program_installed_plan(foreign)
+  let foreign_request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "source-free-placement-other-request",
+  ).unwrap()
+  let before_current = calls.val
+  let before_usage = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    installed_managed_acquisition_result_publication(run, foreign, request)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    installed_managed_acquisition_result_publication(
+      run, prepared, foreign_request,
+    )
+    is Err(ForeignOriginal),
+  )
+  run.source_free_preparation = Some(foreign_plan)
+  assert_true(
+    installed_managed_acquisition_result_publication(run, prepared, request)
+    is Err(ForeignOriginal),
+  )
+  run.source_free_preparation = None
+  assert_true(
+    installed_managed_acquisition_result_publication(run, prepared, request)
+    is Err(ForeignOriginal),
+  )
+  run.source_free_preparation = Some(original)
+  assert_true(
+    installed_managed_acquisition_result_publication(run, prepared, request)
+    is Ok(false),
+  )
+  assert_eq(calls.val, before_current)
+  assert_eq(@resources.ledger_usage(parent.ledger), before_usage)
+  retire_installed_managed_run(run).unwrap()
+  let after_retirement = calls.val
+  assert_true(
+    installed_managed_acquisition_result_publication(run, prepared, request)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(calls.val, after_retirement)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

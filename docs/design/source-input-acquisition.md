@@ -240,3 +240,17 @@ the original native codec limits and original-identity checks remain required.
 
 This invocation extent is not a replacement for Source declaration, physical
 reader or output backing, and does not enable Model, Content or Effect purposes.
+
+## Result placement from the adopted Plan
+
+The managed Result-placement read accepts the same live Pure Run, Prepared and
+Request. A captured Plan supplies its retained physical graph, whose Result
+coordinates may differ from the original Prepared graph. A source-free Plan
+supplies the graph of its retained original Pure owner. Missing, foreign or
+retired holders cannot select either graph, and an acquisition count cannot
+replace the checked root Result inventory.
+
+This immutable read performs no current callback, compiler work, reservation or
+provider construction. It does not admit execution, supply physical backing or
+acknowledge cleanup. Source-specific input and Ledger reads retain their own
+captured-Plan restrictions and existing current boundaries.
