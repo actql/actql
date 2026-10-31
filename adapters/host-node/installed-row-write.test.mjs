@@ -825,3 +825,88 @@ test('actual Sheets constructor binding forwards the original opaque profile wit
   }
   assert.equal(getters,0);
 });
+
+function selectedSheetsInitialization(ports, name = 'load') {
+  const source = readFileSync(new URL('../connectors/sheets/host/installed-sheets.mjs', import.meta.url), 'utf8');
+  const names = new Set(['readJson','readSite','restore','mappingOf','readPublication','openSite',
+    'bindSheetsAppendConstructionProfile','load']);
+  const bodies = parse(source, {ecmaVersion:'latest',sourceType:'module'}).body
+    .filter(node => node.type === 'FunctionDeclaration' && names.has(node.id.name))
+    .map(node => source.slice(node.start,node.end)).join('\n');
+  return Function(...Object.keys(ports), bodies + `\nreturn ${name};`)(...Object.values(ports));
+}
+const initializedSheetsSite = () => ({version:'actql-installed-sheets-site/0.1',
+  apiOrigin:origin,spreadsheetId:'book',gridRange:{sheetId:0,startRow:0,endRow:1,startColumn:0,endColumn:1},
+  appendSheetId:7,columns:[{name:'name',type:'string',nullable:false}],namespaceId:'namespace',
+  environment:'test',siteKey:'site',siteGeneration:1,credentialAuthorityId:'authority',
+  credentialKeyId:'key',credentialPrivateKeyPath:'/explicit/key',journalRoot:'/explicit/journal',
+  tokenEnvironment:'SHEETS_TEST_TOKEN'});
+
+test('actual Sheets initial caller keeps original configuration declaration Mapping and Site owner through installation', async () => {
+  const site = initializedSheetsSite(), scope = {}, installation = {}, declaration = {},
+    declared = {catalog_cid:providerCid}, environment = Object.freeze({wire:'original-environment'}),
+    originalMappings = Object.freeze([Object.freeze({resource:'append_rows',mappingRef:'mapping',mappingCid:providerCid,body:'original-body'})]),
+    adapter = {}, calls = [];
+  const bindingFacts = value => ({api_origin:value.apiOrigin,spreadsheet_id:value.spreadsheetId,
+    read_grid:value.gridRange,append_sheet_id:value.appendSheetId,columns:value.columns});
+  const publicationBody = {version:'actql-sheets-publication/0.1',connectorId:'sheet',catalogCid:providerCid,binding:bindingFacts(site)};
+  const publication = {...publicationBody,publication_cid:contentCid(publicationBody)};
+  const reader = {async readJson(path,options) {assert.equal(this,reader);assert.equal(options.maxBytes,1048576);
+    calls.push(path);return path==='/explicit/site'?site:publication;},readText(){assert.fail('No text read');}};
+  const legacy = () => assert.fail('No legacy declaration Mapping Environment or raw file producer');
+  scope.prepareAuthoredDeclaration = function(wire,expected) {assert.equal(this,scope);assert.equal(expected,undefined);
+    assert.deepEqual(JSON.parse(wire),{views:[{resource:'rows',resource_kind:'sheet_rows',fields:site.columns}]});
+    calls.push('declaration');return {declaration,declared};};
+  scope.prepareMappings = function(wire,writes) {assert.equal(this,scope);assert.equal(JSON.parse(wire).writes[0].create.permission,SHEETS_APPEND_OPERATION);
+    assert.equal(writes.length,1);assert.equal(writes[0].resource,'append_rows');assert(Object.isFrozen(writes));
+    assert(Object.isFrozen(writes[0]));assert(Object.isFrozen(writes[0].sources));assert(Object.isFrozen(writes[0].sources[0]));
+    calls.push('mappings');return {declaration,declared,environment,mappings:originalMappings};};
+  const authorization={context:{contextCid:providerCid}},siteOwner={};
+  const services={async openRowSite(options) {assert.equal(this,services);assert.equal(options.installation,installation);
+    assert.equal(options.sourceInitialization,scope);assert.deepEqual(calls,['/explicit/site','declaration','/explicit/publication','mappings']);
+    calls.push('site');return {authorization,site:siteOwner};}};
+  const providerMoon={sheetsAppendConstructionProfile(){assert.fail('No native quote before existing Effect factory');}};
+  const {captureConfigurationReaders} = await import('./source-profile-json.mjs');
+  const load=selectedSheetsInitialization({nodeTypes,captureConfigurationReaders,registration:'sheets',revision:'sheets/0.1',
+    publicationVersion:'actql-sheets-publication/0.1',targetVersion:'actql-installed-sheets-target/0.1',
+    SHEETS_SITE_VERSION:'actql-installed-sheets-site/0.1',siteKeys:Object.keys(site).filter(k=>k!=='version'),SHEETS_LIMITS,SHEETS_APPEND_OPERATION,SHEETS_READ_OPERATION,
+    text:x=>typeof x==='string'&&x.length>0,absolute:x=>typeof x==='string'&&x.startsWith('/'),
+    gridIndex:x=>Number.isInteger(x)&&x>=0&&x<=2147483647,
+    exact:(x,keys)=>x&&Object.keys(x).sort().join('\0')===[...keys].sort().join('\0'),
+    fail:code=>{throw Object.assign(new Error(code),{code});},checked,canonicalJson,contentCid,bindingFacts,
+    readFile:legacy,rowSourceMapping:legacy,rowSourceCheckEnvironment:legacy,
+    installRowSourceAuthorization:legacy,openRowSourceCredentialSite:legacy,
+    checkSheetsGridConfiguration(moon,columns,range){assert.equal(moon,providerMoon);assert.equal(columns,site.columns);},
+    prepareSheetsTargetRequest,prepareSheetsAppend,projectSheetsTarget,projectSheetsAppend:legacy,
+    createInstalledRowEffect:async options=>{assert.equal(options.sourceInitialization,scope);
+      assert.equal(options.declaration,declaration);assert.equal(options.declared,declared);assert.equal(options.environment,environment);
+      assert.equal(options.mappings,originalMappings);assert.equal(options.site,siteOwner);assert.equal(options.authorization,authorization);
+      assert.equal(typeof options.providerMoon.installedStandardCreateConstructionProfile,'function');calls.push('adapter');return adapter;},
+    retainInstalledHostInitializationFailure:async error=>{throw error;}});
+  const profile={siteProfilePath:'/explicit/site',publicationPath:'/explicit/publication',connectorId:'sheet',
+    accountConfigurationWire:'original-account',sources:[{target:'name',field:'name',null_behavior:'reject'}]};
+  assert.equal(await load(profile,{moon:{clientProgramRowSourceRestoreDeclaration:legacy},providerMoon,
+    sourceInitialization:scope,configurationReader:reader,installationServices:services,installation,
+    baseEnvironmentWire:'original-base',runtimeBundleCid:providerCid,ledgerRoot:'/explicit/ledger'},true),adapter);
+  assert.deepEqual(calls,['/explicit/site','declaration','/explicit/publication','mappings','site','adapter']);
+});
+
+test('actual Sheets initial CA reader is captured before await and preserves the same original bytes', async () => {
+  const site={...initializedSheetsSite(),caPath:'/explicit/original.pem'},ca=Buffer.from([0xef,0xbb,0xbf,0,0xff,13,10]);
+  let complete,reads=0;
+  const reader={readJson:()=>new Promise(done=>{complete=()=>done(site);}),readText(){assert.fail('No CA text conversion');},
+    async readOriginalBytes(path){assert.equal(this,reader);assert.equal(path,site.caPath);reads++;return ca;}};
+  const {captureConfigurationReaders} = await import('./source-profile-json.mjs');
+  const readSite=selectedSheetsInitialization({captureConfigurationReaders,
+    readFile(){assert.fail('No raw file fallback on the original initializer');},
+    SHEETS_SITE_VERSION:site.version,SHEETS_LIMITS,
+    exact:(x,keys)=>Object.keys(x).sort().join('\0')===[...keys].sort().join('\0'),
+    gridIndex:x=>Number.isInteger(x)&&x>=0,absolute:x=>x.startsWith('/'),
+    siteKeys:Object.keys(site).filter(key=>!['version','caPath'].includes(key)),
+    fail:code=>{throw Object.assign(new Error(code),{code});},checkSheetsGridConfiguration(){}},'readSite');
+  const pending=readSite('/explicit/site',{},reader);
+  reader.readOriginalBytes=()=>assert.fail('No replacement byte reader after await');
+  if (typeof complete !== 'function') await pending;
+  assert.equal(typeof complete,'function');complete();
+  const selected=await pending;assert.equal(selected.ca,ca);assert.equal(reads,1);
+});
