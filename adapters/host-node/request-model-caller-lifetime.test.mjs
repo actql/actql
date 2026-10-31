@@ -183,3 +183,101 @@ test('Model manager preserves a constructor refusal without reentering its compi
   assert.deepEqual(f.calls, ['compile', 'construct']); assert.equal(f.state.preparing, false);
   assert.equal(f.state.preparationFailure, primary);
 });
+
+const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+const hostStart = hostSource.indexOf('    prepareManagedModelRun(runtime,');
+const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', hostStart);
+const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
+const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
+assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
+function hostFixture({refuse, failAfterAdopt = false} = {}) {
+  const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
+  const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
+  const record = {mockSourceProfile: {}}, originalInstallation = {}, originals = {};
+  const primary = new Error('original-check-after-adopt');
+  let finish = true, physicalDone = false, payloadSevered = false;
+  const control = {
+    finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
+      assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition, model.graph, scope, true]);
+      calls.push('scope'); return finish;
+    },
+  };
+  model.control = control;
+  model.releaseAliases = function() {
+    assert.equal(this, model); calls.push('aliases');
+    if (model.scopeFinished !== true || model.read !== undefined) throw new Error('OriginalChildrenPending');
+    if (!refuse && !payloadSevered) assert.fail('Alias retirement must follow the original payload sever');
+    physicalDone = true;
+  };
+  const moon = {
+    clientProgramInstalledManagedRunRetire(v) {
+      assert.equal(this, moon); assert.equal(v, value); calls.push('retire');
+      payloadSevered = true;
+    },
+    clientProgramInstalledManagedRunCheck(v, p, r) {
+      assert.equal(this, moon); assert.deepEqual([v, p, r], [value, prepared, request]);
+      calls.push('check'); if (failAfterAdopt) throw primary;
+    },
+    clientProgramInstalledPreparationPayloadSevered: () => payloadSevered,
+  };
+  const manager = {
+    prepareModelRun(p, r, i, actual, construct) {
+      assert.deepEqual([p, r, i, actual], [prepared, sdkRequest, request, model]);
+      assert.equal(record.computeRuns.get(prepared).model, model);
+      assert.equal(originalInstallation.computeRuns, record.computeRuns);
+      calls.push('manager'); construct(parent, input, compilation); model.scope = scope;
+      if (refuse) throw refuse; return {original, value};
+    },
+    severPreparation(p, o) {
+      assert.deepEqual([p, o], [prepared, original]); assert(payloadSevered); calls.push('sever');
+    },
+  };
+  const construct = (o, run, actual, c, p, i) => {
+    assert.deepEqual([o, actual, c, p, i], [originals, model, compilation, parent, input]);
+    assert.equal(record.computeRuns.get(prepared), run); calls.push('construct');
+    run.preparedSequences = {}; run.modelPlan = {}; run.modelAcquisitions = [{}];
+    return run.modelPlan;
+  };
+  const ports = {sourceManaged: manager, moon, record, originalInstallation, originals,
+    runtimeCore: () => ({publicationControl: control}),
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    assertSourceManagedInstallationCurrent(actual, o) {assert.equal(actual, manager); assert.equal(o, originals);},
+    originalSourceManagedHostRequest(o, p) {assert.equal(o, originals); assert.equal(p, prepared); return sdkRequest;},
+    prepareRequestMockModelPlan: construct, checked: value => value,
+    managedPreparationRetirementContinuation(run) {
+      assert(physicalDone); assert.equal(run.closed, true); return () => {calls.push('finish');};
+    },
+  };
+  const object = Function(...Object.keys(ports), `return ({${hostSource.slice(hostStart, hostEnd)}
+    ${hostSource.slice(retireStart, retireEnd).trim().replace(/,$/u, '')}});`)(...Object.values(ports));
+  return {record, model, scope, calls, original, value, prepared, request, primary,
+    begin: () => object.prepareManagedModelRun(moon, prepared, request, model),
+    retire: () => object.retireManagedComputeRun(prepared),
+    finishScope: () => {model.scopeFinished = true;}, setFinish: value => {finish = value;}};
+}
+
+test('Host Model adoption uses its existing run bag and retains transient originals until actual adoption succeeds', () => {
+  const f = hostFixture(); const run = f.begin();
+  assert.equal(run.original, f.original); assert.equal(run.value, f.value); assert.equal(run.model, f.model);
+  assert.equal(run.preparedSequences, undefined); assert.equal(run.modelAcquisitions, undefined);
+  assert.equal(f.begin(), run); assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  f.finishScope(); const finish = f.retire();
+  assert.deepEqual(f.calls.slice(-3), ['retire', 'sever', 'aliases']); finish();
+  assert.equal(run.prepared, undefined); assert.equal(run.closed, true);
+  const g = hostFixture({failAfterAdopt: true});
+  assert.throws(g.begin, error => error === g.primary);
+  assert.equal(g.record.computeRuns.get(g.prepared).value, g.value);
+  assert.throws(g.begin, error => error === g.primary);
+});
+
+test('Host Model failed construction retains its original Scope and partial module until the same Scope acknowledges cleanup', () => {
+  const primary = new Error('original-model-completion'), f = hostFixture({refuse: primary});
+  assert.throws(f.begin, error => error === primary); const run = f.record.computeRuns.get(f.prepared);
+  assert(run.preparedSequences); assert(run.modelAcquisitions);
+  assert.equal(f.model.scope, f.scope); assert.throws(f.begin, error => error === primary);
+  f.setFinish(false); assert.throws(f.retire, {code: 'InstalledMockModelCleanupPending'});
+  assert.equal(f.record.computeRuns.get(f.prepared), run); assert(!f.calls.includes('aliases'));
+  f.setFinish(true); f.retire();
+  assert.equal(f.record.computeRuns.has(f.prepared), false); assert.equal(f.record.computeLiveRuns.size, 0);
+  assert.equal(run.closed, true); assert(!f.calls.includes('retire')); assert(!f.calls.includes('sever'));
+});
