@@ -128,13 +128,14 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
     }});
   const recipe=Object.freeze({registry:'registry',values:'values',task:0,step:1,keyedAcquisition:keyed,
     prefixRetainedBytes:1n,prefixExecutionBytes:1n});
+  const contentPreparation={prepared,inputHolder:{}};
   const keyedRequest={};
   const resource={$actql_ref:'resource',version:'actql-resource-ref/0.1',provider_namespace:'local',
     resource_kind:'file',provider_identity_cid:scopeCid,authority_scope_cid:contextCid,
     boundary_cid:scopeCid,identity_cid:cid({root_scope:scopeCid,path:'one.txt'})};
   return{profile,options,prepared,request,keyed,recipe,keyedRequest,read,resource,version,bytes,calls,raws,decision,authorization,
     acknowledgeClose(){closeAllowed=true;},get nativeReads(){return nativeReads;},
-    prepare:()=>profile.prepareManagedContentRun(prepared,request,recipe,serializationGraph),
+    prepare:()=>profile.prepareManagedContentRun(prepared,request,recipe,serializationGraph,contentPreparation),
     prepareRead:()=>options.prepareKeyedSourceRead({checkedOwner:prepared,keyedAcquisition:keyed,
       request:keyedRequest,declaration}),
     async readContent({path='one.txt',actualResource=resource,actualVersion=version}={}){

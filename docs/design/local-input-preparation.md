@@ -4257,3 +4257,33 @@ failed-child overlap require the same parent's actual construction lifetime
 before entering their constructors. A standalone Source or Content Root cannot
 supply that lifetime, and absent required original ports refuse rather than
 fall back to legacy compilation or admission.
+
+
+### Content original alias retirement
+
+The existing Request input retains the Content preparation record before any
+prefix quotation or selected constructor can fail. The Local adapter links its
+same weak provenance record before entering the Host constructor. These are
+original references under the existing Request, not additional cleanup owners.
+While a Prepared key remains held, weak-map values still require explicit
+retirement: successful cleanup removes the Content graph, Plan, recipe and
+managed Run aliases, and the Local record's selected, keyed, Content entry and
+Host Run aliases. Each weak map retains only a spent tombstone; the same key
+cannot issue another preparation. The unchanged 4096 bound counts live Content
+preparations, and only that original record's retirement releases its slot.
+
+The Host keeps the existing checked retirement result law: successful Unit is
+sufficient; only its failure queries the original payload-sever observation
+once. That observation retains its currentness callback and can reenter or
+fail. A same-record retirement latch and post-callback original checks precede
+alias release. A pending Local read or failed observation preserves the same
+aliases and slot. A consumed parent return cannot repeat already-spent alias
+release. No alias step acknowledges physical cleanup or refunds work.
+
+Before Run adoption, the same Request abort and original input borrow's
+retirement phase govern alias release. Failed construction does not fabricate
+a managed Run or a successful physical outcome. The Request retains partial
+records until this fence, spends their alias duty before returning the same
+borrow, and retains the parent if that consumed return or its settlement fails.
+Complete constructor, provider, output and failed-child overlap backing remains
+a separate obligation before enabling a normal route.

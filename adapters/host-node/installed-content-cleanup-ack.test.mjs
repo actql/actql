@@ -109,6 +109,7 @@ test('installed Content cleanup retains a real prepared object until the same re
     registry: '{}', values: '{}', fragment: undefined, ordered: undefined,
     namespaceId: 'fixture', authorityScopeCid: cid('independent scope'), storeAuthorityCid: authority,
     ownerPrincipal: 'fixture', now: () => '2026-10-13T00:00:00.000Z', authorize: () => true,
+    retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},
     prepareSerializationManagedRun(program, identity, plan) {assert.equal(program, preparedProgram);assert.equal(identity, request);assert.equal(plan.compiled, compiled);managedPreparations++;return managed;},
     preparedRunRequired: true, assertRunCurrent: () => assert.equal(store.status().closed, false),
   });
