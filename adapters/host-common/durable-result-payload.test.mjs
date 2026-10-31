@@ -407,3 +407,54 @@ test('immutable and primitive failures retain every cleanup owner', async () => 
     assert.equal(exportCancels, 2);
   }
 });
+
+test('payload retries retain independent initial errors and bounded first/latest retry diagnostics', async () => {
+  const primary = Object.freeze(new Error('original payload failure'));
+  const writerFailure = Object.freeze(new Error('initial writer cleanup failure'));
+  const exportFailure = Object.freeze(new Error('initial export cleanup failure'));
+  const retries = [undefined, Object.freeze(new Error('first retry failure')), 'primitive retry failure', null];
+  let held = true, allow = false, writerCalls = 0, exportCalls = 0, nextCalls = 0;
+  const writer = Object.freeze({
+    append() {assert.fail('No payload after original export refusal');},
+    seal() {assert.fail('No payload after original export refusal');},
+    status: () => Object.freeze({reservationHeld: held}),
+    async cancel() {
+      writerCalls++;
+      if (writerCalls === 1) throw writerFailure;
+      if (!allow) throw retries[writerCalls - 2];
+      held = false;
+    },
+  });
+  const control = Object.freeze({
+    payloadFailureAction: payloadProgress.payloadFailureAction,
+    cleanupOwnerAction: payloadProgress.cleanupOwnerAction,
+    begin() {return {};},
+    next() {nextCalls++; throw primary;},
+    finish() {assert.fail('Original export did not finish');},
+    identity() {assert.fail('Original export did not finish');},
+    cancel() {if (++exportCalls === 1) throw exportFailure;},
+  });
+  let failure;
+  try {await storeCompletedOutputPayload({createObjectWriter: () => writer}, control, {}, limits);}
+  catch (error) {failure = error;}
+  assert.equal(failure.primaryFailure, primary);
+  const original = failure.cleanupHandle.status();
+  assert.deepEqual(original.errors, [writerFailure, exportFailure]);
+  const snapshots = [];
+  for (let index = 0; index < retries.length; index++) {
+    const status = await failure.cleanupHandle.retry(); snapshots.push(status);
+    assert.equal(status.pending, true); assert.equal(held, true);
+    const tail = index === 0 ? [retries[0]] : [retries[0], retries[index]];
+    assert.deepEqual(status.errors, [writerFailure, exportFailure, ...tail]);
+    assert.deepEqual(original.errors, [writerFailure, exportFailure]);
+    for (let old = 0; old < snapshots.length; old++) {
+      assert.deepEqual(snapshots[old].errors, [writerFailure, exportFailure,
+        ...(old === 0 ? [retries[0]] : [retries[0], retries[old]])]);
+    }
+  }
+  allow = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(held, false); assert.equal(nextCalls, 1); assert.equal(exportCalls, 2);
+  assert.equal(failure.primaryFailure, primary);
+  assert.deepEqual(failure.cleanupErrors, [writerFailure, exportFailure, retries[0], retries.at(-1)]);
+});
