@@ -53761,6 +53761,117 @@
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
       "sha256": "23c0e7bafd9a41b99f89e2ee85d31a81a8eb2159ed22c8a6609e2f51dd043b6e"
+    },
+    {
+      "module": "src/connectors/github/host_node/comment_construction.mbt",
+      "sha256": "0ae19e9c0255b8e11ee901826047ded7d945c6d9a273c2786500b580c13c7f8d",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
+      "exports": [],
+      "operations": [
+        {
+          "name": "github_add_comment_request_construction_capacity",
+          "declaration": "github_add_comment_request_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "github_comment_request_capacity",
+          "declaration": "github_comment_request_capacity ( subject_check : Bool , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "github_comment_request_construction_inventory",
+          "declaration": "github_comment_request_construction_inventory ( subject_check : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "github_comment_request_wire_bounds",
+          "declaration": "github_comment_request_wire_bounds ( subject_check : Bool ) - > ( Int64 , Int64 )"
+        },
+        {
+          "name": "github_comment_subject_request_construction_capacity",
+          "declaration": "github_comment_subject_request_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "github_add_comment_request_construction_capacity",
+            "github_comment_request_capacity",
+            "github_comment_request_construction_inventory",
+            "github_comment_request_wire_bounds",
+            "github_comment_subject_request_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Comment request construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The existing comment constructor bounds the subject in UTF-16 units and the"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "these earlier allocations or reduce the constructor's original input domain."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Original subject/body text and the fixed documents remain borrowed. The common"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The Host must reserve the original Plan's composed extent before calling the"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "the Host applies the HTTP request-byte limit. That later refusal cannot fund"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous quantity DATA; no original child, authorization, cancellation or cleanup acknowledgment is created."
+            },
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "representation policy prices these units; the provider adds no byte tariff or"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "saved request bodies, credentials, HTTP"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"GitHub CREATE native inventory covers both escaped request Strings before HTTP admission\""
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"GitHub CREATE constructor inventory does not change original Unicode or refusal boundaries\""
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
+                "anchor": "test \"GitHub subject-check inventory is separate and prices the same original export\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

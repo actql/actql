@@ -4,10 +4,11 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/connectors/github/catalog",
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
 }
 
 import {
-  "actql/actql/execution_relation" @execution,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 } for "wbtest"

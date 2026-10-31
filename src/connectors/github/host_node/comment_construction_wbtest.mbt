@@ -40,7 +40,10 @@ test "GitHub CREATE constructor inventory does not change original Unicode or re
     github_add_comment_request_json("x".repeat(257), "original"),
     "{\"refused\":\"InvalidSubjectId\"}",
   )
-  assert_eq(github_add_comment_request_json(subject, ""), "{\"refused\":\"InvalidBody\"}")
+  assert_eq(
+    github_add_comment_request_json(subject, ""),
+    "{\"refused\":\"InvalidBody\"}",
+  )
 }
 
 ///|

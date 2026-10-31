@@ -94,3 +94,25 @@ aliases overlap until their original owners retire them. The existing resource
 supplier must cover that full lifetime independently of parser or request bounds.
 The saved Relation schema changes its Catalog identity; an old publication is
 not silently admitted under the new schema or reissued as a live observation.
+
+## Comment request construction
+
+The existing comment constructor bounds the subject in UTF-16 units and the
+body in Unicode scalar characters. Its native JSON request String and the
+separate JSON String export coexist. Escaping a control character can therefore
+require six units in the inner request and seven in the outer export before
+the Host applies the HTTP request-byte limit. That later refusal cannot fund
+these earlier allocations or reduce the constructor's original input domain.
+
+The native constructor inventory retains both builders, their transient String
+values, the fixed JSON object/iterator controls and their Array/Map backing.
+Original subject/body text and the fixed documents remain borrowed. The common
+representation policy prices these units; the provider adds no byte tariff or
+capacity grant. Subject checks have a separate constructor inventory.
+
+The Host must reserve the original Plan's composed extent before calling the
+constructor. It separately accounts for quotation controls, decoded input,
+JavaScript mapping/parsing/hash and saved request bodies, credentials, HTTP
+request/response storage, returned provider observations and failed-child
+overlap. Returning constructor DATA or a request String does not retire those
+owners, consume a physical attempt, authorize a write or acknowledge cleanup.

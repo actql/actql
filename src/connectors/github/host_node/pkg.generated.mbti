@@ -3,9 +3,12 @@ package "actql/actql/connectors/github/host_node"
 
 import {
   "actql/actql/connectors/github/catalog",
+  "actql/actql/execution_relation",
 }
 
 // Values
+pub fn github_add_comment_request_construction_capacity() -> @execution_relation.ExecutionCapacity?
+
 pub fn github_add_comment_request_json(String, String) -> String
 
 pub fn github_api_version() -> String
@@ -15,6 +18,8 @@ pub fn github_classify_failure_json(Int, Array[String], Array[String]) -> String
 pub fn github_comment_outcome_json(Int, Array[String], Array[String], Bytes, Int, Int, Int, String) -> String
 
 pub fn github_comment_subject_json(Bytes, Int, Int, Int, String, String, Double, String) -> String
+
+pub fn github_comment_subject_request_construction_capacity() -> @execution_relation.ExecutionCapacity?
 
 pub fn github_comment_subject_request_json(String) -> String
 
