@@ -39,11 +39,13 @@ fn installed_effect_operation_control_capacity(
   // current fence, and pending binding close. Native settlement wrappers use
   // fewer Promise/closure alternatives than the former then/finally chains;
   // retain that existing record upper. One cleanup retirement cursor is a
-  // scalar in the same fixed capture/cleanup frame, not another owner.
+  // scalar in the same fixed capture/cleanup frame, not another owner. The
+  // corresponding child/payload wrapper's synchronous flight-opening latch
+  // occupies one more scalar; it starts before any original release callback.
   guard @shape.collection_construction_extent({
       records: 25L * calls,
       record_references: (64L + 3L) * calls,
-      record_words: (12L + 1L) * calls,
+      record_words: (12L + 2L) * calls,
       reference_arrays: 3L * calls,
       reference_items: 14L * calls,
       scalar_arrays: 0L,

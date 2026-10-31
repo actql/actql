@@ -1528,7 +1528,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e01af6e4b9bff2152fddeb89fe08bd7f93a7be8d1f40324f8aa9e47ccfebdc5e",
+      "sha256": "97c759c8c07bfa9dcd1b0e89e2f4bb92d37d4caacbf596b73b2004d4366b0d4b",
       "exports": [
         "invocationBindingsMatch",
         "invocationScopeFields",
@@ -1584,6 +1584,7 @@
             "responseHeaders",
             "maxRequestBytes",
             "maxResponseBytes",
+            "responseCustody",
             "signal"
           ],
           "async": false

@@ -70725,7 +70725,7 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e16c5118b091218dd542ad9fcfc2f787a95e518d441264b76ba22bbfaec8679d",
+      "sha256": "aeec5d77edf47004612d84d809f962342a9e25439597a183c39e09d2514205fe",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [

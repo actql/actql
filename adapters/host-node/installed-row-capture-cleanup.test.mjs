@@ -84,6 +84,48 @@ test('retirement cursor retains a newly appended pending original before any par
   assert.equal(released, true);
 });
 
+test('synchronous original child release reentry cannot start a second release before its flight is retained', async () => {
+  const children = [];
+  let calls = 0, pending = true, reentered;
+  await prepareInstalledRowCaptureChild({children, create: () => ({prepare() {},
+    release() {
+      calls++;
+      if (calls === 1) reentered = children[0].prepared.release();
+      pending = false;
+    }, retry() {assert.fail('No retry required');}, status: () => ({pending})})});
+  await children[0].prepared.release(); await reentered;
+  assert.equal(calls, 1); assert.equal(children[0].prepared.status().pending, false);
+});
+
+test('synchronous original parent release reentry keeps the same outer retry and pending result', async () => {
+  let calls = 0, failure, reentered;
+  const primary = new Error('original pending input');
+  await assert.rejects(releaseInstalledRowCapture({control, releaseInputs() {
+    calls++;
+    if (calls === 1) return false;
+    if (calls === 2) reentered = failure.cleanupHandle.retry();
+  }}, primary), error => {failure = error; return error.cleanupPending;});
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  await reentered;
+  assert.equal(calls, 2); assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+test('synchronous original payload release reentry cannot replace its retained callback receiver', async () => {
+  let calls = 0, pending = true, childPending = true, failure, reentered;
+  const original = {status: () => ({pending}), release() {
+    assert.equal(this, original); calls++;
+    if (calls === 1) reentered = failure.cleanupHandle.retry();
+    pending = false;
+  }, retry() {assert.fail('The first actual payload release is not a retry');}};
+  const children = [{prepared: {status: () => ({pending: childPending}), release() {}, retry() {}}}];
+  await assert.rejects(releaseInstalledRowCapture({control, children,
+    payloads: [{prepared: original}]}, new Error('original payload pending')),
+  error => {failure = error; return error.cleanupPending;});
+  assert.equal(calls, 0); childPending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false); await reentered;
+  assert.equal(calls, 1); assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
 test('failed first payload does not skip siblings, public Results or input pins', async () => {
   const events = [], a = payload('a', events, 1), b = payload('b', events);
   const primary = Object.freeze(new Error('original-capture-failure'));

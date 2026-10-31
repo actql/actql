@@ -174,31 +174,38 @@ selected TLS authority; configuration normalization cannot collapse distinct
 mailboxes. The original Common schema/key declaration and checked Source alias
 publication remain the only query inputs.
 
-The trusted installer supplies the existing same-runtime opaque reader capacity;
+The trusted Host service selects the existing same-runtime opaque reader capacity;
 neither a public profile amount nor transfer/page ceilings issue this declaration.
-Absence is `GmailReaderCapacityUnavailable`, and missing original Credential
-material is unavailable before opening a Site. A normally discovered factory is
-not evidence that these independent supplies exist. In particular a test's
-explicit capacity declaration is not an adopted normal quantity.
+Labels retain the same original Source initialization, selected installation,
+checked declaration/environment and provider implementation. Missing that original
+constructor is unavailable before configuration or Site work. The fixed single
+complete response supplies both the total-response and one-page bounds. Its
+admitted value-text limit also covers the declared id String. The unused positive
+cursor field is only the existing non-paginated grammar sentinel; it creates no
+cursor, request or permission. These DATA select a recipe that the checked
+original Run still funds before reader construction.
 
-The factory uses the existing generic provider-reader path, which reserves on
-the original Run Ledger and installs its response-borrow cleanup observation
-before the synchronous I/O-free reader factory. One private wrapper obtains the
-already selected original read grant before creating its child reader, binding
-the original resource, mailbox, fields and request occurrence. It forwards
-current checks and cancellation around those awaits without retry or fallback
-to an ordinary reader. Whole-page charging and row admission use that same
-original RowRun. Copied preparations and foreign capacities cannot create a
-replacement acquisition.
+The factory uses the existing generic managed provider-reader path, which
+reserves on the original Run Ledger and installs its response-borrow cleanup
+observation before preparation. One pure request/page constructor is shared
+with the original explicit physical reader. It keeps exact mailbox encoding,
+all declared cells, whole-page refusal and the original Catalog projection;
+no second provider JSON interpretation or label transport owner is introduced.
+The Source-owned response holder reaches the physical Credential Resource
+unchanged through the scoped invoker, before late current/Journal/outcome
+checks. A received body remains accounted even if those checks refuse, and
+cannot supply a row or another read. Copied preparations and foreign capacities
+cannot create a replacement acquisition.
 
-The wrapper retains its child, original binding, signal, close failure, Promise
-and callbacks along with the original reader inventory. Closing the physical
-transport does not settle raw/callback/capture aliases. Failed close cannot
-replace the original read failure, and observation remains unconfirmed until
-the existing custody Owner supplies an actual original transfer/retirement
-receipt. The enclosing capture therefore keeps its reservation and recovery
-responsibility. No factory-local ledger, cleanup acknowledgement or token-based
-mailbox identity is introduced.
+The shared managed reader retains the original binding, signal, response,
+charge and callback/Promise custody. Stop closes admission to further reads;
+actual same-reader and binding retirement, rather than Promise completion or
+physical-close DATA alone, acknowledges release. Failed close cannot replace
+the original read failure. Durable Credential-use Unknown remains a separate
+Journal duty even after the same physical child has retired. No factory-local
+ledger, cleanup acknowledgement or token-based mailbox identity is introduced.
+The independent nested thread factory still requires its complete original
+list/get recipe and cannot borrow this label-only preparation.
 
 ## Original authentication dependency
 

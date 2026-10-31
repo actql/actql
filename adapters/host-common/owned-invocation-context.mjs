@@ -110,6 +110,7 @@ export function invokeScopedCredentialOperation({
   responseHeaders,
   maxRequestBytes,
   maxResponseBytes,
+  responseCustody,
   signal,
 }) {
   if (typeof callResource !== 'function' ||
@@ -141,6 +142,9 @@ export function invokeScopedCredentialOperation({
     })]]),
     maxRequestBytes: context.limits.maxRequestBytes,
     maxResponseBytes: context.limits.maxResponseBytes,
+    // Forward the SAME Source-owned holder. The physical Resource validates
+    // and retains it before its late current/Journal/outcome boundaries.
+    ...(responseCustody === undefined ? {} : {responseCustody}),
     returnRejectedResponse: true,
     signal,
   });

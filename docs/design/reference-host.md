@@ -39,6 +39,23 @@ an already retained capture or refusing that admission is not another start.
 Diagnostic delivery never supplies read authority, permission or a physical
 cleanup acknowledgement.
 
+The installed Gmail labels entrance selects its reader through the same
+original Source initialization and Host services as the standard JSON page
+readers. Its existing profile grammar remains unchanged. One complete response
+supplies both the total-response and single-page bounds; its admitted value
+text bounds include the declared id String. The positive unused cursor field
+does not imply pagination or allocate a cursor. These rejection bounds select
+an implementation recipe, while the checked original Request still funds the
+actual reader before construction. They are not a caller-supplied capacity.
+Both the shared page reader and explicit physical label reader use one request
+builder and Catalog projection, preserving exact mailbox percent encoding,
+all declared cells and the complete-response refusal. The label installation
+has no second transport/cleanup factory; Source retirement observes the same
+managed reader and binding. Durable Credential-use Unknown remains independent
+of physical transport retirement. Nested Gmail thread and Slack sequences
+require their own complete constructor/output/failed-child recipe; a label or
+ordinary JSON page quote cannot substitute for those retained sequences.
+
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.
 Its pending product choices are not changes to current defaults.
@@ -1753,6 +1770,11 @@ monotonic, so a cleanup cursor can advance past their actual retired prefix;
 pending or newly appended children still block parent release. Each synchronous
 cleanup status projects one observation per owner. A retry's external callbacks
 are followed by a new observation, rather than reusing a previous current state.
+Each existing child, input and payload wrapper sets its synchronous opening
+latch before invoking an original release callback. Reentry during the interval
+before the returned Promise is assigned observes pending cleanup and cannot
+invoke that callback again. Later calls share the retained flight; a rejected
+or false release retains the same original callback/receiver for its real retry.
 
 The Kintone standard CREATE declaration supplies only its fixed endpoint,
 native proposal/body admission, Form request/correspondence and native response

@@ -25,38 +25,67 @@ export class GmailLabelListReadFailure extends Error {
   }
 }
 
-function prepareRead({moon, mailbox, names, initialAuthorization, credential,
-  authorizationFor, limits, current, chargeResponse, consumePage, signal,
-  callResource = callHttpsCredentialResource}) {
+// Both the installed shared reader and the original explicit physical reader
+// consume this SAME request and Catalog projection. No transport or grant is
+// available here; applySynchronousProjection belongs to the retaining caller.
+export function prepareGmailLabelListPages({moon, mailbox, names, limits}, applySynchronousProjection) {
   if (!Array.isArray(names) || new Set(names).size !== names.length ||
-      [authorizationFor, current, chargeResponse, consumePage, callResource].some(value => typeof value !== 'function') ||
-      !credential || typeof credential !== 'object' || !limits || typeof limits !== 'object') {
+      !limits || typeof limits !== 'object' || typeof applySynchronousProjection !== 'function') {
     fail('InvalidGmailLabelListRead');
   }
-  const provider = Object.freeze(Object.fromEntries(providerExports.map(name => [name, moon?.[name]])));
-  const context = ownInvocationContext({authorization: initialAuthorization, credential, limits,
-    callbacks: {authorizationFor, current, chargeResponse, consumePage, callResource}});
-  if (providerExports.some(name => typeof provider[name] !== 'function') ||
-      !limitFields.every(name => positive(context.limits[name])) ||
-      !context.credential.binding || typeof context.credential.binding !== 'object' ||
+  const provider = Object.freeze(Object.fromEntries(providerExports.map(name => {
+    const original = moon?.[name];
+    if (typeof original !== 'function') fail('InvalidGmailLabelListRead');
+    return [name, (...args) => applySynchronousProjection(original, moon, args)];
+  })));
+  const bound = Object.freeze({...limits});
+  if (!limitFields.every(name => positive(bound[name])) ||
       typeof mailbox !== 'string' || mailbox.length === 0 || !mailbox.isWellFormed() ||
       !mailbox.includes('@') || /[\s\u0000-\u001f\u007f]/u.test(mailbox) ||
-      Buffer.byteLength(mailbox) > context.limits.maxMailboxBytes) {
-    fail('InvalidGmailLabelListRead');
-  }
-  if (context.scope.operation !== GMAIL_LABEL_LIST_OPERATION) fail('ForeignGmailLabelListOperation');
+      Buffer.byteLength(mailbox) > bound.maxMailboxBytes) fail('InvalidGmailLabelListRead');
   const selected = Object.freeze(provider.gmailLabelListColumnNames().slice());
   if (names.some(name => !selected.includes(name))) fail('InvalidGmailLabelListRead');
-  // One explicit mailbox component; no default `me`, raw path or token-derived
-  // identity. The original trusted issuer must bind this configured mailbox.
+  // One original explicit mailbox component, never a default `me` or a
+  // credential-derived identity. This endpoint has exactly one complete page.
   const component = encodeURIComponent(mailbox).replace(/[!'()*]/gu, value =>
     `%${value.charCodeAt(0).toString(16).toUpperCase()}`);
   const path = `/gmail/v1/users/${component}/labels`;
-  if (Buffer.byteLength(requestTarget(path, query)) > context.limits.maxTargetBytes) fail('GmailLabelListTargetLimit');
-  return Object.freeze({provider, context, selected, path, signal});
+  if (Buffer.byteLength(requestTarget(path, query)) > bound.maxTargetBytes) fail('GmailLabelListTargetLimit');
+  return Object.freeze({
+    fetchPage({pageIndex}) {
+      if (pageIndex !== 0) fail('GmailLabelListReadAlreadyCompleted');
+      return {method: 'GET', path, query, headers: [['accept', 'application/json']], responseHeaders: []};
+    },
+    decodePage(response) {
+      if (!response.accepted || response.statusCode !== 200) fail('GmailLabelListReadRejected');
+      const page = checked(provider.gmailProjectLabelList(response.body, bound.maxResponseBytes,
+        bound.maxNodes, bound.maxDepth, bound.maxRows, bound.maxValueNodes, bound.maxValueTextBytes));
+      const metadata = JSON.parse(provider.gmailLabelListMetadataJson(page));
+      const rows = JSON.parse(checked(provider.gmailLabelListRowsWire(page, selected,
+        bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
+      return {rows, rowCount: metadata.rowCount, done: true};
+    },
+    onError(cause) {return new GmailLabelListReadFailure(cause, []);},
+  });
 }
 
-async function executeRead({provider, context, selected, path, signal}, received) {
+function prepareRead({moon, mailbox, names, initialAuthorization, credential,
+  authorizationFor, limits, current, chargeResponse, consumePage, signal,
+  callResource = callHttpsCredentialResource}) {
+  if ([authorizationFor, current, chargeResponse, consumePage, callResource].some(value => typeof value !== 'function') ||
+      !credential || typeof credential !== 'object' || !limits || typeof limits !== 'object') {
+    fail('InvalidGmailLabelListRead');
+  }
+  const context = ownInvocationContext({authorization: initialAuthorization, credential, limits,
+    callbacks: {authorizationFor, current, chargeResponse, consumePage, callResource}});
+  if (!context.credential.binding || typeof context.credential.binding !== 'object') fail('InvalidGmailLabelListRead');
+  if (context.scope.operation !== GMAIL_LABEL_LIST_OPERATION) fail('ForeignGmailLabelListOperation');
+  const pages = prepareGmailLabelListPages({moon, mailbox, names, limits: context.limits},
+    (method, receiver, args) => Reflect.apply(method, receiver, args));
+  return Object.freeze({context, pages, signal});
+}
+
+async function executeRead({context, pages, signal}, received) {
   const observations = [], bound = context.limits;
   const verify = async () => {
     signal?.throwIfAborted();
@@ -70,26 +99,20 @@ async function executeRead({provider, context, selected, path, signal}, received
     if (authorization.scope.operation !== GMAIL_LABEL_LIST_OPERATION ||
         !invocationBindingsMatch(authorization.scope, context.scope)) fail('ForeignGmailLabelListAuthorization');
     await verify();
+    const request = pages.fetchPage({pageIndex: 0});
     const response = await invokeScopedCredentialOperation({authorization, credential: context.credential,
       callResource: options => context.callbacks.callResource({...options, currentBeforeSend: verify}),
-      operation: GMAIL_LABEL_LIST_OPERATION, method: 'GET', path,
-      query, headers: [['accept', 'application/json']],
-      responseHeaders: [], maxResponseBytes: bound.maxResponseBytes, signal});
+      operation: GMAIL_LABEL_LIST_OPERATION, ...request, maxResponseBytes: bound.maxResponseBytes, signal});
     observations.push(response);
     received?.(response);
     const charge = await context.callbacks.chargeResponse(response.body);
     await verify();
-    if (!response.accepted || response.statusCode !== 200) fail('GmailLabelListReadRejected');
-    const page = checked(provider.gmailProjectLabelList(response.body, bound.maxResponseBytes,
-      bound.maxNodes, bound.maxDepth, bound.maxRows, bound.maxValueNodes, bound.maxValueTextBytes));
-    const metadata = JSON.parse(provider.gmailLabelListMetadataJson(page));
-    const rows = JSON.parse(checked(provider.gmailLabelListRowsWire(page, selected,
-      bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
+    const {rows, rowCount} = pages.decodePage(response);
     await context.callbacks.consumePage(rows, Object.freeze({charge}));
     await verify();
     // Only the original RowRun caller owns finish/capture. This complete
     // endpoint has no pagination, continuation, retry or inferred row limit.
-    return Object.freeze({pages: 1, rowCount: metadata.rowCount,
+    return Object.freeze({pages: 1, rowCount,
       observations: Object.freeze(observations.slice())});
   } catch (cause) {
     throw new GmailLabelListReadFailure(cause, observations);

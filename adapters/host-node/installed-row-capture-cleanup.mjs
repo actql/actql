@@ -12,21 +12,30 @@ export async function prepareInstalledRowCaptureChild({children, create,
   let preparing = false;
   let retired = false;
   let flight;
+  let openingFlight = false;
   const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),
     {code: 'InvalidInstalledRowRequestChild'});
   const drain = retry => {
     if (retired) return;
-    if (flight === undefined) flight = (async () => {
-      const method = retry ? methods?.retry : methods?.release;
-      if (typeof method !== 'function') throw invalid();
-      const result = await Reflect.apply(method, child, []);
-      if (result !== false && !preparing &&
-          Reflect.apply(methods.status, child, [])?.pending === false) {
-        retired = true;
-        child = undefined;
-        methods = undefined;
-      }
-    })().finally(() => { flight = undefined; });
+    // The async executor calls the original method synchronously, before its
+    // returned Promise can be assigned. Fence that exact opening interval.
+    if (openingFlight) return false;
+    if (flight === undefined) {
+      openingFlight = true;
+      try {
+        flight = (async () => {
+          const method = retry ? methods?.retry : methods?.release;
+          if (typeof method !== 'function') throw invalid();
+          const result = await Reflect.apply(method, child, []);
+          if (result !== false && !preparing &&
+              Reflect.apply(methods.status, child, [])?.pending === false) {
+            retired = true;
+            child = undefined;
+            methods = undefined;
+          }
+        })().finally(() => { flight = undefined; });
+      } finally {openingFlight = false;}
+    }
     return flight;
   };
   children.push({prepared: Object.freeze({release: () => drain(false),
@@ -73,12 +82,19 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
   const retain = release => {
     let pending = typeof release === 'function';
     let flight;
+    let openingFlight = false;
     const drain = () => {
       if (!pending) return;
+      if (openingFlight) return false;
       if (childPending()) return false;
-      if (flight === undefined) flight = (async () => {
-        if (await release() !== false) { pending = false; release = undefined; }
-      })().finally(() => { flight = undefined; });
+      if (flight === undefined) {
+        openingFlight = true;
+        try {
+          flight = (async () => {
+            if (await release() !== false) { pending = false; release = undefined; }
+          })().finally(() => { flight = undefined; });
+        } finally {openingFlight = false;}
+      }
       return flight;
     };
     return Object.freeze({prepared: Object.freeze({
@@ -89,18 +105,25 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
   const dependent = value => {
     let original = value.prepared;
     let flight;
+    let openingFlight = false;
     let attempted = false;
     const drain = retry => {
       if (original === undefined) return;
+      if (openingFlight) return false;
       if (childPending()) return false;
-      if (flight === undefined) flight = (async () => {
-        if (original.status()?.pending !== false) {
-          const operation = retry && attempted ? original.retry : original.release;
-          attempted = true;
-          await Reflect.apply(operation, original, []);
-        }
-        if (original.status()?.pending === false) original = undefined;
-      })().finally(() => { flight = undefined; });
+      if (flight === undefined) {
+        openingFlight = true;
+        try {
+          flight = (async () => {
+            if (original.status()?.pending !== false) {
+              const operation = retry && attempted ? original.retry : original.release;
+              attempted = true;
+              await Reflect.apply(operation, original, []);
+            }
+            if (original.status()?.pending === false) original = undefined;
+          })().finally(() => { flight = undefined; });
+        } finally {openingFlight = false;}
+      }
       return flight;
     };
     return Object.freeze({prepared: Object.freeze({
