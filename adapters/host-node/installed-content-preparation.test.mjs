@@ -7,7 +7,8 @@ function fixture(keyed = false) {
   const plan = Object.freeze({kind: 'serialization', compiled,
     serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})});
   let currentFailure, constructionFailure, ledgerCount = 0, acquisitions = 0, quotes = 0;
-  let currentCalls = 0, failAt;
+  let currentCalls = 0, failAt, managedPreparations = 0;
+  const managed = {value: {}, serialization: {}, closed: false};
   const request = {scope: 'sha256:' + 'a'.repeat(64), intent: 'sha256:' + 'b'.repeat(64)},
     ledger = {}, direct = {}, acquisition = {}, capacity = {};
   let retainedRecipe, keyedPreparations = 0, keyedBorrows = 0, keyedFailure;
@@ -29,6 +30,9 @@ function fixture(keyed = false) {
   }, core: {
     contentGenerationControl: {
       workspaceCapacity: () => Object.freeze({retainedBytes: 3n, executionBytes: 5n}),
+      requestPrefixCapacity(selected) {
+        assert.equal(selected, managed.serialization); return Object.freeze({retainedBytes: 13n, executionBytes: 19n});
+      },
       prefixCapacity(program, task, step) {
         assert.strictEqual(program, preparedProgram); assert.deepEqual([task, step], [0, 1]);
         quotes++; return Object.freeze({retainedBytes: 13n, executionBytes: 19n});
@@ -39,6 +43,12 @@ function fixture(keyed = false) {
     }},
   }, registry: '{}', values: '{}', ownerPrincipal: 'fixture', preparedRunRequired: true,
   assertRunCurrent: current,
+  prepareSerializationManagedRun(program, identity, selected, limits) {
+    assert.equal(program, preparedProgram); assert.equal(identity, request); assert.equal(selected, plan);
+    assert.equal(limits.maxWork, 1000000); managedPreparations++;
+    if (constructionFailure !== undefined) throw constructionFailure;
+    return managed;
+  },
   ...(keyed ? {prepareKeyedManagedRun(prepared, actualRequest, recipe) {
     assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
     assert.equal(recipe.task, 0); assert.equal(recipe.step, 1);
@@ -53,7 +63,7 @@ function fixture(keyed = false) {
     assert.strictEqual(actualAcquisition, acquisition); assert.strictEqual(actualCapacity, capacity);
     keyedBorrows++; return ledger;
   }} : {})});
-  return {run, preparedProgram, plan, counts: () => ({ledgerCount, quotes}),
+  return {run, preparedProgram, plan, managedPreparations: () => managedPreparations, counts: () => ({ledgerCount, quotes}),
     failCurrent(error) {currentFailure = error;},
     failCurrentAt(count, error) {failAt = count; currentFailure = error;},
     failConstruction(error) {constructionFailure = error;},
@@ -121,9 +131,10 @@ test('ordinary Content prepares the same checked Run once and refuses a copied p
   const f = fixture();
   f.run.prepareRun(f);
   f.run.prepareRun(f);
-  assert.deepEqual(f.counts(), {ledgerCount: 1, quotes: 1});
+  assert.equal(f.managedPreparations(), 1);
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
   assert.throws(() => f.run.prepareRun({...f, plan: {...f.plan}}), {message: 'ForeignInstalledContentRun'});
-  assert.deepEqual(f.counts(), {ledgerCount: 1, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
 });
 
 test('ordinary Content refuses unsupported Source shape before constructing its limits', () => {
@@ -138,7 +149,7 @@ test('ordinary Content preserves the original preparation failure without a new 
   assert.throws(() => f.run.prepareRun(f), error => error === original);
   f.failConstruction(undefined);
   assert.throws(() => f.run.prepareRun(f), error => error === original);
-  assert.deepEqual(f.counts(), {ledgerCount: 1, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
 });
 
 test('ordinary Content currentness refuses before quote and cannot be replaced by plan equality', () => {
@@ -154,5 +165,5 @@ test('ordinary Content retains post-construction current failure without issuing
   assert.throws(() => f.run.prepareRun(f), error => error === original);
   f.failCurrent(undefined);
   assert.throws(() => f.run.prepareRun(f), error => error === original);
-  assert.deepEqual(f.counts(), {ledgerCount: 1, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
 });
