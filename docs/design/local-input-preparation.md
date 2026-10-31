@@ -4513,6 +4513,12 @@ retirement phase govern alias release. Failed construction does not fabricate
 a managed Run or a successful physical outcome. The Request retains partial
 records until this fence, spends their alias duty before returning the same
 borrow, and retains the parent if that consumed return or its settlement fails.
+A declined extent grow before prefix construction retains the same absolute
+quote for a controlled continuation. After the original constructor fails,
+that Request body stays failed through Abort; different workspace or execution
+limits cannot select a replacement prefix. A foreign compiler/definition tuple
+refused before prefix construction does not consume the pending original.
+
 Complete constructor, provider, output and failed-child overlap backing remains
 a separate obligation before enabling a normal route.
 

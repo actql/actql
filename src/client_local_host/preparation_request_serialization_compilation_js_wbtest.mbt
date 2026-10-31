@@ -728,3 +728,97 @@ test "keyed Request compiler refuses foreign input Plan coordinates and completi
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Content prefix constructor failure cannot select a replacement on the same Request" {
+  let fixture = request_serialization_plan_fixture()
+  let parent = fixture.parent
+  let before = @resources.ledger_usage(parent.ledger)
+  let work = parent.program_artifact_work_spent
+  // A quote value, not an allocation or Resource admission. The real prefix
+  // is prepared first; adding its positive retained extent to this valid
+  // Int64 endpoint fails only at the original workspace-composition boundary.
+  let overflow = @execution.execution_capacity_inventory(
+    [{ unit: QuotedBytes, count: 9223372036854775807L, copies: 1, }],
+    [],
+    RetainedAlongsideExecution,
+  ).unwrap()
+  let first = prepare_request_serialization_plan(
+    parent,
+    fixture.input,
+    fixture.request,
+    fixture.compiled,
+    fixture.definition,
+    fixture.execution,
+    fixture.measurement,
+    Some(overflow),
+  )
+  let attempted_phase = parent.phase
+  let replacement = prepare_request_serialization_plan(
+    parent,
+    fixture.input,
+    fixture.request,
+    fixture.compiled,
+    fixture.definition,
+    fixture.execution,
+    fixture.measurement,
+    None,
+  )
+  let after = @resources.ledger_usage(parent.ledger)
+  assert_false(
+    @resources.return_preparation_body_borrow(fixture.holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(first is Err(InsufficientCapacity))
+  assert_true(replacement is Err(ForeignOriginal))
+  assert_true(attempted_phase == ProgramBodyFailed)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.planning_work, before.planning_work)
+  assert_eq(parent.program_artifact_work_spent, work)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "foreign Content compiler tuple cannot consume the pending original prefix selection" {
+  let fixture = request_serialization_plan_fixture()
+  let foreign = request_serialization_plan_fixture()
+  let parent = fixture.parent
+  let first = prepare_request_serialization_plan(
+    parent,
+    fixture.input,
+    fixture.request,
+    foreign.compiled,
+    foreign.definition,
+    fixture.execution,
+    fixture.measurement,
+    None,
+  )
+  let refused_phase = parent.phase
+  let after_foreign = request_preparation_accounting(parent)
+  let selected = prepare_request_serialization_plan(
+    parent,
+    fixture.input,
+    fixture.request,
+    fixture.compiled,
+    fixture.definition,
+    fixture.execution,
+    fixture.measurement,
+    None,
+  )
+  let after_original = request_preparation_accounting(parent)
+  assert_false(
+    @resources.return_preparation_body_borrow(fixture.holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_false(
+    @resources.return_preparation_body_borrow(foreign.holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(foreign.parent).unwrap()
+  assert_true(first is Err(ForeignOriginal))
+  assert_true(refused_phase == ContentPlanReserved)
+  assert_true(selected is Ok(_))
+  assert_eq(after_original, after_foreign)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(foreign.parent.ledger).live_reservations, 0)
+}

@@ -399,7 +399,15 @@ pub fn[I] prepare_request_serialization_plan(
       execution, measurement, workspace,
     ) {
     Err(issue) => {
-      owner.phase = ContentPlanReserved
+      // A foreign tuple is refused before prefix construction. Once the
+      // original constructor has run, a failed body cannot select replacement
+      // limits/provider on this same Request. Keep its reservation for Abort;
+      // a successful pre-construction grow is neither a body nor cleanup ACK.
+      owner.phase = if issue is ForeignOriginal {
+        ContentPlanReserved
+      } else {
+        ProgramBodyFailed
+      }
       return Err(issue)
     }
     Ok(selected) => selected
