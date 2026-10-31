@@ -181,3 +181,20 @@ test('in-checkout toolchain C spelling preserves the same completed original and
     await assert.rejects(f.admit());
   }
 });
+
+test('actual in-checkout include spelling keeps the same completed header directory and order', async t => {
+  const f = await fixture(t, true);
+  const planned = {...f.step, original: ['-I./.toolchains/moonbit-pinned/include', '-o', f.binary.path, '-O2']};
+  const actual = {...planned, original: [`-I${join(f.moon, 'include')}`, '-o', f.binary.path, '-O2'],
+    exit: 0, output: f.binary};
+  await f.json(join(f.provider, 'cc-plan.json'), {steps: [planned]});
+  await f.json(f.step.receipt, actual);
+  assert.equal((await f.admit()).binary, f.binary.path);
+  for (const original of [
+    [`-I${join(f.repository, '.toolchains/foreign/include')}`, ...actual.original.slice(1)],
+    [...actual.original.slice(1), actual.original[0]],
+  ]) {
+    await f.json(f.step.receipt, {...actual, original});
+    await assert.rejects(f.admit());
+  }
+});

@@ -129,6 +129,18 @@ class LocalScopedComposition(unittest.TestCase):
             self.assertEqual(MODULE.canonical_c_arguments([relative]),
                              [str(self.home / 'lib' / member)])
 
+    def test_actual_moon_in_checkout_include_keeps_the_exact_original_directory(self):
+        relative = ['-I./.toolchains/moonbit-pinned/include', '-c', '-O2',
+                    './src/cmd/native_client/command_control_stub.c']
+        actual = ['-I' + str(MODULE.ROOT / '.toolchains/moonbit-pinned/include'), '-c', '-O2',
+                  str(MODULE.ROOT / 'src/cmd/native_client/command_control_stub.c')]
+        self.assertEqual(MODULE.canonical_c_arguments(relative), actual)
+        for changed in [
+                ['-I' + str(MODULE.ROOT / '.toolchains/foreign/include'), *actual[1:]],
+                [actual[0], '-c', '-O0', actual[-1]],
+                ['-isystem', actual[0][2:], *actual[1:]]]:
+            self.assertNotEqual(MODULE.canonical_c_arguments(relative), changed)
+
     def test_package_registry_and_all_original_c_flags_survive_selection(self):
         planned = self.plan()
         self.assertEqual(planned[0][1:], self.commands[0][1:])

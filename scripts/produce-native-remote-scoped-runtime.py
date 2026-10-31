@@ -217,9 +217,15 @@ def canonical_c_arguments(arguments: list[str]) -> list[str]:
     # Moon prints checkout C and in-checkout toolchain members relatively, then
     # invokes cc with absolute spellings. Selection has already checked the exact
     # source/runtime/link members; flags and outputs still match unchanged.
-    return [str((ROOT / p).resolve()) if (p.startswith('./src/') and p.endswith('.c'))
-            or p.startswith('./.toolchains/')
-            else p for p in arguments]
+    selected = []
+    for p in arguments:
+        if p.startswith('-I./.toolchains/'):
+            selected.append('-I' + str((ROOT / p[2:]).resolve()))
+        elif (p.startswith('./src/') and p.endswith('.c')) or p.startswith('./.toolchains/'):
+            selected.append(str((ROOT / p).resolve()))
+        else:
+            selected.append(p)
+    return selected
 
 
 def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
