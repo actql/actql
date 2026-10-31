@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {maxHeaderSize} from 'node:http';
 import {openHttpsExchangeFixture} from '../site-node/https-exchange-fixture.mjs';
 import {openHttpsCredentialBinding,closeHttpsCredentialBinding,callHttpsCredentialResource} from '../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
@@ -174,4 +175,19 @@ test('response backing shortage refuses the original physical extent before borr
     assert.equal(f.controls.bindings,0);assert.equal(f.controls.starts,0);
     assert.equal(f.controls.settles,0);assert.equal(f.server.seen().length,0);
   }finally{if(child!==undefined){f.controls.retiredAliases=true;await child.release();}}
+});
+
+test('response backing checks the same installed HTTP header bound before borrowing its original occurrence', async t => {
+  const f = await operationFixture(t);
+  let checks = 0;
+  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes) => {
+    assert.strictEqual(original, f.runtime.clientProgramInstalledEffectManagedPlanOperation()._0);
+    assert.equal(bytes, 64); assert.equal(headerBytes, maxHeaderSize); checks++;
+    return true;
+  };
+  const child = f.create();
+  assert.equal(checks, 1); assert.equal(f.controls.borrows, 1);
+  assert.equal(f.controls.bindings, 0); assert.equal(f.controls.starts, 0);
+  f.controls.retiredAliases = true;
+  assert.equal(await child.release(), true);
 });
