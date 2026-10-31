@@ -70,7 +70,8 @@ function timedOriginalFixture(kind='values',retained=false){
     checkClientCompiledRunOwner(c,p){assert.equal(c,compilation);assert.equal(p,prepared);},
     checkClientCompiledRunDefinition(c,d){assert.equal(c,compilation);assert.equal(d,definition);},
   };
-  const options={control,preparedProgram:prepared,requestIdentity:request,compilationOriginal:artifact,kind,authorityScopeCid:'scope',namespaceId:'namespace',now:()=>{nowReads++;return header.created_at;},...(retained?{retainedDefinitionWire:wire}:{})};
+  const retainedInvocation={preparedProgram:prepared,requestIdentity:request,compiled:undefined,runDefinition:undefined,createdAt:undefined,validUntil:undefined,queryTimePreparation:undefined,queryTime:undefined};
+  const options={control,preparedProgram:prepared,requestIdentity:request,compilationOriginal:artifact,retainedInvocation,kind,authorityScopeCid:'scope',namespaceId:'namespace',now:()=>{nowReads++;return header.created_at;},...(retained?{retainedDefinitionWire:wire}:{})};
   let carrier;const build=()=>{carrier=functions.prepareTimedClientInvocation(options);return carrier.retained;};
   return {functions,build,options,control,prepared,request,compilation,definition,time,context,opaque,calls,get samples(){return samples;},get nowReads(){return nowReads;},get carrier(){return carrier;}};
 }
@@ -107,4 +108,26 @@ test('timed original downstream Values publication preserves first Run and full 
   f.control.issueCheckedClientCompiledInvocation=(c,d)=>{assert.equal(c,f.compilation);assert.equal(d,f.definition);seen.push('issue-publication');return {observation:{},invocation:{}};};
   const before=f.calls.slice(),value=make({...f.options,moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},publicationOriginal,publicationPreparation:{},invocationOriginal:original,now:()=>assert.fail('second clock')});
   assert.equal(value.runDefinition,f.definition);assert.equal(value.queryTimePreparation,f.time);assert.deepEqual(f.calls,before);assert.deepEqual(seen,['issue-publication','publication','retain']);
+});
+
+
+test('timed invocation keeps each returned original in the same pre-retained carrier on failure',()=>{
+  for(const step of ['defineCheckedClientCompiledRun','bindClientQueryTime','clientQueryTimeInvocationOriginal']){
+    const f=timedOriginalFixture('tasks'),primary=Object.freeze(Error('original invocation constructor refusal'));
+    f.control[step]=()=>{throw primary;};
+    assert.throws(()=>f.build(),error=>error===primary);
+    const held=f.options.retainedInvocation;
+    assert.equal(held.queryTimePreparation,f.time);assert.equal(held.compiled,f.compilation);
+    if(step!=='defineCheckedClientCompiledRun')assert.equal(held.runDefinition,f.definition);
+    if(step==='clientQueryTimeInvocationOriginal')assert.equal(held.queryTime,f.context);
+    assert.equal(Object.isFrozen(held),false);assert.equal(f.samples,1);
+  }
+});
+
+test('timed invocation refuses missing custody and bounds the pre-admission retained wire before work',()=>{
+  for(const change of [{retainedInvocation:undefined},{retainedDefinitionWire:' '.repeat(100001)}]){
+    const f=timedOriginalFixture('tasks');Object.assign(f.options,change);
+    assert.throws(()=>f.build(),/OriginalClientQueryInvocationRequired/);
+    assert.equal(f.samples,0);assert.equal(f.nowReads,0);assert.deepEqual(f.calls,[]);
+  }
 });

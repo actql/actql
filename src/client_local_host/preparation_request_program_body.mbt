@@ -93,6 +93,134 @@ fn[I] request_program_plan_quote(
 }
 
 ///|
+/// Back the existing timed Host constructor before it issues the first Run,
+/// Definition or QueryTime. The compiler original and all prior growth stay on
+/// this same Request. The cached absolute target permits a declined grow to
+/// resume without another compiler, quote, constructor or reservation owner.
+pub fn[I] reserve_request_query_time_invocation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  compilation : @publication_host.ClientRunCompilation,
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard owner.phase == ProgramPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(_) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_compilation is Some(artifact) &&
+    physical_equal(artifact, compilation) &&
+    !owner.program_body_attempted else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let target = match owner.program_invocation_quote {
+    Some(target) => target
+    None => {
+      guard owner.program_artifact_geometry is Some(geometry) &&
+        request_query_time_invocation_extent(geometry)
+        is Some((retained, execution)) else {
+        return Err(Preparation(Policy))
+      }
+      let (r, e) = match
+        @resources.preparation_capacity_working_extents(capacity, input) {
+        Err(issue) => return Err(Preparation(Capacity(issue)))
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, retained, 1L)
+        is Some(r) &&
+        @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {
+        return Err(Preparation(Policy))
+      }
+      let target = (r, e)
+      owner.program_invocation_quote = Some(target)
+      target
+    }
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      let result = @resources.reserve_working_preparation_phase(
+        capacity,
+        input,
+        target.0,
+        target.1,
+      )
+      owner.phase = ProgramPlanReserved
+      result.map_err(issue => Preparation(Capacity(issue)))
+    },
+    (
+    // A foreign current throw cannot leave the constructor open for replay.
+    // Original input/quote and occupied capacity remain for existing cleanup.
+    ) => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+  )
+}
+
+///|
+// One bounded invocation group: checked views of the original emitted Plan and
+// material plus prepared/auth/Definition metadata. The three metadata codecs are
+// the existing100000-byte/10000-node/100-depth issuers, never multiplied by tasks.
+// The shared trusted control group is prepaid by the initial Request entrance.
+fn request_query_time_invocation_extent(
+  original : @publication_host.ClientPureCompilationConstruction,
+) -> (Int64, Int64)? {
+  let mut retained = 0L
+  let mut scratch = 0L
+  for
+    geometry in [
+      original.executable_plan,
+      original.material,
+      (100000, 10000, 100),
+      (100000, 10000, 100),
+      (100000, 10000, 100),
+    ] {
+    guard program_artifact_parse_layout(geometry) is Some(parse) &&
+      @execution.preparation_representation_cost(parse.value) is Some(value) &&
+      @execution.preparation_representation_cost(parse.temporary)
+      is Some(temporary) &&
+      @execution.checked_preparation_add_product(retained, value, 1L)
+      is Some(next) &&
+      compilation_writer_ancestry_layout(
+        geometry.1,
+        geometry.2,
+        geometry.1,
+        1,
+        1,
+        geometry.0,
+      )
+      is Some(writer) &&
+      @execution.preparation_representation_cost(writer) is Some(writer) &&
+      @execution.checked_preparation_add_product(
+        next,
+        geometry.0.to_int64(),
+        4L,
+      )
+      is Some(next) else {
+      return None
+    }
+    retained = next
+    scratch = Int64::max(scratch, Int64::max(temporary, writer))
+  }
+  // A restored original Definition is JSON-parsed by the same JS constructor
+  // before native admission. Its input is fenced at100000 UTF16units there;
+  // every value needs at least one unit. The existing logical value-node tariff
+  // bounds that one live parse, separately from native successful-codec nodes.
+  guard @execution.checked_preparation_add_product(
+      200000L,
+      100000L,
+      @execution.execution_capacity_node_bytes(),
+    )
+    is Some(restored_parse) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      Int64::max(scratch, restored_parse),
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
 pub fn[I] reserve_request_program_plan(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -928,6 +1056,7 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_measurement_quote = None
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None
+      owner.program_invocation_quote = None
       owner.program_artifact_inputs = None
       owner.program_compilation = None
       owner.program_model_compilation_inputs = None

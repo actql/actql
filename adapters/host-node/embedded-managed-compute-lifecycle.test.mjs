@@ -1598,26 +1598,26 @@ test('funded policy Source current refusal keeps its original cause before mappi
 });
 
 
-async function timedInstallingFixture({captured=false,failRetire=false,failConstruction=false}={}){
+async function timedInstallingFixture({captured=false,failRetire=false,failConstruction=false,failSever=false}={}){
   const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},time={},context={},scope={},option=new Proxy({}, {get(){assert.fail('opaque Core Option inspected');}});
-  const view=Object.freeze({preparedProgram:prepared,requestIdentity:request,queryTimePreparation:time,queryTime:context,compiled:{},runDefinition:{}}),events=[];
-  let f,retireAttempts=0;
+  let view;const events=[];
+  let f,retireAttempts=0,severAttempts=0;
   const marker=Object.assign(Error('original pending retirement'),{cleanupPending:true});
   p.runtime.clientProgramInstalledManagedRunRetire=function(actual){assert.equal(this,p.runtime);assert.equal(actual,p.value);events.push('retire');if(failRetire&&++retireAttempts===1)throw marker;};
   p.runtime.clientProgramInstalledPreparationPayloadSevered=()=>false;
   const manager={
     adoptPreparation(p,r,id,construct){assert.equal(p,prepared);assert.equal(r,sdkRequest);assert.equal(id,request);assert.equal(construct(artifact),option);if(failConstruction)throw marker;events.push('adopt');return {original,value:pRuntimeValue()};},
     adoptCapturePreparation(p,r,id,plan,construct){assert.equal(p,prepared);assert.equal(r,sdkRequest);assert.equal(id,request);assert.equal(construct(artifact),option);assert.equal(plan(),scope);if(failConstruction)throw marker;events.push('adopt');return {original,value:pRuntimeValue()};},
-    severPreparation(p,r){assert.equal(p,prepared);assert.equal(r,original);events.push('sever');},
+    severPreparation(p,r){assert.equal(p,prepared);assert.equal(r,original);events.push('sever');if(failSever&&++severAttempts===1){events.push('consume-holder');throw marker;}},
     retireSeveredPreparation(r){assert.equal(r,original);events.push('finish');},
     close(){return {pending:false};},
   };
   function pRuntimeValue(){return p.value;}
   f=lifecycle({runtime:p.runtime,factory:async()=>manager,originalRequest:value=>{assert.equal(value,prepared);return sdkRequest;},capturePlan(run){assert.equal(run.queryTimePreparation,time);assert.equal(run.queryInvocation,view);events.push('capture-plan');return scope;},invocationControl:{checkedClientManagedQueryInvocationOriginal(actual,p,retained){assert.equal(actual,pRuntimeValue());assert.equal(p,prepared);assert.equal(retained,view);events.push('read-original');return retained;}}});
   await f.preparation.prepareManagedCompute();
-  const factory=(p,r,a)=>{assert.equal(p,prepared);assert.equal(r,request);assert.equal(a,artifact);events.push('construct');return Object.freeze({original:option,retained:view});};
+  const factory=(p,r,a,retained)=>{assert.equal(p,prepared);assert.equal(r,request);assert.equal(a,artifact);assert.equal(f.record.computeRuns.get(prepared).queryInvocation,retained);view=Object.freeze(Object.assign(retained,{queryTimePreparation:time,queryTime:context,compiled:{},runDefinition:{}}));events.push('construct');return Object.freeze({original:option,retained:view});};
   const begin=fn=>f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,captured?scope:undefined,fn);
-  return {...f,p,prepared,request,view,events,scope,marker,begin,factory};
+  return {...f,p,prepared,request,get view(){return view;},events,scope,marker,begin,factory};
 }
 
 test('timed installing caller retains first view before captured Plan and never retains Option carrier',async()=>{
@@ -1697,4 +1697,33 @@ test('timed whole Source installing closure forwards manager Option transiently 
   assert.equal(f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,scope,(a,b,c)=>{assert.equal(a,prepared);assert.equal(b,request);assert.equal(c,artifact);return {original:opaque,retained:view};}),p.value);
   const run=f.record.computeRuns.get(prepared);assert.equal(run.queryInvocation,view);assert.equal(Object.values(run).includes(opaque),false);assert.equal(planCalls,1);
   const finish=f.preparation.retireManagedComputeRun(prepared);assert.equal(run.queryInvocation,undefined);finish();await f.initialControl.close();
+});
+
+
+test('timed installing Host retains partial original carrier before a throwing invocation issuer',async()=>{
+  const f=await timedInstallingFixture();let carrier;const compiled={},primary=Object.freeze(Error('partial first invocation'));
+  const construct=(prepared,request,artifact,held)=>{
+    assert.equal(prepared,f.prepared);assert.equal(request,f.request);
+    assert.equal(f.record.computeRuns.get(f.prepared).queryInvocation,held);
+    carrier=held;held.compiled=compiled;throw primary;
+  };
+  assert.throws(()=>f.begin(construct),error=>error===primary);
+  const run=f.record.computeRuns.get(f.prepared);assert.equal(run.failure,primary);
+  assert.equal(run.queryInvocation,carrier);assert.equal(carrier.compiled,compiled);
+  assert.throws(()=>f.begin(()=>assert.fail('no replacement issuer')),error=>error===primary);
+  await f.initialControl.close();
+});
+
+test('timed installing caller cuts invocation aliases before consumed parent settlement can throw',async()=>{
+  const f=await timedInstallingFixture({failSever:true});f.begin(f.factory);
+  const run=f.record.computeRuns.get(f.prepared),originalView=f.view;
+  assert.equal(run.queryInvocation,originalView);
+  assert.throws(()=>f.preparation.retireManagedComputeRun(f.prepared),error=>error===f.marker);
+  assert.equal(run.queryInvocation,undefined);assert.equal(run.queryTimePreparation,undefined);
+  assert.equal(run.prepared,f.prepared);assert.equal(run.closed,false);
+  const finish=f.preparation.retireManagedComputeRun(f.prepared);
+  assert.equal(run.prepared,undefined);assert.equal(run.closed,true);
+  assert.equal(f.events.filter(event=>event==='consume-holder').length,1);
+  assert.equal(f.events.filter(event=>event==='construct').length,1);
+  finish();await f.initialControl.close();
 });

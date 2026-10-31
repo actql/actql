@@ -44,6 +44,7 @@ test "whole Source timed Plan and module retain the first original invocation" {
     retained_output=true,
     provider_factory=factory,
   ).unwrap()
+  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
   guard artifact is @publication_host.Tasks(compilation) else {
     fail("whole Source must retain its original Task compilation")
   }

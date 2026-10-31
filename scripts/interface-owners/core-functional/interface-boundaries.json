@@ -25604,7 +25604,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "440c63a0659f62840f6df7a99128e2b58a13a2bbce9ff4200e8d037df0a23ecd",
+      "sha256": "28c4edfa9c08837739e8e381b8afa79bdbcab4b2c61099e5a4efb90f88c6a79e",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -28696,7 +28696,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "bb7207042356176a011e74ea825d0f6ea9bc6316895704495c457680002ef104",
+      "sha256": "c12acd52c0ee4df9dd1a2f2c587b5d112f4039f3636d6cee6260017719b72229",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28722,6 +28722,10 @@
           "declaration": "[ I ] complete_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
+          "name": "[I]complete_request_program_preparation_owned",
+          "declaration": "[ I ] complete_request_program_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "[I]continue_request_program_preparation",
           "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
         },
@@ -28731,15 +28735,23 @@
         },
         {
           "name": "[I]prepare_request_capture_module_body",
-          "declaration": "[ I ] prepare_request_capture_module_body ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] prepare_request_capture_module_body ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]prepare_request_compilation_owned",
+          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , model : @ publication_host . ClientInferPlanGraph ? , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_compilation",
+          "declaration": "[ I ] prepare_request_program_compilation ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "[I]prepare_request_program_module_body",
-          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "[I]prepare_request_program_module_body_owned",
-          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "[I]request_program_plan_quote",
@@ -28748,6 +28760,18 @@
         {
           "name": "[I]reserve_request_program_plan",
           "declaration": "[ I ] reserve_request_program_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_query_time_invocation",
+          "declaration": "[ I ] reserve_request_query_time_invocation ( owner : ClientRequestPreparation [ I ] , input : I , compilation : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]retain_request_program_module_inputs",
+          "declaration": "[ I ] retain_request_program_module_inputs ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "request_query_time_invocation_extent",
+          "declaration": "request_query_time_invocation_extent ( original : @ publication_host . ClientPureCompilationConstruction , ) - > ( Int64 , Int64 ) ?"
         }
       ],
       "contracts": [
@@ -29077,6 +29101,75 @@
               {
                 "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
                 "anchor": "test \"captured Request retains the same accounted compilation for publication without recompiling\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]reserve_request_query_time_invocation",
+            "request_query_time_invocation_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "reserve one aggregate invocation extent"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "first raw compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original-identity checks remain required"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same parent and input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current reentry is fenced"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Failure keeps the original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not acknowledge physical stop"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "variable backing follows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not enable Model, Content or Effect"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "timed invocation backing retains its original compiler"
               }
             ]
           }
@@ -34437,7 +34530,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "93af10468fea6aac71593e2466faf7ebc16cc0d9983aca7d21d661d7d3b54a01",
+      "sha256": "8018518b5eccfd2b3b33c06f973ea5b93b61ca5afdb7276fbdffae6ef656199d",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -34451,8 +34544,20 @@
           "declaration": "client_program_adopt_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_adopt_request_content_preparation",
+          "declaration": "client_program_adopt_request_content_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_adopt_request_effect_model_preparation",
+          "declaration": "client_program_adopt_request_effect_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_adopt_request_effect_preparation",
           "declaration": "client_program_adopt_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_adopt_request_model_preparation",
+          "declaration": "client_program_adopt_request_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_adopt_request_program_preparation",
@@ -34475,8 +34580,16 @@
           "declaration": "client_program_bind_request_policy_subject ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , index : Int , policy_cid : String ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
+          "name": "client_program_borrow_request_content_plan_input",
+          "declaration": "client_program_borrow_request_content_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
           "name": "client_program_borrow_request_effect_plan_input",
           "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_model_plan_input",
+          "declaration": "client_program_borrow_request_model_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
           "name": "client_program_borrow_request_program_plan_input",
@@ -34495,8 +34608,16 @@
           "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
         },
         {
+          "name": "client_program_complete_request_content_preparation",
+          "declaration": "client_program_complete_request_content_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , selected : @ client_local_host . ClientInstalledManagedKeyedPreparation , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_complete_request_effect_preparation",
           "declaration": "client_program_complete_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_complete_request_model_preparation",
+          "declaration": "client_program_complete_request_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
           "name": "client_program_construct_program_json_preparation",
@@ -34537,6 +34658,10 @@
         {
           "name": "client_program_installed_managed_capture_plan_prepare",
           "declaration": "client_program_installed_managed_capture_plan_prepare ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_keyed_content_prepare",
+          "declaration": "client_program_installed_managed_keyed_content_prepare ( prepared : @ publication_host . PreparedClientProgram , direct : @ client_local_host . ClientInstalledCaptureCapacity , keyed : @ publication_host . ClientKeyedAcquisition , declaration : @ client_row_source_host . RowDeclaration , max_page_bytes : Int , max_text_bytes : Int , row_work : Int , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , max_bytes : Int , max_work : Int , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , task : Int , step : Int , prefix_retained_bytes : Int64 , prefix_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledManagedKeyedPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_lower_request_published_query",
@@ -34599,6 +34724,18 @@
           "declaration": "client_program_prepare_request_computation_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_effect_model_read_scope",
+          "declaration": "client_program_prepare_request_effect_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_compilation",
+          "declaration": "client_program_prepare_request_model_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , graph : @ publication_host . ClientInferPlanGraph , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_read_scope",
+          "declaration": "client_program_prepare_request_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_native_computation",
           "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , values_max_rows : Int ? , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
         },
@@ -34615,6 +34752,10 @@
           "declaration": "client_program_prepare_request_program_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ program_check . CheckLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_program_compilation",
+          "declaration": "client_program_prepare_request_program_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_program_json",
           "declaration": "client_program_prepare_request_program_json ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
@@ -34629,6 +34770,10 @@
         {
           "name": "client_program_prepare_request_submitted_intent",
           "declaration": "client_program_prepare_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , ) - > Result [ String , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_prepared_installed_managed_model_requirements",
+          "declaration": "client_program_prepared_installed_managed_model_requirements ( original : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Array [ Int64 ]"
         },
         {
           "name": "client_program_prepared_request_query_lowering",
@@ -34693,6 +34838,10 @@
         {
           "name": "client_program_request_submitted_intent_original",
           "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
+        },
+        {
+          "name": "client_program_reserve_request_query_time_invocation",
+          "declaration": "client_program_reserve_request_query_time_invocation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , compilation : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
         },
         {
           "name": "client_program_reserve_request_snapshot",
@@ -34989,6 +35138,74 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_reserve_request_query_time_invocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "reserve one aggregate invocation extent"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "first raw compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original-identity checks remain required"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same parent and input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current reentry is fenced"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Failure keeps the original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not acknowledge physical stop"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "variable backing follows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not enable Model, Content or Effect"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "timed invocation backing retains its original compiler"
               }
             ]
           }

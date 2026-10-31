@@ -3619,12 +3619,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
-  const prepareTimedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal) => {
+  const prepareTimedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal, retainedInvocation) => {
     const retained = journal.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
     const kind = moon.clientProgramAcquisitionCount(preparedProgram) > 0 ||
       moon.clientProgramRequiresTaskCompilation(preparedProgram) ? 'tasks' : 'values';
     return prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
-      compilationOriginal, kind, authorityScopeCid, namespaceId, now,
+      compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedInvocation,
       retainedDefinitionWire: retained?.runDefinition.wire});
   };
   const submit = async submission => {
@@ -5780,7 +5780,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         const originalRequest = originalSourceManagedHostRequest(originals, prepared);
         const constructInvocation = typeof prepareInvocation !== 'function' ? undefined : artifact => {
           if (run.queryInvocation !== undefined) throw clientOperationError('ForeignInstalledComputeRun');
-          const invocation = Reflect.apply(prepareInvocation, undefined, [prepared, request, artifact]);
+          // The same Request backed this complete invocation group before the
+          // callback. Retain partial originals on the existing Host record,
+          // before the next issuer/current/Module step can fail.
+          const retainedInvocation = {preparedProgram: prepared, requestIdentity: request,
+            compiled: undefined, runDefinition: undefined, createdAt: undefined,
+            validUntil: undefined, queryTimePreparation: undefined, queryTime: undefined};
+          run.queryInvocation = retainedInvocation;
+          const invocation = Reflect.apply(prepareInvocation, undefined,
+            [prepared, request, artifact, retainedInvocation]);
+          if (invocation.retained !== retainedInvocation) throw clientOperationError('ForeignInstalledComputeRun');
           // Only the necessary immutable view survives ModuleBody. Its
           // temporary opaque Option carrier is not another retained root.
           run.queryInvocation = invocation.retained;
@@ -5840,9 +5849,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         // typed preparation borrower and completing that same parent debit.
         run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
         run.requestInput=run.selection=run.selectionResult=run.selectionFailure=undefined;
+        // The original payload sever has completed before its consuming
+        // borrower return can fail during settlement. Retain no invocation
+        // aliases while that same parent continuation remains pending.
+        run.queryInvocation=run.queryTimePreparation=undefined;
         run.manager.severPreparation(prepared,run.original);
         run.prepared=undefined;run.closed=true;
-        run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
         // Returning registry/handler holders may now complete the same debit.
         run.finishRetirement = managedPreparationRetirementContinuation(run,record);

@@ -302,8 +302,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (state.requiresQueryTime !== true) return undefined;
     const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
     const issue = moon.clientProgramRequestProgramModuleIssueCode;
+    const reserve = moon.clientProgramReserveRequestQueryTimeInvocation;
     if (typeof construct !== 'function' || typeof compile !== 'function' ||
-        typeof issue !== 'function' || contracts === undefined || contracts.moon !== moon) {
+        typeof reserve !== 'function' || typeof issue !== 'function' || contracts === undefined || contracts.moon !== moon) {
       fail('NodeManagedRunRuntimeUnavailable');
     }
     const assertOriginal = () => {
@@ -318,6 +319,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     const artifact = checkedRequestProgramPreparation(moon,
       Reflect.apply(compile, moon, [state.parent, producer.receipt,
         contracts.admission, state.context.retainedRelationOutput]), issue);
+    assertOriginal();
+    checkedRequestProgramPreparation(moon,
+      Reflect.apply(reserve, moon, [state.parent, producer.receipt, artifact]), issue);
     assertOriginal();
     // The typed bridge returns its original Option. Forward it unchanged;
     // JavaScript does not construct or inspect a tuple representation.

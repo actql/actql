@@ -5091,7 +5091,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "021ad9499656e22c1545444c7e8cfa61dda3e5d7023e55658287754463e70c85",
+      "sha256": "138fd512cacf1968e61637f32378221e1e4249db5bcf658715e2183008e69c39",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6948,7 +6948,8 @@
           "parameters": [
             "preparedProgram",
             "requestIdentity",
-            "compilationOriginal"
+            "compilationOriginal",
+            "retainedInvocation"
           ],
           "async": false
         },
@@ -14104,7 +14105,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "9dc804df540d2e8269da85be08098ca26c175a51a785dbe789aca394159ec9f2",
+      "sha256": "17dfe97354d8f43468b7db47b1d03ed57b4e9cf58fe6fed9cc0c35f4ac68c93d",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -14517,7 +14518,15 @@
             "authorityScopeCid",
             "namespaceId",
             "now",
-            "retainedDefinitionWire"
+            "retainedDefinitionWire",
+            "retainedInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTimedClientInvocation/prepareTimedClientInvocation",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -15432,6 +15441,74 @@
               {
                 "path": "adapters/host-node/local-values-policy-original.test.mjs",
                 "anchor": "timed original downstream Values publication preserves first Run and full publication duties"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareTimedClientInvocation/prepareTimedClientInvocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "reserve one aggregate invocation extent"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "first raw compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original-identity checks remain required"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same parent and input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current reentry is fenced"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Failure keeps the original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not acknowledge physical stop"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "variable backing follows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not enable Model, Content or Effect"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "timed invocation backing retains its original compiler"
               }
             ]
           }
