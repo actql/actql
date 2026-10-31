@@ -379,3 +379,99 @@ test('timed original Local wrapper forwards the same Host invocation constructor
   const f=await fixture({expectedInvocation:original});f.profile.prepareManagedRun(f.prepared,f.request,original);
   assert.deepEqual(f.calls,['same-host-parent']);await f.profile.close();
 });
+
+// Actual Local installation and shared RowSource preparation, with explicit
+// nominal Core/Host ports. No file, Ledger, Resource or public Run is opened.
+async function effectSourceFixture({pending = false, changedAfterRead = false} = {}) {
+  const owner = {}, request = {}, parent = {}, declaration = {}, read = {};
+  const requirement = {}, acquisition = {}, capacity = {}, calls = [];
+  let valid = true, closeAllowed = !pending;
+  const scopeCid = 'sha256:' + 'a'.repeat(64), contextCid = 'sha256:' + 'b'.repeat(64);
+  const declared = {views: [{resource: 'files', source_ref: 'local:files',
+    view_cid: 'view', carrier_schema_cid: 'schema'}]};
+  const entry = {connection: 'local', rootPath: '/not-opened', declaration, scopeCid,
+    limits: {maxReadBytes: 4096, maxPages: 4, maxPageBytes: 1024, maxFileBytes: 1024,
+      maxPageRows: 4, maxFiles: 8}, queryAliases: [{name: 'local', resource: 'files'}],
+    wire: JSON.stringify(declared)};
+  const bundle = {sources: [entry]};
+  const raw = {retainChild() {assert.fail('No native filesystem selected');},
+    close() {assert.strictEqual(this, raw); calls.push('same-raw-close'); return {pending: !closeAllowed};}};
+  const moon = {
+    clientProgramLocalFileTimestamp() {}, clientProgramResourceReferenceIssuer: () => ({}),
+    clientProgramInstalledManagedRunCheck: () => assert.fail('Effect must not select the Pure Run check'),
+    clientProgramInstalledEffectManagedRunCheck(run, checkedOwner, intent) {
+      assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
+      if (intent !== request) throw new Error('OriginalEffectRequestMismatch');
+      calls.push('effect-current'); return ok();
+    },
+    clientProgramInstalledEffectManagedSourceRead(run, selected, index) {
+      assert.strictEqual(run, parent); assert.strictEqual(selected, declaration); assert.equal(index, 0);
+      calls.push('same-plan-read'); return ok({_0: read, _1: requirement, _2: acquisition, _3: capacity});
+    },
+    clientProgramInstalledSourceReadBindEffectProgram(original, checkedOwner) {
+      assert.strictEqual(original, read); assert.strictEqual(checkedOwner, owner); return ok();
+    },
+    clientProgramQueryRequirementSourceEvidenceFacts: () => ok(['local:files', 'source', 'schema', 'policy', 'class', 'view']),
+    clientProgramRowSourceTarget: () => ok(['files', 'path']),
+    clientProgramQueryRequirementCid: () => 'requirement',
+    clientProgramQueryRequirementInputContractCid: () => 'input',
+    clientProgramQueryRequirementOutputContractCid: () => 'output',
+    clientProgramInstalledSourceReadRetire(original) {assert.strictEqual(original, read); calls.push('core-read-retire'); return ok();},
+  };
+  const sourceManaged = {assertCurrent() {if (!valid) throw new Error('OriginalProjectSourceChanged');},
+    prepareRead(checkedOwner, selected, run, occurrence) {
+      assert.strictEqual(checkedOwner, owner); assert.strictEqual(selected, declaration);
+      assert.strictEqual(run, parent); assert.deepEqual(occurrence, {stage: 0, input: 0, task: 0});
+      calls.push('same-host-read'); valid = !changedAfterRead; return raw;
+    }};
+  const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
+    createInstalledRowSource, () => ({wire: '{}'}), () => '{}', async cause => cause,
+    AcquisitionOpenError, () => assert.fail('No native filesystem selected'), mime);
+  const profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
+    baseEnvironmentWire: '{}', authorizationFor: async () => ({context: {contextCid}, assertAccountCurrent() {},
+      authorize: async () => ({action: 'dispatch'})}),
+    prepareManagedRun: () => assert.fail('Already adopted Effect must not issue a Pure Run')});
+  const prepare = (intent = request, managedRun = parent) => profile.sources[0].prepare({
+    preparedEffect: owner, requestIdentity: intent, managedRun, occurrence: {stage: 0, input: 0, task: 0}});
+  return {profile, calls, prepare, allowClose() {closeAllowed = true;}};
+}
+
+test('Local Effect Source consumes its same adopted Host Run and original read without a second admission', async () => {
+  const f = await effectSourceFixture();
+  const selected = await f.prepare();
+  assert.equal(selected.readTuple.resource, 'files');
+  assert.deepEqual(f.calls, ['effect-current', 'same-plan-read', 'same-host-read', 'effect-current']);
+  await f.profile.close();
+  assert.deepEqual(f.calls.slice(-2), ['same-raw-close', 'core-read-retire']);
+});
+
+test('Local Effect Source rejects a foreign Request before acquiring a native child', async () => {
+  const f = await effectSourceFixture();
+  await assert.rejects(f.prepare({}), /OriginalEffectRequestMismatch/u);
+  assert.deepEqual(f.calls, []);
+  await f.prepare();
+  // An existing local provenance record must not replace a supplied foreign
+  // tuple with its original, thereby hiding the mismatch from Core.
+  await assert.rejects(f.prepare({}), {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.equal(f.calls.filter(value => value === 'same-host-read').length, 1);
+  await f.profile.close();
+});
+
+test('Local Effect Source preserves pending original cleanup and its consumed occurrence', async () => {
+  const f = await effectSourceFixture({pending: true});
+  await f.prepare();
+  await assert.rejects(f.prepare(), {code: 'LocalFilesSourcePreparationMismatch'});
+  await assert.rejects(f.profile.close(), {message: 'LocalFilesCleanupPending'});
+  assert.equal(f.calls.includes('core-read-retire'), false);
+  f.allowClose(); await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-host-read').length, 1);
+  assert.deepEqual(f.calls.slice(-2), ['same-raw-close', 'core-read-retire']);
+});
+
+test('Local Effect Source retains its actual child before post-acquisition current refusal', async () => {
+  const f = await effectSourceFixture({changedAfterRead: true});
+  await assert.rejects(f.prepare(), /OriginalProjectSourceChanged/u);
+  assert.equal(f.calls.filter(value => value === 'same-host-read').length, 1);
+  await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-raw-close').length, 1);
+});
