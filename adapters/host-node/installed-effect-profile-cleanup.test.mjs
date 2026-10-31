@@ -124,7 +124,7 @@ test('Effect load keeps the absent-service installer envelope unchanged', async 
 async function initialEffectFixture(t, {refuseReservation = false, suspended = false, undefinedFailure = false} = {}) {
   const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-material-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
-  const version = 'actql-effect-initial-material-fixture/0.1', profilePath = join(root, 'profile.json');
+  const version = 'actql-installed-effect-initial-material-fixture/0.1', profilePath = join(root, 'profile.json');
   const runtimePath = join(root, 'identity.mjs'), metadataPath = join(root, 'site.json');
   const profileWire = JSON.stringify({version}), runtimeWire = 'export const original = true;\n';
   const metadataWire = '{"original":"site metadata"}';
