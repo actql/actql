@@ -184,7 +184,7 @@ export function installNodeClientEffectRun({moon,
       const requiresQueryTime = queryTimeRequired(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
-        issueDefinition() {
+        async issueDefinition() {
           // Only the Journal's new-Run branch needs this optional capability.
           // Saved original Runs keep their lookup/recovery identity when a
           // signer is absent; no new preparation or publication starts here.
@@ -235,8 +235,18 @@ export function installNodeClientEffectRun({moon,
           const originalPreparation = prepareDefinition?.(Object.freeze({prepared,
             compilation: compiled(), allowed, definition, identity, runDefinition,
             modelCompiled, resultPolicyOriginal, queryTimePreparation}));
-          if (typeof originalPreparation?.then === 'function') {
-            void Promise.resolve(originalPreparation).catch(() => {});
+          const preparationThen = originalPreparation?.then;
+          if (typeof preparationThen === 'function') {
+            // The actual Journal already awaits this SAME issuer. Invalid
+            // async construction stays joined to its original acceptance
+            // before refusal; settlement is not a cleanup acknowledgement.
+            try {
+              await new Promise((resolve, reject) => Reflect.apply(
+                preparationThen, originalPreparation, [() => resolve(), reject]));
+            } catch {
+              // A rejected async constructor remains invalid at this sync
+              // preparation boundary, with the same original refusal below.
+            }
             throw new TypeError('AsyncClientEffectDefinitionPreparation');
           }
           return {

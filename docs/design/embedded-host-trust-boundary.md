@@ -294,3 +294,21 @@ applied Command outcome contains the original empty result and omits that
 provider marker, so the unchanged protocol schema remains authoritative.
 Physical claims, currentness, ambiguous outcomes and nonresend duties retain
 their existing owners.
+
+## Effect definition construction settlement
+
+The Effect definition issuer runs inside the Journal's existing admit-or-lookup
+await before the Run can be accepted. `prepareDefinition` remains a synchronous
+construction boundary. A Promise or thenable is invalid preparation data.
+
+If asynchronous construction has already begun, the issuer captures its original
+`then` method and receiver once and joins its fulfillment or rejection before
+returning `AsyncClientEffectDefinitionPreparation`. Fulfillment data is ignored
+without assimilating another value. Synchronous constructor and getter failures
+remain original. A never-settling construction keeps acceptance pending.
+
+This joins logical construction; it does not acknowledge physical cleanup.
+The existing preparation and Run owners retain failed prefixes and their
+resource backing. Saved lookup keeps its existing branch and does not call
+the construction callback again. No Request, Plan, definition, query clock,
+grant, claim, retry or dispatch is issued by the settlement fence.
