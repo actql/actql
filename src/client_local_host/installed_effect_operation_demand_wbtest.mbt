@@ -924,12 +924,23 @@ test "Effect Compute keeps the same checked four-row leaf demand before operatio
   ).unwrap()
   for nested in [false, true] {
     let (label_schema, label) = if nested {
-      ("{\"type\":\"array\",\"items\":{\"type\":\"string\",\"nullable\":false},\"nullable\":false}", "[\" é \u{1F600}\"]")
+      (
+        "{\"type\":\"array\",\"items\":{\"type\":\"string\",\"nullable\":false},\"nullable\":false}",
+        "[\" é \u{1F600}\"]",
+      )
     } else {
       ("{\"type\":\"string\",\"nullable\":false}", "\" é \u{1F600}\"")
     }
-    let document = "{\"version\":\"actql/0.1\",\"id\":\"effect-leaf-demand\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":" + label_schema +
-      ",\"flag\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"id\":1,\"label\":" + label + ",\"flag\":true},{\"id\":2,\"label\":" + label + ",\"flag\":false},{\"id\":3,\"label\":" + label + ",\"flag\":true},{\"id\":4,\"label\":" + label +
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"effect-leaf-demand\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":" +
+      label_schema +
+      ",\"flag\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"id\":1,\"label\":" +
+      label +
+      ",\"flag\":true},{\"id\":2,\"label\":" +
+      label +
+      ",\"flag\":false},{\"id\":3,\"label\":" +
+      label +
+      ",\"flag\":true},{\"id\":4,\"label\":" +
+      label +
       ",\"flag\":false}]},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\",\"label\",\"flag\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
     let prepared = @publication_host.prepare_client_effect_computation(
       document,
@@ -949,27 +960,53 @@ test "Effect Compute keeps the same checked four-row leaf demand before operatio
     assert_eq(plan.rows, 4)
     assert_eq(plan.capacity_plan.imports.wire.max_columns, 3)
     assert_eq(plan.capacity_plan.exports.wire.max_columns, 3)
-    assert_true(physical_equal(plan.capacity_plan, plan.configuration.capacity_plan))
-    assert_true(physical_equal(plan.source_free.unwrap().capacity_plan, plan.capacity_plan))
+    assert_true(
+      physical_equal(plan.capacity_plan, plan.configuration.capacity_plan),
+    )
+    assert_true(
+      physical_equal(
+        plan.source_free.unwrap().capacity_plan,
+        plan.capacity_plan,
+      ),
+    )
     if nested {
       // An Array cell has no leaf proof. It must keep the existing general
       // value envelope, rather than inheriting the neighbouring Text case.
       assert_true(plan.capacity_plan.value_node_demand is None)
     } else {
       guard plan.capacity_plan.value_node_demand is Some(demand) else {
-        fail("checked Text/Number/Bool cells must retain their original leaf demand")
+        fail(
+          "checked Text/Number/Bool cells must retain their original leaf demand",
+        )
       }
       assert_eq(demand.rows, 4)
       assert_eq(demand.original.fields, 3)
       assert_true(demand.nodes < 100)
-      assert_true(plan.limits.execution_bytes < client_local_execution_byte_ceiling())
-      assert_true(plan.limits.retained_bytes < client_local_retained_byte_ceiling())
+      assert_true(
+        plan.limits.execution_bytes < client_local_execution_byte_ceiling(),
+      )
+      assert_true(
+        plan.limits.retained_bytes < client_local_retained_byte_ceiling(),
+      )
       // SAME fixture extents: one 100/200 member and four copies of two
       // 300/500 sends plus one 50/70 constructor. No attempt/body is erased.
-      assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 9)
-      assert_eq(plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes, 121L)
-      assert_true(plan.limits.retained_bytes >= plan._observed_compute_limits.retained_bytes + 2700L)
-      assert_true(plan.limits.execution_bytes >= plan._observed_compute_limits.execution_bytes + 4480L)
+      assert_eq(
+        plan.limits.attempts - plan._observed_compute_limits.attempts,
+        9,
+      )
+      assert_eq(
+        plan.limits.transfer_bytes -
+        plan._observed_compute_limits.transfer_bytes,
+        121L,
+      )
+      assert_true(
+        plan.limits.retained_bytes >=
+        plan._observed_compute_limits.retained_bytes + 2700L,
+      )
+      assert_true(
+        plan.limits.execution_bytes >=
+        plan._observed_compute_limits.execution_bytes + 4480L,
+      )
     }
   }
 }

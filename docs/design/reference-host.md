@@ -1742,6 +1742,20 @@ originals; installation order and a second Query preparation cannot replace
 them. A base row reader keeps its original acquisition capture, while a
 provider reader additionally retains the same installed provider capacity.
 
+The Compute portion retains typed schema demand for both Pure and Effect
+purposes. The same original graph and generated sequences determine column
+widths and closed row bounds; an Effect purpose does not discard those facts
+and substitute the whole general value envelope. Number/Bool and JSON-leaf
+proofs remain distinct. Nested or unproved fields keep the existing general
+limits, including their independent text and wire checks.
+
+A source-free Effect operation Plan uses the completed Compute Plan's retained
+schema inventory for its row multiplicity. It does not traverse those same
+schemas again. A captured Source prefix remains outside the Compute tail's
+graph offset, so its full original inventory is still required. Operation
+attempts, transfer, simultaneous bodies and pending cleanup are added to that
+same Plan; smaller proved Compute demand does not refund or omit them.
+
 The Model component in the Plan configuration is the same native provider
 used by execution. The existing component may retain its original occurrence
 before Source acquisition and bind its physical context once after capture.

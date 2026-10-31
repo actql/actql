@@ -290,10 +290,10 @@ fn source_free_installed_managed_preparation_owned(
   let capacity_plan = client_local_capacity_plan(
     sequences,
     max_rows,
-    scalar_values=match owner {
-      Pure(_) => true
-      Effect(_) => false
-    },
+    // These are facts of the SAME checked Compute graph, not Pure permission.
+    // Effect operation/physical demand remains separately composed below its
+    // original owner; an unproved nested schema still takes the old fallback.
+    scalar_values=true,
     graph=Some(graph),
   )
   guard client_local_sequence_capacity(

@@ -316,12 +316,21 @@ pub fn prepare_installed_effect_managed_plan(
     input_rows: 0,
     row_bounds: 0,
   }
-  let proof = client_local_schema_proof_inventory(
-    sequences,
-    graph=Some(graph),
-    scalar_only=false,
-    workspace=Some(workspace),
-  )
+  let proof = if source_free is Some(_) {
+    // This branch retained exactly these sequences and this capacity Plan
+    // from the same completed source-free preparation above. Reuse its
+    // immutable inventory instead of traversing the same schemas again.
+    capacity_plan.demand_inventory
+  } else {
+    // The captured prefix is outside the Compute tail's graph offset. Keep
+    // its full original inventory; a tail-only proof cannot replace it.
+    client_local_schema_proof_inventory(
+      sequences,
+      graph=Some(graph),
+      scalar_only=false,
+      workspace=Some(workspace),
+    )
+  }
   let rows = match proof {
     Some({ closed_rows: Some(count), .. }) => count
     _ => @publication_host.client_standard_values_sequence_limits().max_rows

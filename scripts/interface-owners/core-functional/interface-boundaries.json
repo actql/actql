@@ -40940,7 +40940,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "4f9a9c29d9f3585c7eb5e3a20bc0d921a7f1da6cd7e86ceece3781cdee7eb6d7",
+      "sha256": "311c52162a51c370d05b874dd34a4503f4f758fc21fcf80e6452d5e19c3543fe",
       "exports": [],
       "operations": [
         {
@@ -41099,7 +41099,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "a67f73f74686c109197ee1751449968db80acdba350cc79c2592c0112597c818",
+      "sha256": "b3cacaf468c173db1969082126b62e69d2c1f5cf01c293583d5b67bad7ef878e",
       "exports": [],
       "operations": [
         {
@@ -41157,6 +41157,10 @@
         {
           "name": "installed_managed_run_compilation_original",
           "declaration": "installed_managed_run_compilation_original ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > @ publication_host . ClientRunCompilation ?"
+        },
+        {
+          "name": "installed_managed_run_invocation_original",
+          "declaration": "installed_managed_run_invocation_original ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "installed_managed_run_owner",
@@ -41261,6 +41265,7 @@
             "installed_managed_run_accounting",
             "installed_managed_run_accounting_values",
             "installed_managed_run_compilation_original",
+            "installed_managed_run_invocation_original",
             "installed_managed_run_owner",
             "installed_managed_run_purpose_supported",
             "installed_managed_run_requirements",
@@ -53951,6 +53956,92 @@
               {
                 "path": "src/connectors/github/host_node/comment_construction_wbtest.mbt",
                 "anchor": "test \"GitHub CREATE native inventory covers both escaped request Strings before HTTP admission\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_compute_preparation.mbt",
+      "sha256": "3172e253973fff09de5d4cef34d217f79017a3e1fed3753143eb36a18cc6e816",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
+      "referenceQualification": "Selected existing private Compute constructor body only; not new API, full backing, artifact or runtime acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_installed_compute_preparation",
+          "declaration": "prepare_installed_compute_preparation ( owner : ClientLocalSequenceOwner , source_free : ClientInstalledManagedSourceFreePreparation ? , sequences : Array [ @ execution . GeneratedSequence ] , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledComputePreparation , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_installed_compute_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Compute portion retains typed schema demand for both Pure and Effect"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_compute_preparation.mbt",
+                "anchor": "priv struct ClientInstalledComputePreparation {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same original graph and generated sequences determine column"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_compute_preparation.mbt",
+                "anchor": "source_free : ClientInstalledManagedSourceFreePreparation?,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/host.mbt",
+                "anchor": "fn prepare_client_local_configuration("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_compute_preparation.mbt",
+                "anchor": "None => return Err(Unsupported)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"planned Effect callback current loss retains original DAG cleanup and starts no task\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "attempts, transfer, simultaneous bodies and pending cleanup are added to that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "proofs remain distinct. Nested or unproved fields keep the existing general"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand_wbtest.mbt",
+                "anchor": "test \"Effect Compute keeps the same checked four-row leaf demand before operation backing\""
               }
             ]
           }
