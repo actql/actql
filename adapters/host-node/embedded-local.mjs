@@ -6147,15 +6147,19 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           catch (cause) {
             if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
           }
-          if (contentRetirement && !run.contentAliasesReleased) {
+          if (contentRetirement) {
             if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
-                run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal ||
-                run.contentPreparation?.managed !== run || typeof run.releaseContentAliases !== 'function') {
+                run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal) {
               throw clientOperationError('ForeignInstalledContentRun');
             }
-            Reflect.apply(run.releaseContentAliases, run.contentPreparation, [run]);
-            run.contentAliasesReleased = true;
-            run.releaseContentAliases = run.contentPreparation = undefined;
+            if (!run.contentAliasesReleased) {
+              if (run.contentPreparation?.managed !== run || typeof run.releaseContentAliases !== 'function') {
+                throw clientOperationError('ForeignInstalledContentRun');
+              }
+              Reflect.apply(run.releaseContentAliases, run.contentPreparation, [run]);
+              run.contentAliasesReleased = true;
+              run.releaseContentAliases = run.contentPreparation = undefined;
+            }
           }
           // The Scope's census has acknowledged physical retirement. Cut its
           // raw compiler/definition/graph aliases before returning the original
