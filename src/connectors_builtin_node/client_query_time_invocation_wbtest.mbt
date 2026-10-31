@@ -12,15 +12,18 @@ test "pre-module QueryTime bridge forwards its original Option into the same Req
   let document =
     #|{"version":"actql/0.1","id":"bridge-clock","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"derive":{"stamp":"current_timestamp()"},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","stamp"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
   let (parent, input) = request_diagnostic_test_parent()
+  client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  ).unwrap()
   assert_eq(
-    client_program_prepare_request_native_computation(
-      parent,
-      input,
-      request_diagnostic_test_json(document),
-      request_diagnostic_test_json("null"),
-      environment,
-      publication,
-      None,
+    client_program_finish_request_computation(
+      parent, input, environment, publication,
     ).unwrap(),
     "effect_free",
   )

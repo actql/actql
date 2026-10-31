@@ -101,6 +101,7 @@ test "whole input publication binds the same RowRun originals and one adopted in
     Ok(_) => ()
     Err(Preparation(_)) => fail("whole module: Preparation")
     Err(Installed(_)) => fail("whole module: Installed")
+    Err(QueryTime(_)) => fail("whole module: QueryTime")
     Err(Construction(issue)) => {
       let label = match issue {
         InvalidLimits => "InvalidLimits"
