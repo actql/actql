@@ -195,6 +195,47 @@ for (const [name, factory, prefix] of [
     assert.deepEqual(f.events, ['close', 'settle', 'close']);
   });
 
+  test(`${name} managed repeated cleanup retains first/latest originals without acknowledging stop`, async () => {
+    const primary = Object.freeze(new Error('original managed read failure'));
+    const first = Object.freeze(new Error('original first close failure'));
+    const repeated = [first, undefined, first, 'primitive close failure'];
+    let allowClose = false, closeCalls = 0, latest;
+    const f = managedCase(factory, prefix, {async read() {throw primary;}}, {
+      close() {
+        f.events.push('close');
+        closeCalls++;
+        if (!allowClose) {
+          latest = repeated[(closeCalls - 1) % repeated.length];
+          throw latest;
+        }
+      },
+    });
+    let failure;
+    try {await f.entry.runPrepared(f.prepared);}
+    catch (error) {failure = error;}
+    assert.equal(failure.primaryFailure, primary);
+    const snapshots = [];
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt !== 0) await failure.cleanupHandle.retry();
+      const status = failure.cleanupHandle.status(); snapshots.push(status);
+      assert.equal(status.pending, true);
+      assert.deepEqual(status.errors, closeCalls === 1 ? [first] : [first, latest]);
+      assert.ok(Object.isFrozen(status) && Object.isFrozen(status.errors));
+      for (const previous of snapshots) {
+        assert.equal(previous.errors[0], first);
+        assert.ok(previous.errors.length <= 2);
+      }
+      assert.equal(f.events.filter(event => event === 'settle').length, 1);
+    }
+    const before = closeCalls;
+    allowClose = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(closeCalls, before + 1);
+    assert.equal(f.events.filter(event => event === 'settle').length, 1);
+    assert.equal(failure.primaryFailure, primary);
+    assert.deepEqual(failure.cleanupErrors, [first, latest]);
+  });
+
   test(`${name} managed unknown reader cleanup never guesses stopped`, async () => {
     const primary = Object.assign(new Error('unknown reader stop'), {
       cleanupPending: true,
