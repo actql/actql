@@ -80,7 +80,7 @@ pub fn begin_installed_effect_managed_source_read(ClientInstalledManagedRun, @cl
 
 pub fn begin_installed_effect_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64, Int, Int, Int) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
 
-pub fn begin_installed_effect_operation_controls(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
+pub fn begin_installed_effect_operation_controls(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_managed_capture_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
 
