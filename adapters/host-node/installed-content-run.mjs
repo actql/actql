@@ -17,7 +17,7 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
   faultInjection, assertRunCurrent, preparedRunRequired = false,
-  prepareKeyedManagedRun, borrowKeyedManagedLedger}) {
+  prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun}) {
   const control = core.contentGenerationControl;
   const publications = core.publicationControl;
   const bodies = {registry, values, fragment, ordered};
@@ -78,24 +78,24 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
-    const capacity = control.prefixCapacity(preparedProgram, task, step,
-      bodies, prefixLimits, workspace, source);
-    let ledger;
-    if (acquiredContent === undefined && preparedRunRequired) {
+    let ledger, managed, capacity;
+    if (acquiredContent === undefined && !intermediate) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.plan !== plan || original.attempted ||
-          original.failure !== undefined || original.capacity.retainedBytes !== capacity.retainedBytes ||
-          original.capacity.executionBytes !== capacity.executionBytes) {
+          original.failure !== undefined || original.managed === undefined || original.managed.closed) {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
       }
       // Consume before fallible currentness or prefix construction. Failure
       // remains attached to this Run, never a new scalar-ledger fallback.
       original.attempted = true;
       assertRunCurrent();
-      ledger = original.ledger;
-    } else ledger = acquiredContent === undefined
-      ? checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
-        capacity.retainedBytes, capacity.executionBytes, 0)) : acquiredContent.ledger;
+      managed = original.managed; capacity = original.capacity;
+    } else {
+      capacity = control.prefixCapacity(preparedProgram, task, step, bodies, prefixLimits, workspace, source);
+      ledger = acquiredContent === undefined
+        ? checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
+          capacity.retainedBytes, capacity.executionBytes, 0)) : acquiredContent.ledger;
+    }
     if (acquiredContent !== undefined && acquiredLedgers.get(ledger) !== plan.compiled) {
       throw new TypeError('Foreign Content acquisition ledger');
     }
@@ -151,7 +151,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
             if (child.status().pending) return false;
           }
         }
-        if (prefix !== undefined) {
+        if (managed !== undefined) {
+          // This also retrieves cleanup after the original start retained a
+          // prefix but threw before returning it to this JS caller.
+          if (control.cleanupRequestPrefix(managed.value, managed.serialization) !== true) return false;
+        } else if (prefix !== undefined) {
           if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;
         }
         cleaned = true;
@@ -161,15 +165,18 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       return flight;
     };
     retainExecution(Object.freeze({close: cleanup, cleanup, cleanupPending: () => !cleaned,
-      resourceUsage: () => moon.clientProgramMultiCapturedLedgerUsage(ledger),
+      resourceUsage: () => managed === undefined ? moon.clientProgramMultiCapturedLedgerUsage(ledger)
+        : checked(moon.clientProgramInstalledManagedRunAccounting(managed.value)),
       cumulativeWork: () => work}));
     try {
       signal?.throwIfAborted();
       const capturedProof = acquiredContent === undefined ? undefined
         : publications.bindCheckedClientSerializationCapture(preparedProgram,
           plan.serializationGraph, acquiredContent.captured, acquiredContent);
-      prefix = control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
-        source, acquiredContent?.keyedLookup);
+      prefix = managed === undefined
+        ? control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
+          source, acquiredContent?.keyedLookup)
+        : control.startRequestPrefix(managed.value, preparedProgram, managed.serialization);
       await faultInjection?.('content_workspace_reserved', {capacity});
       const output = await runGeneratedContentPrefix({control, prefix, remainingWork, chargeWork, signal});
       const barrier = control.prepare(preparedProgram, task, step, 10000);
@@ -240,8 +247,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // admission. This Ledger expresses managed limits; platform allocation is
   // the supplier, and no successful allocation, authority or physical ACK is
   // inferred from these numbers. Store/native children keep their own duties.
-  run.prepareRun = ({preparedProgram, plan}) => {
-    if (!preparedRunRequired || typeof assertRunCurrent !== 'function') {
+  run.prepareRun = ({preparedProgram, plan, request}) => {
+    if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
+        typeof prepareSerializationManagedRun !== 'function' || request === undefined) {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
     }
     assertRunCurrent();
@@ -252,20 +260,21 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     const prior = preparedRuns.get(preparedProgram);
     if (prior !== undefined) {
-      if (prior.plan !== plan || prior.attempted) throw new TypeError('ForeignInstalledContentRun');
+      if (prior.plan !== plan || prior.request !== request || prior.attempted) throw new TypeError('ForeignInstalledContentRun');
       if (prior.failure !== undefined) throw prior.failure;
       return;
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {plan, attempted: false, capacity: undefined, ledger: undefined, failure: undefined};
+    const original = {plan, request, attempted: false, capacity: undefined, managed: undefined, failure: undefined};
     preparedRuns.set(preparedProgram, original);
     try {
-      const {task, step} = plan.serializationGraph;
-      original.capacity = control.prefixCapacity(preparedProgram, task, step,
-        bodies, prefixLimits, workspace);
-      original.ledger = checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
-        original.capacity.retainedBytes, original.capacity.executionBytes, 0));
+      // Retain the SAME Host bag before current/requirements projections.
+      // The Request constructor owns the provider and original compilation.
+      original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, workspace);
+      if (original.managed === undefined || original.managed.value === undefined ||
+          original.managed.serialization === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
+      original.capacity = control.requestPrefixCapacity(original.managed.serialization);
       assertRunCurrent();
     } catch (error) {original.failure = error; throw error;}
   };

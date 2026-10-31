@@ -6513,6 +6513,29 @@ export function contentGenerationControl(moon, publications) {
       }
       return Object.freeze({retainedBytes, executionBytes});
     },
+    prepareRequestPrefix(parent, input, request, compiled, definition, limits, workspace) {
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
+    },
+    requestPrefixCapacity(selected) {
+      const value = moon.clientProgramPreparedInstalledSerializationPrefixRequirements(selected);
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestPrefix(run, program, selected) {
+      const prefix = checked(moon.clientProgramInstalledManagedSerializationPrefixStart(run, program, selected));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
+    },
     prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
       // Revalidate through the same provider before reserve/start. Capacity
       // inspection alone is neither a reservation nor permission to execute.

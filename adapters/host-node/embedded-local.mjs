@@ -2142,11 +2142,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Sources using this Host's managed parent. Other purposes keep their owner.
   const localPreparationCustody = installLocalPreparationRegistry(prepared => {
     if (preparation?.canRetireManagedPreparation?.() !== true) return false;
-    if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
-        moon.clientProgramSerializationOccurrences(prepared).length !== 0) return false;
+    if (prepareSubmit.kindOf(prepared) !== 'effect_free') return false;
+    const serializations = moon.clientProgramSerializationOccurrences(prepared);
     const inventory = moon.clientProgramComposedInferOccurrences(prepared);
     if (!runtimeIsOk(inventory)) return false;
     const count = runtimeField(inventory, 0).length;
+    if (serializations.length !== 0) return serializations.length === 1 && count === 0 &&
+      moon.clientProgramAcquisitionCount(prepared) === 0 &&
+      typeof moon.clientProgramPreparationBorrowSibling === 'function';
     // This selects custody only. The registry still requires the SAME
     // Request's actual Core borrower, not an INFER shape or a permission.
     if (count !== 0) return count === 1 && typeof moon.clientProgramPreparationBorrowSibling === 'function';
@@ -3129,8 +3132,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0) {
       try {
-        return serializationTaskRunAdmission({...common,
+        // Select the component once. Its original Request compiler and the
+        // Task issuer below must consume the SAME checked graph.
+        const serializationGraph = selectInstalledSerializationGraph({...common,
           resultDataPolicy: installedResultDataPolicy});
+        const compilationOriginal = moon.clientProgramAcquisitionCount(preparedProgram) === 0
+          ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph) : undefined;
+        return serializationTaskRunAdmission({...common,
+          serializationGraph, compilationOriginal, resultDataPolicy: installedResultDataPolicy});
       } catch (cause) {
         diagnostic('content_preparation_rejected', {boundary: 'task_compilation',
           code: cause.code, cause: cause.cause ?? cause});
@@ -3216,6 +3225,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparedRunRequired: preparation !== undefined,
     assertRunCurrent: preparation === undefined ? undefined
       : preparation.assertContentRunCurrent.bind(preparation),
+    prepareSerializationManagedRun: preparation === undefined ? undefined
+      : (prepared, request, plan, limits, workspace) => preparation.prepareManagedSerializationRun(
+        moon, prepared, request, plan, limits, workspace),
     prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, recipe) => {
       if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -4193,7 +4205,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               plan: planFor(submission, retained?.runDefinition.wire, requested)};
             earlyContentPlans.set(submission.preparedProgram, early);
           }
-          if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
+          if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});
           else runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
             plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
           return;
@@ -5403,7 +5415,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     for (const run of record.computeLiveRuns ?? []) {
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
-      if (run.preparationKind === 'model-plan' || run.preparationKind === 'effect-plan' && run.preparationFunded) {
+      if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
+          run.preparationKind === 'effect-plan' && run.preparationFunded) {
         const finish = preparation.retireManagedComputeRun(run.prepared);
         finish?.();
         continue;
@@ -5816,6 +5829,50 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked}).value;
     },
+    prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareSerializationRun !== 'function' ||
+          plan.kind !== 'serialization') throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
+      originalInstallation.computeRuns = runs;
+      const prior = runs.get(prepared);
+      if (prior !== undefined) {
+        if (Object.hasOwn(prior, 'failure')) throw prior.failure;
+        if (prior.closed || prior.preparationKind !== 'serialization-plan' || prior.runtime !== runtime ||
+            prior.request !== request || prior.manager !== manager || prior.contentPlan !== plan ||
+            prior.contentLimits !== limits || prior.contentWorkspace !== workspace) {
+          throw clientOperationError('ForeignInstalledContentRun');
+        }
+        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request])); return prior;
+      }
+      if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
+      const content = runtimeCore(runtime).contentGenerationControl;
+      const run = {runtime, prepared, request, manager, content, contentPlan: plan,
+        contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
+        original: undefined, value: undefined, serialization: undefined, closed: false, selecting: true};
+      runs.set(prepared, run); liveRuns.add(run);
+      try {
+        run.retire = runtime.clientProgramInstalledManagedRunRetire;
+        run.check = runtime.clientProgramInstalledManagedRunCheck;
+        run.cleanupSerialization = content.cleanupRequestPrefix;
+        if (![run.retire, run.check, run.cleanupSerialization, content.prepareRequestPrefix]
+          .every(method => typeof method === 'function')) throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+        const adopted = manager.prepareSerializationRun(prepared,
+          originalSourceManagedHostRequest(originals, prepared), request, (parent, input) => {
+            // C's full same-parent construction/output/failed-child backing
+            // belongs before this exact constructor, not in these DATA limits.
+            run.serialization = content.prepareRequestPrefix(parent, input, request,
+              plan.compiled, plan.runDefinition, limits, workspace);
+            return run.serialization;
+          });
+        run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        return run;
+      } catch (cause) {run.failure = cause; throw cause;}
+      finally {run.selecting = false;}
+    },
     prepareManagedModelRun(runtime, prepared, request, model) {
       const manager = sourceManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelRun !== 'function' ||
@@ -5961,6 +6018,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // This private operation is called by the complete dispatch retirement
       // predicate, not by a terminal result projection or handler completion.
       if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
+      if (run.preparationKind === 'serialization-plan' && run.value === undefined) {
+        // No prefix start can precede an adopted Run. The original Request
+        // still owns its partial constructor and aborts it on existing cleanup.
+        record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
+        for (const key of Object.keys(run)) run[key] = undefined;
+        run.closed = true; return;
+      }
       if (run.preparationKind === 'model-plan' && run.value === undefined) {
         // Construction unwound; a Scope can predate a refused completion.
         // This failed preparation has entered neither dispatch nor a read.
@@ -5980,12 +6044,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return;
       }
       if (run.preparationFunded) {
+        if (run.preparationKind === 'serialization-plan' &&
+            Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
+          throw clientOperationError('InstalledContentRunCleanupPending');
+        }
         try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
         catch (cause) {
           if (run.runtime.clientProgramInstalledPreparationPayloadSevered(run.value,run.request)!==true) throw cause;
         }
         run.manager.severPreparation(prepared,run.original);
         if (run.preparationKind === 'model-plan') Reflect.apply(run.releaseModelAliases, run.model, []);
+        run.contentPlan = run.contentLimits = run.contentWorkspace = run.serialization = undefined;
         run.prepared=undefined;run.closed=true;
         run.queryInvocation=run.queryTimePreparation=undefined;
         // Keep a weak-key tombstone but no Prepared in this continuation.
@@ -6042,6 +6111,18 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run.queryInvocation === undefined) return undefined; // Existing untimed module.
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
         run.value, prepared, run.queryInvocation);
+    },
+    prepareManagedContentCompilation(runtime, prepared, graph) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareContentCompilation !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      const control = runtimeCore(runtime).publicationControl;
+      return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
+        (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
+          parent, input, originalGraph, contracts));
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = computeManaged ?? sourceManaged;
