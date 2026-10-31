@@ -4221,3 +4221,13 @@ The actual keyed Plan adds its two scalar coordinates to constructor backing;
 full Graph/provider/output/failed-child overlap still belongs to the caller's
 same-parent construction backing before allocation. These link and coordinate
 facts do not establish that physical backing or normal Host acceptance.
+
+### Model alias retirement before Request return
+
+After the original Model Scope and Core payload acknowledge retirement, the
+Host calls the captured alias-release method with its original Model receiver.
+Only its successful managed return spends that duty; the Host then clears the
+Model references before returning the original Request preparation borrow. A
+settlement failure after that borrow is consumed continues the same retirement
+without invoking the already-spent alias release or reconstructing the Model.
+This managed-alias step supplies no physical cleanup acknowledgement.

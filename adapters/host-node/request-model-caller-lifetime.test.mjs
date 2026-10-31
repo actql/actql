@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
@@ -196,7 +197,7 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
   const record = {mockSourceProfile: {}}, originalInstallation = {}, originals = {};
   const primary = new Error('original-check-after-adopt');
-  let finish = true, physicalDone = false, payloadSevered = false;
+  let finish = true, physicalDone = false, payloadSevered = false, severFailure;
   const control = {
     finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
       assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition, model.graph, scope, true]);
@@ -231,6 +232,7 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
     },
     severPreparation(p, o) {
       assert.deepEqual([p, o], [prepared, original]); assert(payloadSevered); calls.push('sever');
+      if (severFailure) {const failure = severFailure; severFailure = undefined; throw failure;}
     },
   };
   const construct = (o, run, actual, c, p, i) => {
@@ -239,7 +241,7 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
     run.preparedSequences = {}; run.modelPlan = {}; run.modelAcquisitions = [{}];
     return run.modelPlan;
   };
-  const ports = {sourceManaged: manager, moon, record, originalInstallation, originals,
+  const ports = {sourceManaged: manager, moon, record, originalInstallation, originals, finishInstalledEffectModelScope,
     runtimeCore: () => ({publicationControl: control}),
     clientOperationError: code => Object.assign(new Error(code), {code}),
     assertSourceManagedInstallationCurrent(actual, o) {assert.equal(actual, manager); assert.equal(o, originals);},
@@ -254,7 +256,8 @@ function hostFixture({refuse, failAfterAdopt = false} = {}) {
   return {record, model, scope, calls, original, value, prepared, request, primary,
     begin: () => object.prepareManagedModelRun(moon, prepared, request, model),
     retire: () => object.retireManagedComputeRun(prepared),
-    finishScope: () => {model.scopeFinished = true;}, setFinish: value => {finish = value;}};
+    finishScope: () => {model.scopeFinished = true;}, setFinish: value => {finish = value;},
+    failSever: failure => {severFailure = failure;}};
 }
 
 test('Host Model adoption uses its existing run bag and retains transient originals until actual adoption succeeds', () => {
@@ -263,12 +266,23 @@ test('Host Model adoption uses its existing run bag and retains transient origin
   assert.equal(run.preparedSequences, undefined); assert.equal(run.modelAcquisitions, undefined);
   assert.equal(f.begin(), run); assert.equal(f.calls.filter(value => value === 'construct').length, 1);
   f.finishScope(); const finish = f.retire();
-  assert.deepEqual(f.calls.slice(-3), ['retire', 'sever', 'aliases']); finish();
+  assert.deepEqual(f.calls.slice(-3), ['retire', 'aliases', 'sever']); finish();
   assert.equal(run.prepared, undefined); assert.equal(run.closed, true);
   const g = hostFixture({failAfterAdopt: true});
   assert.throws(g.begin, error => error === g.primary);
   assert.equal(g.record.computeRuns.get(g.prepared).value, g.value);
   assert.throws(g.begin, error => error === g.primary);
+});
+
+test('Host Model retains the original alias receiver across a consumed preparation return failure', () => {
+  const f = hostFixture(), run = f.begin(), primary = new Error('original consumed preparation return');
+  f.finishScope(); f.failSever(primary);
+  assert.throws(f.retire, cause => cause === primary);
+  assert.equal(f.calls.filter(value => value === 'aliases').length, 1);
+  assert.equal(run.model, undefined);
+  const finish = f.retire(); finish();
+  assert.equal(f.calls.filter(value => value === 'aliases').length, 1);
+  assert.equal(run.closed, true);
 });
 
 test('Host Model failed construction retains its original Scope and partial module until the same Scope acknowledges cleanup', () => {
