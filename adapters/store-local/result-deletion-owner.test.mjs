@@ -8,7 +8,7 @@ function fixture() {
   const calls = [];
   let retention = 'free';
   let allocation = 'exclusive';
-  let syncFailures = 0;
+  const syncFailures = [];
   let unlinkFailures = 0;
   let busy = Promise.resolve();
   const operations = {
@@ -28,7 +28,7 @@ function fixture() {
     },
     async syncObjects() {
       calls.push('sync');
-      if (syncFailures-- > 0) throw failure('SYNC_FAILED');
+      if (syncFailures.length !== 0) throw syncFailures.shift();
     },
     releaseCapacity() { calls.push('account'); },
     settle(clearReclaiming) {
@@ -40,7 +40,8 @@ function fixture() {
     calls,
     setRetention: value => { retention = value; },
     setAllocation: value => { allocation = value; },
-    failSync: () => { syncFailures++; },
+    failSync: () => { syncFailures.push(failure('SYNC_FAILED')); },
+    failSyncWith: error => { syncFailures.push(error); },
     failUnlink: () => { unlinkFailures++; },
   };
 }
@@ -125,4 +126,30 @@ test('concurrent retries unlink and release capacity only once', async () => {
   assert.deepEqual(results.map(result => result.pending), [false, false]);
   assert.equal(calls.filter(call => call === 'unlink').length, 1);
   assert.equal(calls.filter(call => call === 'account').length, 1);
+});
+
+test('Result cleanup keeps first/latest original diagnostics through repeated failure without releasing custody', async () => {
+  const f = fixture(), first = Object.freeze(new Error('original first directory failure'));
+  const failures = [first, undefined, first, 'primitive directory failure', Object.freeze(new Error('original last directory failure'))];
+  const snapshots = [];
+  for (let index = 0; index < failures.length; index++) {
+    f.failSyncWith(failures[index]);
+    await f.owner.retry().then(() => assert.fail('Expected original durability refusal'),
+      error => assert.equal(error, failures[index]));
+    const status = f.owner.status(); snapshots.push(status);
+    assert.equal(status.pending, true);
+    assert.deepEqual(status.errors, index === 0 ? [first] : [first, failures[index]]);
+    assert.ok(Object.isFrozen(status) && Object.isFrozen(status.errors));
+    assert.equal(f.calls.filter(call => call === 'unlink').length, 1);
+    assert.equal(f.calls.includes('account'), false);
+    for (let old = 0; old < snapshots.length; old++) {
+      assert.deepEqual(snapshots[old].errors, old === 0 ? [first] : [first, failures[old]]);
+    }
+  }
+  const finished = await f.owner.retry();
+  assert.equal(finished.pending, false);
+  assert.deepEqual(finished.errors, [first, failures.at(-1)]);
+  assert.equal(f.calls.filter(call => call === 'unlink').length, 1);
+  assert.equal(f.calls.filter(call => call === 'account').length, 1);
+  assert.equal(f.calls.filter(call => call === 'settle-reclaim').length, 1);
 });

@@ -9,7 +9,7 @@ function fixture() {
   let busy = Promise.resolve();
   let resultReady = true;
   let holdingReady = true;
-  let syncFailures = 0;
+  const syncFailures = [];
   let reclaimed = false;
   const marker = Object.freeze({
     results: Object.freeze(['result']),
@@ -24,7 +24,7 @@ function fixture() {
     },
     async syncObjects() {
       calls.push('sync');
-      if (syncFailures-- > 0) throw failure('SYNC_FAILED');
+      if (syncFailures.length !== 0) throw syncFailures.shift();
     },
     releaseUnconfirmed(objects) {
       calls.push(`account:${[...objects.values()].join(',')}`);
@@ -50,7 +50,8 @@ function fixture() {
     calls,
     setResultReady(value) { resultReady = value; },
     setHoldingReady(value) { holdingReady = value; },
-    failSync() { syncFailures++; },
+    failSync(error = failure('SYNC_FAILED')) { syncFailures.push(error); },
+    failSyncWith(error) { syncFailures.push(error); },
   };
 }
 
@@ -92,3 +93,29 @@ test('concurrent retries do not compact or release capacity twice',
     assert.equal((await owner.retry()).pending, false);
     assert.equal(calls.filter(call => call === 'compact').length, 1);
   });
+
+test('metadata cleanup keeps first/latest original diagnostics through repeated failure without releasing custody', async () => {
+  const f = fixture(), first = Object.freeze(new Error('original first sync failure'));
+  const failures = [first, undefined, first, 'primitive sync failure', Object.freeze(new Error('original last sync failure'))];
+  const snapshots = [];
+  for (let index = 0; index < failures.length; index++) {
+    f.failSyncWith(failures[index]);
+    await f.owner.retry().then(() => assert.fail('Expected original sync refusal'),
+      error => assert.equal(error, failures[index]));
+    const status = f.owner.status(); snapshots.push(status);
+    assert.equal(status.pending, true);
+    assert.deepEqual(status.errors, index === 0 ? [first] : [first, failures[index]]);
+    assert.ok(Object.isFrozen(status) && Object.isFrozen(status.errors));
+    assert.equal(f.calls.some(call => call.startsWith('account:')), false);
+    assert.equal(f.calls.includes('settle'), false);
+    for (let old = 0; old < snapshots.length; old++) {
+      assert.deepEqual(snapshots[old].errors, old === 0 ? [first] : [first, failures[old]]);
+    }
+  }
+  const finished = await f.owner.retry();
+  assert.equal(finished.pending, false);
+  assert.deepEqual(finished.errors, [first, failures.at(-1)]);
+  assert.equal(f.calls.filter(call => call === 'account:17').length, 1);
+  assert.equal(f.calls.filter(call => call === 'contract').length, 1);
+  assert.equal(f.calls.filter(call => call === 'settle').length, 1);
+});
