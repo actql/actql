@@ -2698,9 +2698,6 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
-      if (compilationOriginal !== undefined && kind !== 'values' && kind !== 'tasks' && kind !== 'infer') {
-        throw new TypeError('Compilation supplied without its selected barrier');
-      }
       const serializationGraph = kind === 'serialization'
         ? serializationPlanTokens.get(inferGraph) : undefined;
       if (kind === 'serialization' && serializationGraph === undefined) {
@@ -2728,7 +2725,7 @@ function publicationControl(moon) {
           ? moon.clientProgramIssueOriginalValuesCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt)
-          : kind === 'infer'
+          : kind === 'infer' || kind === 'serialization'
             ? moon.clientProgramIssueTaskCompiledRun(checkedProgram,
               compilation, policy.executionContextCid, policy.hostPolicyCid,
               policy.expiresAt)
@@ -2742,6 +2739,10 @@ function publicationControl(moon) {
           : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
             compilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt), 'RunHostAdmissionRejected');
+      if (kind === 'serialization' && compilationOriginal !== undefined &&
+          moon.clientProgramCompiledRunSerializationGraph(value) !== serializationGraph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
       if (kind === 'infer') {
         const original = policy.resultDataPolicy;
         if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
@@ -3375,6 +3376,28 @@ function publicationControl(moon) {
       checked(moon.clientProgramBindInferModelEntryPersistence(execution,
         preparedCallSet, admitted, beginEntry));
       return admitted;
+    },
+    prepareCheckedClientRequestSerializationCompilation(parent, input, graph, contracts) {
+      const original = serializationPlanTokens.get(graph);
+      if (original === undefined) throw new TypeError('Foreign Content compilation graph');
+      const compile = moon.clientProgramPrepareRequestSerializationCompilation;
+      if (typeof compile !== 'function') throw new TypeError('Request Content compiler unavailable');
+      // The actual typed constructor checks this SAME parent/input, checked
+      // graph and contracts. No graph token or rebuilt compilation escapes.
+      return compiledRunResult(Reflect.apply(compile, moon, [parent, input, original, contracts]),
+        'RunHostTaskCompilationRejected');
+    },
+    prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled, definition,
+      limits, workspace) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'serialization') {
+        throw new TypeError('Foreign Client compiled Content preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestSerializationPlan;
+      if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]));
     },
     prepareCheckedClientMockModelSourceFreePlan(original, request, compiled, definition,
       occurrence, graph, selected) {

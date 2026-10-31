@@ -103,7 +103,7 @@ test('barrier profiles retain their original graph requirements without an artif
  const get=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens:new WeakMap(),serializationPlanTokens:new WeakMap(),compiledRunResult:x=>{issues++;return x;},inspectEvidence:x=>x,inspect:x=>x,inspectAdmission:x=>x});
  for(const kind of ['infer','serialization']) {
   assert.throws(()=>get({},kind,{},undefined,{}),/requires its checked graph/);
-  if(kind==='serialization') assert.throws(()=>get({},kind,{},{},{}),/without its selected barrier/);
+  if(kind==='serialization') assert.throws(()=>get({},kind,{},{},{}),/Foreign Content compilation graph/);
  }
  assert.equal(compiles,0);assert.equal(issues,0);
 });
@@ -112,7 +112,8 @@ test('Request Serialization consumes its original TaskCompilation and rejects co
  const prepared={},graph={},rawGraph={},compilation={},issued={},tokens=new WeakMap();let issues=0;
  const moon={clientProgramCompileLocalSerialization(){assert.fail('Do not recompile original Request Serialization');},
   clientProgramIssueOriginalTaskCompiledRun(){assert.fail('Serialization artifact is not a compilation sum');},
-  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignSerializationCompilation');return issued;}};
+  clientProgramIssueTaskCompiledRun(p,c){issues++;if(p!==prepared||c!==compilation)throw failure('ForeignSerializationCompilation');return issued;},
+  clientProgramCompiledRunSerializationGraph:()=>rawGraph};
  for(const name of ['Template','Plan','Prepared','Authorization','Admission'])moon['clientProgramCompiledRun'+name]=()=>({});
  const invoke=method('../host-common/runtime-core.mjs','prepareCheckedClientCompiledRun',{moon,compiledRunTokens:tokens,
   serializationPlanTokens:new WeakMap([[graph,rawGraph]]),compiledRunResult:value=>value,
