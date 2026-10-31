@@ -4,10 +4,23 @@
 fn whole_source_result_publication_fixture(
   retained_output : Bool,
   selected_result? : Bool = false,
+  filtered_root? : Bool = false,
+  filtered_rows? : Bool = false,
 ) -> Unit raise {
   let declaration = pure_provider_declaration()
-  let document =
-    #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
+  let document = if filtered_rows {
+    (
+      #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 1","as":"eligible"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
+    )
+  } else if filtered_root {
+    (
+      #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"true","as":"eligible"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
+    )
+  } else {
+    (
+      #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
+    )
+  }
   let (parent, child, _, input) = registration_parent_fixture(
     text=document,
     environment=Some(pure_provider_environment(declaration)),
@@ -332,7 +345,14 @@ fn whole_source_result_publication_fixture(
       fail("whole result execution: " + label)
     }
   }
-  assert_eq(execution.rows().unwrap(), ["{\"id\":2}", "{\"id\":1}"])
+  assert_eq(
+    execution.rows().unwrap(),
+    if filtered_rows {
+      ["{\"id\":2}"]
+    } else {
+      ["{\"id\":2}", "{\"id\":1}"]
+    },
+  )
   assert_true(@strategy.captured_task_completed(dag, 0))
   let export_limits = installed_managed_publication_limits(
     owner, prepared, 10000000,
@@ -419,7 +439,14 @@ fn whole_source_result_publication_fixture(
   wire.write_string(stream.finish().unwrap())
   // No authored/inherited order exists: the checked Result uses its
   // canonical field ordering, independently of physical input arrival.
-  assert_eq(wire.to_string(), "[{\"id\":1},{\"id\":2}]")
+  assert_eq(
+    wire.to_string(),
+    if filtered_rows {
+      "[{\"id\":2}]"
+    } else {
+      "[{\"id\":1},{\"id\":2}]"
+    },
+  )
   assert_true(physical_equal(publication.run.unwrap(), dag))
   stream
   .issue_result_evidence(
@@ -502,4 +529,22 @@ test "whole Source ordinary publication completes with non-retained output on th
 ///|
 test "whole Source compiled Result selection follows its original physical graph view" {
   whole_source_result_publication_fixture(false, selected_result=true)
+}
+
+///|
+test "filtered root Source selects complete input before Plan and publishes its same original Result" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    filtered_root=true,
+  )
+}
+
+///|
+test "root Source preserves its actual filter and Result while acquiring the complete original input" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    filtered_rows=true,
+  )
 }

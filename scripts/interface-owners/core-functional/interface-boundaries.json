@@ -51227,7 +51227,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "729f2d32c5224eac0ea95e11badfd79a85fae0a0f0b926e63b691983e5d9cf46",
+      "sha256": "3fc0429e03fd88ad499e50d7e59135ba48beea98ee30b136fc4c0965f4211c65",
       "exports": [],
       "operations": [
         {
@@ -51287,6 +51287,10 @@
           "declaration": "select_installed_source_input ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ sourceviews . SourceAcquisitionRoute , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "select_installed_source_input_graph",
+          "declaration": "select_installed_source_input_graph ( graph : @ strategy . CheckedDAG , stage : Int , source_index : Int , ) - > Result [ @ sourceviews . SourceAcquisitionRoute , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "start_installed_whole_source_read_rows",
           "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
         }
@@ -51310,7 +51314,8 @@
             "prepare_installed_managed_whole_source_plan_owned",
             "prepare_installed_whole_source_capacity",
             "select_installed_effect_source_input",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "select_installed_source_input_graph"
           ],
           "exports": [],
           "attributes": {
@@ -51360,6 +51365,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity functions and units"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity calculation and Request reservation."
               }
             ],
             "extension": [
@@ -51386,6 +51395,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Prepared/Request selector reads that Result placement before Query lowering"
               }
             ],
             "inputsOutputs": [
@@ -51398,6 +51411,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact supplied-read"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_source_plan.mbt",
+                "anchor": "@strategy.graph_requires_acquisition_result_publication(graph)"
               }
             ],
             "ownership": [
@@ -51440,6 +51457,18 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_source_result_js_wbtest.mbt",
+                "anchor": "filtered root Source selects complete input before Plan and publishes its same original Result"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_source_result_js_wbtest.mbt",
+                "anchor": "root Source preserves its actual filter and Result while acquiring the complete original input"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
+                "anchor": "Its root belongs to the later Compute stage"
               }
             ]
           }

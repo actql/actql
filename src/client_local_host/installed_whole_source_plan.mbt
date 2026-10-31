@@ -26,11 +26,29 @@ pub fn select_installed_source_input(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
-  select_installed_source_input_graph(
-    @publication_host.prepared_client_graph(prepared),
-    stage,
-    source_index,
-  )
+  let graph = @publication_host.prepared_client_graph(prepared)
+  if stage == 0 &&
+    source_index == 0 &&
+    @strategy.graph_captured_prefix(graph) == 1 &&
+    installed_managed_run_purpose_supported(prepared) &&
+    @strategy.graph_requires_acquisition_result_publication(graph) {
+    // A checked root in the captured prefix needs its original computation
+    // and publication identity. Select complete input before Query lowering;
+    // this is not fallback from a failed Query or a caller purpose flag.
+    guard @context.program_identity_stage_requests(
+        @checked.source_identity(@strategy.graph_program(graph)),
+        stage,
+      )
+      is Some(requests) else {
+      return Err(SourceAcquisition(@publication_host.MissingRequests))
+    }
+    return @sourceviews.derive_source_acquisition(
+        requests, source_index, 1000000,
+      )
+      .map(original => @sourceviews.WholeInputRoute(original))
+      .map_err(issue => SourceRoute(@sourceviews.SourceInput(issue)))
+  }
+  select_installed_source_input_graph(graph, stage, source_index)
 }
 
 ///|
@@ -88,11 +106,10 @@ pub fn prepare_installed_whole_source_capacity(
     ) {
     return Err(ForeignOriginal)
   }
-  guard @sourceviews.source_acquisition_route(original, 1000000)
-    is Ok(@sourceviews.WholeInputRoute(selected)) &&
-    physical_equal(selected, original) else {
-    return Err(Unsupported)
-  }
+  // The same nominal Source original already attests a bounded snapshot and
+  // bound request. Its correspondence above selects THIS complete sequence;
+  // inspecting the narrower Query grammar again would discard root placement
+  // and reject the complete-input choice made from the checked Result graph.
   let sequence = match
     @publication_host.prepare_prepared_client_full_sequence(
       prepared,

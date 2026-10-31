@@ -91,6 +91,12 @@ test "original base Row read reuses the retained Request Plan without a provider
     calls.val += 1
     true
   })
+  // Its root belongs to the later Compute stage, so this same checked Query
+  // prefix keeps the existing narrow acquisition choice.
+  assert_true(
+    select_installed_source_input(plan.prepared, plan.request, 0, 0).unwrap()
+    is @sourceviews.QueryRoute(_),
+  )
   let original = plan.captures[0]
   assert_true(original.provider is None)
   let acquisition = original.acquisition.unwrap()

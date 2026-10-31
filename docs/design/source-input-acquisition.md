@@ -128,6 +128,24 @@ capacity and retained Source-read association; a Query-capacity array cannot
 stand in for that different typed input. The existing current callback and
 post-callback original fences precede returning that same Ledger.
 
+For the existing single direct input in the first stage, an ordinary Pure
+Program's checked root Result can still refer to the acquisition prefix even
+when its Filter/Select also fits the narrow Query grammar. The original
+Prepared/Request selector reads that Result placement before Query lowering
+and selects complete input. The same full-sequence Plan then executes the
+authored predicate and publishes its actual Task output. A Query prefix whose
+root belongs to a later Compute stage keeps its narrow route. Model, Content
+and Effect purposes retain their separate constructors.
+
+This is a checked graph choice, never fallback after a Query error or a
+caller-supplied purpose flag. The complete-input capacity constructor checks
+the same nominal Source original against its Prepared Program, then consumes
+its complete sequence and declaration. Reinspecting the narrow Query grammar
+there would lose the already selected Result purpose. The original Source
+derivation still refuses unbound requests, unsupported read modes and exhausted
+work; the actual input/provider/Compute/output overlap remains in the same
+existing capacity calculation and Request reservation.
+
 Whole-input publication binds the same adopted Run, Plan, native RowRun capture
 and Source acquisition. A receiver-bound private capture view exposes that same
 native capture while live; copying its methods or retiring the input cannot
