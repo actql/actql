@@ -119,3 +119,13 @@ test('failed Content construction keeps its aliases until the same Request abort
     assert.equal(returns,1);cleanupRequestInput(state,retire);assert.equal(returns,1);assert.equal(state.parent,undefined);assert(aborts>=3);
   }
 });
+
+test('Content refusal before Request retention releases only the unaccepted slot and holder copies cannot retire originals',()=>{
+  const failure=new Error('same Request refused before take'),f=fixture({retainFailure:failure});
+  for(let i=0;i<4097;i++)assert.throws(()=>f.open(),e=>e===failure);
+  assert.equal(f.retained.length,0);assert.equal(f.record.computeLiveRuns.size,0);
+  const g=fixture(),current=g.open(),original=g.retained[0];
+  assert.throws(()=>Reflect.apply(original.releaseAliases,original,[undefined,{...original.inputHolder}]),{message:'InstalledContentRunCleanupPending'});
+  assert.throws(()=>Reflect.apply(original.releaseAliases,original,[undefined,original.inputHolder]),{message:'InstalledContentRunCleanupPending'});
+  assert.equal(original.retired,false);current.retire();assert.equal(original.retired,true);
+});

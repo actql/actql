@@ -40449,7 +40449,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "90b5d9b1b63523e8269915510ce489bf8d0368a0352f269fc5fdc0bd810d4605",
+      "sha256": "3fce6597e71ae5870ae9a9ad66e673b219d139c20f9e50961869ea6eba3645cb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -40860,7 +40860,8 @@
             "request",
             "graph",
             "recipe",
-            "constructPlan"
+            "constructPlan",
+            "contentPreparation"
           ],
           "async": false
         },
@@ -41093,7 +41094,8 @@
             "request",
             "graph",
             "recipe",
-            "constructPlan"
+            "constructPlan",
+            "contentPreparation"
           ],
           "async": false
         },
@@ -41165,7 +41167,8 @@
             "request",
             "plan",
             "limits",
-            "workspace"
+            "workspace",
+            "contentPreparation"
           ],
           "async": false
         },
@@ -41253,6 +41256,15 @@
         {
           "name": "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "contentPreparation"
+          ],
           "async": false
         },
         {
@@ -42641,10 +42653,7 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
           "parameters": [
             "prepared",
-            "request",
-            "plan",
-            "limits",
-            "workspace"
+            "original"
           ],
           "async": false
         },
@@ -42653,13 +42662,26 @@
           "parameters": [
             "prepared",
             "request",
-            "graph",
-            "recipe"
+            "plan",
+            "limits",
+            "workspace",
+            "original"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph",
+            "recipe",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
           "parameters": [
             "prepared",
             "request",
@@ -44146,6 +44168,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -44168,6 +44194,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -44210,6 +44240,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -44240,6 +44274,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -44262,6 +44300,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -44280,6 +44322,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -44298,6 +44344,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -44328,6 +44378,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -44346,6 +44400,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -44376,6 +44434,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host Model failed construction"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -45496,54 +45558,90 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Identity is retained with the same Host, installation and Run."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Synchronization captures each private operation and its receiver before later"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Extension remains private to the installed Host and the existing typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -45558,6 +45656,10 @@
               {
                 "path": "adapters/host-node/mock-effect-host-original.test.mjs",
                 "anchor": "test('equal definition DATA cannot replace the typed same-Journal readmission'"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -45738,6 +45840,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -45748,6 +45854,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -45758,6 +45868,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -45768,6 +45882,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -45782,6 +45900,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -45792,6 +45914,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -45802,6 +45928,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -45812,6 +45942,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -45826,6 +45960,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -45836,6 +45974,10 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -46077,6 +46219,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -46091,6 +46237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -46105,6 +46255,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -46119,6 +46273,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -46133,6 +46291,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -46147,6 +46309,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -46161,6 +46327,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -46175,6 +46345,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -46189,6 +46363,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -46207,6 +46385,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -46241,6 +46423,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -46263,6 +46449,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -46285,6 +46475,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -46307,6 +46501,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -46329,6 +46527,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -46351,6 +46553,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -46373,6 +46579,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -46395,6 +46605,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -46417,6 +46631,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -46439,6 +46657,10 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -47501,6 +47723,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -47515,6 +47741,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -47529,6 +47759,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -47543,6 +47777,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -47557,6 +47795,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -47571,6 +47813,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -47585,6 +47831,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -47599,6 +47849,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -47613,6 +47867,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function prepareManagedComputeCapturePlan(originals, run, invocationOriginal)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -47627,6 +47885,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "timed whole Source caller uses the exact transient Core Option at the matching typed port"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -48785,6 +49047,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -48847,6 +49113,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -48929,6 +49199,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -49007,6 +49281,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -49081,6 +49359,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -49147,6 +49429,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -49213,6 +49499,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -49295,6 +49585,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -49365,6 +49659,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -49499,6 +49797,10 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -50224,6 +50526,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -50234,6 +50540,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -50244,6 +50554,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -50254,6 +50568,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -50264,6 +50582,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -50274,6 +50596,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -50284,6 +50610,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -50294,6 +50624,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -50304,6 +50638,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -50314,6 +50652,10 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -50436,6 +50778,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -50446,12 +50792,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "async function releaseLocalSigningRecovery(recovered) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -50462,18 +50816,30 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "localSigningRecoveries.add(recovered);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -50484,6 +50850,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "for (const recovered of localSigningRecoveries) await releaseLocalSigningRecovery(recovered);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -50494,12 +50864,20 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "await suspendCompletedEffectfulComputation({store, control, ...recovered.computation});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -50514,6 +50892,10 @@
               {
                 "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
                 "anchor": "test('failed recovery release stays with the same Host and retries without reacquisition or current authority'"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -52283,6 +52665,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -52297,6 +52683,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -52311,6 +52701,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -52325,6 +52719,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -52339,6 +52737,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -52353,6 +52755,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -52367,6 +52773,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -52381,6 +52791,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -52395,6 +52809,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
@@ -52405,6 +52823,10 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
@@ -52535,6 +52957,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "inputsOutputs": [
@@ -52545,6 +52971,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "identity": [
@@ -52555,6 +52985,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "ownership": [
@@ -52565,6 +52999,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "synchronization": [
@@ -52575,6 +53013,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "failure": [
@@ -52585,6 +53027,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "cancellation": [
@@ -52595,6 +53041,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "resources": [
@@ -52605,6 +53055,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "extension": [
@@ -52615,12 +53069,125 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:retainManagedContentPreparation/init:retainManagedContentPreparation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    retainManagedContentPreparation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               }
             ]
           }
