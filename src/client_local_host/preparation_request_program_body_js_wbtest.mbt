@@ -1310,3 +1310,184 @@ test "one Pure constructor input holder survives source-free module completion a
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+fn request_timed_invocation_backing_fixture(
+  current? : () -> Bool = () => true,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @publication_host.ClientRunCompilation,
+) raise {
+  let (parent, input, _) = request_program_body_fixture(current~)
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let artifact = prepare_request_program_compilation(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  (parent, input, holder, artifact)
+}
+
+///|
+test "timed invocation backing retains its original compiler and absolute holding until original cleanup" {
+  let (parent, input, holder, artifact) = request_timed_invocation_backing_fixture()
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let spent = parent.program_artifact_work_spent
+  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+  let target = parent.program_invocation_quote.unwrap()
+  assert_true(target.0 > before.0 && target.1 > before.1)
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input),
+    Ok(target),
+  )
+  assert_true(
+    parent.program_compilation is Some(original) &&
+    physical_equal(original, artifact),
+  )
+  let usage = @resources.ledger_usage(parent.ledger)
+  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+  assert_eq(parent.program_invocation_quote, Some(target))
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  assert_eq(parent.program_artifact_work_spent, spent)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(parent.program_invocation_quote is None)
+}
+
+///|
+test "timed invocation backing preserves one-short original targets and retries without another compiler" {
+  for retention in [true, false] {
+    let (parent, input, holder, artifact) = request_timed_invocation_backing_fixture()
+    let capacity = parent.program_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let extent = request_query_time_invocation_extent(
+      parent.program_artifact_geometry.unwrap(),
+    ).unwrap()
+    let target = (before.0 + extent.0, before.1 + extent.1)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let block = @resources.reserve_attempt(
+      parent.ledger,
+      0L,
+      if retention {
+        limits.retained_bytes - target.0 + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - target.1 + 1L
+      },
+    ).unwrap()
+    let result = reserve_request_query_time_invocation(parent, input, artifact)
+    assert_true(
+      if retention {
+        result is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        result is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    assert_eq(parent.program_invocation_quote, Some(target))
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok(before),
+    )
+    assert_true(parent.phase == ProgramPlanReserved)
+    @resources.settle_reservation(parent.ledger, block).unwrap()
+    reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok(target),
+    )
+    assert_true(
+      parent.program_compilation is Some(original) &&
+      physical_equal(original, artifact),
+    )
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "timed invocation backing fences current reentry and foreign input before the original constructor" {
+  let during : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let reentry = Ref(false)
+  let allow = Ref(true)
+  let (parent, input, holder, artifact) = request_timed_invocation_backing_fixture(current=() => {
+      if during.val is Some(parent) {
+        reentry.val = abort_request_preparation_after_cleanup(parent)
+          is Err(WrongPhase)
+      }
+      allow.val
+    },
+  )
+  let before = request_preparation_accounting(parent)
+  assert_true(
+    reserve_request_query_time_invocation(parent, [1], artifact)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_preparation_accounting(parent), before)
+  during.val = Some(parent)
+  allow.val = false
+  assert_true(
+    reserve_request_query_time_invocation(parent, input, artifact) is Err(_),
+  )
+  assert_true(reentry.val)
+  assert_true(parent.phase == ProgramPlanReserved)
+  assert_true(parent.program_invocation_quote is Some(_))
+  allow.val = true
+  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+  during.val = None
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "timed invocation backing survives original Module adoption and pending payload retirement" {
+  let (parent, input, holder, artifact) = request_timed_invocation_backing_fixture()
+  let prepared = @resources.preparation_body_borrow_value(holder).unwrap()
+  reserve_request_query_time_invocation(parent, input, artifact).unwrap()
+  let target = parent.program_invocation_quote.unwrap()
+  let (manifests, compilation_limits, contracts, retained_output, factory) = parent.program_artifact_inputs.unwrap()
+  prepare_request_program_module_body(
+    parent,
+    input,
+    contracts,
+    manifests~,
+    compilation_limits~,
+    retained_output~,
+    provider_factory=factory,
+  ).unwrap()
+  assert_true(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes >= target.0,
+  )
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "same-timed-invocation-holding",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes >= target.0,
+  )
+  assert_true(parent.program_invocation_quote is None)
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes >= target.0,
+  )
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

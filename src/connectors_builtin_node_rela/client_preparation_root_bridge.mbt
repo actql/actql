@@ -788,6 +788,20 @@ pub fn client_program_prepare_request_program_compilation(
 }
 
 ///|
+#export_name("clientProgramReserveRequestQueryTimeInvocation")
+pub fn client_program_reserve_request_query_time_invocation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  compilation : @publication_host.ClientRunCompilation,
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.reserve_request_query_time_invocation(
+    parent, input, compilation,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestProgramModuleBody")
 pub fn client_program_prepare_request_program_module_body(
   parent : @client_local_host.ClientRequestPreparation[

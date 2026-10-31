@@ -27,8 +27,20 @@ function bindQueryInvocation(control, original, prepared, compiled, definition) 
 // Called only by the existing timed Request adoption constructor. Its parent
 // already retains the compiler artifact; the returned Option is a Core original.
 export function prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
-  compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedDefinitionWire}) {
-  if (!['values', 'tasks'].includes(kind) || compilationOriginal === undefined || requestIdentity === undefined) {
+  compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedDefinitionWire, retainedInvocation}) {
+  if (!['values', 'tasks'].includes(kind) || compilationOriginal === undefined || requestIdentity === undefined ||
+      retainedInvocation === null || typeof retainedInvocation !== 'object' || Object.isFrozen(retainedInvocation)) {
+    throw new TypeError('OriginalClientQueryInvocationRequired');
+  }
+  const fields = Object.getOwnPropertyDescriptors(retainedInvocation);
+  if (fields.preparedProgram?.value !== preparedProgram || fields.requestIdentity?.value !== requestIdentity ||
+      ['compiled', 'runDefinition', 'createdAt', 'validUntil', 'queryTimePreparation', 'queryTime']
+        .some(name => fields[name]?.writable !== true || !Object.hasOwn(fields[name] ?? {}, 'value') ||
+          fields[name].value !== undefined)) throw new TypeError('OriginalClientQueryInvocationRequired');
+  // Existing native Definition admission permits at most100000 wire bytes.
+  // Fence the earlier JS parse too; this cannot admit a looser native body.
+  if (retainedDefinitionWire !== undefined &&
+      (typeof retainedDefinitionWire !== 'string' || retainedDefinitionWire.length > 100000)) {
     throw new TypeError('OriginalClientQueryInvocationRequired');
   }
   const at = Date.parse(now());
@@ -37,23 +49,26 @@ export function prepareTimedClientInvocation({control, preparedProgram, requestI
   const queryInvocation = retained === undefined
     ? {request: requestIdentity, createdAt: sampleOriginalQueryTime(), preparation: undefined}
     : {request: requestIdentity};
-  if (retained === undefined) queryInvocation.preparation = control.prepareClientQueryTime(
-    preparedProgram, requestIdentity, queryInvocation.createdAt);
-  const createdAt = retained?.created_at ?? queryInvocation.createdAt;
-  const validUntil = retained?.valid_until ?? instant(at + 24 * 60 * 60 * 1000);
+  if (retained === undefined) {
+    retainedInvocation.createdAt = queryInvocation.createdAt;
+    retainedInvocation.queryTimePreparation = queryInvocation.preparation = control.prepareClientQueryTime(
+      preparedProgram, requestIdentity, queryInvocation.createdAt);
+  }
+  const createdAt = retainedInvocation.createdAt = retained?.created_at ?? queryInvocation.createdAt;
+  const validUntil = retainedInvocation.validUntil = retained?.valid_until ?? instant(at + 24 * 60 * 60 * 1000);
   const contextCid = kind === 'values' ? valuesExecutionContextCid(authorityScopeCid)
     : cid({version: 'actql-installed-local-context/0.1', authority_scope_cid: authorityScopeCid});
-  const compiled = control.prepareCheckedClientCompiledRun(preparedProgram, kind,
+  const compiled = retainedInvocation.compiled = control.prepareCheckedClientCompiledRun(preparedProgram, kind,
     {executionContextCid: contextCid,
       hostPolicyCid: policyCid(kind === 'values' ? 'source-free-values' : 'checked-tasks'),
       expiresAt: validUntil}, undefined, compilationOriginal);
-  const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+  const runDefinition = retainedInvocation.runDefinition = control.defineCheckedClientCompiledRun(compiled,
     {namespaceId, runId: randomUUID(), createdAt, validUntil, retainedDefinitionWire});
   const queryTime = bindQueryInvocation(control, queryInvocation, preparedProgram, compiled, runDefinition);
-  const invocationOriginal = control.clientQueryTimeInvocationOriginal(
-    queryTime.queryTimePreparation, preparedProgram);
-  const retainedInvocation = Object.freeze({preparedProgram, requestIdentity, compiled,
-    runDefinition, createdAt, validUntil, ...queryTime});
+  retainedInvocation.queryTimePreparation = queryTime.queryTimePreparation;
+  retainedInvocation.queryTime = queryTime.queryTime;
+  const invocationOriginal = control.clientQueryTimeInvocationOriginal(queryTime.queryTimePreparation, preparedProgram);
+  Object.freeze(retainedInvocation);
   return Object.freeze({original: invocationOriginal, retained: retainedInvocation});
 }
 

@@ -1488,7 +1488,7 @@ test('Request Model refuses foreign input Run Plan and accessor carrier before S
 
 // Actual manager/Request/Resource parent with explicit Core phase ports.
 // The Option is deliberately opaque: JavaScript must only forward it.
-async function originalTimedRequest({captured=false, compilationFailure, invocationFailure, moduleFailure}={}) {
+async function originalTimedRequest({captured=false, compilationFailure, invocationFailure, moduleFailure, invocationBackingFailure}={}) {
   const f=await originalCapturedRequest(), artifact={}, option=new Proxy({}, {get(){assert.fail('opaque original Option inspected by JS');}});
   f.moon.clientProgramAcquisitionCount=actual=>{assert.equal(actual,f.prepared);return captured?1:0;};
   f.moon.clientProgramRequiresQueryTime=function(actual,nodes,work){assert.equal(this,f.moon);assert.equal(actual,f.prepared);assert.equal(nodes,100000);assert.equal(work,100000);f.events.push('requires-time');return ok(true);};
@@ -1496,6 +1496,10 @@ async function originalTimedRequest({captured=false, compilationFailure, invocat
     assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(input,f.receipt);
     assert.equal(contracts,f.originals.installation.sequenceContractOriginal.admission);assert.equal(retained,false);
     f.events.push('artifact');if(compilationFailure)throw compilationFailure;return ok(artifact);
+  };
+  f.moon.clientProgramReserveRequestQueryTimeInvocation=function(parent,input,original){
+    assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(input,f.receipt);assert.equal(original,artifact);
+    f.events.push('invocation-backing');if(invocationBackingFailure)throw invocationBackingFailure;return ok(undefined);
   };
   const module=function(...args){
     assert.equal(this,f.moon);assert.equal(args[0],f.parent);assert.equal(args[1],f.receipt);
@@ -1523,7 +1527,7 @@ test('timed Request original defers module through one borrower and forwards opa
         return f.construct(actual);
       });
       assert.equal(run.value,f.value);assert.equal(run.original,f.original);
-      assert.deepEqual(f.events,['check','borrow','requires-time','artifact','bind-original',...(captured?['capture-plan']:[]),'timed-module','adopt']);
+      assert.deepEqual(f.events,['check','borrow','requires-time','artifact','invocation-backing','bind-original',...(captured?['capture-plan']:[]),'timed-module','adopt']);
     }finally{if(run)await f.retireAdopted();else await f.failedCleanup();}
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   }
@@ -1571,6 +1575,18 @@ test('timed whole Source manager hands the same opaque invocation to Plan before
       assert.equal(invocation,f.option);f.events.push('exact-timed-plan');return f.plan;
     },f.construct);
     assert.equal(run.value,f.value);
-    assert.deepEqual(f.events,['check','borrow','requires-time','artifact','bind-original','exact-timed-plan','timed-module','adopt']);
+    assert.deepEqual(f.events,['check','borrow','requires-time','artifact','invocation-backing','bind-original','exact-timed-plan','timed-module','adopt']);
   }finally{if(run)await f.retireAdopted();else await f.failedCleanup();}
+});
+
+
+test('timed Request backs invocation before constructor and retains original refusal without replay',async()=>{
+  for(const captured of [false,true]){
+    const marker=Object.freeze(Error('same original invocation backing refusal'));
+    const f=await originalTimedRequest({captured,invocationBackingFailure:marker});
+    await f.view.fundedPreparation(f.request,undefined);
+    for(let n=0;n<2;n++)assert.throws(()=>f.adopt(f.construct),error=>error===marker);
+    assert.deepEqual(f.events,['check','borrow','requires-time','artifact','invocation-backing']);
+    await f.failedCleanup();assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
 });

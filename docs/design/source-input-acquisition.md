@@ -215,3 +215,28 @@ Constructor and held-output overlap must already be backed on the original
 parent before allocation, including failed children; the invocation and Plan
 limits do not establish that backing. The untimed constructor retains its
 existing signature and input semantics.
+
+## Before-call backing for the original timed invocation
+
+The Request retains its first raw compilation before the timed Host callback.
+The same parent and input reserve one aggregate invocation extent before that
+callback may issue a CompiledRun, Definition or QueryTime. The fixed trusted
+control group is prepaid at the original entrance; variable backing follows
+the retained artifact geometry and the existing bounded metadata codecs, with
+maximum sequential scratch rather than a per-task or per-closure census.
+A cached absolute target survives a declined grow without repeating the compiler
+or callback. Current reentry is fenced before the original capacity callback.
+
+The existing Host Run bag retains one partial invocation view before entry.
+Each returned original is stored before the next issuer can fail. Success freezes
+that same lean view; the opaque Core Option is forwarded unchanged to Plan and
+Module and is not cached as another retained root. Failure keeps the original
+parent, output aliases and occupied extent through existing cleanup. Payload
+sever clears the Host view before the consuming parent borrower return; a
+settlement throw retries that same parent without restoring heavy aliases.
+Original handler and dispatch returns settle the same reservation; returning or throwing does not acknowledge physical stop.
+The pre-admission retained Definition parse is bounded before parsing, while
+the original native codec limits and original-identity checks remain required.
+
+This invocation extent is not a replacement for Source declaration, physical
+reader or output backing, and does not enable Model, Content or Effect purposes.

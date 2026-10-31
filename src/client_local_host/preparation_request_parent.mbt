@@ -75,6 +75,7 @@ struct ClientRequestPreparation[I] {
   mut program_measurement_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
   mut program_artifact_quote : (Int64, Int64)?
+  mut program_invocation_quote : (Int64, Int64)?
   mut program_artifact_work : @resources.PreparationPhaseWork64?
   mut program_artifact_work_charged : Bool
   mut program_artifact_work_spent : Int64
@@ -262,9 +263,14 @@ pub fn client_request_preparation_control_capacity(
     @execution.preparation_representation_cost(
       request_preparation_control_units(),
     )
+    is Some(original) &&
+    @execution.checked_preparation_add_product(original, 4096L, 1L)
     is Some(retained) else {
     return None
   }
+  // One trusted invocation-control group, including its bounded sizing controls,
+  // native Option carriers and lean Host view. This is installed coarse control
+  // overhead, not a per-closure census or variable wire/body admission.
   if retained > limits.retained_bytes {
     return None
   }
@@ -340,6 +346,7 @@ pub fn[I] begin_request_preparation(
     program_measurement_quote: None,
     program_artifact_geometry: None,
     program_artifact_quote: None,
+    program_invocation_quote: None,
     program_artifact_work: None,
     program_artifact_work_charged: false,
     program_artifact_work_spent: 0L,
@@ -654,6 +661,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_plan_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
+  owner.program_invocation_quote = None
   owner.program_artifact_inputs = None
   owner.program_compilation = None
   owner.program_model_compilation_inputs = None

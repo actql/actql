@@ -77652,7 +77652,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "4d805e852f581ef972a54a4724708d0d4e97c8a6dd862757b0ba991c27ce3e29",
+      "sha256": "6f49d76f6ed58c7bedc6fa5ebed20f8e63df05438c4102537fe397c282b7b9f9",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
