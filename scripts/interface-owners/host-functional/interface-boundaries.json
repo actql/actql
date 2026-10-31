@@ -41599,7 +41599,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareRun = ({preparedProgram, plan}) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request}) => {"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
