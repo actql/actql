@@ -3,6 +3,7 @@
 // and shared Compute Plan run on one Request. Empty providers are an explicit
 // component port, not a Host/Account/physical Source acceptance claim.
 fn request_capture_fixture(
+  document? : String = source_query_original_document,
   environment_wire? : String = source_query_original_environment,
   environment_cid? : String = "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
   current? : () -> Bool = () => true,
@@ -19,7 +20,7 @@ fn request_capture_fixture(
   ).unwrap()
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
-    text=source_query_original_document,
+    text=document,
     environment=Some(environment),
   )
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
@@ -42,6 +43,7 @@ fn request_capture_fixture(
 ///|
 fn request_capture_plan_fixture(
   prepared : @publication_host.PreparedClientProgram,
+  original_contracts? : ClientInstalledSequenceContracts? = None,
   factory? : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
     []
   },
@@ -54,12 +56,16 @@ fn request_capture_plan_fixture(
     "sha256:" + "a".repeat(64),
     "original-request-capture-plan",
   ).unwrap()
-  let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
-  ).unwrap()
+  let contracts = match original_contracts {
+    Some(value) => value
+    None =>
+      prepare_installed_sequence_contracts(
+        source_query_original_registry,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+      ).unwrap()
+  }
   let requirement = prepare_local_query_requirement(
     prepared,
     0,

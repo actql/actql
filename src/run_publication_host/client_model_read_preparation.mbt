@@ -185,6 +185,21 @@ pub fn client_model_read_scope_live(
 }
 
 ///|
+/// Same original preparation census only. This pure identity projection is
+/// used before the existing Run adoption; a live Scope on a foreign Ledger
+/// cannot replace it even when its compiled Run and Plan are the same.
+/// It performs no current callback, admission, descriptor issue or Model send.
+pub fn client_model_read_scope_original_inventory(
+  scope : ClientModelReadScope,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Bool {
+  physical_equal(scope.ledger, ledger) &&
+  physical_equal(scope.identity, identity) &&
+  @resources.original_ledger_inventory_live(identity)
+}
+
+///|
 pub fn client_model_read_available(
   value : ClientModelReadPreparation,
   compiled : ClientCompiledRun,

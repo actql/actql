@@ -90,6 +90,22 @@ pub fn record_write_field_contract(
 }
 
 ///|
+/// Same original Form's top-level native write projection by inventory index.
+/// This avoids constructing a detached path catalogue during implementation
+/// quotation. It neither changes writable types nor admits a value/permission.
+pub fn record_write_field_contract_at(
+  catalog : FormFieldCatalog,
+  index : Int,
+) -> @contract.Contract? {
+  guard catalog.fields.get(index) is Some(field) &&
+    field.path.length() == 1 &&
+    write_field_available(catalog, field) else {
+    return None
+  }
+  write_value_contract(field)
+}
+
+///|
 fn write_native_value(
   writer : @encode.Writer,
   field : FormFieldMetadata,

@@ -117,6 +117,60 @@ test('standard declaration captures callbacks and preserves the independent read
   }
 });
 
+test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA',async()=>{
+  let bodyCalls=0,projectCalls=0,reads=0;
+  const nativeObservation=Object.freeze({useCid:providerCid,statusCode:200,body:Buffer.from('{"revision":"7"}'),headers:[]});
+  const check={resource:'forms',operation:'fixture:form',beforeSend:true,
+    http:{origin,method:'POST',path:'/form',headers:[['x-http-method-override','GET']],maxRequestBytes:200,maxResponseBytes:400},
+    body(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request']);assert(Object.isFrozen(context));
+      assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);bodyCalls++;return '{"app":"12"}';},
+    project(context){assert.equal(this,check);assert.deepEqual(Object.keys(context),['resource','value','request','observation','headers']);
+      assert.equal(context.resource,'forms');assert.equal(context.request,prepared.request);assert.equal(context.observation.body,nativeObservation.body);
+      assert.equal(context.observation.statusCode,200);assert.equal(context.headers,nativeObservation.headers);assert(Object.isFrozen(context));projectCalls++;}};
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture');
+  const prepared=driver.prepareRequest({member,value:{name:'intended'}}),raw=authorization('fixture:form');
+  check.body=()=>assert.fail('original body method changed');check.project=()=>assert.fail('original projection changed');check.http.path='/foreign';
+  await driver.checkRequest({member,request:prepared.request,authorization:raw,credential:{},
+    callResource(options){reads++;assert.equal(options.grant,raw.grant);assert.equal(options.useId,raw.useId);
+      assert.deepEqual([...options.operations],[['fixture:form',{method:'POST',path:'/form',body:'{"app":"12"}',headers:[['x-http-method-override','GET']]}]]);
+      return nativeObservation;}});
+  assert.deepEqual([bodyCalls,projectCalls,reads],[1,1,1]);
+  assert.deepEqual(driver.check,{resource:'forms',operation:'fixture:form',beforeSend:true});
+});
+
+test('declared read refuses foreign input origin or mixed callback mode before HTTP',async()=>{
+  const check={resource:'forms',operation:'fixture:form',http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+    body:()=> '{}',project(){}};
+  assert.throws(()=>deriveInstalledRowWrite(declaration({check:{...check,request(){}}}),'fixture'),{code:'InvalidInstalledRowWrite'});
+  assert.throws(()=>deriveInstalledRowWrite(declaration({check:{...check,http:{...check.http,origin:'https://foreign.test'}}}),'fixture'),{code:'InvalidInstalledRowWrite'});
+  let calls=0;
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture'),{request}=driver.prepareRequest({member,value:{}});
+  for(const [change,code] of [[{request:{...request}},'InvalidInstalledRowWrite'],
+    [{authorization:authorization('foreign-operation')},'InvalidOwnedInvocationContext'],
+    [{authorization:{...authorization('fixture:form'),scope:{operation:'fixture:form',resourceOrigin:'https://foreign.test'}}},'InvalidInstalledRowWrite']]){
+    await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+      callResource(){calls++;return response;},...change}),{code});
+  }
+  assert.equal(calls,0);
+});
+
+test('invalid asynchronous declared read projection stays joined through original fulfillment and rejection',async()=>{
+  for(const rejected of [false,true]){
+    let resolve,reject,entered;
+    const original=new Promise((yes,no)=>{resolve=yes;reject=no;}),observed=new Promise(yes=>{entered=yes;});
+    const primary=new Error('original read projection rejection');
+    const driver=deriveInstalledRowWrite(declaration({check:{resource:'forms',operation:'fixture:form',
+      http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},body:()=> '{}',
+      project(){entered();return original;}}}),'fixture');
+    const {request}=driver.prepareRequest({member,value:{}});let completed=false;
+    const preparing=assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},callResource:()=>response}),
+      error=>rejected?error===primary:error.code==='InvalidInstalledRowWrite').then(()=>{completed=true;});
+    await observed;await new Promise(setImmediate);assert.equal(completed,false);
+    if(rejected)reject(primary);else resolve(undefined);
+    await preparing;
+  }
+});
+
 test('standard request callbacks receive only original provider DATA, not the RSE lifetime context', () => {
   const value = {name: 'original'}, internal = Object.freeze({});
   const write = declaration({request(context) {
@@ -443,4 +497,40 @@ test('standard saved request bounds real JSON material and refuses opaque or eff
     metadata: 'x'.repeat(localContractLimits.maxWireBytes)})}), 'fixture');
   const value = {name: 'original'}, prepared = driver.prepareRequest({member, value});
   assert.throws(() => driver.recoveryEntry({member, entries: [{...prepared, value}]}), {code: 'InvalidInstalledRowWrite'});
+});
+
+test('standard declared check retains the same independent mapped row on fresh and saved request restoration',async()=>{
+  let expected,bodyCalls=0,projectCalls=0;
+  const write=declaration({check:{resource:'forms',operation:'fixture:form',
+    http:{origin,method:'POST',path:'/form',maxRequestBytes:200,maxResponseBytes:400},
+    body(context){assert.equal(context.value,expected);assert(Object.isFrozen(context.value));bodyCalls++;return '{}';},
+    project(context){assert.equal(context.value,expected);assert(Object.isFrozen(context.value));projectCalls++;}}});
+  const driver=deriveInstalledRowWrite(write,'fixture'),value={name:'same approved value'};
+  const prepared=driver.prepareRequest({member,value});
+  expected=driver.requestFacts(prepared.request).value;
+  const observe=request=>driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},callResource:()=>response});
+  await observe(prepared.request);
+  const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]});
+  const restored=driver.recoverRequests({durable:{connectorRecovery:[{...saved,memberIndex:0}]},members:[member]}).requests[0][0];
+  expected=driver.requestFacts(restored).value;
+  assert.notEqual(expected,value);
+  assert.deepEqual(expected,value);
+  await observe(restored);
+  assert.deepEqual([bodyCalls,projectCalls],[2,2]);
+});
+
+test('standard mapper consumes and saves exact original proposal wire without reconstructing it on cold restore',()=>{
+  const wire='{"state":"present","value":{"name":"same é"}}',value=JSON.parse(wire).value;
+  let maps=0;
+  const driver=deriveInstalledRowWrite(declaration({request(context){
+    assert.equal(context.proposalWire,wire);assert.equal(context.value,value);maps++;
+    return {path:'/records',body:'{"native":"same"}',proposalWire:context.proposalWire};
+  }}),'fixture');
+  const prepared=driver.prepareRequest({member,value,proposalWire:wire});
+  const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]});
+  const restored=driver.recoverRequests({members:[member],durable:{connectorRecovery:[{...saved,memberIndex:0}]}}).requests[0][0];
+  assert.equal(maps,1);
+  assert.equal(restored.proposalWire,wire);
+  assert.equal(driver.requestCid(restored),prepared.requestCid);
+  assert.equal(restored.body,prepared.request.body);
 });

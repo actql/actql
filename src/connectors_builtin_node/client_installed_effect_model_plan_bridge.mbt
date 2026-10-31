@@ -37,6 +37,66 @@ pub fn client_program_installed_effect_model_demand_prepare(
 }
 
 ///|
+/// Retain the actual early selected bounds. This later original binding does
+/// not invoke their numerical selector again or accept a raw Ledger vector.
+#export_name("clientProgramInstalledMockModelSourceFreePlanPrepare")
+pub fn client_program_installed_mock_model_source_free_plan_prepare(
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_mock_model_source_free_plan(
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    selected.model.ledger,
+    selected.mapping.logical.max_live_value_bytes,
+    selected.identity.wire.max_bytes.to_int64(),
+    selected.input.rows.operation_entries,
+    selected.input.rows.retained_entries,
+    selected.input.rows.metadata_entries,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledMockModelCapturePlanBind")
+pub fn client_program_installed_mock_model_capture_plan_bind(
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_mock_model_capture_plan_binding(
+    original,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    selected.model.ledger,
+    selected.mapping.logical.max_live_value_bytes,
+    selected.identity.wire.max_bytes.to_int64(),
+    selected.input.rows.operation_entries,
+    selected.input.rows.retained_entries,
+    selected.input.rows.metadata_entries,
+  )
+}
+
+///|
 /// Retain the original component providers when the original Plan is prepared.
 /// The canonical fixed family constructors and their order remain unchanged;
 /// the component references are the SAME handles, never late replacements.
@@ -98,36 +158,10 @@ pub fn client_program_installed_effect_model_managed_plan_prepare(
 }
 
 ///|
-#export_name("clientProgramNodeEffectModelManagedPlanPrepare")
-pub fn client_program_node_effect_model_managed_plan_prepare(
-  original : @resources.OriginalNodeManagedRunReference,
+#export_name("clientProgramInstalledEffectPlanMatchesModelDemand")
+pub fn client_program_installed_effect_plan_matches_model_demand(
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  @resources.ImportedChildLedgerIssue,
-] {
-  @resources.prepare_node_local_mock_model_run_admission(original, plan)
-}
-
-///|
-#export_name("clientProgramInstalledEffectModelManagedPlanBegin")
-pub fn client_program_installed_effect_model_managed_plan_begin(
-  admission : @resources.NodeManagedRunAdmission[
-    @client_local_host.ClientInstalledEffectManagedPlan,
-  ],
-  prepared : @publication_host.PreparedClientEffectComputation,
-  request : @publication_host.ClientRequestIdentity,
-  plan : @client_local_host.ClientInstalledEffectManagedPlan,
-) -> Result[
-  (
-    @client_local_host.ClientInstalledManagedRun,
-    @publication_host.ClientModelReadScope,
-  ),
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_prepared_installed_effect_mock_model_managed_run(
-    admission, prepared, request, plan,
-  )
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+) -> Bool {
+  @client_local_host.installed_effect_plan_matches_model_demand(plan, model)
 }

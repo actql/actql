@@ -1,11 +1,12 @@
 ///|
-/// Complete variable construction inputs for the existing pure Values/Task
+/// Complete variable construction inputs for the existing effect-free Values/Task/Model
 /// compiler. Every wire extent comes from the original codec. This is sizing
 /// DATA, not an issued Plan, admission, work receipt or capacity reservation.
 pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
   tasks : Bool
   fragments : Array[ClientTaskFragmentConstruction]
+  borrowed_inputs : Array[(Int, Int, Int)]
   results : Array[(Int, Int, Int)]
   projections : Array[ClientResultGraphConstruction]
   nodes : (Int, Int, Int)
@@ -136,12 +137,58 @@ pub fn measure_prepared_client_pure_compilation_construction(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
+  measure_prepared_client_compilation_construction_owned(
+    value,
+    manifests,
+    sequence_limits,
+    max_facts,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    [],
+  )
+}
+
+///|
+/// Measure the actual composed Model compiler from its original component
+/// arrays, checked Results and edges. No component wire is parsed or issued.
+pub fn measure_prepared_client_model_compilation_construction(
+  value : PreparedClientProgram,
+  components : Array[ClientInferPlanGraph],
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
+  measure_prepared_client_compilation_construction_owned(
+    value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
+    max_nodes, max_depth, components,
+  )
+}
+
+///|
+fn measure_prepared_client_compilation_construction_owned(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  components : Array[ClientInferPlanGraph],
+) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
   if !client_pure_compilation_limits_valid(
       max_facts, max_witnesses, max_wire_bytes, max_nodes, max_depth,
     ) {
     return Err(InvalidLimits)
   }
-  let tasks = prepared_client_requires_task_compilation(value)
+  let tasks = !components.is_empty() ||
+    prepared_client_requires_task_compilation(value)
   let graph = value.graph
   let count = @strategy.graph_task_count(graph)
   if count == 0 ||
@@ -151,8 +198,81 @@ pub fn measure_prepared_client_pure_compilation_construction(
     !@strategy.graph_ordered_inputs_complete(graph) {
     return Err(TaskGraph(UnsupportedGraph))
   }
+  let by_task : Map[Int, ClientInferPlanGraph] = Map([])
+  if !components.is_empty() {
+    guard prepared_client_composed_infer_occurrences(value) is Some(occurrences) &&
+      occurrences.length() == components.length() else {
+      return Err(TaskGraph(UnsupportedGraph))
+    }
+    for index in 0..<components.length() {
+      let component = components[index]
+      if !physical_equal(component.owner, value) ||
+        !client_infer_occurrence_matches_plan(occurrences[index], component) ||
+        by_task.contains(component.task) {
+        return Err(TaskGraph(UnsupportedGraph))
+      }
+      by_task[component.task] = component
+    }
+  }
   let fragments : Array[ClientTaskFragmentConstruction] = []
+  let borrowed_inputs : Array[(Int, Int, Int)] = []
+  let outputs : Array[(String, String, String)] = []
+  let inputs : Array[String] = []
+  let graph_nodes : Array[(Int, Int, Int)] = []
+  let graph_edges : Array[(Int, Int, Int)] = []
   for task in 0..<count {
+    if by_task.get(task) is Some(component) {
+      guard client_infer_graph_original_parts(
+          component, value, max_wire_bytes, max_nodes, max_depth,
+        )
+        is Some((nodes, edges, roots)) &&
+        roots.is_empty() &&
+        component.graph.transformations.is_empty() else {
+        return Err(TaskGraph(UnsupportedGraph))
+      }
+      let input = match component.serialization {
+        Some(serialization) => serialization.input
+        None => component.input
+      }
+      let mut input_geometry = None
+      try {
+        for node in nodes {
+          let writer = @encode.measuring_writer(
+            max_wire_bytes, max_nodes, max_depth,
+          )
+          @canonical.emit_value(node, writer)
+          let geometry = @encode.finish_measurement_usage(writer)
+          graph_nodes.push(geometry)
+          if @canonical.object_field(node, "node_id")
+            is Some(@canonical.String(id)) &&
+            id == input.node_id {
+            input_geometry = Some(geometry)
+          }
+        }
+        for edge in edges {
+          let writer = @encode.measuring_writer(
+            max_wire_bytes, max_nodes, max_depth,
+          )
+          @canonical.emit_value(edge, writer)
+          graph_edges.push(@encode.finish_measurement_usage(writer))
+        }
+      } catch {
+        _ => return Err(Encoding)
+      }
+      guard input_geometry is Some(geometry) else {
+        return Err(TaskGraph(UnsupportedGraph))
+      }
+      borrowed_inputs.push(geometry)
+      inputs.push(input.node_id)
+      outputs.push(
+        (
+          component.output.node_id,
+          component.output.output_port,
+          component.output.output_carrier,
+        ),
+      )
+      continue
+    }
     let fragment = if tasks {
       match
         measure_prepared_client_task_fragment_construction(
@@ -174,17 +294,20 @@ pub fn measure_prepared_client_pure_compilation_construction(
       }
     }
     fragments.push(fragment)
+    graph_nodes.push(fragment.fragment)
+    outputs.push(
+      (fragment.node_id, fragment.output_port, fragment.output_carrier),
+    )
+    inputs.push(fragment.node_id)
   }
   let results : Array[(Int, Int, Int)] = []
   let projections : Array[ClientResultGraphConstruction] = []
   let names : Array[String] = []
   let result_cids : Array[Unit] = []
-  let graph_nodes = fragments.map(fragment => fragment.fragment)
-  let graph_edges : Array[(Int, Int, Int)] = []
   let graph_roots : Array[(Int, Int, Int)] = []
   for result in 0..<@strategy.graph_result_count(graph) {
     guard @strategy.graph_result_task(graph, result) is Some(task) &&
-      fragments.get(task) is Some(fragment) else {
+      outputs.get(task) is Some((output_node, output_port, _)) else {
       return Err(TaskGraph(UnsupportedGraph))
     }
     let plan = match
@@ -194,15 +317,23 @@ pub fn measure_prepared_client_pure_compilation_construction(
       Ok(value) => value
       Err(issue) => return Err(Material(ResultPlan(issue)))
     }
+    let (producer_node, producer_port) = match by_task.get(task) {
+      Some(component) => {
+        guard client_infer_result_producer(
+            component.occurrence,
+            result,
+            component.result_producers,
+          )
+          is Some((_, node, port, _)) else {
+          return Err(TaskGraph(Root(Root(RequiresResultTransformation))))
+        }
+        (node, port)
+      }
+      None => (output_node, output_port)
+    }
     let projection = match
       measure_prepared_client_result_graph_construction(
-        value,
-        result,
-        fragment.node_id,
-        fragment.output_port,
-        2147483647,
-        2147483647,
-        2147483647,
+        value, result, producer_node, producer_port, 2147483647, 2147483647, 2147483647,
       ) {
       Ok(value) => value
       Err(issue) => return Err(TaskGraph(Root(issue)))
@@ -233,8 +364,9 @@ pub fn measure_prepared_client_pure_compilation_construction(
     if tasks {
       for index in 0..<@strategy.graph_data_count(graph) {
         guard @strategy.graph_data_at(graph, index) is Some(edge) &&
-          fragments.get(@strategy.data_edge_producer(edge)) is Some(source) &&
-          fragments.get(@strategy.data_edge_consumer(edge)) is Some(destination) &&
+          outputs.get(@strategy.data_edge_producer(edge))
+          is Some((source_node, source_port, source_carrier)) &&
+          inputs.get(@strategy.data_edge_consumer(edge)) is Some(destination) &&
           client_task_edge_input(graph, edge) is Some((input_name, _)) else {
           return Err(TaskGraph(InvalidEdge))
         }
@@ -243,11 +375,11 @@ pub fn measure_prepared_client_pure_compilation_construction(
         )
         emit_client_compilation_data_edge(
           writer,
-          source.output_carrier,
+          source_carrier,
           (),
-          source.node_id,
-          source.output_port,
-          destination.node_id,
+          source_node,
+          source_port,
+          destination,
           input_name,
           measure_client_fragment_cid,
         )
@@ -350,7 +482,11 @@ pub fn measure_prepared_client_pure_compilation_construction(
         roots,
         material_value: material,
         manifest_cid: (),
-        required_profiles: [],
+        required_profiles: if components.is_empty() {
+          []
+        } else {
+          client_multi_infer_required_profiles(())
+        },
       },
       Some(()),
       (value, writer) => @encode.emit_measurement(writer, value),
@@ -366,6 +502,7 @@ pub fn measure_prepared_client_pure_compilation_construction(
       },
       tasks,
       fragments,
+      borrowed_inputs,
       results,
       projections,
       nodes,

@@ -71,7 +71,13 @@ fn project_bound_client_remote_task_run(
   let mut fenced_unstarted = false
   for task in 0..<progress.keys.length() {
     let execution = progress.observations[task].bind(value => value.execution)
-    failed = failed || execution is Some(@remote.ExecutionFailed)
+    // Final evidence rejection fails the checked task without rewriting its
+    // independent NativeSettled disposition or acknowledging physical cleanup.
+    failed = failed ||
+      execution is Some(@remote.ExecutionFailed) ||
+      progress.observations[task]
+      .map(value => value.evidence_rejected)
+      .unwrap_or(false)
     cancelled = cancelled || execution is Some(@remote.ExecutionCancelled)
     unknown = unknown ||
       execution is Some(@remote.ExecutionUnknown) ||

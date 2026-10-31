@@ -19617,7 +19617,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19780,7 +19780,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -47987,7 +47987,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "db0219260704d87a8c2953348efe66483e34a1dd52261cb62e9cc34bbc508762",
+      "sha256": "a08fa13aa023d6cafe20e04bff3324a2ef3831410a1a8d7202930f7bb0e480be",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -48157,27 +48157,6 @@
         {
           "name": "installPreparedProjectMockSources/modelPreparation/publicationCapacity/publicationCapacity",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectMockSources/prepareManagedEffectMockModelRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "control",
-            "plan",
-            "selection",
-            "publicationCapacity",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectMockSources/prepareManagedEffectRun",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
           "async": false
         },
         {
@@ -48428,12 +48407,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "// Physical installation of the same already retained Mock declarations. The"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "export async function installPreparedProjectMockSources({moon, mockPreparation,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "identity": [
@@ -48444,6 +48431,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run !== held.run || read.source !== index ||"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "ownership": [
@@ -48453,7 +48444,11 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))"
+                "anchor": "? sourceManaged.prepareRun(prepared)"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "synchronization": [
@@ -48464,18 +48459,30 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "failure": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "} catch (error) { record.failure = error; throw error; }"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "resources": [
@@ -48486,12 +48493,20 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn check_installed_managed_run("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup"
+                "anchor": "else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
               }
             ],
             "verification": [
@@ -48506,6 +48521,18 @@
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
                 "anchor": "test('repeated Source slots hold distinct children and close only their original Source',async()=>{"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "retired Mock Effect discriminator cannot enter the Pure Run constructor"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "retired Mock Effect manager entry cannot acquire another Model Root"
               }
             ]
           }
@@ -48599,75 +48626,6 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "installPreparedProjectMockSources/prepareManagedEffectMockModelRun",
-            "installPreparedProjectMockSources/prepareManagedEffectRun"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }
@@ -77061,7 +77019,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8a46764a5609a320554ec989315a52a01d37a34f83510dae36a2c3773cebc6e7",
+      "sha256": "6715b964f0f368ae5f3cbc996845617661f97db57c451b0105c3738c2a2c3ac0",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77138,9 +77096,7 @@
             "prepared",
             "purpose",
             "model",
-            "effectful",
-            "content",
-            "operationPlan"
+            "content"
           ],
           "async": false
         },
@@ -77244,6 +77200,17 @@
             "request",
             "identity",
             "constructPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan",
+            "retainedRun"
           ],
           "async": false
         },
@@ -77423,27 +77390,6 @@
             "prepared",
             "selected"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-          "parameters": [
-            "prepared",
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
-          "parameters": [
-            "prepared",
-            "operationPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
-          "parameters": [],
           "async": false
         },
         {
@@ -77634,7 +77580,8 @@
         "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -77908,115 +77855,6 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Selected native Request driver"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78771,14 +78609,14 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun"
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -78792,7 +78630,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78806,7 +78644,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78820,7 +78658,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -78834,7 +78672,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -78880,7 +78718,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -78890,7 +78728,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -84563,7 +84401,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -84809,10 +84647,10 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "39c95f4f6ff5ebac45a7fb6bd01747eacee1bd04a67be8fd47eb1ec67807d70a",
+      "sha256": "063db24be83ee159521053b837813154aaa616207739c065a2e526acc1d5725f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84839,7 +84677,8 @@
             "demand",
             "scope",
             "admission",
-            "original"
+            "original",
+            "beginOperations"
           ],
           "async": false
         },
@@ -84915,13 +84754,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectManagedPlanRun/same/same",
           "parameters": [
             "run"
@@ -84964,7 +84796,6 @@
         }
       ],
       "imports": [
-        "../host-common/compiler-binding.generated.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -84983,8 +84814,7 @@
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
-            "readInstalledEffectManagedPlanRun",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6"
+            "readInstalledEffectManagedPlanRun"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -85013,7 +84843,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85027,7 +84857,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85055,7 +84885,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85069,7 +84899,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85111,7 +84941,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -85121,7 +84951,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
-                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+                "anchor": "partial Model adoption retains its same Request Scope and never reissues or falls back"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -85170,7 +85000,7 @@
               },
               {
                 "path": "adapters/host-node/installed-effect-managed-run.mjs",
-                "anchor": "run.admission !== admission || run.original !== original)"
+                "anchor": "run.admission !== admission || run.original !== original || run.beginOperations !== beginOperations ||"
               }
             ],
             "synchronization": [
@@ -85226,7 +85056,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

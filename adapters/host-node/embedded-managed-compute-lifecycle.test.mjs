@@ -256,6 +256,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
       assert.strictEqual(held, originals); return capturePlan(run);
     },
     originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
+    prepareInstalledSequenceContractOriginal(held) {assert.strictEqual(held, originals); return {admission: held.installation.sequenceContracts};},
     beforeChild, beforeChildClose, source,
   };
   return new Function(...Object.keys(ports), `
@@ -1050,6 +1051,7 @@ test('actual installed Effect Host forwards original Request input and joins typ
   const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, log = [];
   let retireCalls = 0;
   const runtime = {
+    clientProgramInstalledEffectOperationControlsBegin() {},
     clientProgramInstalledManagedRunRetire(value) {
       assert.equal(this, runtime); assert.equal(value, parent); log.push('retire');
       if (++retireCalls === 1) throw new Error('OriginalBorrowPending');
@@ -1077,7 +1079,7 @@ test('actual installed Effect Host forwards original Request input and joins typ
   await f.preparation.prepareManagedCompute();
   const facts = {prepared, identity}, inputs = {};
   const selection = Object.freeze({prepareManagedPlan(actual, selectedInputs) {
-    assert.equal(actual, facts); assert.equal(selectedInputs, inputs); return plan;
+    assert.equal(actual, facts); assert.equal(selectedInputs.installedContracts, undefined); return plan;
   }});
   assert.equal(f.preparation.prepareManagedEffectPlanRun(runtime, facts, selection, inputs), parent);
   await f.initialControl.close();
@@ -1200,4 +1202,77 @@ test('captured Host constructor forwards its same Source inventory and installed
 
 test('captured Host constructor keeps the same QueryTime requirement without context substitution', () => {
   capturePlanConstructor({count: 1, retained: false, queryTime: {}});
+});
+
+
+// Actual extracted Host retirement/initial close and actual Model Run helper.
+// Model/Scope/manager/native retirement are explicit ports; no physical ACK,
+// installed Account, Model provider or complete normal backing is issued here.
+async function modelEffectLifecycle({failure} = {}) {
+  const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, scope = {}, demand = {};
+  const model = Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}});
+  const facts = {prepared, identity, compilation: {}, allowed: {}, definition: model.definition, modelCompiled: model.compiled};
+  const calls = []; let pending = true, f;
+  const runtime = {
+    clientProgramInstalledEffectModelDemandPrepare() {return demand;},
+    clientProgramInstalledEffectPlanMatchesModelDemand(p, selected) {return p === plan && selected === demand;},
+    clientProgramInstalledEffectOperationControlsBegin() {},
+    clientProgramInstalledEffectManagedOperationPlan(value, actual, request) {
+      assert.equal(value, parent); assert.equal(actual, prepared); assert.equal(request, identity); return plan;
+    },
+    clientProgramFinishInferOriginalReadScope(value, compiled, definition, graph, complete) {
+      assert.equal(this, runtime); assert.equal(value, scope); assert.equal(compiled, model.compiled);
+      assert.equal(definition, model.definition); assert.equal(graph, model.graph); assert.equal(complete, true);
+      calls.push('scope'); return !pending;
+    },
+    clientProgramInstalledManagedRunRetire(value) {assert.equal(value, parent); assert.equal(pending, false); calls.push('retire-parent');},
+  };
+  const manager = {
+    adoptEffectModelPreparation(actual, input, request, selected, run) {
+      assert.equal(this, manager); assert.equal(actual, prepared); assert.equal(input, requestInput);
+      assert.equal(request, identity); assert.equal(selected, plan); assert.equal(run, f.record.computeRuns.get(prepared));
+      run.original = original; run.modelScope = scope; calls.push('adopt');
+      if (failure !== undefined) throw failure;
+      return {original, operationPlan: plan, value: parent};
+    },
+    severPreparation(actual, selected) {
+      assert.equal(actual, prepared); assert.equal(selected, original);
+      const run = f.record.computeRuns.get(prepared);
+      for (const field of ['modelScope', 'model', 'modelDemand', 'definitionOriginal', 'operationPlan', 'requestInput', 'selection']) {
+        assert.equal(run[field], undefined, field);
+      }
+      calls.push('return-original-input');
+    },
+    retireSeveredPreparation(selected) {assert.equal(selected, original); calls.push('retire-original');},
+    retireRun() {assert.fail('partial same Request has no separate manager Run');},
+    close() {assert.equal(pending, false); calls.push('manager-close'); return {pending: false};},
+  };
+  f = lifecycle({runtime, factory: async () => manager,
+    originalRequest(value) {assert.equal(value, prepared); return requestInput;}});
+  await f.preparation.prepareManagedCompute();
+  const selected = Object.freeze({prepareManagedPlan(actual, inputs) {
+    assert.equal(actual, facts); assert.equal(inputs.modelDemand, demand); return plan;
+  }});
+  return {...f, calls, prepared, parent, runtime, facts, selected, model,
+    settle() {pending = false;}};
+}
+
+test('Host Model Request retirement waits for Scope then cuts compiler aliases before original input return', async () => {
+  const f = await modelEffectLifecycle();
+  assert.equal(f.preparation.prepareManagedEffectPlanRun(f.runtime, f.facts, f.selected, {}, f.model), f.parent);
+  await assert.rejects(f.initialControl.close(), {code: 'InstalledEffectModelScopeCleanupPending'});
+  assert.deepEqual(f.calls, ['adopt', 'scope']);
+  f.settle(); await f.initialControl.close();
+  assert.deepEqual(f.calls, ['adopt', 'scope', 'scope', 'retire-parent', 'return-original-input',
+    'retire-parent', 'retire-original', 'manager-close']);
+  assert.equal(f.record.computeLiveRuns.size, 0);
+});
+
+test('Host partial Model Request finishes only its Scope and leaves original parent cleanup to manager', async () => {
+  const failure = new Error('OriginalModelAdoptionFailure'), f = await modelEffectLifecycle({failure});
+  assert.throws(() => f.preparation.prepareManagedEffectPlanRun(f.runtime, f.facts, f.selected, {}, f.model), cause => cause === failure);
+  await assert.rejects(f.initialControl.close(), {code: 'InstalledEffectModelScopeCleanupPending'});
+  f.settle(); await f.initialControl.close();
+  assert.deepEqual(f.calls, ['adopt', 'scope', 'scope', 'manager-close']);
+  assert.equal(f.record.computeLiveRuns.size, 0);
 });

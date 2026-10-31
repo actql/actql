@@ -163,6 +163,7 @@ test "Effect pre-checkpoint completed computation and task cleanup cannot comple
         Some({
           execution: Some(@remote.NativeSettled),
           cleanup: Some(@remote.CleanupReleased),
+          evidence_rejected: false,
           revision: 1,
           execution_terminal: true,
           cleanup_complete: true,

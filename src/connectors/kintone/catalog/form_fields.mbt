@@ -286,6 +286,13 @@ pub fn project_form_fields(
 }
 
 ///|
+/// Read-only original inventory size. This allocates no path/name snapshots
+/// and grants no lookup, write or capacity authority.
+pub fn form_field_count(catalog : FormFieldCatalog) -> Int {
+  catalog.fields.length()
+}
+
+///|
 pub fn form_field_paths(catalog : FormFieldCatalog) -> Array[Array[String]] {
   catalog.fields.map(field => field.path.copy())
 }

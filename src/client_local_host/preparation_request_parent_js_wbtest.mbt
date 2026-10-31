@@ -14,10 +14,13 @@ fn request_parent_fixture(
   input : Array[Int],
   current? : () -> Bool = () => true,
   pending? : () -> Bool = () => false,
+  initial_limits? : @resources.LedgerLimits? = None,
 ) -> @resources.NodePreparationAdmission[Array[Int]] {
-  let limits = client_local_preparation_initial_limits(
-    client_local_resource_policy(),
-  ).unwrap()
+  let limits = match initial_limits {
+    Some(original) => original
+    None =>
+      client_local_preparation_initial_limits(client_local_resource_policy()).unwrap()
+  }
   let original = request_parent_test_original(
     publication_test_loader(publication_test_url()),
     input,

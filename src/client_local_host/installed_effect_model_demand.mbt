@@ -49,14 +49,44 @@ pub fn prepare_installed_effect_model_demand(
     is Err(_) {
     return Err(ForeignOriginal)
   }
+  if max_reservations < 0 || max_holdings < 0 || max_delegations < 0 {
+    return Err(InsufficientCapacity)
+  }
+  guard installed_model_demand_limits(
+      model_limits, read_retained_bytes, read_execution_bytes,
+    )
+    is Some(limits) else {
+    return Err(InsufficientCapacity)
+  }
+  Ok({
+    prepared,
+    compiled,
+    _compilation: compilation,
+    definition,
+    _occurrence: occurrence,
+    graph,
+    limits,
+    bootstrap_retained_bytes: read_retained_bytes,
+    bootstrap_execution_bytes: read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  })
+}
+
+///|
+// One existing Model/read overlap definition for Pure and Effect Plans. The
+// original selected domain supplies its bounds; this creates no allowance.
+fn installed_model_demand_limits(
+  model_limits : @resources.LedgerLimits,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+) -> @resources.LedgerLimits? {
   // These are the original Scope bootstrap and simultaneous read allowance.
   // Both stay retained until the original census/reader retires. Count their
   // overlap before allocation; neither is funded by a disk/codec ceiling.
   guard read_retained_bytes > 0L &&
     read_execution_bytes > 0L &&
-    max_reservations >= 0 &&
-    max_holdings >= 0 &&
-    max_delegations >= 0 &&
     @execution.execution_capacity_inventory_add(
       model_limits.retained_bytes,
       QuotedBytes,
@@ -83,20 +113,19 @@ pub fn prepare_installed_effect_model_demand(
       { ..model_limits, retained_bytes, execution_bytes, },
     )
     is Some(limits) else {
-    return Err(InsufficientCapacity)
+    return None
   }
-  Ok({
-    prepared,
-    compiled,
-    _compilation: compilation,
-    definition,
-    _occurrence: occurrence,
-    graph,
-    limits,
-    bootstrap_retained_bytes: read_retained_bytes,
-    bootstrap_execution_bytes: read_execution_bytes,
-    max_reservations,
-    max_holdings,
-    max_delegations,
-  })
+  Some(limits)
+}
+
+///|
+/// Immutable DATA correspondence for the already selected original Plan.
+/// This cannot issue a Scope or upgrade another Model's cleanup lineage.
+pub fn installed_effect_plan_matches_model_demand(
+  plan : ClientInstalledEffectManagedPlan,
+  model : ClientInstalledEffectModelDemand,
+) -> Bool {
+  physical_equal(plan.prepared, model.prepared) &&
+  plan.model is Some(original) &&
+  physical_equal(original, model)
 }

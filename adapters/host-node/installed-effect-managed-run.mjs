@@ -2,7 +2,6 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
-import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
@@ -23,8 +22,8 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   if (old !== undefined) return same(old);
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
   const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model,
-    definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined,
-    closed: false, selecting: false};
+    definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined, modelScope: undefined,
+    closed: false, selecting: false, operationsBegun: false};
   runs.set(prepared, run);
   liveRuns.add(run);
   try {
@@ -70,7 +69,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
-    if (![run.retire, run.readPlan].every(value => typeof value === 'function')) {
+    run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsBegin;
+    const beginOperations = run.beginOperations;
+    if (![run.retire, run.readPlan, run.beginOperations].every(value => typeof value === 'function')) {
       fail('NodeManagedRunRuntimeUnavailable');
     }
     if (model === undefined) {
@@ -88,25 +89,37 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       }
       assertCurrent();
     } else {
-      run.cleanup = runtime.clientProgramNodeEffectManagedPlanCleanup;
-      run.prepare = runtime.clientProgramNodeEffectModelManagedPlanPrepare;
-      run.begin = runtime.clientProgramInstalledEffectModelManagedPlanBegin;
       run.finishModelScope = runtime.clientProgramFinishInferOriginalReadScope;
-      const original = manager.prepareEffectModelPlanRun;
-      if (![run.cleanup, run.prepare, run.begin, original].every(value => typeof value === 'function')) {
-        fail('NodeManagedRunRuntimeUnavailable');
+      const matches = runtime.clientProgramInstalledEffectPlanMatchesModelDemand;
+      const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectModelPreparation')?.value;
+      if (typeof run.finishModelScope !== 'function' || typeof matches !== 'function') {
+        fail('InstalledEffectModelRuntimeUnavailable');
       }
-      if (typeof run.finishModelScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
-      run.original = Reflect.apply(original, manager, [prepared, operationPlan]);
+      if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
+      if (Reflect.apply(matches, runtime, [operationPlan, run.modelDemand]) !== true) {
+        fail('ForeignInstalledEffectModelSelection');
+      }
+      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan, run]);
+      if (adopted.original !== run.original || adopted.operationPlan !== operationPlan ||
+          run.original === undefined || run.modelScope === undefined || adopted.value === undefined) {
+        fail('ForeignInstalledEffectManagedRun');
+      }
+      run.value = adopted.value;
+      run.preparationFunded = true;
       assertCurrent();
-      run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, operationPlan]));
-      const begun = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request, operationPlan]));
-      run.value = runtimeField(begun, 0);
-      run.modelScope = runtimeField(begun, 1);
-      if (run.value === undefined || run.modelScope === undefined) fail('InstalledEffectModelScopeUnavailable');
     }
+    // The original Request/Model adoption above supplies the SAME Ledger.
+    // Quote DATA alone cannot back the consumer's later operation controls.
+    const parent = run.value;
+    checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
+    if (Object.hasOwn(run, 'failure')) throw run.failure;
+    if (run.value !== parent || run.operationPlan !== operationPlan || run.beginOperations !== beginOperations) fail('ForeignInstalledEffectManagedRun');
+    run.operationsBegun = true;
     return same(run);
-  } catch (cause) {run.failure = cause; throw cause;}
+  } catch (cause) {
+    if (!Object.hasOwn(run, 'failure')) run.failure = cause;
+    throw run.failure;
+  }
 }
 
 // Only the existing complete dispatch/initialization retirement caller supplies
@@ -148,23 +161,23 @@ function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, 
   const parent = run.value, plan = run.operationPlan, readPlan = run.readPlan;
   const definition = run.definitionOriginal, manager = run.manager, selection = run.selection;
   const sourceProfile = run.sourceProfile, model = run.model, demand = run.modelDemand, scope = run.modelScope;
-  const admission = run.admission, original = run.original;
+  const admission = run.admission, original = run.original, beginOperations = run.beginOperations;
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
-    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations);
   const actualPlan = checked(Reflect.apply(readPlan, runtime, [parent, prepared, request]));
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
-    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations);
   if (actualPlan !== plan) fail('ForeignInstalledEffectManagedRun');
   assertCurrent();
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
-    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations);
   return parent;
 }
 
 // Callback-free fences preserve the original Model Scope and cleanup lineage.
 // Failure presence keeps even an original thrown undefined failed on retry.
 function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
-  definition, manager, selection, sourceProfile, model, demand, scope, admission, original) {
+  definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations) {
   if (Object.hasOwn(run, 'failure')) throw run.failure;
   if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
       run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
@@ -172,5 +185,6 @@ function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request
       run.operationPlan !== plan || run.readPlan !== readPlan || run.definitionOriginal !== definition ||
       run.manager !== manager || run.selection !== selection || run.sourceProfile !== sourceProfile ||
       run.model !== model || run.modelDemand !== demand || run.modelScope !== scope ||
-      run.admission !== admission || run.original !== original) fail('ForeignInstalledEffectManagedRun');
+      run.admission !== admission || run.original !== original || run.beginOperations !== beginOperations ||
+      run.operationsBegun !== true) fail('ForeignInstalledEffectManagedRun');
 }

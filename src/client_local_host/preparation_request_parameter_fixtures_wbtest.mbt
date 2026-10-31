@@ -16,5 +16,6 @@ fn funded_value_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
+#cfg(target="js")
 extern "js" fn source_current_stop() -> Unit =
   #|() => {throw new Error('SourceCurrentStopped');}

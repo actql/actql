@@ -13,4 +13,6 @@ import {
 
 import {
   "actql/actql/relation_schema" @schema,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/canonical_json" @json,
 } for "wbtest"

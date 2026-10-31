@@ -505,35 +505,6 @@ pub fn client_program_prepare_keyed_infer_captured_ledger(
 }
 
 ///|
-fn client_keyed_row_limits(
-  max_page_bytes : Int,
-  max_text_bytes : Int,
-  max_work : Int,
-) -> @client_row_source_host.RowKeyedLimits {
-  {
-    page: {
-      max_bytes: max_page_bytes,
-      max_nodes: 10000,
-      max_depth: 100,
-      max_rows: 100,
-    },
-    retention: { max_nodes: 100000, max_depth: 100, max_work, max_text_bytes, },
-    request: {
-      max_work,
-      max_pairs: 100,
-      values: { max_nodes: 10000, max_depth: 100, max_text_bytes, },
-    },
-    wire: {
-      max_columns: 100,
-      max_order_work: max_work,
-      max_bytes: max_text_bytes,
-      max_nodes: 100000,
-      max_depth: 100,
-    },
-  }
-}
-
-///|
 #export_name("clientProgramKeyedRowPrepareCapacity")
 pub fn client_program_keyed_row_prepare_capacity(
   acquisition : @publication_host.ClientKeyedAcquisition,
@@ -549,7 +520,9 @@ pub fn client_program_keyed_row_prepare_capacity(
     @publication_host.client_keyed_acquisition_owner(acquisition),
     @publication_host.client_keyed_acquisition_facts(acquisition),
     declaration,
-    client_keyed_row_limits(max_page_bytes, max_text_bytes, max_work),
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, max_work,
+    ),
   )
 }
 
@@ -583,7 +556,9 @@ pub fn client_program_keyed_row_prepare_acquisition(
     @publication_host.client_keyed_acquisition_facts(acquisition),
     value,
     declaration,
-    client_keyed_row_limits(max_page_bytes, max_text_bytes, max_work),
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, max_work,
+    ),
     input_available=Some(() => {
       @publication_host.client_keyed_request_matches_acquisition(
         request, acquisition,
