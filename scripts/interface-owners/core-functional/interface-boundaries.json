@@ -7409,6 +7409,1302 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
+            "contentCaptureControl",
+            "contentCaptureControl/args/args",
+            "contentCaptureControl/args/args/args",
+            "contentCaptureControl/args/args/args#2",
+            "contentCaptureControl/init:candidate/init:candidate",
+            "contentCaptureControl/init:candidateForRun/init:candidateForRun",
+            "contentCaptureControl/init:holdingCid/init:holdingCid",
+            "contentCaptureControl/init:inspect/init:inspect",
+            "contentCaptureControl/init:issue/init:issue",
+            "contentCaptureControl/init:issuer/init:issuer",
+            "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
+            "contentCaptureControl/init:recoveryCandidateForRun/init:recoveryCandidateForRun",
+            "contentCaptureControl/init:reissuer/init:reissuer",
+            "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
+            "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace",
+            "contentCaptureControl/own/own",
+            "contentGenerationControl",
+            "contentGenerationControl/init:advance/init:advance",
+            "contentGenerationControl/init:bindInput/init:bindInput",
+            "contentGenerationControl/init:candidate/init:candidate",
+            "contentGenerationControl/init:complete/init:complete",
+            "contentGenerationControl/init:completedOutput/init:completedOutput",
+            "contentGenerationControl/init:effectFamily/init:effectFamily",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/exported/exported",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/provider/provider",
+            "contentGenerationControl/init:encoder/init:encoder",
+            "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
+            "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
+            "contentGenerationControl/init:familyComplete/init:familyComplete",
+            "contentGenerationControl/init:familyInput/init:familyInput",
+            "contentGenerationControl/init:familyPendingPiece/init:familyPendingPiece",
+            "contentGenerationControl/init:finish/init:finish",
+            "contentGenerationControl/init:inputAdvance/init:inputAdvance",
+            "contentGenerationControl/init:inputCancel/init:inputCancel",
+            "contentGenerationControl/init:inputFinish/init:inputFinish",
+            "contentGenerationControl/init:inputIdentityAdvance/init:inputIdentityAdvance",
+            "contentGenerationControl/init:inputIdentityCancel/init:inputIdentityCancel",
+            "contentGenerationControl/init:inputIdentityFinish/init:inputIdentityFinish",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/exportLimits/exportLimits",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/init:inputIdentityStart",
+            "contentGenerationControl/init:inputRow/init:inputRow",
+            "contentGenerationControl/init:inputRows/init:inputRows",
+            "contentGenerationControl/init:inspect/init:inspect",
+            "contentGenerationControl/init:issue/init:issue",
+            "contentGenerationControl/init:issuer/init:issuer",
+            "contentGenerationControl/init:issuer/init:issuer/issuer/issuer",
+            "contentGenerationControl/init:output/init:output",
+            "contentGenerationControl/init:outputAvailable/init:outputAvailable",
+            "contentGenerationControl/init:outputRowWire/init:outputRowWire",
+            "contentGenerationControl/init:prefix/init:prefix",
+            "contentGenerationControl/init:prefixAdvance/init:prefixAdvance",
+            "contentGenerationControl/init:prefixCancel/init:prefixCancel",
+            "contentGenerationControl/init:prefixCapacity/init:prefixCapacity",
+            "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
+            "contentGenerationControl/init:prefixWork/init:prefixWork",
+            "contentGenerationControl/init:prepare/init:prepare",
+            "contentGenerationControl/init:recover/init:recover",
+            "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
+            "contentGenerationControl/init:resultAdvance/init:resultAdvance",
+            "contentGenerationControl/init:resultCancel/init:resultCancel",
+            "contentGenerationControl/init:resultFinish/init:resultFinish",
+            "contentGenerationControl/init:resultOccurrence/init:resultOccurrence",
+            "contentGenerationControl/init:resultStart/init:resultStart",
+            "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
+            "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
+            "contentGenerationControl/init:row/init:row",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
+            "contentGenerationControl/owned/owned",
+            "contentGenerationControl/quantity/quantity",
+            "contentGenerationControl/referenceLimits/referenceLimits",
+            "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits",
+            "effectApplicationControl",
+            "effectApplicationControl/effectApplicationControl",
+            "effectApplicationControl/effectApplicationControl#10",
+            "effectApplicationControl/effectApplicationControl#11",
+            "effectApplicationControl/effectApplicationControl#12",
+            "effectApplicationControl/effectApplicationControl#13",
+            "effectApplicationControl/effectApplicationControl#14",
+            "effectApplicationControl/effectApplicationControl#15",
+            "effectApplicationControl/effectApplicationControl#16",
+            "effectApplicationControl/effectApplicationControl#17",
+            "effectApplicationControl/effectApplicationControl#18",
+            "effectApplicationControl/effectApplicationControl#19",
+            "effectApplicationControl/effectApplicationControl#2",
+            "effectApplicationControl/effectApplicationControl#20",
+            "effectApplicationControl/effectApplicationControl#21",
+            "effectApplicationControl/effectApplicationControl#22",
+            "effectApplicationControl/effectApplicationControl#23",
+            "effectApplicationControl/effectApplicationControl#24",
+            "effectApplicationControl/effectApplicationControl#25",
+            "effectApplicationControl/effectApplicationControl#26",
+            "effectApplicationControl/effectApplicationControl#27",
+            "effectApplicationControl/effectApplicationControl#28",
+            "effectApplicationControl/effectApplicationControl#29",
+            "effectApplicationControl/effectApplicationControl#3",
+            "effectApplicationControl/effectApplicationControl#30",
+            "effectApplicationControl/effectApplicationControl#31",
+            "effectApplicationControl/effectApplicationControl#32",
+            "effectApplicationControl/effectApplicationControl#33",
+            "effectApplicationControl/effectApplicationControl#4",
+            "effectApplicationControl/effectApplicationControl#5",
+            "effectApplicationControl/effectApplicationControl#6",
+            "effectApplicationControl/effectApplicationControl#7",
+            "effectApplicationControl/effectApplicationControl#8",
+            "effectApplicationControl/effectApplicationControl#9",
+            "inferQuantityCapacity",
+            "inferQuantityCapacity/inferQuantityCapacity",
+            "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
+            "outputExportControl",
+            "outputExportControl/finishTransformation",
+            "outputExportControl/finishTransformation/finishTransformation",
+            "outputExportControl/init:advance/init:advance",
+            "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
+            "outputExportControl/init:begin/init:begin",
+            "outputExportControl/init:beginManagedResultImport/init:beginManagedResultImport",
+            "outputExportControl/init:beginResult/init:beginResult",
+            "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
+            "outputExportControl/init:identity/init:identity",
+            "outputExportControl/init:issueResultEvidence/init:issueResultEvidence",
+            "outputExportControl/init:measurement/init:measurement",
+            "outputExportControl/init:payloadFailureAction/init:payloadFailureAction",
+            "outputExportControl/init:transformManagedResultImport/init:transformManagedResultImport",
+            "outputExportControl/outputExportControl",
+            "outputExportControl/outputExportControl#2",
+            "outputExportControl/outputExportControl#3",
+            "outputExportControl/validEvidenceContext/validEvidenceContext",
+            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
+            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
+            "outputExportControl/validEvidenceLimits/validEvidenceLimits",
+            "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits",
+            "publicationControl",
+            "publicationControl/admissionToken/admissionToken",
+            "publicationControl/captureContractLimits/captureContractLimits",
+            "publicationControl/compiledContent/compiledContent",
+            "publicationControl/compiledRunResult/compiledRunResult",
+            "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
+            "publicationControl/contentCaptures/contentCaptures",
+            "publicationControl/contentCaptures/contentCaptures/contentCaptures",
+            "publicationControl/effectSourceToken/effectSourceToken",
+            "publicationControl/evidenceToken/evidenceToken",
+            "publicationControl/finishCapturedPreparation/finishCapturedPreparation",
+            "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
+            "publicationControl/finishPublicationValidation/finishPublicationValidation",
+            "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
+            "publicationControl/init:admit/init:admit",
+            "publicationControl/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
+            "publicationControl/init:admitCapturedEffectSourceFromCapture/init:admitCapturedEffectSourceFromCapture",
+            "publicationControl/init:admitCapturedEffectSourceFromResult/init:admitCapturedEffectSourceFromResult",
+            "publicationControl/init:admitCapturedEffectSourceFromTableInput/init:admitCapturedEffectSourceFromTableInput",
+            "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+            "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+            "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
+            "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
+            "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+            "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+            "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
+            "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
+            "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
+            "publicationControl/init:admitOriginal/init:admitOriginal",
+            "publicationControl/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
+            "publicationControl/init:admitRunEvidence/init:admitRunEvidence",
+            "publicationControl/init:admitRunPublication/init:admitRunPublication",
+            "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
+            "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
+            "publicationControl/init:adoptCheckedClientEffectInferRun/init:adoptCheckedClientEffectInferRun",
+            "publicationControl/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
+            "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
+            "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
+            "publicationControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
+            "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
+            "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
+            "publicationControl/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
+            "publicationControl/init:bindCheckedClientInferDispatch/init:bindCheckedClientInferDispatch",
+            "publicationControl/init:bindCheckedClientInferInvocation/init:bindCheckedClientInferInvocation",
+            "publicationControl/init:bindCheckedClientInferModelDispatch/init:bindCheckedClientInferModelDispatch",
+            "publicationControl/init:bindCheckedClientInferModelEntryPersistence/init:bindCheckedClientInferModelEntryPersistence",
+            "publicationControl/init:bindCheckedClientInferModelScope/init:bindCheckedClientInferModelScope",
+            "publicationControl/init:bindCheckedClientInferRun/init:bindCheckedClientInferRun",
+            "publicationControl/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
+            "publicationControl/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
+            "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
+            "publicationControl/init:bindIssuedClientInferInvocation/init:bindIssuedClientInferInvocation",
+            "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
+            "publicationControl/init:bindTableInput/init:bindTableInput",
+            "publicationControl/init:bindTablePreview/init:bindTablePreview",
+            "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
+            "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
+            "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
+            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings",
+            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/owned/owned",
+            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required",
+            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required#2",
+            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
+            "publicationControl/init:capturedEffectSourceArtifactCid/init:capturedEffectSourceArtifactCid",
+            "publicationControl/init:capturedEffectSourceHoldingCid/init:capturedEffectSourceHoldingCid",
+            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid#2",
+            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/relations/relations",
+            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#2",
+            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#3",
+            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid#2",
+            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/results/results",
+            "publicationControl/init:capturedEffectSourceMatchesPreview/init:capturedEffectSourceMatchesPreview",
+            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
+            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
+            "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
+            "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
+            "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
+            "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
+            "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
+            "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+            "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
+            "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
+            "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
+            "publicationControl/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
+            "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
+            "publicationControl/init:checkedClientSerializationByteHoldingCid/init:checkedClientSerializationByteHoldingCid",
+            "publicationControl/init:checkedClientSerializationGenerationDerivation/init:checkedClientSerializationGenerationDerivation",
+            "publicationControl/init:checkedClientSerializationGenerationEvidence/init:checkedClientSerializationGenerationEvidence",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
+            "publicationControl/init:checkedClientSerializationGenerationOutput/init:checkedClientSerializationGenerationOutput",
+            "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
+            "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
+            "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
+            "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
+            "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
+            "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
+            "publicationControl/init:compiledRunResultTransformation/init:compiledRunResultTransformation",
+            "publicationControl/init:compiledSerializationGraph/init:compiledSerializationGraph",
+            "publicationControl/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
+            "publicationControl/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
+            "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
+            "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
+            "publicationControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
+            "publicationControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
+            "publicationControl/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
+            "publicationControl/init:deliverySuccessValid/init:deliverySuccessValid",
+            "publicationControl/init:deliveryTransition/init:deliveryTransition",
+            "publicationControl/init:describeCommittedResult/init:describeCommittedResult",
+            "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
+            "publicationControl/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
+            "publicationControl/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
+            "publicationControl/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
+            "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
+            "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
+            "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
+            "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
+            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
+            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
+            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState#2",
+            "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+            "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+            "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
+            "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+            "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+            "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+            "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
+            "publicationControl/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
+            "publicationControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
+            "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
+            "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
+            "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+            "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+            "publicationControl/init:finishResultDelivery/init:finishResultDelivery",
+            "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
+            "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
+            "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
+            "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
+            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
+            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value",
+            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
+            "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+            "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#4",
+            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
+            "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
+            "publicationControl/init:issueCheckedClientSerializationInvocation/init:issueCheckedClientSerializationInvocation",
+            "publicationControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
+            "publicationControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
+            "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
+            "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
+            "publicationControl/init:issueDurableResultBinding/init:issueDurableResultBinding",
+            "publicationControl/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
+            "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
+            "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
+            "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
+            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
+            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
+            "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
+            "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
+            "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
+            "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
+            "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
+            "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
+            "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
+            "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
+            "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
+            "publicationControl/init:issueResultManifest/init:issueResultManifest",
+            "publicationControl/init:issueResultReadGrant/init:issueResultReadGrant",
+            "publicationControl/init:issueResultRetentionExtension/init:issueResultRetentionExtension",
+            "publicationControl/init:issueRunDefinition/init:issueRunDefinition",
+            "publicationControl/init:issueRunInvocation/init:issueRunInvocation",
+            "publicationControl/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
+            "publicationControl/init:issueSourceFreeExportedLocalEffectResultArtifact/init:issueSourceFreeExportedLocalEffectResultArtifact",
+            "publicationControl/init:issueSourceFreeLocalEffectIdentity/init:issueSourceFreeLocalEffectIdentity",
+            "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+            "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+            "publicationControl/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
+            "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
+            "publicationControl/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
+            "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
+            "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
+            "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
+            "publicationControl/init:manifestReadGrantAllowsBytes/init:manifestReadGrantAllowsBytes",
+            "publicationControl/init:manifestReadGrantValidAt/init:manifestReadGrantValidAt",
+            "publicationControl/init:manifestResultNames/init:manifestResultNames",
+            "publicationControl/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
+            "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
+            "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
+            "publicationControl/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
+            "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
+            "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
+            "publicationControl/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
+            "publicationControl/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
+            "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
+            "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
+            "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "publicationControl/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
+            "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
+            "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
+            "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
+            "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
+            "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+            "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+            "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
+            "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+            "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
+            "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
+            "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
+            "publicationControl/init:publicationCommitFailureAction/init:publicationCommitFailureAction",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
+            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
+            "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
+            "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
+            "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
+            "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
+            "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
+            "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
+            "publicationControl/init:readCheckedClientStaticPlan/init:readCheckedClientStaticPlan",
+            "publicationControl/init:readCurrentClientRunView/init:readCurrentClientRunView",
+            "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
+            "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
+            "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
+            "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
+            "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
+            "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
+            "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
+            "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
+            "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
+            "publicationControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
+            "publicationControl/init:recordResultAccessRequestAuthorization/init:recordResultAccessRequestAuthorization",
+            "publicationControl/init:recordResultAccessResolution/init:recordResultAccessResolution",
+            "publicationControl/init:recordTransition/init:recordTransition",
+            "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
+            "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
+            "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+            "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+            "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+            "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
+            "publicationControl/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
+            "publicationControl/init:resultReadAvailability/init:resultReadAvailability",
+            "publicationControl/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
+            "publicationControl/init:resultReadExtendedAvailability/init:resultReadExtendedAvailability",
+            "publicationControl/init:resultReadGrantAllowsBytes/init:resultReadGrantAllowsBytes",
+            "publicationControl/init:resultReadGrantValidAt/init:resultReadGrantValidAt",
+            "publicationControl/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
+            "publicationControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
+            "publicationControl/init:resultSerializationContractCid/init:resultSerializationContractCid",
+            "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
+            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed",
+            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
+            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
+            "publicationControl/init:runChainValid/init:runChainValid",
+            "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
+            "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
+            "publicationControl/init:seal/init:seal",
+            "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
+            "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
+            "publicationControl/init:selectInstalledInitialJevDecisionProfile/init:selectInstalledInitialJevDecisionProfile",
+            "publicationControl/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
+            "publicationControl/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
+            "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation",
+            "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation/originals/originals",
+            "publicationControl/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
+            "publicationControl/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
+            "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
+            "publicationControl/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
+            "publicationControl/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
+            "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
+            "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
+            "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
+            "publicationControl/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
+            "publicationControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction",
+            "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
+            "publicationControl/init:tableInputSchemaWire/init:tableInputSchemaWire",
+            "publicationControl/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
+            "publicationControl/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
+            "publicationControl/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
+            "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
+            "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
+            "publicationControl/inspect/inspect",
+            "publicationControl/inspectAdmission/inspectAdmission",
+            "publicationControl/inspectEffectSource/inspectEffectSource",
+            "publicationControl/inspectEvidence/inspectEvidence",
+            "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
+            "publicationControl/inspectSnapshot/inspectSnapshot",
+            "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
+            "publicationControl/issuanceLimits/issuanceLimits",
+            "publicationControl/localEffectContext/localEffectContext",
+            "publicationControl/localEffectContext/localEffectContext/localEffectContext",
+            "publicationControl/localEffectSourceToken/localEffectSourceToken",
+            "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
+            "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
+            "publicationControl/prepareSerializationGraph/prepareSerializationGraph",
+            "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
+            "publicationControl/snapshotToken/snapshotToken",
+            "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
+            "publicationControl/token/token",
+            "remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
+            "remoteBundleControl/remoteBundleControl#10",
+            "remoteBundleControl/remoteBundleControl#11",
+            "remoteBundleControl/remoteBundleControl#12",
+            "remoteBundleControl/remoteBundleControl#13",
+            "remoteBundleControl/remoteBundleControl#14",
+            "remoteBundleControl/remoteBundleControl#15",
+            "remoteBundleControl/remoteBundleControl#16",
+            "remoteBundleControl/remoteBundleControl#17",
+            "remoteBundleControl/remoteBundleControl#18",
+            "remoteBundleControl/remoteBundleControl#19",
+            "remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl#20",
+            "remoteBundleControl/remoteBundleControl#21",
+            "remoteBundleControl/remoteBundleControl#22",
+            "remoteBundleControl/remoteBundleControl#23",
+            "remoteBundleControl/remoteBundleControl#24",
+            "remoteBundleControl/remoteBundleControl#25",
+            "remoteBundleControl/remoteBundleControl#26",
+            "remoteBundleControl/remoteBundleControl#27",
+            "remoteBundleControl/remoteBundleControl#28",
+            "remoteBundleControl/remoteBundleControl#29",
+            "remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl#30",
+            "remoteBundleControl/remoteBundleControl#31",
+            "remoteBundleControl/remoteBundleControl#32",
+            "remoteBundleControl/remoteBundleControl#33",
+            "remoteBundleControl/remoteBundleControl#34",
+            "remoteBundleControl/remoteBundleControl#35",
+            "remoteBundleControl/remoteBundleControl#36",
+            "remoteBundleControl/remoteBundleControl#37",
+            "remoteBundleControl/remoteBundleControl#38",
+            "remoteBundleControl/remoteBundleControl#39",
+            "remoteBundleControl/remoteBundleControl#4",
+            "remoteBundleControl/remoteBundleControl#40",
+            "remoteBundleControl/remoteBundleControl#41",
+            "remoteBundleControl/remoteBundleControl#42",
+            "remoteBundleControl/remoteBundleControl#43",
+            "remoteBundleControl/remoteBundleControl#44",
+            "remoteBundleControl/remoteBundleControl#5",
+            "remoteBundleControl/remoteBundleControl#6",
+            "remoteBundleControl/remoteBundleControl#7",
+            "remoteBundleControl/remoteBundleControl#8",
+            "remoteBundleControl/remoteBundleControl#9",
+            "remoteCredentialControl",
+            "remoteCredentialControl/grantFields/grantFields",
+            "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
+            "remoteCredentialControl/init:prepareUse/init:prepareUse",
+            "remoteCredentialControl/remoteCredentialControl",
+            "remoteCredentialControl/remoteCredentialControl#10",
+            "remoteCredentialControl/remoteCredentialControl#2",
+            "remoteCredentialControl/remoteCredentialControl#3",
+            "remoteCredentialControl/remoteCredentialControl#4",
+            "remoteCredentialControl/remoteCredentialControl#5",
+            "remoteCredentialControl/remoteCredentialControl#6",
+            "remoteCredentialControl/remoteCredentialControl#7",
+            "remoteCredentialControl/remoteCredentialControl#8",
+            "remoteCredentialControl/remoteCredentialControl#9",
+            "remoteSiteControl",
+            "remoteSiteControl/fields/fields",
+            "remoteSiteControl/init:admit/init:admit",
+            "remoteSiteControl/init:outputIntentProjection/init:outputIntentProjection",
+            "remoteSiteControl/init:prepare/init:prepare",
+            "remoteSiteControl/init:prepareCoordinatorObservation/init:prepareCoordinatorObservation",
+            "remoteSiteControl/init:prepareOutputIntent/init:prepareOutputIntent",
+            "remoteSiteControl/init:preparePublicationPayload/init:preparePublicationPayload",
+            "remoteSiteControl/init:restore/init:restore",
+            "remoteSiteControl/int64/int64",
+            "remoteSiteControl/remoteSiteControl",
+            "remoteSiteControl/remoteSiteControl#10",
+            "remoteSiteControl/remoteSiteControl#100",
+            "remoteSiteControl/remoteSiteControl#101",
+            "remoteSiteControl/remoteSiteControl#102",
+            "remoteSiteControl/remoteSiteControl#103",
+            "remoteSiteControl/remoteSiteControl#104",
+            "remoteSiteControl/remoteSiteControl#105",
+            "remoteSiteControl/remoteSiteControl#106",
+            "remoteSiteControl/remoteSiteControl#107",
+            "remoteSiteControl/remoteSiteControl#108",
+            "remoteSiteControl/remoteSiteControl#109",
+            "remoteSiteControl/remoteSiteControl#11",
+            "remoteSiteControl/remoteSiteControl#110",
+            "remoteSiteControl/remoteSiteControl#111",
+            "remoteSiteControl/remoteSiteControl#112",
+            "remoteSiteControl/remoteSiteControl#113",
+            "remoteSiteControl/remoteSiteControl#12",
+            "remoteSiteControl/remoteSiteControl#13",
+            "remoteSiteControl/remoteSiteControl#14",
+            "remoteSiteControl/remoteSiteControl#15",
+            "remoteSiteControl/remoteSiteControl#16",
+            "remoteSiteControl/remoteSiteControl#17",
+            "remoteSiteControl/remoteSiteControl#18",
+            "remoteSiteControl/remoteSiteControl#19",
+            "remoteSiteControl/remoteSiteControl#2",
+            "remoteSiteControl/remoteSiteControl#20",
+            "remoteSiteControl/remoteSiteControl#21",
+            "remoteSiteControl/remoteSiteControl#22",
+            "remoteSiteControl/remoteSiteControl#23",
+            "remoteSiteControl/remoteSiteControl#24",
+            "remoteSiteControl/remoteSiteControl#25",
+            "remoteSiteControl/remoteSiteControl#26",
+            "remoteSiteControl/remoteSiteControl#27",
+            "remoteSiteControl/remoteSiteControl#28",
+            "remoteSiteControl/remoteSiteControl#29",
+            "remoteSiteControl/remoteSiteControl#3",
+            "remoteSiteControl/remoteSiteControl#30",
+            "remoteSiteControl/remoteSiteControl#31",
+            "remoteSiteControl/remoteSiteControl#32",
+            "remoteSiteControl/remoteSiteControl#33",
+            "remoteSiteControl/remoteSiteControl#34",
+            "remoteSiteControl/remoteSiteControl#35",
+            "remoteSiteControl/remoteSiteControl#36",
+            "remoteSiteControl/remoteSiteControl#37",
+            "remoteSiteControl/remoteSiteControl#38",
+            "remoteSiteControl/remoteSiteControl#39",
+            "remoteSiteControl/remoteSiteControl#4",
+            "remoteSiteControl/remoteSiteControl#40",
+            "remoteSiteControl/remoteSiteControl#41",
+            "remoteSiteControl/remoteSiteControl#42",
+            "remoteSiteControl/remoteSiteControl#43",
+            "remoteSiteControl/remoteSiteControl#44",
+            "remoteSiteControl/remoteSiteControl#45",
+            "remoteSiteControl/remoteSiteControl#46",
+            "remoteSiteControl/remoteSiteControl#47",
+            "remoteSiteControl/remoteSiteControl#48",
+            "remoteSiteControl/remoteSiteControl#49",
+            "remoteSiteControl/remoteSiteControl#5",
+            "remoteSiteControl/remoteSiteControl#50",
+            "remoteSiteControl/remoteSiteControl#51",
+            "remoteSiteControl/remoteSiteControl#52",
+            "remoteSiteControl/remoteSiteControl#53",
+            "remoteSiteControl/remoteSiteControl#54",
+            "remoteSiteControl/remoteSiteControl#55",
+            "remoteSiteControl/remoteSiteControl#56",
+            "remoteSiteControl/remoteSiteControl#57",
+            "remoteSiteControl/remoteSiteControl#58",
+            "remoteSiteControl/remoteSiteControl#59",
+            "remoteSiteControl/remoteSiteControl#6",
+            "remoteSiteControl/remoteSiteControl#60",
+            "remoteSiteControl/remoteSiteControl#61",
+            "remoteSiteControl/remoteSiteControl#62",
+            "remoteSiteControl/remoteSiteControl#63",
+            "remoteSiteControl/remoteSiteControl#64",
+            "remoteSiteControl/remoteSiteControl#65",
+            "remoteSiteControl/remoteSiteControl#66",
+            "remoteSiteControl/remoteSiteControl#67",
+            "remoteSiteControl/remoteSiteControl#68",
+            "remoteSiteControl/remoteSiteControl#69",
+            "remoteSiteControl/remoteSiteControl#7",
+            "remoteSiteControl/remoteSiteControl#70",
+            "remoteSiteControl/remoteSiteControl#71",
+            "remoteSiteControl/remoteSiteControl#72",
+            "remoteSiteControl/remoteSiteControl#73",
+            "remoteSiteControl/remoteSiteControl#74",
+            "remoteSiteControl/remoteSiteControl#75",
+            "remoteSiteControl/remoteSiteControl#76",
+            "remoteSiteControl/remoteSiteControl#77",
+            "remoteSiteControl/remoteSiteControl#78",
+            "remoteSiteControl/remoteSiteControl#79",
+            "remoteSiteControl/remoteSiteControl#8",
+            "remoteSiteControl/remoteSiteControl#80",
+            "remoteSiteControl/remoteSiteControl#81",
+            "remoteSiteControl/remoteSiteControl#82",
+            "remoteSiteControl/remoteSiteControl#83",
+            "remoteSiteControl/remoteSiteControl#84",
+            "remoteSiteControl/remoteSiteControl#85",
+            "remoteSiteControl/remoteSiteControl#86",
+            "remoteSiteControl/remoteSiteControl#87",
+            "remoteSiteControl/remoteSiteControl#88",
+            "remoteSiteControl/remoteSiteControl#89",
+            "remoteSiteControl/remoteSiteControl#9",
+            "remoteSiteControl/remoteSiteControl#90",
+            "remoteSiteControl/remoteSiteControl#91",
+            "remoteSiteControl/remoteSiteControl#92",
+            "remoteSiteControl/remoteSiteControl#93",
+            "remoteSiteControl/remoteSiteControl#94",
+            "remoteSiteControl/remoteSiteControl#95",
+            "remoteSiteControl/remoteSiteControl#96",
+            "remoteSiteControl/remoteSiteControl#97",
+            "remoteSiteControl/remoteSiteControl#98",
+            "remoteSiteControl/remoteSiteControl#99",
+            "remoteStandardSourceControl",
+            "remoteStandardSourceControl/init:register/init:register",
+            "remoteStandardSourceControl/remoteStandardSourceControl",
+            "remoteStandardSourceControl/remoteStandardSourceControl#2",
+            "remoteTransferControl",
+            "remoteTransferControl/int64/int64",
+            "remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
+            "remoteTransferControl/remoteTransferControl#10",
+            "remoteTransferControl/remoteTransferControl#11",
+            "remoteTransferControl/remoteTransferControl#12",
+            "remoteTransferControl/remoteTransferControl#13",
+            "remoteTransferControl/remoteTransferControl#14",
+            "remoteTransferControl/remoteTransferControl#15",
+            "remoteTransferControl/remoteTransferControl#16",
+            "remoteTransferControl/remoteTransferControl#17",
+            "remoteTransferControl/remoteTransferControl#18",
+            "remoteTransferControl/remoteTransferControl#19",
+            "remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl#20",
+            "remoteTransferControl/remoteTransferControl#21",
+            "remoteTransferControl/remoteTransferControl#22",
+            "remoteTransferControl/remoteTransferControl#23",
+            "remoteTransferControl/remoteTransferControl#24",
+            "remoteTransferControl/remoteTransferControl#25",
+            "remoteTransferControl/remoteTransferControl#26",
+            "remoteTransferControl/remoteTransferControl#27",
+            "remoteTransferControl/remoteTransferControl#28",
+            "remoteTransferControl/remoteTransferControl#29",
+            "remoteTransferControl/remoteTransferControl#3",
+            "remoteTransferControl/remoteTransferControl#30",
+            "remoteTransferControl/remoteTransferControl#31",
+            "remoteTransferControl/remoteTransferControl#32",
+            "remoteTransferControl/remoteTransferControl#33",
+            "remoteTransferControl/remoteTransferControl#34",
+            "remoteTransferControl/remoteTransferControl#35",
+            "remoteTransferControl/remoteTransferControl#36",
+            "remoteTransferControl/remoteTransferControl#37",
+            "remoteTransferControl/remoteTransferControl#38",
+            "remoteTransferControl/remoteTransferControl#4",
+            "remoteTransferControl/remoteTransferControl#5",
+            "remoteTransferControl/remoteTransferControl#6",
+            "remoteTransferControl/remoteTransferControl#7",
+            "remoteTransferControl/remoteTransferControl#8",
+            "remoteTransferControl/remoteTransferControl#9",
+            "remoteTransferControl/requestFields/requestFields",
+            "remoteTransferControl/requestFields/requestFields/requestFields",
+            "remoteTransferControl/requestFields/requestFields/requestFields#2",
+            "remoteTransferControl/requestFields/requestFields/requestFields#3",
+            "remoteTransferControl/requestFields/requestFields/requestFields#4",
+            "runtimeCore",
+            "runtimeCore/init:resultInventory/init:resultInventory",
+            "runtimeCore/init:resultInventory/init:resultInventory/init:resultInventory",
+            "runtimeCore/runtimeCore",
+            "runtimeCore/runtimeCore#10",
+            "runtimeCore/runtimeCore#11",
+            "runtimeCore/runtimeCore#12",
+            "runtimeCore/runtimeCore#13",
+            "runtimeCore/runtimeCore#14",
+            "runtimeCore/runtimeCore#15",
+            "runtimeCore/runtimeCore#16",
+            "runtimeCore/runtimeCore#17",
+            "runtimeCore/runtimeCore#18",
+            "runtimeCore/runtimeCore#19",
+            "runtimeCore/runtimeCore#2",
+            "runtimeCore/runtimeCore#20",
+            "runtimeCore/runtimeCore#21",
+            "runtimeCore/runtimeCore#22",
+            "runtimeCore/runtimeCore#23",
+            "runtimeCore/runtimeCore#3",
+            "runtimeCore/runtimeCore#4",
+            "runtimeCore/runtimeCore#5",
+            "runtimeCore/runtimeCore#6",
+            "runtimeCore/runtimeCore#7",
+            "runtimeCore/runtimeCore#8",
+            "runtimeCore/runtimeCore#9",
+            "siteControl",
+            "siteControl/siteControl",
+            "siteControl/siteControl/siteControl",
+            "siteControl/siteControl#2",
+            "siteControl/siteControl#3",
+            "tuplePair/tuplePair",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
+          ],
+          "exports": [
+            "contentCaptureControl",
+            "contentGenerationControl",
+            "runtimeCore"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "export function contentGenerationControl(moon, publications) {"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "### Original authentication dependencies"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "That setup can pass the original immutable contracts from the same publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retireCapturedComputation(capturedRun) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "export function contentGenerationControl(moon, publications) {"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "pub fn[Material] prepare_credential_authentication_request("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitOriginal(original, limits) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "!physical_equal(request.parent, parent)"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "configuration.maxRetainedBytes,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed\nCredential supplier must admit the real material"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recordHostCleanupClosesAwaited:"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "after\n/// awaits."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge rejects equal-data original substitution"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('retirement failure preserves the same holder for its original retry'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retainCleanup: moon.strategySiteRetainCleanup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "An uncertain auth\nresponse retains the original use"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup retain their independent checks and original acknowledgements."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.strategyCapturedRunCancel(original);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultOutputLimitFields,"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The pair adds two retained records"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "// Translate the installed Node envelope only; Common owns contract ceilings."
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Canonical grant/use bodies and their initial identities are\nunchanged."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.test.mjs",
+                "anchor": "test('profile admission preserves omitted and explicit false selections', () => {"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
+              },
+              {
+                "path": "src/remote_credential/authentication_wbtest.mbt",
+                "anchor": "authentication rejects every foreign parent scope and grant retarget"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model admission uses the Request raw TaskCompilation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "contentCaptureControl",
             "contentCaptureControl/args/args",
             "contentCaptureControl/args/args/args",
