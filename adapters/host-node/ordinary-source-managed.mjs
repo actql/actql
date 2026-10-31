@@ -1146,7 +1146,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       producer.body = producer.request = producer.snapshotPublication = undefined;
       run.prepared = run.request = undefined;
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
-      state.capturePlan = state.effectPlan = run.operationPlan = undefined;
+      state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
       state.preparationFailure = undefined;state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.effectBorrowMethods === undefined

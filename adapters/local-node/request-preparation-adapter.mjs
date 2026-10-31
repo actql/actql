@@ -181,6 +181,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
       const original = state.contentPreparation;
       Reflect.apply(original.releaseAliases, original, [undefined, state.holder]);
       state.contentPreparation = undefined;
+      state.contentPlan = state.contentCompilation = state.contentGraph = undefined;
     }
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory

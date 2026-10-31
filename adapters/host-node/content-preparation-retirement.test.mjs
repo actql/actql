@@ -101,8 +101,8 @@ test('failed Content construction keeps its aliases until the same Request abort
     let ready=false,returns=0,aborts=0,initialRetirements=0,returned=false;
     const returnFailure=new Error('same consumed return');
     f.moon.clientProgramAbortRequestPreparation=p=>{assert.equal(p,parent);aborts++;if(!ready)return{$tag:0,_0:failure};holder.retiring=true;return{$tag:1};};
-    f.moon.clientProgramPreparationBorrowReturn=h=>{assert.equal(h,holder);assert.equal(returned,false);returned=true;returns++;throw returnFailure;};
-    const state={context:{runtime:f.moon},parent,prepared:original.prepared,holder,contentPreparation:original};
+    f.moon.clientProgramPreparationBorrowReturn=h=>{assert.equal(h,holder);assert.equal(returned,false);assert.equal(state.contentPlan,undefined);assert.equal(state.contentGraph,undefined);assert.equal(state.contentCompilation,undefined);returned=true;returns++;throw returnFailure;};
+    const state={context:{runtime:f.moon},parent,prepared:original.prepared,holder,contentPreparation:original,contentPlan:{},contentGraph:{},contentCompilation:{}};
     const retire=p=>{initialRetirements++;assert.equal(p,holder.prepared);
       if(phase==='constructor'){const run=f.record.computeRuns.get(p);assert.notEqual(run,undefined);
         // The actual pre-adoption Host retirement removes only its bag. The

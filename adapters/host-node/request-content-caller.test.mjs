@@ -204,3 +204,17 @@ test('Request Content custody selects terminal source-free or managed keyed Seri
   }
   moon.clientProgramPreparationBorrowSibling=undefined;assert.equal(select(prepared),false);
 });
+
+
+test('Request Content manager cuts its selected Plan alias before a consumed borrow return fails',()=>{
+  const prepared={},original={},holder={},runs=new WeakMap(),primary=new Error('same consumed return');let returns=0;
+  const state={prepared,holder,adopting:true,contentPreparation:{retired:true},context:{runtime:{
+    clientProgramPreparationBorrowRead:h=>{assert.equal(h,holder);return prepared;},
+    clientProgramPreparationBorrowRetirementStarted:h=>{assert.equal(h,holder);return true;},
+    clientProgramPreparationBorrowReturn:h=>{assert.equal(h,holder);assert.equal(run.content,undefined);
+      assert.equal(state.contentPreparation,undefined);assert.equal(state.holder,undefined);returns++;throw primary;}}}};
+  const producer={preparation:state,body:{},request:{}},run={prepared,request:{},original,producer,content:{}};runs.set(prepared,run);
+  const sever=method('./ordinary-source-managed.mjs','severPreparation',{runs,fail,checked:v=>v});
+  assert.throws(()=>sever(prepared,original),e=>e===primary);assert.equal(run.content,undefined);
+  sever(prepared,original);assert.equal(returns,1);
+});
