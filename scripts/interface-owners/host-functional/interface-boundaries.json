@@ -84647,7 +84647,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "063db24be83ee159521053b837813154aaa616207739c065a2e526acc1d5725f",
+      "sha256": "11822342693e6ff104dd8189e73a00e853fb07de583e2ebefdf5bff99673d855",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -84735,21 +84735,35 @@
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
           "parameters": [
-            "value"
+            "name"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
           "parameters": [
-            "cause"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
           "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
+          "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#7",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -85045,6 +85059,75 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
                 "anchor": "test('public Plan getter cannot replace the original tuple or retained Model Scope'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#7"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Immediate original Effect control Plan handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "anchor": "initial Effect controls return the same original Plan without another getter; later reads stay current"
               }
             ]
           }

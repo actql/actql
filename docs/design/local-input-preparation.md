@@ -3915,3 +3915,26 @@ uses its actual bound getter. Any intervening callback or I/O keeps its own
 currentness obligations and original-state fences; no prechecked-Plan cache is
 introduced. The same opening latch and fixed aggregate call envelope apply to
 control initialization and body borrowing, with no additional capacity phase.
+
+
+## Immediate original Effect control Plan handoff
+
+The installed Effect callback receives the sole Host issuer's frozen own-DATA
+facts and keeps the original Prepared, Request, compilation and Definition
+associations. Checking that private input shape does not turn DATA into current
+permission, authority or backing. Accessors and proxies cannot introduce another
+reentrant boundary between the native return and its immediate consumer.
+
+The original operation-control entrance returns its SAME retained Plan after
+its existing current and original-owner checks. The initial Host consumer
+compares this exact return with its selected Plan, preserves any recorded primary
+failure, and applies the existing Run/Model/Scope and post-callback record fences.
+It retains the independent Host current boundary and checks the same record again.
+It neither repeats the native Plan getter at this initial boundary nor stores a
+prechecked Plan or a current-proof cache. Cached construction and every later
+read continue to invoke their original bound getter.
+
+A Unit or foreign Plan return refuses on the same adopted parent. No fallback
+constructor, reissued Plan, cleanup acknowledgement or permission follows from
+that failure. Complete constructor, child, provider, output and failed-child
+backing is still required before entry on the existing Request owner.

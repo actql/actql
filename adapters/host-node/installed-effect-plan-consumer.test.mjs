@@ -14,13 +14,14 @@ const ok = value => ({$tag: 1, _0: value});
 const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
 function fixture() {
   const prepared = {}, request = {}, plan = {}, parent = {}, original = {};
-  const facts = {prepared, identity: request, compilation: {}, allowed: {}, definition: {}};
+  const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {}, definition: {},
+    queryTimePreparation: undefined, modelCompiled: undefined});
   const runs = new WeakMap(), liveRuns = new Set(), calls = [];
   const inputs = Object.freeze({}), sourceProfile = {};
   let current = true, checkCallback = () => {}, selected = plan;
   const failure = new Error('original-current');
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {return ok();},
+    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {}, clientProgramNodeEffectManagedPlanCleanup() {},
     clientProgramInstalledEffectManagedRunCheck(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
