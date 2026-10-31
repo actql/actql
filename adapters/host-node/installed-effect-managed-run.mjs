@@ -47,13 +47,13 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       if (model === null || typeof model !== 'object' || types.isProxy(model) || !Object.isFrozen(model)) {
         fail('ForeignInstalledEffectModelSelection');
       }
-      const fields = Object.getOwnPropertyDescriptors(model);
-      if (Reflect.ownKeys(fields).length !== 5 ||
+      const modelFields = Object.getOwnPropertyDescriptors(model);
+      if (Reflect.ownKeys(modelFields).length !== 5 ||
           ['kind', 'compiled', 'definition', 'occurrence', 'graph'].some(name =>
-            !Object.hasOwn(fields[name] ?? {}, 'value')) ||
-          fields.kind.value !== 'local-mock' || fields.compiled.value !== facts.modelCompiled ||
-          fields.compiled.value === undefined || fields.definition.value !== facts.definition ||
-          fields.occurrence.value === undefined || fields.graph.value === undefined) {
+            !Object.hasOwn(modelFields[name] ?? {}, 'value')) ||
+          modelFields.kind.value !== 'local-mock' || modelFields.compiled.value !== facts.modelCompiled ||
+          modelFields.compiled.value === undefined || modelFields.definition.value !== facts.definition ||
+          modelFields.occurrence.value === undefined || modelFields.graph.value === undefined) {
         fail('ForeignInstalledEffectModelSelection');
       }
       run.publicationControl = publicationControl;
