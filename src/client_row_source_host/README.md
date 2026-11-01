@@ -176,8 +176,28 @@ actual initial/Request/Plan must still admit constructor, retained prefix,
 output and failed-child overlap before use. Same-Common page accessors add no
 physical cleanup acknowledgement or normal execution claim.
 
+`project_row_source_typed_json_page` uses that same envelope parser and bounds
+but retains the selected parsed subtree without creating the selected String.
+Its opaque page carries a same-compiled-namespace identity and the original
+array byte extent. No parsed tree or response buffer escapes through a public
+row accessor. `row_source_json_page_original` exposes the same opaque original
+from a legacy wire projection, so an unchanged author transform can retain it.
+Changed transform wire is a new bounded parser input; external row wire keeps
+the existing parser entrance.
+
+`accept_charged_row_run_projected_page` consumes the original RowRun response
+ticket once, verifies the page's namespace, and applies the existing bounded
+tree admission and complete schema/value/cardinality/retention checks. It does
+not serialize or parse the already selected array again. Foreign pages, closed
+reads, wrong schema, missing or extra fields and exceeded bounds still refuse;
+there is no wire fallback. The namespace identity is DATA provenance only and
+supplies no grant, Resource, separate reservation or physical retirement fact.
+
 Verification is defined by `json_page_projection_wbtest.mbt`, including original
 span preservation, cursor state and whole-document refusal, and by the existing
 physical row and Signed64 admission cases it calls. Node and RelA use the same
 thin `client_row_json_page_bridge.mbt` body. Provider pagination and transformed
 page handling remain with the existing REST page callback and shared Reader.
+`typed_json_page_wbtest.mbt` separately covers typed row admission, exact Signed64
+Strings, NULL/Unicode, schema/bound/cancellation refusal and foreign namespace
+refusal. These components do not establish ordinary installed Source acceptance.

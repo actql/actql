@@ -5,8 +5,9 @@ import {checked} from '../host-common/runtime-result.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const names = ['clientProgramRowSourceProjectJsonPage', 'clientProgramRowSourceJsonPageRowsWire',
-  'clientProgramRowSourceJsonPageRowCount', 'clientProgramRowSourceJsonPageHasNextCursor',
-  'clientProgramRowSourceJsonPageNextCursor'];
+  'clientProgramRowSourceJsonPageOriginal', 'clientProgramRowSourceProjectTypedJsonPage',
+  'clientProgramRowSourceTypedJsonPageRowCount', 'clientProgramRowSourceTypedJsonPageHasNextCursor',
+  'clientProgramRowSourceTypedJsonPageNextCursor'];
 
 export function restSourcePageReader({moon, source, decodePage}) {
   const original = Object.freeze(Object.fromEntries(names.map(name => {
@@ -24,18 +25,21 @@ export function restSourcePageReader({moon, source, decodePage}) {
   const parameter = source.pagination.parameter;
   const columns = Object.freeze(source.fields.map(field => field.name));
   const transformContext = Object.freeze({resource, columns});
-  const project = (bytes, itemsPath, cursorPath, maxRows) => {
-    const page = checked(original.clientProgramRowSourceProjectJsonPage(bytes,
+  const project = (bytes, itemsPath, cursorPath, maxRows, wire = false) => {
+    const projected = checked((wire ? original.clientProgramRowSourceProjectJsonPage
+      : original.clientProgramRowSourceProjectTypedJsonPage)(bytes,
       itemsPath, cursorPath !== undefined, cursorPath ?? [], bound.maxPageBytes,
       bound.maxNodes, bound.maxDepth, maxRows, bound.maxCursorBytes));
-    const hasNext = original.clientProgramRowSourceJsonPageHasNextCursor(page);
+    const page = wire ? original.clientProgramRowSourceJsonPageOriginal(projected) : projected;
+    const hasNext = original.clientProgramRowSourceTypedJsonPageHasNextCursor(page);
     // Core keeps Option representation inside its bridge. An unknown scalar
     // layout refuses rather than silently becoming EOF or erasing ''.
     if (typeof hasNext !== 'boolean') fail('RestSourceCursorRuntimeBindingMismatch');
     const nextCursor = hasNext
-      ? checked(original.clientProgramRowSourceJsonPageNextCursor(page)) : undefined;
-    return {rowsWire: original.clientProgramRowSourceJsonPageRowsWire(page),
-      rowCount: original.clientProgramRowSourceJsonPageRowCount(page), nextCursor};
+      ? checked(original.clientProgramRowSourceTypedJsonPageNextCursor(page)) : undefined;
+    return {originalPage: page,
+      ...(wire ? {rowsWire: original.clientProgramRowSourceJsonPageRowsWire(projected)} : {}),
+      rowCount: original.clientProgramRowSourceTypedJsonPageRowCount(page), nextCursor};
   };
   const checkCursor = value => {
     if (value !== undefined && (typeof value !== 'string' || !value.isWellFormed() ||
@@ -59,12 +63,13 @@ export function restSourcePageReader({moon, source, decodePage}) {
         if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');
         const remaining = Math.min(bound.maxPageRows, bound.maxRows - rowCount);
         if (remaining < 0) fail('RestSourceRowLimit');
-        let page = project(response.body, items, nextPath, remaining);
+        let page = project(response.body, items, nextPath, remaining, transform !== undefined);
         if (transform !== undefined) {
           // The SAME managed owner invokes and joins even an invalid async
           // author computation. The invoker never enters the author DATA.
           const value = applySynchronousProjection(transform, undefined,
-            [Object.freeze({...page}), transformContext]);
+            [Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,
+              nextCursor: page.nextCursor}), transformContext]);
           if (value === null || typeof value !== 'object' ||
               typeof value.rowsWire !== 'string' ||
               Object.keys(value).some(key => !['rowsWire', 'nextCursor'].includes(key))) {
@@ -92,7 +97,9 @@ export function restSourcePageReader({moon, source, decodePage}) {
           cursors.add(page.nextCursor);
         }
         cursor = page.nextCursor;
-        return Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,
+        // Only the same compiled namespace can admit this opaque parsed page.
+        // It still consumes the original response charge and full row schema.
+        return Object.freeze({projectedPage: page.originalPage, rowCount: page.rowCount,
           done: cursor === undefined});
       },
     });

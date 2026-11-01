@@ -104,6 +104,7 @@ export function createInstalledCredentialSourceReader(options) {
       let consumePage = ownMethod(options, 'consumePage', managedSequence);
       let consumeObservation = managedSequence ? ownMethod(options, 'consumeObservation') : undefined;
       let consumePageWire = ownMethod(options, 'consumePageWire', true);
+      let consumeProjectedPage = ownMethod(options, 'consumeProjectedPage', true);
       let selected = options, selectedSite = sourceSite;
       let stop = new AbortController(); unreturnedStop = stop;
       const originalSignal = options.signal;
@@ -163,7 +164,7 @@ export function createInstalledCredentialSourceReader(options) {
           responses = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = signal = stop = primary = undefined;
           provider = fetchPage = decodePage = runSequence = providerRetire = onError = setupFailure = undefined;
-          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = transportFailure = undefined;
+          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
         } finally {cleanupRunning = false;}
@@ -291,10 +292,14 @@ export function createInstalledCredentialSourceReader(options) {
           // sync keeps any invalid returned computation with this SAME owner.
           const done = sync(page.done);
           const wire = Object.hasOwn(page,'rowsWire');
-          if (typeof done !== 'boolean' || Object.hasOwn(page,'rows') === wire) fail('InvalidInstalledSourceDecodedPage');
-          const rows = sync(wire ? page.rowsWire : page.rows);
-          const count = wire ? sync(page.rowCount) : Array.isArray(rows) ? sync(rows.length) : undefined;
-          if (wire ? typeof rows !== 'string' || consumePageWire === undefined ||
+          const projected = Object.hasOwn(page,'projectedPage');
+          if (typeof done !== 'boolean' ||
+              Number(Object.hasOwn(page,'rows')) + Number(wire) + Number(projected) !== 1) fail('InvalidInstalledSourceDecodedPage');
+          const rows = sync(projected ? page.projectedPage : wire ? page.rowsWire : page.rows);
+          const count = wire || projected ? sync(page.rowCount) : Array.isArray(rows) ? sync(rows.length) : undefined;
+          if (projected ? rows === null || typeof rows !== 'object' || consumeProjectedPage === undefined ||
+              !Number.isSafeInteger(count) || count < 0
+            : wire ? typeof rows !== 'string' || consumePageWire === undefined ||
               !Number.isSafeInteger(count) || count < 0 : !Array.isArray(rows)) fail('InvalidInstalledSourceDecodedPage');
           // The recipe retains the admitted prefix plus one offending body.
           // Preserve a decoder's own refusal; its one-response workspace is
@@ -302,8 +307,9 @@ export function createInstalledCredentialSourceReader(options) {
           if (maxTotalResponseBytes !== undefined && receivedBodyBytes > BigInt(maxTotalResponseBytes)) {
             fail('InstalledSourceResponseByteLimit');
           }
-          await Reflect.apply(wire ? consumePageWire : consumePage, selected,
+          const admitted = await Reflect.apply(projected ? consumeProjectedPage : wire ? consumePageWire : consumePage, selected,
             [rows,Object.freeze({charge})]);
+          if (projected && admitted !== count) fail('InvalidInstalledSourceDecodedPage');
           rowCount += count;
           await verify();
           if (done) return Object.freeze({pages:responseCount,rowCount});
