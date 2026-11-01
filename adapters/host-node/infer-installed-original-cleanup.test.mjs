@@ -9,7 +9,7 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue,requestModel=false,serialized=false,prefixWaiting=false} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -19,7 +19,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   let hostClosing=false,scopeLive=requestModel;
   const runtimeView={}, scopeView={};
   let stop = stopComplete, modelCleanup = modelCleanupComplete;
-  let advances=0;
+  let advances=0, prefixReady=false, prefixResume;
   const nextIssue={kind:'NextModelAdvanceFixtureStop'};
   const preparedCallSet={};
   const moon = {
@@ -72,7 +72,9 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       exact(...args);return args[3]===scope&&scopeLive;
     },
     prepareCheckedClientInferNodeReadLayout(...args) {
-      exact(...args); assert.equal(args[3], scope); calls.push('readPrepare');
+      exact(...args); assert.equal(args[3], scope);
+      if(serialized)assert.equal(prefixReady,true,'Read snapshots must follow prefix Ledger mutations');
+      calls.push('readPrepare');
       if (readIssue !== undefined) throw readIssue;
       return read;
     },
@@ -98,7 +100,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     finishCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.equal(args[3], scope); assert.equal(args[4], true);
       assert.equal(settledRead || installation &&
-        (readIssue !== undefined || scopeBindingIssue !== undefined), true);
+        (readIssue !== undefined || scopeBindingIssue !== undefined ||
+          requestModel && serialized && !requestCarrier.readAttempted), true);
       calls.push('scopeFinish');if(allowScope)scopeLive=false;return allowScope;
     },
   };
@@ -165,6 +168,11 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
       barrier_cid: 'barrier', prepared_rows: 1n, retained_bytes: 7n, execution_bytes: 5n}}});
+  if (serialized) {
+    selected.serializationGraph = {}; plan.serializationGraph = selected.serializationGraph;
+    control.startCheckedClientGeneratedInferExecution = () => assert.fail('No unowned generated Model execution');
+    control.startCheckedClientOriginalGeneratedInferExecution = () => assertChecked(moon.clientProgramStartOriginalInferExecution());
+  }
   let discovered = [];
   const modelController = {discover: () => discovered,
     prime() { assert.fail('fresh original preparation cannot prime restored input'); },
@@ -179,9 +187,17 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   const requestCarrier = {prepared: preparedProgram, control, compiled, runDefinition, graph,
     originalReadInstallation: selected.originalReadInstallation, scope, scopeFinished: false,
     read: undefined, readAttempted: false, taken: false,
+    serializationGraph: selected.serializationGraph,
+    contentPreparation: serialized ? {managed: {}} : undefined,
     budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n}};
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
     selections: new Map([[preparedProgram, selected]]), modelController,
+    runContent: !serialized ? undefined : {async generate({retainExecution}) {
+      assert.equal(requestCarrier.read, undefined); calls.push('prefix'); let held=true;
+      retainExecution({async cleanup() {held=false;calls.push('prefix-cleanup');return true;},cleanupPending:()=>held});
+      if(prefixWaiting)await new Promise(resolve=>{prefixResume=resolve;});
+      prefixReady=true; return {generation:{},sourceEvidence:[]};
+    }},
     prepareOriginalModelRun: !requestModel ? undefined : (p, originalPlan, originalSelected) => {
       assert.equal(p, preparedProgram); assert.equal(originalPlan, plan); assert.equal(originalSelected, selected);
       return requestCarrier;
@@ -199,6 +215,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     modelStopped(value) { stop = value; },
     modelClean(value) { modelCleanup = value; },
     hostClosing(value){hostClosing=value;},
+    finishPrefix(){assert.equal(typeof prefixResume,'function');prefixResume();},
     existing(value) { discovered = value; }};
 }
 
@@ -571,4 +588,26 @@ test('Request-owned installed Model keeps failed read or Scope binding on the sa
     f.scopeAllowed(true); assert.equal(await f.custody().cleanup(), true);
     assert.equal(f.requestCarrier.scopeFinished, true); assert.equal(f.calls.includes('unownedStart'), false);
   }
+});
+
+
+test('Request-owned serialized Model issues read after the same prefix and retains both cleanup duties', async () => {
+  const f = fixture({installation: true, requestModel: true, serialized: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.equal(f.calls.includes('scopeBegin'), false);
+  assert(f.calls.indexOf('prefix') < f.calls.indexOf('readPrepare'));
+  assert.equal(f.requestCarrier.readAttempted, true); assert(f.requestCarrier.read);
+  assert.equal(await f.custody().cleanup(), true);
+  assert(f.calls.indexOf('prefix-cleanup') < f.calls.indexOf('scopeFinish'));
+  assert.equal(f.requestCarrier.scopeFinished, true); assert.equal(f.requestCarrier.read, undefined);
+});
+
+test('Request-owned serialized Model cleanup during prefix await cannot start an unowned or replacement Model', async () => {
+  const f = fixture({installation: true, requestModel: true, serialized: true, prefixWaiting: true});
+  const running = f.run(); assert(f.custody());
+  assert.equal(await f.custody().close(), true); assert.equal(f.requestCarrier.scopeFinished, true);
+  assert.equal(f.requestCarrier.readAttempted, false);
+  f.finishPrefix(); await assert.rejects(running, /InstalledInferOriginalPreparationRetired/);
+  assert.equal(f.calls.includes('scopeBegin'), false); assert.equal(f.calls.includes('readPrepare'), false);
+  assert.equal(f.calls.includes('originalStart'), false); assert.equal(f.calls.includes('unownedStart'), false);
 });

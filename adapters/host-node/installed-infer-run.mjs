@@ -49,6 +49,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     let runtimeBorrow, requestModel;
     const assertOriginalRuntime = () => {
       if (originalInstallation === undefined) return;
+      if (originalScopeReleased) throw new TypeError('InstalledInferOriginalPreparationRetired');
       if (typeof selected.assertTrustedRuntime !== 'function' ||
           typeof selected.currentProvider !== 'function' || !selected.currentProvider()) {
         throw new TypeError('InferTrustedRuntimeViewUnavailable');
