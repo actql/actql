@@ -108,6 +108,7 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
+import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -659,7 +660,8 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   // Retain the actual selected opaque Limits before the module/Plan frame.
   // The nine fixed DATA fields are the existing consumer suffix, not the
   // Model Ledger totals and not a repeat of the old fifteen-number quote.
-  model.selectedBounds = checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
+  model.selectedBounds = model.selection?.selectedBounds ??
+    checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
   const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
   if (!Array.isArray(limits) || limits.length !== 9 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
@@ -2785,7 +2787,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Actual Host/Provider currentness precedes new preparation. The
         // optional explicit startup recipe keeps its own history check; the
         // ordinary trusted Host is not required to supply that recipe.
-        if (physical.originalReadInstallation !== undefined) {
+        if (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) {
           admissionBoundary = 'original_startup';
           if (typeof physical.assertNewTrustedRuntime !== 'function') {
             throw clientOperationError('InferTrustedRuntimeViewUnavailable');
@@ -2819,7 +2821,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         // This original installed Model's module now owns its actual input
         // lowering after the same Request debit. Do not allocate an early
         // standalone prefix/suffix before that backed constructor.
-        const deferredModelInput = preparation !== undefined && physical.originalReadInstallation !== undefined &&
+        const deferredModelInput = preparation !== undefined &&
+          (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
           moon.clientProgramAcquisitionCount(preparedProgram) === 1;
@@ -2873,6 +2876,15 @@ async function openInstalledHost(originalInstallation, preparation) {
           : checked(occurrence === undefined
           ? moon.clientProgramInstalledInferPlanGraph(preparedProgram, step, execution)
           : moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
+        // This installed immutable recipe binds only DATA from the actual
+        // already-backed Graph. It cannot prepare another Program/Request or
+        // replace the native Plan's original/profile/whole-read checks.
+        const selectedBounds = physical.originalReadRecipe === undefined ? undefined
+          : checked(moon.clientProgramPreparedComposedInferBounds(occurrence, graph));
+        const originalReadInstallation = physical.originalReadRecipe === undefined
+          ? physical.originalReadInstallation : bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph,
+            moon.clientProgramComposedInferRetainedLimits(selectedBounds));
+        physical.assertNewTrustedRuntime?.();
         admissionBoundary = 'provider_binding';
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
@@ -2880,7 +2892,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             prepareSubmit.kindOf(preparedProgram) !== 'effectful' && preparation !== undefined
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
-        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph,
+        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds,
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
@@ -2957,14 +2969,14 @@ async function openInstalledHost(originalInstallation, preparation) {
               return physical.physicalPreflight(request, ioNotification,
                 rawCaptureBinder, admittedProvider);
             },
-          originalReadInstallation: physical.originalReadInstallation,
+          originalReadInstallation,
           // Private actual installation predicate for the closed role supplier.
           // Neither registration DATA nor an eager flag can provide it.
           requireEagerSdkStartup: physical.requireEagerSdkStartup,
           // DATA from the actual opened Store already bound by this Host,
           // never a dimension packet from the Provider or public request.
           // The normal supplier/current resource admission is still separate.
-          originalStorageDimensions: physical.originalReadInstallation === undefined
+          originalStorageDimensions: originalReadInstallation === undefined
             ? undefined : selectedInferTrustedStoreDimensions(modelRuntimeView,
               runtimeOriginals(), store, publicationStoreModule),
           rawCaptureSelection: physical.rawCaptureSelection,

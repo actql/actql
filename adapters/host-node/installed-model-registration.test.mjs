@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installModelProviders} from './installed-model.mjs';
-import {selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
+import {selectedInferOriginalCurrentStateCodec, bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
 
@@ -26,6 +26,66 @@ const originalInstallation = () => ({
     layout: {response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
       barrier_cid: 'barrier', prepared_rows: 3n, retained_bytes: 7n, execution_bytes: 5n}}});
+
+const nativeRecipeLimits = [11n, 12n, 70n, 30n, 90n, 40n, 9n, 10n, 11n];
+
+const originalRecipe = () => {
+  const value = originalInstallation();
+  for (const name of ['program_definition_cid', 'parameter_values_cid', 'barrier_cid']) {
+    delete value.nodeInstallation.layout[name];
+  }
+  return value;
+};
+
+test('installed read recipe binds only the same selected Graph identities without another preparation', () => {
+  const {moon, entry, counts} = fixture(), recipe = originalRecipe(), graph = {};
+  const calls = [], id = letter => `sha256:${letter.repeat(64)}`;
+  moon.clientProgramInferPlanProgramCid = value => {assert.equal(value, graph); calls.push('program'); return id('a');};
+  moon.clientProgramInferPlanParametersCid = value => {assert.equal(value, graph); calls.push('parameters'); return id('b');};
+  moon.clientProgramInferPlanBoundary = value => {assert.equal(value, graph); calls.push('boundary'); return {_0: 4, _1: 0, _2: 0, _3: id('c')};};
+  const physical = installModelProviders(moon, () => [{...entry, originalReadRecipe: recipe}]).get(entry.providerId);
+  const profile = recipe.nodeInstallation.layout.response_profile;
+  recipe.nodeInstallation.layout.retained_bytes = 999n;
+  const bound = bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph, nativeRecipeLimits);
+  assert.deepEqual(calls, ['program', 'parameters', 'boundary']);
+  assert.equal(bound.nodeInstallation.layout.response_profile, profile);
+  assert.equal(bound.nodeInstallation.layout.retained_bytes, 77n);
+  assert.equal(bound.nodeInstallation.layout.program_definition_cid, id('a'));
+  assert.equal(bound.nodeInstallation.layout.parameter_values_cid, id('b'));
+  assert.equal(bound.nodeInstallation.layout.barrier_cid, id('c'));
+  assert.equal(bound.modelRetainedBytes, 190n);
+  assert.equal(bound.modelExecutionBytes, 45n);
+  assert.equal(bound.bootstrap.bootstrapRetainedBytes, 31n);
+  assert.equal(bound.bootstrap.maxHoldings, 10);
+  assert.equal(physical.originalReadInstallation, undefined);
+  assert.ok(Object.isFrozen(bound.nodeInstallation.layout));
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+  assert.throws(() => bindInferOriginalReadRecipe(moon, {...physical.originalReadRecipe}, graph, nativeRecipeLimits),
+    {code: 'InferOriginalReadRecipeUnavailable'});
+  assert.throws(() => bindInferOriginalReadRecipe(moon, bound, graph, nativeRecipeLimits),
+    {code: 'InferOriginalReadRecipeUnavailable'});
+});
+
+test('installed read recipe refuses partial identities and competing fixed installations before provider construction', () => {
+  for (const change of [value => {value.originalReadRecipe.nodeInstallation.layout.program_definition_cid = 'copied';},
+    value => {value.originalReadInstallation = originalInstallation();}]) {
+    const {moon, entry, counts} = fixture(), value = {...entry, originalReadRecipe: originalRecipe()};
+    change(value);
+    assert.throws(() => installModelProviders(moon, () => [value]), /InvalidInstalledInferOriginalReadInstallation/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
+
+test('installed read recipe refuses missing or malformed original getters without any fallback', () => {
+  const {moon, entry} = fixture(), graph = {};
+  const original = installModelProviders(moon, () => [{...entry, originalReadRecipe: originalRecipe()}])
+    .get(entry.providerId).originalReadRecipe;
+  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits), {code: 'InferOriginalReadRecipeUnavailable'});
+  moon.clientProgramInferPlanProgramCid = () => 'copied';
+  moon.clientProgramInferPlanParametersCid = () => `sha256:${'b'.repeat(64)}`;
+  moon.clientProgramInferPlanBoundary = () => ({_3: `sha256:${'c'.repeat(64)}`});
+  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits), {code: 'InferOriginalReadRecipeUnavailable'});
+});
 
 test('metadata declaration is captured only by the retained original installation and exact selection', () => {
   const {moon, entry, counts} = fixture();

@@ -1,3 +1,5 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
+
 // Trusted installation declaration only. It selects the existing Common
 // scope/layout issuer; these values neither prove physical adequacy nor issue
 // a new grant. The reviewed installation must cover initialization before a
@@ -121,6 +123,67 @@ function retainPublicationCapacity(value) {
 }
 
 export function retainInferOriginalReadInstallation(value) {
+  return retainOriginalReadDeclaration(value, false);
+}
+
+// The installation owns the actual Profile and complete all-row envelope.
+// The three per-Program identities are bound later from the SAME checked Graph,
+// before its original module/Plan/Scope constructor. This DATA issues no grant.
+export function retainInferOriginalReadRecipe(value) {
+  return retainOriginalReadDeclaration(value, true);
+}
+
+export function bindInferOriginalReadRecipe(moon, original, graph, limits) {
+  if (!originals.has(original) || graph === undefined ||
+      Object.hasOwn(original.nodeInstallation.layout, 'program_definition_cid') ||
+      typeof moon.clientProgramInferPlanProgramCid !== 'function' ||
+      typeof moon.clientProgramInferPlanParametersCid !== 'function' ||
+      typeof moon.clientProgramInferPlanBoundary !== 'function' ||
+      !Array.isArray(limits) || limits.length !== 9 ||
+      limits.some(value => !int64(value, 0n)) ||
+      limits.slice(6).some(value => value > 2147483647n)) {
+    throw Object.assign(new Error('InferOriginalReadRecipeUnavailable'),
+      {code: 'InferOriginalReadRecipeUnavailable'});
+  }
+  const program = moon.clientProgramInferPlanProgramCid(graph);
+  const parameters = moon.clientProgramInferPlanParametersCid(graph);
+  const barrier = runtimeField(moon.clientProgramInferPlanBoundary(graph), 3);
+  if (![program, parameters, barrier].every(value =>
+    typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value))) {
+    throw Object.assign(new Error('InferOriginalReadRecipeUnavailable'),
+      {code: 'InferOriginalReadRecipeUnavailable'});
+  }
+  const add = (a, b) => {
+    const value = a + b;
+    if (!int64(value, 0n)) throw Object.assign(new Error('InferOriginalReadRecipeUnavailable'),
+      {code: 'InferOriginalReadRecipeUnavailable'});
+    return value;
+  };
+  // Native construction/read/Model bounds stay intact. The installed recipe
+  // adds its separately declared Node controls and physical buffer overlap;
+  // it cannot replace or lower any stored native allowance.
+  return retainInferOriginalReadInstallation({...original,
+    bootstrap: {...original.bootstrap,
+      bootstrapRetainedBytes: add(limits[0], original.bootstrap.bootstrapRetainedBytes),
+      bootstrapExecutionBytes: add(limits[1], original.bootstrap.bootstrapExecutionBytes),
+      maxReservations: Math.max(Number(limits[6]), original.bootstrap.maxReservations),
+      maxHoldings: Math.max(Number(limits[7]), original.bootstrap.maxHoldings),
+      maxDelegations: Math.max(Number(limits[8]), original.bootstrap.maxDelegations)},
+    modelRetainedBytes: add(limits[4], original.modelRetainedBytes),
+    modelExecutionBytes: add(limits[5], original.modelExecutionBytes),
+    ...(original.currentStateCodec === undefined ? {} : {currentStateCodec: {
+      ...original.currentStateCodec, comparisonWork: Math.max(original.currentStateCodec.comparisonWork,
+        2 + Math.max(Number(limits[6]), original.bootstrap.maxReservations) +
+        Math.max(Number(limits[7]), original.bootstrap.maxHoldings) +
+        Math.max(Number(limits[8]), original.bootstrap.maxDelegations))}}),
+    nodeInstallation: {...original.nodeInstallation, layout: {
+      ...original.nodeInstallation.layout, program_definition_cid: program,
+      parameter_values_cid: parameters, barrier_cid: barrier,
+      retained_bytes: add(limits[2], original.nodeInstallation.layout.retained_bytes),
+      execution_bytes: add(limits[3], original.nodeInstallation.layout.execution_bytes)}}});
+}
+
+function retainOriginalReadDeclaration(value, recipe) {
   if (value === undefined) return undefined;
   const fail=()=>{throw new TypeError('InvalidInstalledInferOriginalReadInstallation');};
   value=snapshotData(value,['bootstrap','modelExecutionBytes','modelRetainedBytes','nodeInstallation'],
@@ -129,8 +192,9 @@ export function retainInferOriginalReadInstallation(value) {
     'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations',fail);
   const node=exactData(value.nodeInstallation,
     'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid',fail);
-  const layout=exactData(node.layout,
-    'barrier_cid,execution_bytes,layout_artifact_cid,parameter_values_cid,prepared_rows,program_definition_cid,response_profile,retained_bytes,runtime_artifact_cid',fail);
+  const layout=exactData(node.layout,recipe
+    ? 'execution_bytes,layout_artifact_cid,prepared_rows,response_profile,retained_bytes,runtime_artifact_cid'
+    : 'barrier_cid,execution_bytes,layout_artifact_cid,parameter_values_cid,prepared_rows,program_definition_cid,response_profile,retained_bytes,runtime_artifact_cid',fail);
   const installation=snapshotData(node.installation,undefined,[],fail);
   const sdk=installation.sdk===undefined || installation.sdk===null ? installation.sdk
     : snapshotData(installation.sdk,undefined,[],fail);
