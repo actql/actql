@@ -9479,7 +9479,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "38e9b3703d6b7c13b9f875acad63d134bf97a5c85d56655b42179e6286b70b6c",
+      "sha256": "81fa57d432d98c223dd545165e5519b0077fffb3c42c5c28a17044031f909981",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10791,6 +10791,13 @@
           "async": false
         },
         {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareImmutablePhysicalTargets/mismatch/mismatch",
           "parameters": [],
           "async": false
@@ -11281,7 +11288,8 @@
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target"
           ],
           "exports": [
             "createInstalledRowSource",

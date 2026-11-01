@@ -122196,13 +122196,61 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf02bdb794dd97e29588d02f14f0db477b61b8b0579b0143d499e55c3810ba59",
+      "sha256": "c1ce0cb31c0aa7215768a644b989af920b0eedbb86e383486ec51fa8053d7a39",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
         "createInstalledRestSource"
       ],
       "operations": [
+        {
+          "name": "capturePhysicalTargetConstruction",
+          "parameters": [
+            "sourceInitialization",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
+          "parameters": [
+            "sources",
+            "declared",
+            "physicalTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
         {
           "name": "cid/cid",
           "parameters": [
@@ -122296,20 +122344,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/load",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRestSource/load/load/load",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
           "parameters": [
             "value",
@@ -122397,6 +122431,7 @@
       ],
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/runtime-result.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
@@ -122424,8 +122459,6 @@
             "createInstalledRestSource/load/limits/limits#2",
             "createInstalledRestSource/load/limits/limits#3",
             "createInstalledRestSource/load/limits/limits#4",
-            "createInstalledRestSource/load/load",
-            "createInstalledRestSource/load/load/load",
             "createInstalledRestSource/load/opened/init:admitsApprovalTarget/init:admitsApprovalTarget",
             "createInstalledRestSource/load/pageBounds/pageBounds",
             "createInstalledRestSource/load/pageBounds/pageBounds#2",
@@ -122437,7 +122470,14 @@
             "createInstalledRestSource/load/services/services",
             "createInstalledRestSource/load/targets/targets",
             "createInstalledRestSource/publish",
-            "fail/fail"
+            "fail/fail",
+            "capturePhysicalTargetConstruction",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view"
           ],
           "exports": [
             "createInstalledRestSource"

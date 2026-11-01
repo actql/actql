@@ -65,37 +65,35 @@ function prepareImmutablePhysicalTargets(value) {
   const arrayValues = input => {
     if (!Array.isArray(input) || nodeTypes.isProxy(input) || !Object.isFrozen(input) ||
         Object.getPrototypeOf(input) !== Array.prototype) mismatch();
-    const properties = Object.getOwnPropertyDescriptors(input), length = properties.length.value;
-    if (Reflect.ownKeys(properties).length !== length + 1) mismatch();
-    const values = [];
+    const length = Object.getOwnPropertyDescriptor(input, 'length').value;
+    if (Reflect.ownKeys(input).length !== length + 1) mismatch();
     for (let index = 0; index < length; index++) {
-      const property = properties[index];
+      const property = Object.getOwnPropertyDescriptor(input, index);
       if (!property || !Object.hasOwn(property, 'value')) mismatch();
-      values.push(property.value);
     }
-    return values;
+    return input;
   };
-  const targets = new Map();
-  for (const input of arrayValues(value)) {
+  const resources = new Set();
+  const inventory = arrayValues(value);
+  for (const input of inventory) {
     if (input === null || typeof input !== 'object' || nodeTypes.isProxy(input) ||
         !Object.isFrozen(input) || Object.getPrototypeOf(input) !== Object.prototype) mismatch();
-    const properties = Object.getOwnPropertyDescriptors(input), target = {};
-    for (const key of Reflect.ownKeys(properties)) {
-      const property = properties[key];
+    for (const key of Reflect.ownKeys(input)) {
+      const property = Object.getOwnPropertyDescriptor(input, key);
       if (typeof key !== 'string' || !Object.hasOwn(property, 'value') ||
           !property.enumerable || key !== 'fields' && typeof property.value !== 'string') mismatch();
-      Object.defineProperty(target, key, {value: property.value, enumerable: true, configurable: true});
     }
-    if (!text(target.resource) || targets.has(target.resource) || !Object.hasOwn(target, 'fields')) mismatch();
-    const fields = arrayValues(target.fields);
+    if (!text(input.resource) || resources.has(input.resource) || !Object.hasOwn(input, 'fields')) mismatch();
+    const fields = arrayValues(input.fields);
     if (fields.some(field => !text(field)) || new Set(fields).size !== fields.length) mismatch();
-    Object.defineProperty(target, 'fields', {value: Object.freeze(fields), enumerable: true});
-    targets.set(target.resource, Object.freeze(target));
+    resources.add(input.resource);
   }
-  if (targets.size === 0) mismatch();
-  const inventory = Object.freeze([...targets.values()]);
+  if (inventory.length === 0) mismatch();
+  resources.clear();
+  // The existing Source constructor already retains these exact immutable
+  // outputs. Do not allocate another inventory, target Map or field arrays.
   return Object.freeze({inventory, prepare(resource, fields) {
-    const target = targets.get(resource);
+    const target = inventory.find(target => target.resource === resource);
     if (target === undefined || !Array.isArray(fields) || new Set(fields).size !== fields.length ||
         fields.some(field => !target.fields.includes(field))) mismatch();
     return Object.freeze({...target, fields: Object.freeze([...fields])});

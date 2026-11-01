@@ -87,7 +87,7 @@ const sourceInitialization=ports.sourceInitialization?{}:undefined;
 let constructionClosed=false,acquisitionContracts={};
 function closeInstalledSourceConstruction(actual,owner){assert.equal(actual,sourceInitialization);assert.equal(owner,installedSource);counts.constructionCloses++;}
 const installedSource=Object.freeze({${slice(close)}});
-return {initial,state,site,counts,ordinaryRecoveryBinding,close:()=>installedSource.close(),
+return {inventoryOriginal:immutableTargets?.inventory,initial,state,site,counts,ordinaryRecoveryBinding,close:()=>installedSource.close(),
  async verify(prepared,signal){const result=await currentRead(prepared,sourceAccess,signal);counts.completedChecks++;return result;}};
 `.replaceAll('assert.', 'ports.assert.'));
 
@@ -202,4 +202,12 @@ test('immutable target constructor refuses mutable/accessor/proxy and malformed 
     new Proxy(inventory(), {ownKeys() {accesses++;throw new Error('must not enumerate');}})];
   for (const input of bad) assert.throws(() => fixture(input), {code: 'InstalledSourcePreparationMismatch'});
   assert.equal(accesses, 0);
+});
+
+
+test('immutable target selection borrows the same Source inventory without a second retained snapshot',()=>{
+  const input=inventory(),f=fixture(input);
+  assert.equal(f.inventoryOriginal,input);assert.equal(f.inventoryOriginal[0],targetData);
+  assert.equal(f.inventoryOriginal[0].fields,targetData.fields);
+  const prepared=f.initial();assert.deepEqual(prepared.physicalBinding.fields,['id','score']);
 });
