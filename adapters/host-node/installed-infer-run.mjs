@@ -16,7 +16,7 @@ import {selectedInferOriginalCurrentStateCodec,
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
   checkpoints, prepareAcquisition, sourceAccessFor, runContent, prepareKeyedRecovery,
-  prepareOriginalMockRun,
+  prepareOriginalMockRun, prepareOriginalModelRun,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
   const run = async ({preparedProgram, plan, store, principalId, signal,
@@ -46,7 +46,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         registry, values, fragment, ordered, computeConfigurations, originalPreparation});
     }
     const originalInstallation = selected.originalReadInstallation;
-    let runtimeBorrow;
+    let runtimeBorrow, requestModel;
     const assertOriginalRuntime = () => {
       if (originalInstallation === undefined) return;
       if (typeof selected.assertTrustedRuntime !== 'function' ||
@@ -57,7 +57,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         if (typeof selected.assertNewTrustedRuntime !== 'function') {
           throw new TypeError('InferTrustedRuntimeViewUnavailable');
         }
-        selected.assertNewTrustedRuntime();
+        if (requestModel === undefined) selected.assertNewTrustedRuntime();
+        else {
+          selected.assertTrustedRuntime();
+          if (!control.checkedClientInferOriginalReadScopeLive(plan.compiled,
+            plan.runDefinition, selected.graph, requestModel.scope)) {
+            throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+          }
+        }
       } else {
         selected.assertTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
           plan.compiled, plan.runDefinition, selected.graph);
@@ -75,7 +82,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new TypeError('InstalledInferOriginalReadInstallationUnavailable');
     }
     if (originalInstallation !== undefined &&
-        ['beginCheckedClientInferOriginalReadScope', 'prepareCheckedClientInferNodeReadLayout',
+        [...(prepareOriginalModelRun === undefined ? ['beginCheckedClientInferOriginalReadScope'] : []),
+          'prepareCheckedClientInferNodeReadLayout',
           'claimCheckedClientInferNodePreparationLayout', 'startCheckedClientInferOriginalPreparation',
           'stopCheckedClientInferOriginalReadPreparation', 'settleCheckedClientInferOriginalReadPreparation',
           'finishCheckedClientInferOriginalReadScope',
@@ -84,6 +92,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           'assertTrustedRuntimeScope','finishTrustedRuntimeScope']
           .some(name=>typeof selected[name]!=='function')) {
       throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
+    }
+    if (originalInstallation !== undefined && prepareOriginalModelRun !== undefined) {
+      if (typeof prepareOriginalModelRun !== 'function') throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
+      requestModel = prepareOriginalModelRun(preparedProgram, plan, selected);
+      if (requestModel === null || typeof requestModel !== 'object' ||
+          requestModel.prepared !== preparedProgram || requestModel.control !== control ||
+          requestModel.compiled !== plan.compiled || requestModel.runDefinition !== plan.runDefinition ||
+          requestModel.graph !== selected.graph || requestModel.originalReadInstallation !== originalInstallation ||
+          requestModel.scope === undefined || requestModel.scopeFinished || requestModel.closed ||
+          requestModel.taken || requestModel.readAttempted || requestModel.read !== undefined) {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
     }
     // Installation-only original custody. Public request data and restored
     // inputs cannot mint a fresh read or replace its original scope/Ledger.
@@ -243,6 +263,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           control.settleCheckedClientInferOriginalReadPreparation(plan.compiled,
             plan.runDefinition, selected.graph, originalPreparation.read, true);
           originalReadSettled = true;
+          if (requestModel !== undefined) requestModel.read = undefined;
         }
         // All actual children of this fresh single-component custody have
         // acknowledged cleanup. The original Core census still refuses any
@@ -253,6 +274,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           : selected.finishTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
             plan.compiled, plan.runDefinition, selected.graph)) === true;
         if (originalScopeReleased) {
+          if (requestModel !== undefined) {
+            requestModel.scopeFinished = true;
+            requestModel.read = undefined;
+            requestModel = undefined;
+          }
           runtimeBorrow = undefined;
           originalPreparation = undefined;
         }
@@ -288,22 +314,23 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // These fixed installation values must have the reviewed initial/full
       // phase basis. Presence or passing Common support checks is not proof.
       let scope;
-      try {
-        // Known absence was checked before Run admission. Repeat current
-        // validation here, with SAME custody retained, before any Scope/read
-        // or physical Model child exists. A late refusal releases none of
-        // another Run's duties and never turns an entered Call into unsent.
-        assertOriginalRuntime();
-        scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
-          plan.runDefinition, selected.graph,
-          {...originalInstallation.bootstrap, quantityCapacity: selected.quantityCapacity});
-      } catch (error) {
-        // The existing issuer's refusal is atomic and returned no scope. Do
-        // not invent one to clean up, nor leave a nonexistent read pending.
-        originalReadPhysicalReleased = true;
-        originalReadSettled = true;
-        originalScopeReleased = true;
-        throw error;
+      if (requestModel !== undefined) {
+        // The existing Host bag retained/adopted this SAME Scope before
+        // dispatch. Taking it creates no Scope or independent Run admission.
+        scope = requestModel.scope;
+        requestModel.taken = true;
+      } else {
+        try {
+          assertOriginalRuntime();
+          scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
+            plan.runDefinition, selected.graph,
+            {...originalInstallation.bootstrap, quantityCapacity: selected.quantityCapacity});
+        } catch (error) {
+          originalReadPhysicalReleased = true;
+          originalReadSettled = true;
+          originalScopeReleased = true;
+          throw error;
+        }
       }
       originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
         control, scope, read: undefined,
@@ -320,14 +347,28 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           cleanup: () => operation === undefined ? true : operation.cleanup(),
           cleanupPending: () => operation?.cleanupPending() ?? false})};
       try {
-        // Retaining the issued Scope above precedes this fallible association;
-        // refusal therefore cannot lose its original cleanup responsibility.
+        // Retain the SAME existing Scope on both its Request carrier and
+        // execution custody before either runtime binding or read can fail.
+        if (requestModel !== undefined) assertOriginalRuntime();
         runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
           plan.runDefinition, selected.graph);
         assertOriginalRuntime();
+        if (requestModel !== undefined) requestModel.readAttempted = true;
         originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
           plan.compiled, plan.runDefinition, selected.graph, scope,
           originalInstallation.nodeInstallation);
+        if (requestModel !== undefined) {
+          requestModel.read = originalPreparation.read;
+          assertOriginalRuntime();
+          if (requestModel.scope !== scope || requestModel.compiled !== plan.compiled ||
+              requestModel.runDefinition !== plan.runDefinition || requestModel.graph !== selected.graph ||
+              requestModel.read !== originalPreparation.read || requestModel.scopeFinished || requestModel.closed) {
+            throw new TypeError('InvalidInstalledRequestModelPreparation');
+          }
+        }
+      } catch (cause) {
+        if (requestModel !== undefined) requestModel.readFailure = cause;
+        throw cause;
       } finally { Object.freeze(originalPreparation); }
     }
     if (restoredInput?.capturedContent !== undefined) {
