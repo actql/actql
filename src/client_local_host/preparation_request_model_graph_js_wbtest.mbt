@@ -755,7 +755,7 @@ test "same Request acquired Model prefix binds the retained original Query and k
   assert_eq(@execution.completed_row_count(output.unwrap()), 1)
   assert_eq(
     @execution.completed_output_row_wire(output.unwrap(), 0, 10000, 1000, 100).unwrap(),
-    "{\"id\":1,\"text\":\"hello\"}",
+    "{\"amount\":7,\"id\":1,\"text\":\"hello\"}",
   )
   assert_eq(
     @resources.ledger_usage(ledger).transferred_bytes,

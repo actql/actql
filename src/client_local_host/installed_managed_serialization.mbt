@@ -348,16 +348,33 @@ fn start_installed_managed_serialization_prefix_owned(
               inputs
             }
           }
-          match
-            check_installed_managed_run_original(owner, ledger, preparation) {
+          // Acquired input/liveness callbacks crossed a new boundary. Observe
+          // the SAME physical Run current once after them, then fence every
+          // retained original without another callback. Empty-input startup
+          // keeps its existing callback-free post-construction fence.
+          let current_ledger = match original_capture {
+            None =>
+              check_installed_managed_run_original(owner, ledger, preparation)
+            Some(_) => require_installed_managed_run(owner)
+          }
+          match current_ledger {
             Err(issue) => return Err(issue)
-            Ok(_) => ()
+            Ok(current) if physical_equal(current, ledger) => ()
+            Ok(_) => return Err(ForeignOriginal)
           }
           guard owner.content is SerializationContent(original) &&
             physical_equal(original, selected) &&
             owner.serialization_prefix is Some(original_prefix) &&
             physical_equal(original_prefix, prefix) else {
             return Err(ForeignOriginal)
+          }
+          if original_capture is Some((_, plan, capacity, _)) {
+            guard owner.captured_preparation is Some(current) &&
+              physical_equal(current, plan) &&
+              plan.captures.length() == 1 &&
+              physical_equal(plan.captures[0], capacity) else {
+              return Err(ForeignOriginal)
+            }
           }
           provider_entered.val = true
           match
