@@ -33,6 +33,21 @@ its current/runtime/control checks, and compiler manifests remain prepared
 during installation. Later Request requirements reuse those strings without
 issuing another admission or moving installation work into the first query.
 
+The Environment composer retains its same-call body, exact wire and evidence
+CID, runtime and actual checking original. Existing wire consumers and the
+Host's private record projection use one constructor. Independently supplied
+publications still require encoding, self-CID, size and semantic admission;
+the composer's own newly encoded body does not need another parse or hash.
+No path, CID or previous Host result selects a cached admission.
+
+Host open uses that body while its complete input is unchanged. A changed
+Model or Task result keeps its own document and evidence CID; changed Host
+policy and Calendar metadata keep their original encoding rules. The final
+graph/text/Calendar checker remains mandatory with its actual flags and law
+CIDs. The startup body alias is cut before that check, without claiming a
+physical release or changing failed-initialization custody. Same-call sorting
+hashes each distinct member once, and needs no hash for zero or one member.
+
 ## Captured native Program input
 
 The normal Node representation reader projects DATA from the SDK's detached

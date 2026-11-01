@@ -151,7 +151,7 @@ import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedStartupView, bindInferTrustedStore,
   checkInferTrustedStore, selectedInferTrustedStoreDimensions, bindInferTrustedSdkStaticModules,
   checkInferTrustedSdkStaticModules, checkInferTrustedSdkEagerModules} from './infer-trusted-runtime-view.mjs';
-import {composeInstalledCheckEnvironment,
+import {composeInstalledCheckEnvironmentOriginal,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {installNodeResultAccessService,
@@ -1336,6 +1336,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let sourceProfile;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
+  let environmentBody, environmentEvidenceCid;
   let updateTargetOriginals;
   function assertMockEffectRunOriginal(original) {
     assertProjectRuntime();
@@ -1651,9 +1652,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     reserveInstalledSourceEnvironment(installationServices, baseEnvironmentWire,
       sourceProfile?.environmentWire, effectInstallation?.environmentWire);
-    environmentWire = composeInstalledCheckEnvironment(moon,
+    const composedEnvironment = composeInstalledCheckEnvironmentOriginal(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
+    environmentWire = composedEnvironment.wire;
     if (mockModels === undefined) {
       environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
         environmentWire, modelInstallation);
@@ -1670,38 +1672,61 @@ async function openInstalledHost(originalInstallation, preparation) {
         assertCurrent: assertProjectRuntime,
       });
     }
-    const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
-    void ignored;
-    body.host_policy_profile = {...body.host_policy_profile,
-      capacity: {max_graph_construction_edges: 1000,
-        max_graph_construction_input_rows: 1000,
-        max_graph_construction_nodes: 1000, ...body.host_policy_profile.capacity}};
-    if (calendarArtifact !== undefined) {
-      body.host_policy_profile.calendar = installedCalendarSelection(calendarArtifact);
+    let body;
+    if (environmentWire === composedEnvironment.wire) {
+      body = {...composedEnvironment.body};
+    } else {
+      // A changed Model input is a new document, not the composer's original.
+      const {evidence_bundle_cid: ignored, ...selectedBody} = JSON.parse(environmentWire);
+      void ignored;
+      body = selectedBody;
+    }
+    const capacity = body.host_policy_profile.capacity;
+    const policyChanged = calendarArtifact !== undefined ||
+      !Object.hasOwn(capacity, 'max_graph_construction_edges') ||
+      !Object.hasOwn(capacity, 'max_graph_construction_input_rows') ||
+      !Object.hasOwn(capacity, 'max_graph_construction_nodes');
+    if (policyChanged) {
+      body.host_policy_profile = {...body.host_policy_profile,
+        capacity: {max_graph_construction_edges: 1000,
+          max_graph_construction_input_rows: 1000,
+          max_graph_construction_nodes: 1000, ...capacity}};
+      if (calendarArtifact !== undefined) {
+        body.host_policy_profile.calendar = installedCalendarSelection(calendarArtifact);
+      }
     }
     if (hostCapacityPolicy !== undefined) {
       effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
     }
     // Semantic artifact metadata is exact value data, not NFC configuration
     // text. Keep the original serialization path when no Calendar is selected.
-    environmentWire = calendarArtifact === undefined
-      ? canonicalJson({...body, evidence_bundle_cid: contentCid(body)})
-      : canonicalValueJson({...body,
-        evidence_bundle_cid: bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'))});
+    if (!policyChanged && environmentWire === composedEnvironment.wire) {
+      environmentEvidenceCid = composedEnvironment.evidenceCid;
+    } else {
+      environmentEvidenceCid = calendarArtifact === undefined ? contentCid(body)
+        : bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'));
+      environmentWire = calendarArtifact === undefined
+        ? canonicalJson({...body, evidence_bundle_cid: environmentEvidenceCid})
+        : canonicalValueJson({...body, evidence_bundle_cid: environmentEvidenceCid});
+    }
+    environmentBody = body;
     if (projectTasks !== undefined) {
       // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
       // original public Task identifier or rebuild its preimage in JS.
       if (mockModels === undefined) {
         environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
-          JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+          environmentEvidenceCid).environmentWire;
       } else {
         // All Task/prompt/execution/retry/backoff bodies came from this same
         // Common profile/normalization. Do not rewrite the original model or
         // choose a different Task/provider from current registry defaults.
         modelInstallation = mockModels.modelInstallationForRuntime(moon, environmentWire,
-          JSON.parse(environmentWire).evidence_bundle_cid);
+          environmentEvidenceCid);
         environmentWire = modelInstallation.environmentWire;
       }
+      // Read a newly issued Task document at the existing final-check phase,
+      // after connector binding validation, without retaining the old body.
+      environmentBody = environmentEvidenceCid = undefined;
     }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
@@ -1728,7 +1753,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     return original.preparedEnvironment;
   }
   try {
-    evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
+    if (environmentBody === undefined) {
+      const {evidence_bundle_cid: selectedEvidenceCid, ...selectedBody} = JSON.parse(environmentWire);
+      environmentEvidenceCid = selectedEvidenceCid;
+      environmentBody = selectedBody;
+    }
+    evidenceCid = environmentEvidenceCid;
     const numericProfile = JSON.parse(preparation === undefined
       ? await readFile(join(packageRoot,
         'spec/contracts/actql-numeric-reduction.json'), 'utf8')
@@ -1741,9 +1771,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparation.readAsset('spec/dependencies/actql-graph-laws.json'));
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
+    const textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
+    environmentBody = undefined;
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
       environmentWire, evidenceCid,
-      JSON.parse(environmentWire).host_policy_profile?.text_time_evaluation !== undefined,
+      textTimeEnabled,
       true, true, true, true,
       calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
     if (environment !== undefined) {

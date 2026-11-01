@@ -8,6 +8,7 @@ import './installed-connector-table-loading.test.mjs';
 import './installed-connector-table-profile.test.mjs';
 import './installed-connector-table-public.test.mjs';
 import './collection-mapping.test.mjs';
+import './installed-check-environment-original.test.mjs';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
