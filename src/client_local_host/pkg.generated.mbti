@@ -202,6 +202,8 @@ pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
 
+pub fn cleanup_installed_managed_keyed_serialization_prefix(ClientInstalledManagedRun, ClientInstalledManagedKeyedPreparation) -> Result[Bool, ClientInstalledManagedRunIssue]
+
 pub fn cleanup_installed_managed_serialization_prefix(ClientInstalledManagedRun, ClientInstalledManagedSerializationPreparation) -> Result[Bool, ClientInstalledManagedRunIssue]
 
 pub fn[I, P] clear_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -760,6 +762,8 @@ pub fn prepared_installed_managed_capture_acquisition(ClientInstalledManagedCapt
 
 pub fn prepared_installed_managed_capture_requirements(ClientInstalledManagedCapturePlan) -> Array[Int64]
 
+pub fn prepared_installed_managed_keyed_prefix_requirements(ClientInstalledManagedKeyedPreparation) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
+
 pub fn prepared_installed_managed_model_requirements(ClientInstalledManagedModelPlan) -> Array[Int64]
 
 pub fn prepared_installed_managed_publication_limits(ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
@@ -945,6 +949,8 @@ pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccu
 pub fn start_installed_effect_operation(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_keyed_source_read_rows(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+
+pub fn start_installed_managed_keyed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedKeyedPreparation, @execution_query.CapturedInputSource, @run_publication_host.ClientKeyedLookupInput) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_managed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 

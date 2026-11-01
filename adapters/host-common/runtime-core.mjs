@@ -6603,6 +6603,23 @@ export function contentGenerationControl(moon, publications) {
     cleanupRequestPrefix(run, selected) {
       return checked(moon.clientProgramInstalledManagedSerializationPrefixCleanup(run, selected));
     },
+    requestKeyedPrefixCapacity(selected) {
+      const value = checked(moon.clientProgramPreparedInstalledKeyedPrefixRequirements(selected));
+      if (!Array.isArray(value) || value.length !== 6 ||
+          value.some(n => typeof n !== 'bigint' || n < 0n || n > 9223372036854775807n) ||
+          value[0] !== 0n || value[1] !== 1n || value[2] !== 0n || value[3] !== 0n) {
+        throw new TypeError('Invalid keyed Content prefix requirements');
+      }
+      return Object.freeze({retainedBytes: value[4], executionBytes: value[5]});
+    },
+    startRequestKeyedPrefix(run, program, selected, source, lookup) {
+      const prefix = checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixStart(
+        run, program, selected, source, lookup));
+      prefixes.add(prefix); return prefix;
+    },
+    cleanupRequestKeyedPrefix(run, selected) {
+      return checked(moon.clientProgramInstalledManagedKeyedSerializationPrefixCleanup(run, selected));
+    },
     prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
       // Revalidate through the same provider before reserve/start. Capacity
       // inspection alone is neither a reservation nor permission to execute.

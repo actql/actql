@@ -121,7 +121,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
-    let ledger, managed, capacity;
+    let ledger, managed, capacity, selectedKeyed;
     if (acquiredContent === undefined && !intermediate) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
@@ -133,6 +133,21 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       original.attempted = true;
       assertRunCurrent();
       managed = original.managed; capacity = original.capacity;
+    } else if (preparedRunRequired && !intermediate) {
+      const original = preparedKeyedRuns.get(preparedProgram);
+      if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
+          original.failed || original.managed === undefined || original.managed.closed ||
+          original.managed.selectedKeyed === undefined) {
+        throw new TypeError('InstalledContentRunPreparationUnavailable');
+      }
+      // The original Request owns this exact prefix/provider and its source
+      // bindings. Consume before fallible current/data projection; no old
+      // capacity/start reconstruction or scalar Ledger can recover a failure.
+      original.attempted = true;
+      assertRunCurrent();
+      managed = original.managed; selectedKeyed = managed.selectedKeyed;
+      capacity = control.requestKeyedPrefixCapacity(selectedKeyed);
+      ledger = acquiredContent.ledger;
     } else {
       capacity = control.prefixCapacity(preparedProgram, task, step, bodies, prefixLimits, workspace, source);
       ledger = acquiredContent === undefined
@@ -197,7 +212,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         if (managed !== undefined) {
           // This also retrieves cleanup after the original start retained a
           // prefix but threw before returning it to this JS caller.
-          if (control.cleanupRequestPrefix(managed.value, managed.serialization) !== true) return false;
+          const acknowledged = selectedKeyed === undefined
+            ? control.cleanupRequestPrefix(managed.value, managed.serialization)
+            : control.cleanupRequestKeyedPrefix(managed.value, selectedKeyed);
+          if (acknowledged !== true) return false;
         } else if (prefix !== undefined) {
           if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;
         }
@@ -219,7 +237,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       prefix = managed === undefined
         ? control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
           source, acquiredContent?.keyedLookup)
-        : control.startRequestPrefix(managed.value, preparedProgram, managed.serialization);
+        : selectedKeyed === undefined
+          ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
+          : control.startRequestKeyedPrefix(managed.value, preparedProgram, selectedKeyed,
+            source, acquiredContent.keyedLookup);
       await faultInjection?.('content_workspace_reserved', {capacity});
       const output = await runGeneratedContentPrefix({control, prefix, remainingWork, chargeWork, signal});
       const barrier = control.prepare(preparedProgram, task, step, 10000);
@@ -350,7 +371,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition,
+    const original = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition, attempted: false,
       recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined,
       contentControl: control, retired: false, failed: false, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);

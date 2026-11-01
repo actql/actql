@@ -231,8 +231,47 @@ fn start_client_acquired_serialization_prefix_owned(
       direct.0,
       direct.1,
     )
-    is Ok(query) &&
-    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) else {
+    is Ok(query) else {
+    return Err(Unavailable)
+  }
+  let inputs = match
+    prepare_acquired_serialization_prefix_inputs(
+      prepared, task, source, sequence, query, execution, measurement, ledger, keyed,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  if original_capture is Some(capture) &&
+    @row_source_host.row_capture_original_prefix_requirement(capture, ledger)
+    is None {
+    return Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState)),
+    )
+  }
+  // Capacity addition and reserve_attempt below run synchronously and invoke
+  // no capture/provider callback behind this final original-custody fence.
+  start_serialization_prefix_provider(
+    sequence, provider, capacity, inputs, execution, measurement, ledger, workspace,
+  )
+}
+
+///|
+// The existing input binding logic, with no prefix/provider reconstruction or
+// reservation. Managed callers reserve and retain their original prefix BEFORE
+// these liveness callbacks and input/row-buffer constructors can enter.
+fn prepare_acquired_serialization_prefix_inputs(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  source : @query.CapturedInputSource,
+  sequence : @execution.GeneratedSequence,
+  original_query : @sourceviews.QueryAcquisition,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  ledger : @resources.Ledger,
+  keyed : @publication_host.ClientKeyedLookupInput?,
+) -> Result[Array[@local.ManagedProviderInput], ClientSerializationPrefixIssue] {
+  guard @sourceviews.query_acquisition_capture(original_query)
+    is @pipeline.Step(capture) else {
     return Err(Unavailable)
   }
   let owner = @execution.generated_sequence_owner(sequence)
@@ -301,18 +340,7 @@ fn start_client_acquired_serialization_prefix_owned(
       inputs.push(@local.managed_provider_relation_input(read))
     }
   }
-  if original_capture is Some(capture) &&
-    @row_source_host.row_capture_original_prefix_requirement(capture, ledger)
-    is None {
-    return Err(
-      Original(@publication_host.Resource(@resources.ChangedOriginalState)),
-    )
-  }
-  // Capacity addition and reserve_attempt below run synchronously and invoke
-  // no capture/provider callback behind this final original-custody fence.
-  start_serialization_prefix_provider(
-    sequence, provider, capacity, inputs, execution, measurement, ledger, workspace,
-  )
+  Ok(inputs)
 }
 
 ///|
