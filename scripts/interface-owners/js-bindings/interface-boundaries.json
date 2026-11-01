@@ -15852,7 +15852,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ffbee89697b621f9ea79e897b9cc7b5f8af28cd99c2a68132eaaffdf6a3649b3",
+      "sha256": "983b9977402e47b2aaf370c5705f29fc0d769b53fd13be3961573a87baaa6af5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -16552,6 +16552,16 @@
             "input",
             "row",
             "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "capture"
           ],
           "async": false
         },
@@ -19923,6 +19933,22 @@
             "occurrence",
             "graph",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
           ],
           "async": false
         },
@@ -28394,6 +28420,7 @@
           "operations": [
             "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
           ],
           "exports": [],
@@ -28410,6 +28437,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "inputsOutputs": [
@@ -28424,6 +28455,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "identity": [
@@ -28438,6 +28473,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "ownership": [
@@ -28452,6 +28491,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "synchronization": [
@@ -28466,6 +28509,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "failure": [
@@ -28480,6 +28527,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "cancellation": [
@@ -28494,6 +28545,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "resources": [
@@ -28508,6 +28563,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "extension": [
@@ -28522,6 +28581,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "verification": [
@@ -28536,6 +28599,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -28547,6 +28618,7 @@
             "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
             "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
             "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
             "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
@@ -28566,6 +28638,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "inputsOutputs": [
@@ -28580,6 +28656,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "identity": [
@@ -28594,6 +28674,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "ownership": [
@@ -28608,6 +28692,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "synchronization": [
@@ -28622,6 +28710,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "failure": [
@@ -28636,6 +28728,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "cancellation": [
@@ -28650,6 +28746,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "resources": [
@@ -28664,6 +28764,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "extension": [
@@ -28678,6 +28782,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "verification": [
@@ -28688,6 +28796,14 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -41845,7 +41961,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9312670fbafa8f891999d66fa215c154297f315989e85f32f98aba0cb2150760",
+      "sha256": "c53de29760f58a59bedb1bf2100dad13deb3e1a629526fb422931d85c6dca092",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -54461,6 +54577,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "inputsOutputs": [
@@ -54475,6 +54595,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "identity": [
@@ -54489,6 +54613,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "ownership": [
@@ -54503,6 +54631,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "synchronization": [
@@ -54517,6 +54649,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "failure": [
@@ -54531,6 +54667,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "cancellation": [
@@ -54545,6 +54685,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "resources": [
@@ -54559,6 +54703,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "extension": [
@@ -54573,6 +54721,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "verification": [
@@ -54587,6 +54739,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }
@@ -62180,7 +62340,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ed408ada8ecc4480440a598a28361c147972b886bb23b37a6a144598ef035f23",
+      "sha256": "d1758c6b29c738def19fa2096484266519970cd8bedb2a95205b30845d2bbfbf",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74064,7 +74224,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "14e886f3bc62e5ce5627d1461de0ad51f9c5829e81ba17f8d44aec539a9b5dbb",
+      "sha256": "0fc435be1e05f832751d9d172106be17981017a7488f7ec6c7fbe8a53f2b69f7",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74161,6 +74321,11 @@
             "dag",
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
+          "parameters": [],
           "async": false
         },
         {
@@ -74759,6 +74924,7 @@
         },
         {
           "operations": [
+            "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
             "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
           ],
           "exports": [],
@@ -74767,54 +74933,90 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Whole-input publication binds the same adopted Run"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "typed Source evidence and the same native capture"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact Run association"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same retained inventory and admitted row bound"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before issuance and again before retaining the completed invocation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "the Query issuer keeps its original QueryRequirement array"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
               }
             ],
             "verification": [
@@ -74825,6 +75027,14 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
               }
             ]
           }

@@ -58748,7 +58748,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "91ca31a0a34e6089063d5756f64ec0f11e16259a8f34edb70daf8d27ce5e210b",
+      "sha256": "ccb0cdf83bf99bd204377dba1f01edc4c74300f44b388939d9ef9def43b28f4e",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
