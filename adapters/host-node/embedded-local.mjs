@@ -6809,8 +6809,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       (computeManaged === undefined ? assertSourceManagedInstallationCurrent
         : assertManagedComputeInstallationCurrent)(manager, originals);
+      const control = runtimeCore(runtime).publicationControl;
       return manager.prepareModelGraph(prepared,
-        originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph);
+        originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph,
+        serializationGraph === undefined ? undefined :
+          (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
+            control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
+              selected, originalExecution, contracts));
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = computeManaged ?? sourceManaged;

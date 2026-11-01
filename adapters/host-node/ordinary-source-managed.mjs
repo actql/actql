@@ -831,7 +831,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return state.modelProviderBinding;
       });
     },
-    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph) {
+    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -846,12 +846,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
         : moon.clientProgramPrepareRequestSerializedModelGraph;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
-      if (typeof construct !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (typeof construct !== 'function' || typeof issue !== 'function' ||
+          serializationGraph !== undefined && typeof constructSerialized !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       return constructRequestDomain(state, () => {
-        state.modelGraph = checkedRequestProgramPreparation(moon, Reflect.apply(construct, moon,
-          serializationGraph === undefined
-            ? [state.parent, producer.receipt, occurrence, execution, contracts.admission]
-            : [state.parent, producer.receipt, occurrence, serializationGraph, execution, contracts.admission]), issue);
+        const result = serializationGraph === undefined
+          ? Reflect.apply(construct, moon,
+            [state.parent, producer.receipt, occurrence, execution, contracts.admission])
+          : constructSerialized(state.parent, producer.receipt, occurrence,
+            serializationGraph, execution, contracts.admission);
+        state.modelGraph = checkedRequestProgramPreparation(moon, result, issue);
         if (state.modelGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
