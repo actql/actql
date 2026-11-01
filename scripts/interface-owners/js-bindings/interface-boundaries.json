@@ -34422,6 +34422,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "inputsOutputs": [
@@ -34432,6 +34436,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "identity": [
@@ -34442,6 +34450,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "ownership": [
@@ -34452,6 +34464,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "synchronization": [
@@ -34462,6 +34478,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "failure": [
@@ -34472,6 +34492,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "cancellation": [
@@ -34482,6 +34506,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "resources": [
@@ -34492,6 +34520,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "extension": [
@@ -34502,12 +34534,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/preparation-host-custody.test.mjs",
                 "anchor": "Host holder uses exact original and returns once after clearing local aliases"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "required dispatch preparation never skips a missing or legacy None borrow"
               }
             ]
           }
@@ -35915,7 +35959,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d2c498734376375bf875cda54b1bc66411ba6044a232388a5d575576d9253fe2"
+      "sha256": "4b370b9c8bab4c44447603a0e4c0bafb6c7d6f1dcd3a972a5bdf1227f4469004"
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
@@ -49318,7 +49362,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const originalRequestPreparation = preparation?.requestPreparation();"
+                "anchor": "const originalRequestPreparation = preparation.requestPreparation();"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -51240,6 +51284,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "inputsOutputs": [
@@ -51322,6 +51370,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "identity": [
@@ -51424,6 +51476,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "ownership": [
@@ -51522,6 +51578,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "synchronization": [
@@ -51612,6 +51672,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "failure": [
@@ -51698,6 +51762,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "cancellation": [
@@ -51784,6 +51852,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "resources": [
@@ -51886,6 +51958,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "extension": [
@@ -51972,6 +52048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
               }
             ],
             "verification": [
@@ -52146,6 +52226,14 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "required installed preparation forwards only its same funded callback"
               }
             ]
           }
@@ -56559,7 +56647,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "0468f17e32f4e4d0d58fb2096a3a77a4f06c5c77b8985dce90b78f945a7896ce"
+      "sha256": "2735bcbccb842a3cd921faab465309f29e03407bd9cb7d32417a24535f021263"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
