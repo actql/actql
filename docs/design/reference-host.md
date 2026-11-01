@@ -2556,9 +2556,14 @@ used to select a smaller policy.
 
 The proof borrows immutable indexed fields without copying a schema tree. Its
 visited contracts spend the existing proof work counter, and its borrowed
-frames use the original compilation value-depth limit and fixed trusted Host
-control allowance. The resulting original inventory is retained with the Plan;
-task consumers do not redo this schema walk. Missing Array bounds, opaque
+frames use the original compilation value-depth limit. The same original
+Request Plan-construction quote reserves their bounded live references,
+option carriers and scalar controls before the constructor, separately from
+the fixed nonrecursive Host baseline. The same temporary reservation also
+backs the existing bounded typed-expression slot collector, including original
+consumer/filter carriers and its array backing; successive sequence visits do
+not keep prior scratch live. The resulting original inventory is retained with
+the Plan; task consumers do not redo this schema walk. Missing Array bounds, opaque
 reference/JSON domains, arithmetic overflow, or exhausted proof work/depth
 select the existing general policy rather than a partial bound or a new
 acceptance restriction.
@@ -2569,3 +2574,32 @@ That same charge covers the corresponding root-contract visit; only additional
 nested contracts spend remaining proof work. A completed leaf schema therefore
 needs no second work allowance. This affects neither Ledger consumption nor
 attempt, transfer or physical-retirement accounting.
+
+
+The existing Decimal admission and wire owners use one value node for a
+successful Decimal, including nullable absence. Its retained Value/Decimal
+record, coefficient and String header fit the unchanged logical value-node
+allowance at the original checked precision (at most38). Original decoded-text
+and wire allowances separately retain CAST input and constructor text. This
+node proof does not enter the text-free Number/Boolean policy and changes no
+precision, scale, rounding or refusal rule.
+
+An additional optional text proof uses the same complete checked sequence
+visitor. It accepts only Number/Boolean/Decimal row fields without external
+row inputs, and requires a retained UTF-8 upper bound on every typed Text child,
+including CAST inputs and dormant branches. Original precision bounds public
+Decimal text, while the original row inventory also includes every field name
+and possible value occurrence. Unbounded text, unsupported shapes/steps,
+overflow or exhausted proof work retain the general text policy. The resulting
+bound is retained once with the same Plan; getters do not walk the expressions
+again. Raw row/batch admission, wire-byte limits and measurement remain
+independent and unchanged.
+
+Decimal SUM's internal accumulator may exceed final precision before the
+aggregate law checks its result. The existing control and RowWorkspace reserve
+its real coefficient work/slots; fragment live-byte and operation limits
+remain unchanged. Only independently proved public row text specializes the
+original input/output value envelope; private accumulator storage does not
+borrow that smaller envelope. The checked row/value inventory bounds returned
+value nodes only. It never prices an unbounded accumulator as a Number or removes
+configured per-task imports/exports that can remain live with borrowers.

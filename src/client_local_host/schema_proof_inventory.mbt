@@ -78,7 +78,7 @@ fn client_local_schema_proof_inventory(
   // Snapshot the original compilation depth once for the optional checked
   // value proof. This does not change the Run value-depth policy.
   let value_depth = if leaf_only {
-    @publication_host.client_standard_program_preparation_limits().checking.compilation.values.depth
+    client_local_value_node_proof_depth()
   } else {
     0
   }

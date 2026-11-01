@@ -3,62 +3,91 @@
 /// expression nodes, including dormant branches, then admit only step families
 /// whose implementation cannot synthesize Text outside those checked slots.
 /// Field-name bytes are NOT proved zero and need their own occurrence envelope.
+fn client_local_scalar_text_proof_slots() -> Int {
+  10000
+}
+
+///|
 fn client_local_text_free_scalar_sequences(
   sequences : Array[@execution.GeneratedSequence],
   max_work? : Int = 100000,
-  max_slots? : Int = 10000,
+  max_slots? : Int = client_local_scalar_text_proof_slots(),
 ) -> Bool {
+  client_local_scalar_text_inventory(sequences, false, max_work~, max_slots~)
+  is Some(_)
+}
+
+///|
+// A single visitor serves the old strict proof and the optional Decimal proof.
+// Both inspect EVERY checked child and the complete original sequence. No
+// expression is evaluated and this cannot grant operation support.
+fn client_local_scalar_text_inventory(
+  sequences : Array[@execution.GeneratedSequence],
+  decimal : Bool,
+  max_work? : Int = 100000,
+  max_slots? : Int = client_local_scalar_text_proof_slots(),
+) -> (Int, Int64)? {
   if sequences.is_empty() || max_work < 1 || max_slots < 0 {
-    return false
+    return None
   }
   let mut remaining = max_work
+  let mut precision = 0
+  let mut text = 0L
   for sequence in sequences {
     let original = @execution.generated_prepared_sequence(sequence)
     let prepared = @lower.bound_preparation(@lower.sequence_owner(original))
+    // External Decimal input may have arbitrarily long admitted lexical text.
+    // This specialization only observes internally constructed source-free
+    // rows; captured input keeps its independent original general envelope.
+    if decimal && @lower.preparation_input_count(prepared) != 0 {
+      return None
+    }
     for index in 0..<@lower.preparation_input_count(prepared) {
       if remaining == 0 {
-        return false
+        return None
       }
       remaining -= 1
       guard @lower.preparation_input_schema(prepared, index) is Some(schema) else {
-        return false
+        return None
       }
       let width = @schema.field_count(schema)
       if width > remaining {
-        return false
+        return None
       }
       remaining -= width
-      guard client_local_scalar_schema_width(schema) is Some(_) else {
-        return false
+      guard client_local_scalar_schema_precision(schema, decimal) is Some(p) else {
+        return None
       }
+      precision = Int::max(precision, p)
     }
     for index in 0..<@lower.node_count(prepared) {
       if remaining == 0 {
-        return false
+        return None
       }
       remaining -= 1
       guard @lower.node_at(prepared, index) is Some(node) &&
         @lower.node_relation_schema(node) is Some(schema) else {
-        return false
+        return None
       }
       let width = @schema.field_count(schema)
       if width > remaining {
-        return false
+        return None
       }
       remaining -= width
-      guard client_local_scalar_schema_width(schema) is Some(_) else {
-        return false
+      guard client_local_scalar_schema_precision(schema, decimal) is Some(p) else {
+        return None
       }
+      precision = Int::max(precision, p)
     }
     // Inspect the complete retained sequence, not its selected view. A selected
     // provider must not hide a text-producing sibling from the shared plan.
     for index in 0..<@lower.sequence_count(original) {
       if remaining == 0 {
-        return false
+        return None
       }
       remaining -= 1
       guard @lower.sequence_step(original, index) is Some(step) else {
-        return false
+        return None
       }
       let supported = match step {
         @lower.ValuesStep(_) | @lower.AppendStep(_) => true
@@ -75,12 +104,15 @@ fn client_local_text_free_scalar_sequences(
             | @lower.DistinctRows
             | @lower.DedupeRows
             | @lower.StableSort(_) => true
+            // Aggregate private coefficient/workspace limits remain unchanged.
+            // Its public rows and every expression still pass the same proof.
+            @lower.Groups(_) => decimal
             _ => false
           }
         _ => false
       }
       if !supported {
-        return false
+        return None
       }
     }
     let slots = match
@@ -90,35 +122,81 @@ fn client_local_text_free_scalar_sequences(
         max_slots~,
       ) {
       Ok(slots) => slots
-      Err(_) => return false
+      Err(_) => return None
     }
     let used = @pipeline.expression_slots_work(slots)
     if used < 0 || used > remaining {
-      return false
+      return None
     }
     remaining -= used
     for index in 0..<@pipeline.expression_slot_count(slots) {
       if remaining == 0 {
-        return false
+        return None
       }
       remaining -= 1
       guard @pipeline.expression_slot_at(slots, index) is Some(slot) else {
-        return false
+        return None
       }
       for node_index in 0..<@typing.node_count(slot.expression) {
         if remaining == 0 {
-          return false
+          return None
         }
         remaining -= 1
         guard @typing.node_at(slot.expression, node_index) is Some(node) else {
-          return false
+          return None
         }
         match node.contract.shape {
           @contract.Number | @contract.Boolean => ()
-          _ => return false
+          @contract.Decimal(precision=p, ..) => {
+            if !decimal {
+              return None
+            }
+            precision = Int::max(precision, p)
+          }
+          @contract.Text(bounds) => {
+            if !decimal {
+              return None
+            }
+            guard bounds.max_utf8_bytes is Some(bytes) &&
+              bytes >= 0L &&
+              @execution.checked_preparation_add_product(text, bytes, 1L)
+              is Some(next) else {
+              return None
+            }
+            text = next
+          }
+          _ => return None
         }
       }
     }
   }
-  true
+  Some((precision, text))
+}
+
+///|
+// Derive one conservative public row-text envelope from original checked
+// precision and ALL typed Text bounds, including CAST inputs/dormant branches.
+// Unknown text, unsupported shapes and exhausted proof work keep old policy.
+fn client_local_decimal_text_bound(
+  sequences : Array[@execution.GeneratedSequence],
+  demand : ClientLocalValueNodeDemand,
+  original_text_limit : Int,
+  max_work? : Int = 100000,
+  max_slots? : Int = client_local_scalar_text_proof_slots(),
+) -> Int? {
+  guard original_text_limit >= 0 &&
+    client_local_scalar_text_inventory(sequences, true, max_work~, max_slots~)
+    is Some((precision, text)) &&
+    precision > 0 &&
+    @execution.checked_preparation_add_product(
+      demand.original.max_name_width,
+      demand.original.max_node_width,
+      precision.to_int64() + 3L,
+    )
+    is Some(row) &&
+    @execution.checked_preparation_add_product(row, text, 1L) is Some(row) &&
+    client_local_scalar_product(row, demand.rows, 0) is Some(total) else {
+    return None
+  }
+  Some(Int::min(original_text_limit, total))
 }

@@ -1496,3 +1496,61 @@ test "timed invocation backing survives original Module adoption and pending pay
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Request Plan quote backs original checked node proof frames before factory" {
+  let (parent, input, _) = request_program_body_fixture()
+  let original = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(original, input).unwrap()
+  let data = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
+  let retained = client_local_value_node_proof_retained_bytes().unwrap()
+  let scratch = client_local_value_node_proof_scratch_bytes().unwrap()
+  assert_true(scratch > 100L * 200L)
+  let quote = request_program_plan_quote(parent, input).unwrap()
+  assert_eq(
+    quote,
+    (before.0 + data + retained, before.1 + data + retained + scratch),
+  )
+  // The old data-only allowance is deliberately insufficient. The original
+  // parent capacity must grow before ANY selected module/provider callback.
+  let limits = @resources.ledger_limits(parent.ledger)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    0L,
+    limits.execution_bytes - (quote.1 - scratch),
+  ).unwrap()
+  let calls = Ref(0)
+  let result = prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      []
+    },
+  )
+  assert_true(result is Err(Preparation(Capacity(Resource(ExecutionLimit)))))
+  assert_eq(calls.val, 0)
+  assert_true(!parent.program_body_attempted)
+  assert_eq(parent.program_plan_quote, Some(quote))
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      []
+    },
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(parent.program_plan_quote, Some(quote))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

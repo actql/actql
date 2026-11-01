@@ -179,3 +179,99 @@ fn client_local_inventory_names(
 ) -> Int? {
   client_local_scalar_product(inventory.max_name_width, max_rows, 0)
 }
+
+///|
+test "Decimal text proof retains unbounded and dormant child fallback" {
+  let assets = @publication_host.client_local_product_assets()
+  let evidence = "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    evidence,
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  for
+    (query, bounded) in [
+      ("SELECT CAST('1.25' AS DECIMAL(8,2)) AS amount", true),
+      ("SELECT CAST(CAST(NULL AS STRING) AS DECIMAL(8,2)) AS amount", false),
+      (
+        "SELECT CASE WHEN TRUE THEN CAST('1.25' AS DECIMAL(8,2)) ELSE CAST(CAST(NULL AS STRING) AS DECIMAL(8,2)) END AS amount",
+        false,
+      ),
+      (
+        "WITH seed AS (SELECT CAST(NULL AS STRING) AS value) SELECT CAST(value AS DECIMAL(8,2)) AS amount FROM seed",
+        false,
+      ),
+    ] {
+    let lowered = @frontend.lower(
+      query,
+      @frontend.Sql,
+      Some(@frontend.bind_query_context([], evidence).unwrap()),
+      public_primary=true,
+    ).unwrap()
+    let prepared = @publication_host.prepare_effect_free_client_program(
+      lowered.document,
+      lowered.format,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    let sequences = prepare_client_local_sequences_owned(
+        Pure(prepared),
+        prepare_installed_sequence_contracts(
+          assets.registry,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap(),
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      )
+      .to_option()
+      .unwrap()
+    let plan = client_local_capacity_plan(
+      sequences,
+      @publication_host.prepared_client_values_max_rows(prepared),
+      scalar_values=true,
+      graph=Some(@publication_host.prepared_client_graph(prepared)),
+    )
+    guard plan.value_node_demand is Some(demand) else {
+      fail("Decimal output node proof missing")
+    }
+    assert_eq(demand.text_bound is Some(_), bounded)
+    assert_false(client_local_text_free_scalar_sequences(sequences))
+    assert_true(
+      client_local_decimal_text_bound(sequences, demand, 500000, max_work=0)
+      is None,
+    )
+    assert_true(
+      client_local_decimal_text_bound(sequences, demand, 500000, max_slots=0)
+      is None,
+    )
+    assert_true(client_local_decimal_text_bound(sequences, demand, -1) is None)
+    if !bounded {
+      assert_eq(plan.values.max_text_bytes, 500000)
+      assert_eq(plan.execution.rows.input_values.max_text_bytes, 500000)
+      assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
+    } else {
+      let bytes = demand.text_bound.unwrap()
+      assert_true(bytes >= 4 + 11 + 6)
+      assert_true(
+        client_local_capacity_plan_matches(plan, sequences, plan.admitted_rows),
+      )
+      assert_false(
+        client_local_capacity_plan_matches(
+          {
+            ..plan,
+            value_node_demand: Some({ ..demand, text_bound: Some(bytes - 1), }),
+          },
+          sequences,
+          plan.admitted_rows,
+        ),
+      )
+    }
+    assert_eq(plan.imports.wire.max_bytes, 1000000)
+    assert_eq(plan.measurement.max_bytes, 500000)
+  }
+}

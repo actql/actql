@@ -83,16 +83,36 @@ fn client_local_capacity_plan(
     scalar_demand~,
     value_node_demand~,
   )
+  let value_node_demand = if scalar_demand is None &&
+    value_node_demand is Some(original) {
+    Some({
+      ..original,
+      text_bound: client_local_decimal_text_bound(
+        sequences,
+        original,
+        values.max_text_bytes,
+      ),
+    })
+  } else {
+    value_node_demand
+  }
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let io_text = scalar_demand.map(demand => demand.name_bytes)
+  let decimal_text = value_node_demand.bind(demand => demand.text_bound)
+  let io_text = match scalar_demand {
+    Some(demand) => Some(demand.name_bytes)
+    None => decimal_text
+  }
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
     None => values
   }
   let execution = if io_text is Some(bytes) &&
-    client_local_text_free_scalar_sequences(sequences) {
+    (
+      decimal_text is Some(_) ||
+      client_local_text_free_scalar_sequences(sequences)
+    ) {
     {
       ..execution,
       rows: {
@@ -327,6 +347,16 @@ fn client_local_capacity_plan_matches(
     demand.rows == plan.execution.rows.max_rows &&
     demand.nodes == plan.values.max_nodes &&
     client_local_inventory_nodes(original, demand.rows) == Some(demand.nodes)) {
+    return false
+  }
+  if plan.value_node_demand is Some({ text_bound: Some(bytes), .. }) &&
+    (
+      plan.scalar_demand is Some(_) ||
+      bytes < 0 ||
+      plan.values.max_text_bytes != bytes ||
+      plan.execution.rows.input_values.max_text_bytes != bytes ||
+      plan.execution.rows.output_values.max_text_bytes != bytes
+    ) {
     return false
   }
   if plan.value_node_demand is None &&

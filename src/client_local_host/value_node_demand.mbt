@@ -3,6 +3,47 @@
 // It borrows fields without copying them. Unbounded or opaque shapes preserve
 // the general policy. Original compilation depth and proof work bound frames;
 // no new acceptance limit, compiler or graph traversal is introduced.
+fn client_local_value_node_proof_depth() -> Int {
+  @publication_host.client_standard_program_preparation_limits().checking.compilation.values.depth
+}
+
+///|
+// Input-dependent recursive frames belong to this original Plan constructor,
+// not the fixed VM baseline. Each live contract level retains the borrowed
+// contract/work/shape/field and pending result carriers (at most8 references),
+// three option headers and twelve scalar loop/depth/count/tag slots. Include
+// the last depth-refused child, plus the root/schema and text-proof controls.
+fn client_local_value_node_proof_scratch_bytes() -> Int64? {
+  let levels = client_local_value_node_proof_depth().to_int64() + 2L
+  // The SAME bounded expression-slot visitor can retain one collector array.
+  // Each slot includes its original consumer/filter/optional ordinal carriers
+  // (at most5H7R6W); allow two backing references per possible array entry.
+  // Its collector/returned record/current borrowed getter use the fixed tail.
+  // Successive original sequences are inspected synchronously, not coheld.
+  let slots = client_local_scalar_text_proof_slots().to_int64()
+  @execution.preparation_representation_cost({
+    record_headers: 3L * levels + 5L * slots + 6L,
+    reference_slots: 8L * levels + 10L * slots + 12L,
+    scalar_words: 12L * levels + 8L * slots + 16L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// The optional retained text-proof carrier remains alongside the same Plan.
+// These are representation units, not additional admission/work allowances.
+fn client_local_value_node_proof_retained_bytes() -> Int64? {
+  @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 3L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 fn client_local_json_contract_nodes(
   contract : @contract.Contract,
   work : Ref[Int],
@@ -14,6 +55,11 @@ fn client_local_json_contract_nodes(
   work.val -= 1
   match contract.shape {
     @contract.Number | @contract.Boolean | @contract.Text(_) => Some(1L)
+    // Decimal admission and wire emission each use one successful value node.
+    // This is NOT the text-free Number/Boolean proof: the existing256-byte
+    // node envelope retains the Decimal record/coefficient; decoded input,
+    // wire, CAST and aggregate workspace keep their independent old bounds.
+    @contract.Decimal(..) => Some(1L)
     @contract.Array(item, max_items~) => {
       guard max_items is Some(count) && count >= 0L else { return None }
       if count == 0L {
@@ -81,6 +127,9 @@ priv struct ClientLocalValueNodeDemand {
   original : ClientLocalSchemaProofInventory
   rows : Int
   nodes : Int
+  // Once-computed optional checked Decimal text proof; never recomputed by a
+  // Plan getter or promoted to an operation/physical admission.
+  text_bound : Int?
 }
 
 ///|
@@ -89,7 +138,7 @@ fn client_local_value_node_demand(
   rows : Int,
 ) -> ClientLocalValueNodeDemand? {
   match client_local_inventory_nodes(original, rows) {
-    Some(nodes) => Some({ original, rows, nodes, })
+    Some(nodes) => Some({ original, rows, nodes, text_bound: None, })
     None => None
   }
 }

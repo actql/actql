@@ -33271,7 +33271,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c12acd52c0ee4df9dd1a2f2c587b5d112f4039f3636d6cee6260017719b72229",
+      "sha256": "ffd1ab7ee83bfa32ca4dea9101a2fee7d1ab7a5503a0c4dbae2c2238f1a558d8",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -33314,7 +33314,7 @@
         },
         {
           "name": "[I]prepare_request_compilation_owned",
-          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , model : @ publication_host . ClientInferPlanGraph ? , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "[I]prepare_request_program_compilation",
@@ -33331,6 +33331,10 @@
         {
           "name": "[I]request_program_plan_quote",
           "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_domain_run_metadata",
+          "declaration": "[ I ] reserve_request_domain_run_metadata ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , artifact : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "[I]reserve_request_program_plan",
@@ -33745,6 +33749,78 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "timed invocation backing retains its original compiler"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]complete_request_program_preparation_owned",
+            "[I]prepare_request_compilation_owned",
+            "[I]prepare_request_program_compilation",
+            "[I]reserve_request_domain_run_metadata",
+            "[I]retain_request_program_module_inputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
               }
             ]
           }
@@ -58219,7 +58295,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "d1ed391950fdf188168705799c4a5e894fbfaa9a82ac6eb7355879c2079605cd",
+      "sha256": "155b26adebca6d3047362002e7359bdead344c3a1c5ed4c1f72b061ee1e9ee22",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -58237,6 +58313,18 @@
         {
           "name": "client_local_value_node_demand",
           "declaration": "client_local_value_node_demand ( original : ClientLocalSchemaProofInventory , rows : Int , ) - > ClientLocalValueNodeDemand ?"
+        },
+        {
+          "name": "client_local_value_node_proof_depth",
+          "declaration": "client_local_value_node_proof_depth ( ) - > Int"
+        },
+        {
+          "name": "client_local_value_node_proof_retained_bytes",
+          "declaration": "client_local_value_node_proof_retained_bytes ( ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_value_node_proof_scratch_bytes",
+          "declaration": "client_local_value_node_proof_scratch_bytes ( ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -58310,12 +58398,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_local_value_node_proof_depth",
+            "client_local_value_node_proof_retained_bytes",
+            "client_local_value_node_proof_scratch_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "99a9cb2266ff70d952344176b3f8c71c842e534b274393e6b437e02e55671891",
+      "sha256": "0d3a98f4764fd588e7c0a0eb13155ba1251c9513d05fa756f0b8e551e099daeb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -58403,6 +58561,294 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/capacity_text_proof.mbt",
+      "sha256": "b638905e35f50bf8009ae7c9c53159c601042023ce2d06cb143dce9144694a93",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "B — original prepared schema demand and installed Effect composition",
+      "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_decimal_text_bound",
+          "declaration": "client_local_decimal_text_bound ( sequences : Array [ @ execution . GeneratedSequence ] , demand : ClientLocalValueNodeDemand , original_text_limit : Int , max_work ? : Int"
+        },
+        {
+          "name": "client_local_scalar_text_inventory",
+          "declaration": "client_local_scalar_text_inventory ( sequences : Array [ @ execution . GeneratedSequence ] , decimal : Bool , max_work ? : Int"
+        },
+        {
+          "name": "client_local_scalar_text_proof_slots",
+          "declaration": "client_local_scalar_text_proof_slots ( ) - > Int"
+        },
+        {
+          "name": "client_local_text_free_scalar_sequences",
+          "declaration": "client_local_text_free_scalar_sequences ( sequences : Array [ @ execution . GeneratedSequence ] , max_work ? : Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_decimal_text_bound",
+            "client_local_scalar_text_inventory",
+            "client_local_scalar_text_proof_slots",
+            "client_local_text_free_scalar_sequences"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/scalar_capacity.mbt",
+      "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "B — original prepared schema demand and installed Effect composition",
+      "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_scalar_nodes",
+          "declaration": "client_local_scalar_nodes ( sequences : Array [ @ execution . GeneratedSequence ] , max_rows : Int , ) - > Int ?"
+        },
+        {
+          "name": "client_local_scalar_schema_precision",
+          "declaration": "client_local_scalar_schema_precision ( schema : @ schema . Schema , decimal : Bool , ) - > Int ?"
+        },
+        {
+          "name": "client_local_scalar_schema_width",
+          "declaration": "client_local_scalar_schema_width ( schema : @ schema . Schema ) - > Int ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_scalar_nodes",
+            "client_local_scalar_schema_precision",
+            "client_local_scalar_schema_width"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/capacity_plan.mbt",
+      "sha256": "30f8f7f00d5f6dd144a294b8ca9b4615857cbe73c45509da1bad2680e64d551a",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "B — original prepared schema demand and installed Effect composition",
+      "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_capacity_plan",
+          "declaration": "client_local_capacity_plan ( sequences : Array [ @ execution . GeneratedSequence ] , max_rows : Int , scalar_values ? : Bool"
+        },
+        {
+          "name": "client_local_capacity_plan_matches",
+          "declaration": "client_local_capacity_plan_matches ( plan : ClientLocalCapacityPlan , sequences : Array [ @ execution . GeneratedSequence ] , max_rows : Int , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_capacity_plan",
+            "client_local_capacity_plan_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An additional optional text proof uses the same complete checked sequence"
               }
             ]
           }
