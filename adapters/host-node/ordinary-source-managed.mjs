@@ -152,7 +152,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   };
   const producerForRequest = request => {
     const producer = requestProducers.get(request)?.deref();
-    return producer !== undefined && producers.has(producer) &&
+    return !closing && !closed && producer !== undefined && producers.has(producer) &&
       producer.request === request && !producer.finished ? producer : undefined;
   };
   const current = () => {
