@@ -177,9 +177,25 @@ pub fn installed_managed_source_input_kind(
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.ledger is Some(_) &&
-    owner.preparation is Some(PureManaged(_, actual)) &&
+    physical_equal(owner.request, request) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.preparation is Some(PreparationContentManaged(_, actual)) {
+    // The same adopted keyed Plan retains a Direct Row acquisition, whose
+    // original requirement is a Query. This is the closed variant selected by
+    // the existing Content read handoff, not a new query/current/grant/quote.
+    guard physical_equal(actual, prepared) &&
+      owner.content is KeyedContent(selected, _) &&
+      physical_equal(selected.prepared, prepared) &&
+      selected.direct.original_input &&
+      selected.direct.provider is None &&
+      selected.direct.acquisition is Some(_) else {
+      return Err(ForeignOriginal)
+    }
+    return Ok("query")
+  }
+  guard owner.preparation is Some(PureManaged(_, actual)) &&
     physical_equal(actual, prepared) &&
-    physical_equal(owner.request, request) &&
     owner.captured_preparation is Some(plan) &&
     physical_equal(plan.prepared, prepared) &&
     physical_equal(plan.request, request) else {

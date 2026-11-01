@@ -53750,7 +53750,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "2656d6378cb0b9969135c717fc651087c975f54f86e01752c22edccc1bf105ed",
+      "sha256": "f057bc9691065ebf6d5428144f7e37e07a5d4188455fa5105b1ddc4848653741",
       "exports": [],
       "operations": [
         {
@@ -53850,6 +53850,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "inputsOutputs": [
@@ -53860,6 +53864,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "identity": [
@@ -53870,6 +53878,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "ownership": [
@@ -53880,6 +53892,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "synchronization": [
@@ -53890,6 +53906,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "failure": [
@@ -53900,6 +53920,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "cancellation": [
@@ -53910,6 +53934,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "resources": [
@@ -53924,6 +53952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "extension": [
@@ -53934,6 +53966,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
               }
             ],
             "verification": [
@@ -53948,6 +53984,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "plain Model module retains"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed Content original reader variant"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_keyed_content_js_wbtest.mbt",
+                "anchor": "keyed Content constructs one Query"
               }
             ]
           }
