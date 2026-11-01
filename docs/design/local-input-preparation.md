@@ -4945,3 +4945,33 @@ provider buffers and all simultaneous/failed-child output remain separate
 construction demand. The envelope is not recomputed from each new JavaScript
 closure or carrier spelling. Existing Host retirement cuts these aliases only
 after its checked native retirement; returning a borrow is a separate duty.
+
+### Original installed Model read recipe
+
+An installed physical Model provider may retain either its complete fixed original
+read installation or an immutable read recipe, never both. The recipe retains
+the same opaque response Profile, installed runtime/layout references and the
+separately declared Node controls and buffer overlap. It retains no Graph,
+Request, Run, read, Scope or physical acknowledgement.
+
+The ordinary Request first constructs its selected Graph under its existing
+parent. Its original stored Bounds are selected once. The recipe binds Program,
+parameter and barrier identities directly from that same Graph without another
+check, lowering, compiler, Definition or Request issuer. The resulting fixed
+installation keeps the complete native bootstrap/read/Model amounts and adds
+the Node amounts; live census maxima and comparator work cannot decrease.
+Overflow and missing native identity ports refuse before module/Scope entry.
+A fixed installation keeps its original strict identity checks and is never
+silently rebound as a recipe.
+
+This binding is a bounded copy of installed DATA within the existing trusted
+Host/Request control envelope, not physical funding. The same Request still
+backs the original Graph, compiler, module, serialization prefix, Model Plan
+and Scope before construction, including their simultaneous and failed-child
+retention. All declared prepared rows remain covered, including masked rows.
+Node request/response/decoder buffers and metadata/publication roles remain
+separate from the native bounds and from Source/Content Store custody.
+
+The original Scope/read and Source/Content cleanup paths retain their physical
+duties. Neither binding the recipe nor retiring its aliases acknowledges a
+provider, Source, writer, holding, Store or parent release.

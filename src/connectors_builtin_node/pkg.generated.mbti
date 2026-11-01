@@ -1416,6 +1416,10 @@ pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgr
 
 pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
+pub fn client_program_infer_plan_parameters_cid(@run_publication_host.ClientInferPlanGraph) -> String
+
+pub fn client_program_infer_plan_program_cid(@run_publication_host.ClientInferPlanGraph) -> String
+
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_plan_serialization_graph(@run_publication_host.ClientInferPlanGraph) -> @run_publication_host.ClientSerializationPlanGraph?
