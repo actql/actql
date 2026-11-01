@@ -36,7 +36,8 @@ export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedS
 }
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
-  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}) {
+  prepareSubmit, submit, lookupRequest, checkSubmissionInput, observeOriginalPreparationFailure,
+  bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
@@ -44,6 +45,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
       admitPreparedSubmission !== undefined && typeof admitPreparedSubmission !== 'function' ||
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function' ||
+      observeOriginalPreparationFailure !== undefined && typeof observeOriginalPreparationFailure !== 'function' ||
       submittedIntentOriginal !== undefined && typeof submittedIntentOriginal !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
@@ -116,23 +118,18 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
     const projectsProblem = ['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit',
       'ClientProgramImplementationLimit'].includes(outcome.problem.code);
-    // Only a call supplying the exact validated intent may receive its input
-    // observation. A reference-only lookup does not establish input custody.
-    const observesInput = ['aql', 'program'].includes(value.kind) && value.intentCid === outcome.intentCid;
-    if (!projectsProblem && !observesInput) return outcome;
+    if (!projectsProblem) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
     if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format))) return outcome;
     let disclosable = !projectsProblem;
-    let checkObservation;
     try {
       const report = await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, kind: intent.kind === 'program' ? 'program' : 'text',
         scope: 'bound_input', input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
-      if (validCheckOutcome(report)) checkObservation = report;
       disclosable = !projectsProblem || validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
         ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
@@ -151,10 +148,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
     const projected = disclosable ? outcome : {...outcome,
       problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
-    // This newly bound observation is response metadata, never a journal
-    // record or a permission to inspect another submission's original input.
-    return immutable({...projected, ...(observesInput && checkObservation !== undefined
-      ? {checkObservation} : {})});
+    // This separate current disclosure check can gate the stored Problem,
+    // but is never the original preparation's transient CheckOutcome.
+    return immutable(projected);
   };
   const refresh = async (value, retained, fields) => {
     if (['not_accepted', 'preparation_failed'].includes(retained.phase)) return storedOutcome(retained);
@@ -333,7 +329,21 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
           : attempt.record(value.submissionRef, input, {...restartFields(current), phase: kind, outcome}))
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
-      return await discloseOutcome(value, storedOutcome(result), current, result);
+      const disclosed = await discloseOutcome(value, storedOutcome(result), current, result);
+      let checkObservation;
+      if (observeOriginalPreparationFailure !== undefined) {
+        try {
+          const original = await observeOriginalPreparationFailure(error, value);
+          if (validCheckOutcome(original)) checkObservation = original;
+        } catch {
+          // Optional reporting neither replaces the original refusal nor
+          // acknowledges its Request/physical cleanup. There is no recheck.
+        }
+        const after = await authorize(value);
+        if (after.authorityScopeCid !== current.authorityScopeCid ||
+            after.namespaceId !== current.namespaceId) fail('ClientRequestLookupDenied');
+      }
+      return immutable({...disclosed, ...(checkObservation === undefined ? {} : {checkObservation})});
     };
     let preparedProgram;
     try {

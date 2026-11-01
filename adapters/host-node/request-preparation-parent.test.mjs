@@ -1677,3 +1677,76 @@ test('Remote Request uses the existing managed parent and rejects mixed transpor
     await invalid.view.close();
   }
 });
+
+// Same actual manager/Resource parent; typed Check and report results remain
+// explicit ports here. The compiled projection is exercised separately.
+async function originalCheckFixture(project) {
+  const environment = {}, f = await fixture({environment}), moon = f.context.runtime;
+  const request = {}, originalResult = {$tag: 0, _0: {originalCheckIssue: true}};
+  let checks = 0;
+  if (project !== undefined) moon.clientProgramProjectRequestCheckOutcome = project;
+  moon.clientProgramPrepareRequestNativeComputation = function(parent, receipt) {
+    assert.strictEqual(this, moon); assert.strictEqual(parent, f.parent);
+    assert.strictEqual(receipt, selected); checks++; return originalResult;
+  };
+  moon.clientProgramRequestPreparationIssueCode = function(result) {
+    assert.strictEqual(this, moon); assert.strictEqual(result, originalResult); return 'check_invalid_input';
+  };
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const selected = f.view.beforeSourceSnapshot('program', input(), {parameters: null}, connection);
+  const body = f.view.captureSourceSnapshot(selected, {kind: 'program', input: input(), parameters: null}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(selected, body); f.view.bindSourceRequest(selected, body, request);
+  let failure;
+  await assert.rejects(f.view.fundedPreparation(request, environment), error => {
+    assert.equal(error.code, 'ClientProgramInvalidInput'); failure = error; return true;
+  });
+  return {...f, moon, request, receipt: selected, originalResult, failure, get checks() {return checks;}};
+}
+
+const originalReportMetadata = Object.freeze(['visible', 'context', 'program', 'revision', 17,
+  undefined, 0, undefined, 0, 'correlation', undefined]);
+
+test('original Request Check projection retains exact result receiver and receipt without another preparation', async () => {
+  let f, calls = 0;
+  const project = function(parent, receipt, result, ...metadata) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.parent);
+    assert.strictEqual(receipt, f.receipt); assert.strictEqual(result, f.originalResult);
+    assert.deepEqual(metadata, originalReportMetadata); calls++; return ok('original public wire');
+  };
+  f = await originalCheckFixture(project);
+  try {
+    f.moon.clientProgramProjectRequestCheckOutcome = () => assert.fail('Use the captured original method');
+    assert.equal(f.view.projectOriginalCheckOutcome(f.request, new Error('same-looking refusal'), originalReportMetadata), undefined);
+    assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), 'original public wire');
+    await assert.rejects(f.view.fundedPreparation(f.request, f.context.environment), error => error === f.failure);
+    assert.equal(f.checks, 1); assert.equal(calls, 1);
+    f.view.finishSourceProducer(f.receipt, 'failed');
+    assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), undefined);
+    assert.equal(calls, 1);
+  } finally {await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('original Request Check projection omits absent or unavailable typed observation without decoding Option', async () => {
+  for (const project of [undefined, () => ok(undefined)]) {
+    const f = await originalCheckFixture(project);
+    try {
+      assert.equal(f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata), undefined);
+      assert.equal(f.checks, 1);
+    } finally {f.view.finishSourceProducer(f.receipt, 'failed'); await f.view.close();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
+test('original Request Check projection fences retirement reentry before returning its wire', async () => {
+  let f;
+  f = await originalCheckFixture(() => {
+    f.view.finishSourceProducer(f.receipt, 'failed'); return ok('must not escape after retirement');
+  });
+  try {
+    assert.throws(() => f.view.projectOriginalCheckOutcome(f.request, f.failure, originalReportMetadata),
+      {code: 'ForeignInstalledSourceProducer'});
+    assert.equal(f.checks, 1);
+  } finally {await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});

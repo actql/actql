@@ -5031,3 +5031,39 @@ Host can retain its existing coarse current-audience problem, but a fresh
 check is not evidence of that former original. Alias retirement and absence of
 a report do not settle the parent or acknowledge physical cleanup; the same
 existing Request and child cleanup duties still apply.
+
+
+### Node caller and transient disclosure
+
+The existing Node Request state captures the installation's original projection
+method before input capture can await. It retains the exact result of its
+semantic check before the typed failure projection throws. Only the same failed
+Request, parent, input receipt and failure object can supply that result; a
+later compiler, provider or physical failure cannot become an original Check
+observation. The existing Resource parent continues to own the check child and
+its report overlap while audience authorization is awaited. Synchronous current
+fences reject replacement or retirement before the projected wire is returned.
+
+The existing checker installation issues fresh HMAC context/input bindings and
+collects current audience visibility for this optional projection. It does not
+run its public semantic checker to produce the original report. The text path
+never substitutes its query-alias namespace for a nominal Source selector
+namespace. Missing or retired originals omit the observation; projection failure
+also omits it without replacing the refusal or acknowledging cleanup. The
+ordinary Request retirement cuts clear these aliases only through their
+existing cleanup protocol.
+
+Only the initial response may carry this transient observation. Journal stores
+the original coarse Problem and acceptance facts, never the report. A separate
+fresh checker still gates disclosure of that stored Source-dependent Problem:
+losing access hides it, and restored access can reveal it again. Reference-only
+lookup and a repeated submission do not reconstruct an original observation.
+Connection authorization is checked again after optional asynchronous reporting.
+No public request option, owner, resource grant or reporting cache is added.
+
+Focused caller tests exercise exact result/receiver/receipt forwarding, absent
+and retired omission, currentness reentry, HMAC input binding, reporting failure
+and current-audience authorization. Explicit Core ports are identified as such;
+the matching compiled-parent case separately exercises actual Request/check and
+report constructors. Neither category establishes packed ordinary Run, Saved or
+physical Host-close acceptance.

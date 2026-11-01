@@ -19722,7 +19722,7 @@
     {
       "module": "adapters/host-node/client-check.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16eddfdae3b5c90ab23e85cfc49b0e605abd1a9d602822801f2d211970c01784",
+      "sha256": "2d2cb4c13fbf4360aa788d2045b877020be52b177a8c154fb354a1a402be6ea3",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -19777,7 +19777,8 @@
         {
           "name": "installNodeClientCheck/check/check",
           "parameters": [
-            "request"
+            "request",
+            "projectOriginal"
           ],
           "async": true
         },
@@ -19843,6 +19844,14 @@
         {
           "name": "installNodeClientCheck/installNodeClientCheck#4",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientCheck/installNodeClientCheck#5",
+          "parameters": [
+            "request",
+            "project"
+          ],
           "async": false
         },
         {
@@ -20425,6 +20434,78 @@
               {
                 "path": "adapters/host-node/client-check-update-publication.test.mjs",
                 "anchor": "test('installation captures the original disclosure callback and receiver once'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientCheck/installNodeClientCheck#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "original Request observation is transient initial metadata"
               }
             ]
           }
@@ -27826,7 +27907,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27989,7 +28070,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28621,7 +28702,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -36050,7 +36131,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e4b51c3d7a3e5fc5deeb17e082ce14fd2d74edc047f03c3e109a767311927d73",
+      "sha256": "292274969317ea7066f6755296bc8c4268ea84d9398794b61762bb21556340ba",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36089,6 +36170,7 @@
             "submit",
             "lookupRequest",
             "checkSubmissionInput",
+            "observeOriginalPreparationFailure",
             "bindOwnedRequest",
             "admitPreparedSubmission",
             "preparationCustody",
@@ -108739,6 +108821,20 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
+          "parameters": [
+            "request",
+            "failure",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome/assertSame/assertSame",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
           "parameters": [
             "prepared"
@@ -112212,10 +112308,83 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome",
+            "prepareOrdinaryManagedInstallation/view/init:projectOriginalCheckOutcome/init:projectOriginalCheckOutcome/assertSame/assertSame"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Node caller and transient disclosure"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "original Request Check projection retains exact result receiver and receipt"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "3a927c2bff1be09200d307f4952ceea62ffebadb73d87a09247066493fdabac8"
+      "sha256": "9f4e73ad49fae9268d9423a241b18b04e9cdc8308f0e27a018990bc0db9ecc0c"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -116436,7 +116605,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "d4c1f06221d196855216ea5bf55322303e9f07280a5f24fffdc23b169742e7db",
+      "sha256": "7513c7005d632ef86956515ce2386060954234f42939a8a9ea4a0a25cf9aa8d4",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -120106,7 +120275,7 @@
       "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -120878,7 +121047,7 @@
       "sha256": "b316bbda6a28ab1c3feea0dadc964e01612d9085a0095f6a8a21abbc17ae5cc9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -121567,7 +121736,7 @@
       "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
